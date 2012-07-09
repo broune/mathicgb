@@ -1,0 +1,86 @@
+# options passed to aclocal, which is a tool for making macroes visible to
+# autoconf. We use -I to tell aclocal where we put the local macros.
+ACLOCAL_AMFLAGS = -I build/autotools/m4
+
+# Options passed to the C PreProcessor (CPP), NOT the C Plus Plus compiler.
+AM_CPPFLAGS = -I${top_srcdir}/
+libmathicgb_la_CPPFLAGS = $(DEPS_CFLAGS)
+
+# tell Libtool what the name of the library is.
+noinst_LTLIBRARIES = libmathicgb.la
+
+# set the C++ compiler to include src/
+AM_CXXFLAGS=-I$(top_srcdir)/src/
+
+# libraries that are needed by this library
+libmathicgb_la_LIBADD= $(DEPS_LIBS)
+
+# the sources that are built to make libmathicgb. Listing the headers in
+# sources ensure that those files are included in distributions.
+libmathicgb_la_SOURCES = src/mathicgb/BitTriangle.cpp					\
+  src/mathicgb/BitTriangle.hpp src/mathicgb/BjarkeGeobucket.cpp			\
+  src/mathicgb/BjarkeGeobucket.hpp src/mathicgb/BuchbergerAlg.cpp		\
+  src/mathicgb/BuchbergerAlg.hpp src/mathicgb/ChainedHashTable.cpp		\
+  src/mathicgb/ChainedHashTable.hpp src/mathicgb/DivisorLookup.cpp		\
+  src/mathicgb/DivisorLookup.hpp src/mathicgb/DivLookup.cpp				\
+  src/mathicgb/DivLookup.hpp src/mathicgb/FreeModuleOrder.cpp			\
+  src/mathicgb/FreeModuleOrder.hpp src/mathicgb/GroebnerBasis.cpp		\
+  src/mathicgb/GroebnerBasis.hpp src/mathicgb/HashTourReducer.cpp		\
+  src/mathicgb/HashTourReducer.hpp src/mathicgb/Ideal.cpp				\
+  src/mathicgb/Ideal.hpp src/mathicgb/io-util.cpp						\
+  src/mathicgb/io-util.hpp src/mathicgb/KoszulQueue.cpp					\
+  src/mathicgb/KoszulQueue.hpp src/mathicgb/MonomialHashTable.cpp		\
+  src/mathicgb/MonomialHashTable.hpp src/mathicgb/MonTableDivList.cpp	\
+  src/mathicgb/MonTableDivList.hpp src/mathicgb/MonTableKDTree.cpp		\
+  src/mathicgb/MonTableKDTree.hpp src/mathicgb/MonTableNaive.cpp		\
+  src/mathicgb/MonTableNaive.hpp src/mathicgb/MTArray.cpp				\
+  src/mathicgb/MTArray.hpp src/mathicgb/PairTriangle.cpp				\
+  src/mathicgb/PairTriangle.hpp src/mathicgb/Poly.cpp					\
+  src/mathicgb/Poly.hpp src/mathicgb/PolyBasis.cpp						\
+  src/mathicgb/PolyBasis.hpp src/mathicgb/PolyGeoBucket.cpp				\
+  src/mathicgb/PolyGeoBucket.hpp src/mathicgb/PolyHashReducer.cpp		\
+  src/mathicgb/PolyHashReducer.hpp src/mathicgb/PolyHashTable.cpp		\
+  src/mathicgb/PolyHashTable.hpp src/mathicgb/PolyHeap.cpp				\
+  src/mathicgb/PolyHeap.hpp src/mathicgb/PolyReducer.cpp				\
+  src/mathicgb/PolyReducer.hpp src/mathicgb/PolyRing.cpp				\
+  src/mathicgb/PolyRing.hpp src/mathicgb/Reducer.cpp					\
+  src/mathicgb/Reducer.hpp src/mathicgb/ReducerDedup.hpp				\
+  src/mathicgb/ReducerHash.hpp src/mathicgb/ReducerHashPack.hpp			\
+  src/mathicgb/ReducerHelper.hpp src/mathicgb/ReducerNoDedup.hpp		\
+  src/mathicgb/ReducerPack.hpp src/mathicgb/ReducerPackDedup.hpp		\
+  src/mathicgb/SignatureGB.cpp src/mathicgb/SignatureGB.hpp				\
+  src/mathicgb/SPairHandler.cpp src/mathicgb/SPairHandler.hpp			\
+  src/mathicgb/SPairQueue.cpp src/mathicgb/SPairQueue.hpp				\
+  src/mathicgb/SPairs.cpp src/mathicgb/SPairs.hpp						\
+  src/mathicgb/stdinc.h src/mathicgb/TournamentReducer.cpp				\
+  src/mathicgb/TournamentReducer.hpp
+
+# When making a distribution file, Automake knows to include all files
+# that are necessary to build the project. EXTRA_DIST specifies files
+# to include beyond those used in the build process.
+EXTRA_DIST = autogen.sh libs/gtest
+
+bin_PROGRAMS = mgb
+
+# set up the divisor query simulation. Listing the headers in sources
+# ensure that those files are included in distributions.
+mgb_CPPFLAGS = $(DEPS_CFLAGS)
+mgb_SOURCES = src/cli/GBMain.cpp
+mgb_LDADD = $(top_builddir)/libmathicgb.la
+
+# set up tests to run on "make check"
+TESTS=unittest
+check_PROGRAMS=$(TESTS)
+
+unittest_CPPFLAGS = $(DEPS_CFLAGS)
+unittest_CXXFLAGS=\
+  -I$(top_srcdir)/libs/gtest/include\
+  -I$(top_srcdir)/libs/gtest/\
+  -I$(top_srcdir)/src/
+unittest_LDADD = $(DEPS_LIBS)
+unittest_LDFLAGS= $(top_builddir)/libmathicgb.la
+
+test_LIBS=
+unittest_SOURCES=src/test/FreeModuleOrderTest.cpp						\
+  src/test/gtestInclude.cpp src/test/testMain.cpp src/test/gb-test.cpp	\
+  src/test/ideals.cpp src/test/poly-test.cpp src/test/ideals.hpp
