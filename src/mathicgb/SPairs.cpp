@@ -47,7 +47,7 @@ namespace {
   public:
     RecordIndexes(
       size_t newGen,
-      BitTriangle& eliminated,
+      mathic::BitTriangle& eliminated,
       std::vector<size_t>& indexes
     ):
       mNewGen(newGen),
@@ -72,7 +72,7 @@ namespace {
     }
   private:
     size_t const mNewGen;
-    BitTriangle& mEliminated;
+	mathic::BitTriangle& mEliminated;
     std::vector<size_t>& mIndexes;
   };
 }

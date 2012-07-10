@@ -2,8 +2,8 @@
 #define _s_pairs_h_
 
 #include "PairTriangle.hpp"
-#include "BitTriangle.hpp"
 #include <utility>
+#include <mathic.h>
 
 class PolyBasis;
 
@@ -135,7 +135,7 @@ private:
   // basis element i and j does not have to be reduced. This can be due to a
   // useless S-pair criterion eliminating that pair, or it can be because the
   // S-polynomial of that pair has already been reduced.
-  BitTriangle mEliminated;
+  mathic::BitTriangle mEliminated;
   const PolyBasis& mBasis;
   const PolyRing& mRing;
   mutable Stats mStats;
