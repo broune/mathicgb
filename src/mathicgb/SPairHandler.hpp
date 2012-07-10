@@ -13,7 +13,7 @@
 #include "PolyRing.hpp"
 #include "KoszulQueue.hpp"
 #include "SPairQueue.hpp"
-#include "BitTriangle.hpp"
+#include <mathic.h>
 #include <memtailor.h>
 
 class Poly;
@@ -171,7 +171,7 @@ private:
   // one entry for every s-pair, which is set to true if the
   // s-pair is known to be a syzygy. Only used if
   // mUseBaseDivisors is true.
-  BitTriangle mKnownSyzygyTri;
+  mathic::BitTriangle mKnownSyzygyTri;
 
   // From elsewhere
   MonomialTableArray *Hsyz; // we often modify this
