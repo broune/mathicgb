@@ -1,4 +1,5 @@
-// Copyright 2011 Michael E. Stillman
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
 
 #ifndef _MonomialHashTable_h_
 #define _MonomialHashTable_h_
