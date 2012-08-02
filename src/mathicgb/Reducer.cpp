@@ -7,7 +7,7 @@
 #include "PolyGeoBucket.hpp"
 #include "PolyReducer.hpp"
 #include "PolyHashReducer.hpp"
-#include "BjarkeGeobucket.hpp"
+#include "BjarkeGeobucket2.hpp"
 #include "GroebnerBasis.hpp"
 #include "TournamentReducer.hpp"
 #include "HashTourReducer.hpp"
@@ -48,7 +48,7 @@ std::auto_ptr<Reducer> Reducer::makeReducerNullOnUnknown(
   case Reducer_PolyHash:
     return std::auto_ptr<Reducer>(new PolyHashReducer(&ring));
   case Reducer_BjarkeGeo:
-    return std::auto_ptr<Reducer>(new BjarkeGeobucket(&ring));
+    return std::auto_ptr<Reducer>(new BjarkeGeobucket2(&ring));
   case Reducer_TournamentTree:
     return std::auto_ptr<Reducer>(new TournamentReducer(ring));
     //return std::auto_ptr<Reducer>
@@ -147,7 +147,7 @@ void Reducer::displayReducerTypes(std::ostream &o)
   o << "   1   PolyGeoBucket" << std::endl;
   o << "   2   Poly" << std::endl;
   o << "   3   PolyHash" << std::endl;
-  o << "   4   BjarkeGeo" << std::endl;
+  o << "   4   BjarkeGeo2" << std::endl;
   o << "   5   Tournament tree" << std::endl;
   o << "   6   Hashed Tournament tree" << std::endl;
 
