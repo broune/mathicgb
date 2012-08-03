@@ -7,14 +7,6 @@
 #include "Reducer.hpp"
 #include "PolyHashTable.hpp"
 
-template<
-  bool TrackFront,
-  bool MinBucketBinarySearch,
-  bool Deduplicate,
-  bool Premerge,
-  bool CollectMax,
-  int BucketStorage,
-  size_t InsertFactor = 1>
 class GeoConfiguration {
 public:
   GeoConfiguration(
@@ -37,20 +29,19 @@ public:
   }
   bool cmpLessThan(CompareResult r) const {return r;}
 
-  static const bool supportDeduplication = Deduplicate;
-  bool cmpEqual(CompareResult r) const {return r;} // NOT USED IN OUR CASE HERRE!
+  static const bool supportDeduplication = false;
+  bool cmpEqual(CompareResult r) const {ASSERT(false);return r;} // NOT USED IN OUR CASE HERRE!
   Entry deduplicate(const Entry& a, const Entry& /* b */) const {ASSERT(false); return a;}
 
   size_t getComparisons() const {return _comparisons;}
   void resetComparisons() const {_comparisons = 0;}
 
-  static const bool minBucketBinarySearch = MinBucketBinarySearch;
-  static const bool trackFront = TrackFront;
-  static const bool premerge = Premerge;
-  static const bool collectMax = CollectMax;
-  static const mic::GeobucketBucketStorage bucketStorage =
-    (mic::GeobucketBucketStorage)BucketStorage;
-  static const size_t insertFactor = InsertFactor;
+  static const bool minBucketBinarySearch = true; // MinBucketBinarySearch;
+  static const bool trackFront = true; //TrackFront;
+  static const bool premerge = false;
+  static const bool collectMax = false;
+  static const mic::GeobucketBucketStorage bucketStorage = static_cast<mic::GeobucketBucketStorage>(1);
+  static const size_t insertFactor = 1;
 
 private:
   mutable size_t _comparisons;
@@ -99,16 +90,20 @@ protected:
   void resetReducer();
 
 private:
+  typedef mic::HashTable<BjarkeGeobucket2Configuration>::Node node;
+  typedef PolyHashTable::MonomialArray HashPoly;
+
+  void insert(Poly::const_iterator first, 
+              Poly::const_iterator last,
+              std::vector<node*> &result);
+
   void insert(const_term multiplier, Poly::iterator first, Poly::iterator last);
 
-  typedef PolyHashTable::MonomialArray HashPoly;
-  typedef GeoConfiguration<true,true,false,false,false,1,1> Configuration;
-
-  size_t mNodeCount;  // number of (distinct) monomials in mHeap
 
   const PolyRing &mRing;
   PolyHashTable mHashTableOLD;
-  mic::Geobucket< Configuration > mHeap;
+  mic::HashTable<BjarkeGeobucket2Configuration> mHashTable;
+  mic::Geobucket< GeoConfiguration > mHeap;
 };
 
 #endif
