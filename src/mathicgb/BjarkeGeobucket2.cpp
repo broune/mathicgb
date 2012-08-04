@@ -34,6 +34,7 @@ void BjarkeGeobucket2::insert(Poly::const_iterator first,
         {
           // remove the monomial.  It should be at the top of the mArena arena.
           mRing.freeTopMonomial(mArena,monomspace);
+          mRing.coefficientAddTo(found.second->value(), i.getCoefficient());
         }
       else
         {
