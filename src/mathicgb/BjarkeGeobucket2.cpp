@@ -13,7 +13,7 @@ BjarkeGeobucket2::BjarkeGeobucket2(const PolyRing *R0)
     mHeap(GeoConfiguration(*R0,4,1)),
     mHashTable(BjarkeGeobucket2Configuration(*R0),10)
 {
-  std::cerr << "Creating geobucket2" << std::endl;
+  //std::cerr << "Creating geobucket2" << std::endl;
 }
 
 BjarkeGeobucket2::~BjarkeGeobucket2()
