@@ -90,7 +90,7 @@ protected:
   void resetReducer();
 
 private:
-  typedef mic::HashTable<BjarkeGeobucket2Configuration>::Node node;
+  typedef mic::HashTable<BjarkeGeobucket2Configuration>::Handle node;
   typedef PolyHashTable::MonomialArray HashPoly;
 
   void insert(Poly::const_iterator first, 
