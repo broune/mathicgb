@@ -50,6 +50,9 @@
 #define ASSERT(X)
 #define IF_DEBUG(X)
 #endif
+// todo: eventually move all ASSERTs to MATHICGB_ASSERTs and then remove
+// ASSERT.
+#define MATHICGB_ASSERT(X) ASSERT(X)
 
 static const size_t BitsPerByte = 8;
 static const size_t MemoryAlignment = sizeof(void*);
