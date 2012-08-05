@@ -1,5 +1,5 @@
 #ifdef STDINC_GUARD
-#error stdinc.h included twice
+#error stdinc.h included twice. Only include stdinc.h once per cpp file.
 #endif
 #define STDINC_GUARD
 
@@ -32,19 +32,17 @@
 // obviously easily go wrong, but it is pretty useful to do as well,
 // so the warning is turned off.
 #pragma warning (disable: 4355)
-
-#if (defined _DEBUG) && (!defined DEBUG)
-#define DEBUG
-#endif
-
 #endif
 
 #include <cstddef>
 #include <memory>
 
-#ifdef DEBUG
+#ifdef MATHICGB_DEBUG
+// we have to define DEBUG as lots of code assumes that asserts are turned
+// on/off depending on DEBUG. Those should change to checking
+// MATHICGB_DEBUG and then we can remove this define.
+#define DEBUG
 #include <iostream> // Useful for debugging.
-#define PRINT
 #include <cassert>
 #define ASSERT(X) assert(X);
 #define IF_DEBUG(X) X
