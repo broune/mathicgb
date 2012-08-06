@@ -36,10 +36,6 @@ std::pair<size_t, size_t> SPairs::pop() {
   return std::make_pair(static_cast<size_t>(-1), static_cast<size_t>(-1));
 }
 
-size_t SPairs::size() const {
-  return mTri.size();
-}
-
 namespace {
   // Records multiples of a basis element.
   // Used in addPairs().

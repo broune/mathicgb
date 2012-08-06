@@ -33,7 +33,7 @@ void SignatureGB::computeGrobnerBasis()
 
     if (mBreakAfter > 0 && GB->size() > mBreakAfter) {
       break;
-      const size_t pairs = SP->size();
+      const size_t pairs = SP->pairCount();
       size_t sigs = 0;
       size_t syzygySigs = 0;
       while (!SP->empty()) {
@@ -126,7 +126,6 @@ SignatureGB::SignatureGB(
     SP->newPairs(i);
 
   if (tracingLevel >= 2) {
-    SP->dump();
     Hsyz->dump();
   }
 }
@@ -501,7 +500,7 @@ void SignatureGB::displaySomeStats(std::ostream& out) const {
 
   const size_t basisSize = GB->size();
   const double mseconds = mTimer.getMilliseconds();
-  const size_t pending = SP->size();
+  const size_t pending = SP->pairCount();
 
   name << "Time spent:\n";
   value << mTimer << '\n';

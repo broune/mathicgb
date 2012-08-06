@@ -1,84 +1,38 @@
 #ifndef _pair_triangle_h
 #define _pair_triangle_h
 
-#include "SPairQueue.hpp"
+#include <memtailor.h>
+#include <mathic.h>
 #include "PolyRing.hpp"
+#include "FreeModuleOrder.hpp"
 class FreeModuleOrder;
 
-typedef unsigned short SmallIndex;
+/*typedef unsigned short SmallIndex;
 typedef unsigned int BigIndex;
 
 // The following type is only used in the creation of SPairGroups
 struct PreSPair {
   BigIndex i;
   monomial signature;
-};
+  };*/
 
-class SPairGroup {
-public:
-  SPairGroup(size_t fixedIndex, monomial signature, std::vector<PreSPair>& prePairs, memt::Arena& arena);
-
-  monomial signature() {return mSignature;}
-  void setSignature(monomial signature) {mSignature = signature;}
-  const_monomial signature() const {return mSignature;}
-  size_t fixedIndex() const {return mFixedIndex;}
-  size_t otherIndex() const;
-
-  void increment();
-  bool empty() const;
-  size_t size() const; // number of S-pairs remaining in this group
-
-  void write(const PolyRing* R, std::ostream& out);
-
-private:
-  bool big() const;
-
-  monomial mSignature; // signature of the current pair
-  const size_t mFixedIndex; // all pairs here have this index
-
-  union {
-    BigIndex* bigBegin; // the current other index is *begin
-    SmallIndex* smallBegin;
-  };
-  union {
-    BigIndex* bigEnd; // the other indexes lie in [begin, end)
-    SmallIndex* smallEnd;
-  };
-};
-
-
-// Object that stores integer pairs.
-// The pairs are stored in the shape of a triangle:
-//
-//          3
-//        2 2
-//      1 1 1
-//    0 0 0 0
-//  ---------
-//  0 1 2 3 4
-//
-// So column a stores the numbers b such that (a,b) is a pair
-// with a > b. Not all pairs need be present, and there can be
-// any ordering of the entries in each column.
-//
-// PairTriangles are useful for storing S-pair indices, and the
-// class has code that helps with that.
+// Object that stores S-pairs and orders them according to a monomial
+// or signature.
 class PairTriangle {
 public:
   PairTriangle(
     const FreeModuleOrder& order,
     const PolyRing& ring,
     size_t queueType);
-  ~PairTriangle();
 
   // Returns how many columns the triangle has
-  size_t columnCount() const {return mColumnCount;}
+  size_t columnCount() const {return mPairQueue.columnCount();}
 
   // Returns how many pairs are in the triangle
-  size_t size() const;
+  size_t pairCount() const {return mPairQueue.pairCount();}
 
   // Returns true if there are no pairs in the triangle
-  bool empty() const {return mQueue->empty();}
+  bool empty() const {return mPairQueue.empty();}
 
   // Adds a new column of the triangle and opens it for addition of pairs.
   // This increases columnCount() by one, and the index of the new column
@@ -111,6 +65,7 @@ public:
   size_t getMemoryUse() const;
 
   std::string name() const;
+  size_t mColumnCount;
 
 protected:
   // Sub classes implement this to say what monomial each pair is ordered
@@ -121,15 +76,58 @@ protected:
   virtual bool calculateOrderBy(size_t a, size_t b, monomial orderBy) const = 0;
 
 private:
-  bool const mUseSingletonGroups;
-  size_t mColumnCount;
-  std::vector<SPairGroup*> mGroups;
-  std::auto_ptr<SPairQueue> mQueue;
-  memt::Arena mArena;
   FreeModuleOrder const& mOrder;
   std::vector<PreSPair> mPrePairs;
-  std::vector<PreSPair> mPrePairTmp;
   PolyRing const& mRing;
+
+  class PC {
+  public:
+	PC(PairTriangle const& tri): mTri(tri) {}
+	
+	typedef monomial PairData;
+	void computePairData(size_t col, size_t row, monomial m) {
+	  mTri.calculateOrderBy(col, row, m);
+	}
+
+	typedef bool CompareResult;
+	bool compare(int colA, int rowA, const_monomial a,
+				 int colB, int rowB, const_monomial b) const {
+	  return mTri.mOrder.signatureCompare(a, b) == GT;
+	}
+	bool cmpLessThan(bool v) const {return v;}
+
+	// these are not required for a configuration but we will use
+	// them from this code.
+	monomial allocPairData() {return mTri.mRing.allocMonomial();}
+	void freePairData(monomial m) {mTri.mRing.freeMonomial(m);}
+
+  private:
+	PairTriangle const& mTri;
+  };
+  mathic::PairQueue<PC> mPairQueue;
+  friend void mathic::PairQueueNamespace::constructPairData<PC>(void*,Index,Index,PC&);
+  friend void mathic::PairQueueNamespace::destructPairData<PC>(monomial*,Index,Index, PC&);
 };
+
+namespace mathic {
+  namespace PairQueueNamespace {
+	template<>
+	inline void constructPairData<PairTriangle::PC>
+	(void* memory, Index col, Index row, PairTriangle::PC& conf) {
+	  MATHICGB_ASSERT(memory != 0);
+	  MATHICGB_ASSERT(col > row);
+	  monomial* pd = new (memory) monomial(conf.allocPairData());
+	  conf.computePairData(col, row, *pd);
+	}
+
+	template<>
+	inline void destructPairData
+	(monomial* pd, Index col, Index row, PairTriangle::PC& conf) {
+	  MATHICGB_ASSERT(pd != 0);
+	  MATHICGB_ASSERT(col > row);
+	  conf.freePairData(*pd);
+	}	
+  }
+}
 
 #endif

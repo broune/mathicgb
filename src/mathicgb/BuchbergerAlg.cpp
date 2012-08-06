@@ -216,7 +216,7 @@ void BuchbergerAlg::printStats(std::ostream& out) const {
 
   const size_t basisSize = mBasis.size();
   const double mseconds = mTimer.getMilliseconds();
-  const size_t pending = mSPairs.size();
+  const size_t pending = mSPairs.pairCount();
 
   name << "Time spent:\n";
   value << mTimer << '\n';

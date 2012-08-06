@@ -14,7 +14,7 @@ public:
   SPairs(const PolyBasis& basis, size_t queueType);
 
   // Returns the number of S-pairs in the data structure.
-  size_t size() const;
+  size_t pairCount() const {mTri.pairCount();}
 
   // Returns true if there all S-pairs have been eliminated or popped.
   bool empty() const {return mTri.empty();}

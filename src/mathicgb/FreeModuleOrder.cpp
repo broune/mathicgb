@@ -4,77 +4,10 @@
 #include <iostream>
 #include <algorithm>
 #include "FreeModuleOrder.hpp"
-#include "SPairQueue.hpp"
 #include "Poly.hpp"
 #include "Ideal.hpp"
 #include <mathic.h>
-
-namespace {
-  struct SizeSummer {
-  public:
-    SizeSummer(): mSum(0) {}
-    bool proceed(const SPairGroup* group) {
-      mSum += group->size();
-      return true;
-    }
-    size_t sum() const {return mSum;}
-  private:
-    size_t mSum;
-  };
-}
-
-template<class Cmp, template<class> class Queue = mathic::TourTree>
-class ConcreteQueue : public SPairQueue {
-public:
-  ConcreteQueue(const Cmp& cmp): mQueue(Configuration(cmp)) {}
-
-  virtual bool empty() const {return mQueue.empty();}
-  virtual void push(const Entry& entry) {mQueue.push(entry);}
-  virtual Entry pop() {return mQueue.pop();}
-  virtual Entry top() const {return mQueue.top();}
-  virtual void decreaseTop(const Entry& newValue) {
-    mQueue.decreaseTop(newValue);
-  }
-
-  virtual void print(std::ostream& out) const {mQueue.print(out);}
-  virtual std::string getName() const {return mQueue.getName();}
-  virtual size_t getMemoryUse() const {return mQueue.getMemoryUse();}
-  virtual size_t sumOfSizes() const {
-    SizeSummer summer;
-    mQueue.forAll(summer);
-    return summer.sum();
-  }
-
-private:
-  class Configuration {
-  public:
-    typedef SPairQueue::Entry Entry;
-
-    Configuration(const Cmp& cmp): mCmp(cmp) {}
-
-    typedef int CompareResult;
-    CompareResult compare(const Entry& a, const Entry& b) const {
-      return mCmp.signatureCompare(a->signature(), b->signature());
-    }
-    bool cmpLessThan(CompareResult r) const {return r == GT;}
-    bool cmpEqual(CompareResult r) const {
-      ASSERT(false); // not supposed to be used
-      return r == EQ;
-    }
-    Entry deduplicate(const Entry& a, const Entry& b) const {
-      ASSERT(false); // not supposed to be used
-      return a;
-    }
-
-    static const bool supportDeduplication = false;
-    static const bool fastIndex = true;
-
-  private:
-    const Cmp& mCmp;
-  };
-
-  Queue<Configuration> mQueue;
-};
+#include "PairTriangle.hpp"
 
 template<class Cmp>
 class ConcreteOrder : public FreeModuleOrder {
@@ -105,20 +38,6 @@ public:
 
   virtual void appendBasisElement(const_monomial m) {
     mCmp.appendBasisElement(m);
-  }
-
-  virtual std::auto_ptr<SPairQueue> makeQueue(size_t queueType) const {
-    switch (queueType) {
-    case 0:
-      return std::auto_ptr<SPairQueue>
-        (new ConcreteQueue<Cmp, mic::TourTree>(mCmp));
-    case 1:
-      return std::auto_ptr<SPairQueue>
-        (new ConcreteQueue<Cmp, mic::Heap>(mCmp));
-    default:
-      mic::reportError("Unknown queue type.");
-      return std::auto_ptr<SPairQueue>(); // won't reach this far
-    }
   }
 
   virtual std::string description() const {
