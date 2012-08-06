@@ -12,7 +12,6 @@
 #include <vector>
 #include "PolyRing.hpp"
 #include "KoszulQueue.hpp"
-#include "SPairQueue.hpp"
 #include <mathic.h>
 #include <memtailor.h>
 
@@ -42,23 +41,8 @@ public:
   typedef std::vector<std::pair<size_t, size_t> > PairContainer;
   monomial popSignature(PairContainer& pairs);
 
+  // fills in all the S-pairs with i.
   void newPairs(size_t i);
-  // fills in the next SPairGroup
-  // loops through 0..i-1 making each pair
-  // do the following for each new pair:
-  // a. create it (meaning, find gcd, and two multipliers, and two signatures
-  // b. determine which one is larger, discard the other
-  // c. check if that signature is in the Hsyz module.
-  //    if so: throw it out
-  //    if not: insert it into the current vector
-  //            compute lead term of the corresponding Koszul syz
-  //            if that is not in Hsyz, then insert it.
-  // d. sort the vector of spairs
-  // e. insert the first one onto the spair heap
-
-  // debug display
-  void dump() const;
-  void write(std::ostream &out) const;
 
   // Set to true to enable hasEssentialPair().
   void setTrackEssentialPair(bool value);
@@ -104,7 +88,7 @@ public:
   };
   Stats getStats() const;
 
-  size_t size() const {return mTri.size();}
+  size_t pairCount() const {return mTri.pairCount();}
 
   size_t getMemoryUse() const;
   size_t getKnownSyzygyBitsMemoryUse() const;
@@ -136,8 +120,6 @@ private:
   // lead term of div. Only used if mTrackEssentialPair is true.
   std::vector<char> mDidReducingSPair;
 
-  bool increment(SPairGroup* p);
-
   void makePreSPairs(size_t newGen);
 
   struct BaseDivisor { // a low ratio base divisor
@@ -155,8 +137,6 @@ private:
   const PolyRing *R;
 
   FreeModuleOrder *F;
-
-  std::vector<SPairGroup *> heap; // the actual heap
 
   // if true, apply the early singular criterion
   bool const mUseSingularCriterionEarly;

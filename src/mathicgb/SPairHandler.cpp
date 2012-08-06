@@ -593,25 +593,9 @@ std::string SPairHandler::name() {
   return mTri.name();
 }
 
-void SPairHandler::write(std::ostream &out) const
-{
-  out << "-- spairs --" << std::endl;
-  // We write out all the pairs, one per line, in the form: [i j signature]
-  // We do each element of the heap:
-  for (size_t i = 0; i<heap.size(); i++)
-    heap[i]->write(R, out);
-}
-void SPairHandler::dump() const
-{
-  write(std::cerr);
-}
-
 size_t SPairHandler::getMemoryUse() const
 {
-  return
-    mTri.getMemoryUse() +
-    heap.capacity() * sizeof(heap.front()) +
-    getKnownSyzygyBitsMemoryUse();
+  return mTri.getMemoryUse() + getKnownSyzygyBitsMemoryUse();
 }
 
 size_t SPairHandler::getKnownSyzygyBitsMemoryUse() const {

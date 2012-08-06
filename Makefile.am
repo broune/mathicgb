@@ -17,9 +17,8 @@ libmathicgb_la_LIBADD= $(DEPS_LIBS)
 
 # the sources that are built to make libmathicgb. Listing the headers in
 # sources ensure that those files are included in distributions.
-libmathicgb_la_SOURCES = src/mathicgb/BjarkeGeobucket2.cpp			\
-  src/mathicgb/BjarkeGeobucket2.hpp 						\
-  src/mathicgb/BjarkeGeobucket.cpp				\
+libmathicgb_la_SOURCES = src/mathicgb/BjarkeGeobucket2.cpp				\
+  src/mathicgb/BjarkeGeobucket2.hpp src/mathicgb/BjarkeGeobucket.cpp	\
   src/mathicgb/BjarkeGeobucket.hpp src/mathicgb/BuchbergerAlg.cpp		\
   src/mathicgb/BuchbergerAlg.hpp src/mathicgb/ChainedHashTable.cpp		\
   src/mathicgb/ChainedHashTable.hpp src/mathicgb/DivisorLookup.cpp		\
@@ -51,7 +50,6 @@ libmathicgb_la_SOURCES = src/mathicgb/BjarkeGeobucket2.cpp			\
   src/mathicgb/ReducerPack.hpp src/mathicgb/ReducerPackDedup.hpp		\
   src/mathicgb/SignatureGB.cpp src/mathicgb/SignatureGB.hpp				\
   src/mathicgb/SPairHandler.cpp src/mathicgb/SPairHandler.hpp			\
-  src/mathicgb/SPairQueue.cpp src/mathicgb/SPairQueue.hpp				\
   src/mathicgb/SPairs.cpp src/mathicgb/SPairs.hpp						\
   src/mathicgb/stdinc.h src/mathicgb/TournamentReducer.cpp				\
   src/mathicgb/TournamentReducer.hpp

@@ -4,12 +4,18 @@
 #define _free_module_order_h_
 
 #include "PolyRing.hpp"
-#include "PairTriangle.hpp"
 
 class PolyRing;
-class SPairQueue;
 class Ideal;
 typedef int FreeModuleOrderType;
+
+typedef unsigned short SmallIndex;
+typedef unsigned int BigIndex;
+
+struct PreSPair {
+  BigIndex i;
+  monomial signature;
+};
 
 class FreeModuleOrder
 {
@@ -38,8 +44,6 @@ public:
   virtual void getStats(size_t& comparisons, size_t& preComparisons) const = 0;
 
   virtual std::string description() const = 0;
-
-  virtual std::auto_ptr<SPairQueue> makeQueue(size_t type) const = 0;
 
   static FreeModuleOrder* makeOrder(FreeModuleOrderType type, const Ideal* I);
 
