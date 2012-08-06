@@ -1,97 +1,206 @@
 #!/bin/env bash
 
-allCPPFLAGS="-Wall -Wextra -Wno-uninitialized -Wno-unused-parameter"
+mildWarn="-Wall -Wextra"
 
-# optimized build
-relName="rel";
-relCPPFLAGS="-O2 -DNDEBUG";
-relMakeArgs="";
+#############################################
+################## projects #################
+#############################################
 
-# optimized build with asserts
-relAssertName="relass";
-relAssertCPPFLAGS="-O2 -DMEMTAILOR_DEBUG -DMATHIC_DEBUG -DMATHICGB_DEBUG";
-relAssertMakeArgs="";
+# memtailor
+memtailorIndex=${#projectsName[@]}
+projectsName+=("memtailor");
+projectsGitUrl+=("https://github.com/broune/memtailor.git");
+projectsDependencies+=("");
 
-# debug build with asserts
-debName="deb";
-debCPPFLAGS="-g -DMEMTAILOR_DEBUG -DMATHIC_DEBUG -DMATHICGB_DEBUG";
-debMakeArgs="";
+# mathic
+mathicIndex=${#projectsName[@]}
+projectsName+=("mathic");
+projectsGitUrl+=("https://github.com/broune/mathic.git");
+projectsDependencies+=("memtailor");
 
-# debug build without asserts
-debNoAssertName="debnoass";
-debNoAssertCPPFLAGS="-g -DNDEBUG";
-debNoAssertMakeArgs="";
+# mathicgb
+mathicgbIndex=${#projectsName[@]}
+projectsName+=("mathicgb");
+projectsGitUrl+=("https://github.com/broune/mathicgb.git");
+projectsDependencies+=("memtailor mathic");
 
-# profile build
-proName="pro";
-proCPPFLAGS="-g -pg -DNDEBUG -O2";
-proMakeArgs="";
+#############################################
+################## targets ##################
+#############################################
+
+# release
+relIndex=${#targetsName[@]};
+targetsName+=("rel");
+targetsDescription+=("Release build. Optimized, no debug symbols, no asserts.");
+targetsCPPFLAGS+=("-O2");
+targetsCXXFLAGS+=("");
+targetsMakeArgs+=("");
+targetsDefault+=("yes");
+
+# optimized with asserts
+relassIndex=${#targetsName[@]};
+targetsName+=("relass");
+targetsDescription+=("Optimized build with asserts. No debug symbols.");
+targetsCPPFLAGS+=("-O2 -DMEMTAILOR_DEBUG -DMATHIC_DEBUG -DMATHICGB_DEBUG $mildWarn");
+targetsCXXFLAGS+=("");
+targetsMakeArgs+=("");
+targetsDefault+=("yes");
+
+# debug with asserts
+debIndex=${#targetsName[@]};
+targetsName+=("deb");
+targetsDescription+=("Debug build with asserts. Not optimized.");
+targetsCPPFLAGS+=("-g -DMEMTAILOR_DEBUG -DMATHIC_DEBUG -DMATHICGB_DEBUG $mildWarn");
+targetsCXXFLAGS+=("");
+targetsMakeArgs+=("");
+targetsDefault+=("yes");
+
+#debug without asserts
+debnoassIndex=${#targetsName[@]};
+targetsName+=("debnoass");
+targetsDescription+=("Debug build without asserts. Not optimized.");
+targetsCPPFLAGS+=("-g $mildWarn");
+targetsCXXFLAGS+=("");
+targetsMakeArgs+=("");
+targetsDefault+=("no");
+
+# profile
+proIndex=${#targetsName[@]};
+targetsName+=("pro");
+targetsDescription+=("Profile build with optimization and no asserts.");
+targetsCPPFLAGS+=("-g -pg -O2 $mildWarn");
+targetsCXXFLAGS+=("");
+targetsMakeArgs+=("");
+targetsDefault+=("no");
+
+# profile profile with asserts
+proIndex=${#targetsName[@]};
+targetsName+=("pro");
+targetsDescription+=("Profile build with optimization and asserts.");
+targetsCPPFLAGS+=("-g -pg -O2 $mildWarn");
+targetsCXXFLAGS+=("");
+targetsMakeArgs+=("");
+targetsDefault+=("no");
 
 # analyze build: a larger amount of warnings turned on
-anaName="ana";
-anaCPPFLAGS="-fsyntax-only -O1 -Wfloat-equal -Wundef\
+anaIndex=${#targetsName[@]};
+targetsName+=("ana");
+targetsDescription+=("Build with many warnings turned on and -Werror.");
+targetsCPPFLAGS+=("-Wall -Wextra -Wno-uninitialized -Wno-unused-parameter\
+  -fsyntax-only -O1 -Wfloat-equal -Wundef\
   -Wno-endif-labels -Wshadow -Wlarger-than-1000 -Wpointer-arith \
   -Wcast-qual -Wcast-align -Wwrite-strings -Wconversion -Wsign-compare \
   -Waggregate-return -Wmissing-noreturn -Wmissing-format-attribute \
   -Wno-multichar -Wno-deprecated-declarations -Wpacked \
   -Wno-redundant-decls -Wunreachable-code -Winline \
   -Wno-invalid-offsetof -Winvalid-pch -Wlong-long \
-  -Wdisabled-optimization -D DEBUG -Werror"
-anaMakeArgs="";
+  -Wdisabled-optimization -D DEBUG -Werror");
+targetsCXXFLAGS+=("");
+targetsMakeArgs+=("");
+targetsDefault+=("no");
+
+
+function makeHelpComment {
+  echo "# This file was auto-generated using the script "
+  echo "#   mathicgb/build/setup/make-Makefile.sh";
+  echo "# As such it is recommended to change that script instead of "
+  echo "# changing this file if you want to keep the changes in future."
+  echo "#";
+  echo "# The projects that you can build are"
+  for ((i=0; i<${#projectsName[@]}; i++)); do
+    echo "#";
+    echo "#   Project: ${projectsName[i]}.";
+    echo "#     gitUrl=${projectsGitUrl[i]}";
+    echo "#     dependencies=${projectsDependencies[i]}";
+  done
+
+  echo "#";
+  echo "# Within each project the targets than you can build are";
+  for ((i=0; i<${#targetsName[@]}; i++)); do
+    echo "#";
+    echo "#   Target: ${targetsName[i]}. ${targetsDescription[i]}";
+    echo "#     CPPFLAGS=${targetsCPPFLAGS[i]}";
+    echo "#     CXXFLAGS=${targetsCXXFLAGS[i]}";
+    echo "#     makeArgs=${targetsMakeArgs[i]}";
+    echo "#     buildsByDefault=${targetsDefault[i]}";
+  done
+
+  echo "#";
+  echo "# To build everything that builds by default, type \"make\".";
+  echo "#   (\"make\" will take quite a while to run.)";
+  echo "# To build all rel targets, type \"make rel\".";
+  echo "# To build target rel of mathic, type \"make mathicrel\".";
+  echo "# This will automatically build memtailorrel too due to the";
+  echo "# dependency.";
+  echo;
+}
 
 function makeTarget {
-  projectName="$1";
-  targetName="$2";
-  makeArgs="$3";
-  configureArgs="$4";
-  if [ "$5" = "" ]; then
-    dependency="";
-  else
-    dependency="$5$targetName";
-  fi
+  projectIndex="$1";
+  projectName="${projectsName[projectIndex]}";
+  projectDependencies="${projectsDependencies[projectIndex]}";
 
+  targetIndex="$2";
+  targetName="${targetsName[targetIndex]}";
+  targetCPPFLAGS="${targetsCPPFLAGS[targetIndex]}";
+  targetCXXFLAGS="${targetsCXXFLAGS[targetIndex]}";
+  targetMakeArgs="${targetsMakeArgs[targetIndex]}";
+  targetDefault="${targetsDefault[targetIndex]}";
+
+  dependencies="";
+  for depProject in $projectDependencies; do
+    dependencies+=" $depProject$targetName";
+  done
+
+  name="$projectName$targetName"
   targetDir="$projectName/$targetName";
   prefix="\${PWD}/installed/$targetName";
 
-  echo "$projectName$targetName: ${projectName}basic $dependency"
+  echo "$name: ${projectName}BasicSetup $dependencies"
   echo $'\t'"rm -rf \"$targetDir\""
   echo $'\t'"mkdir -p \"$targetDir\" \"$prefix/lib/pkgconfig\";"
   echo $'\t'"( \\"
   echo $'\t'"  cd \"$targetDir\"; \\"
   echo $'\t'"  export PKG_CONFIG_PATH=\"$prefix/lib/pkgconfig\"; \\";
-  echo $'\t'"  ../configure --prefix=\"$prefix\" CXXFLAGS=\"\" CPPFLAGS=\"$configureArgs\"; \\"
-  echo $'\t'"  make $makeArgs install; \\"
+  echo $'\t'"  export CXXFLAGS=\"$targetCXXFLAGS\"; \\";
+  echo $'\t'"  export CPPFLAGS=\"$targetCPPFLAGS\"; \\";
+  echo $'\t'"  ../configure --prefix=\"$prefix\"; \\"
+  echo $'\t'"  make $targetMakeArgs install; \\"
   echo $'\t'");"
-  echo "$targetName: $projectName$targetName";
+  echo "$targetName: $name";
+  if [ "$targetDefault" = "yes" ]; then
+    echo "$projectName: $name";
+  fi
 }
 
 function makeProject {
-  name="$1";
-  gitUrl="$2";
+  projectIndex="$1";
+  name="${projectsName[projectIndex]}";
+  gitUrl="${projectsGitUrl[projectIndex]}";
+
   dep="$3";
-  echo "${name}basic:"
+  echo "all: $name";
+  echo "${name}BasicSetup:"
   echo $'\t'"if [ ! -e \"$name/\" ]; then git clone $gitUrl; fi;"
   echo $'\t'"if [ ! -e \"$name/configure\" ]; then (cd $name/; ./autogen.sh;); fi;"
-  # It is intentional that ana is not built by default as it is
-  # intended to check for warnings and those warnings are treated as
-  # errors.  It should be possible to get a successful build even if
-  # some of the many very strict warnings that are enabled for that
-  # build target are not silenced currently.
-  echo "$name: $name$relName"\
-       "$name$relAssertName $name$debName"\
-       "$name$debNoAssertName $name$proName" # $name$anaName
-  makeTarget "$name" "$relName" "$relMakeArgs" "$relCPPFLAGS" "$dep";
-  makeTarget "$name" "$relAssertName" "$relAssertMakeArgs" "$relAssertCPPFLAGS" "$dep";
-  makeTarget "$name" "$debName" "$debMakeArgs" "$debCPPFLAGS" "$dep";
-  makeTarget "$name" "$debNoAssertName" "$debNoAssertMakeArgs" "$debNoAssertCPPFLAGS" "$dep";
-  makeTarget "$name" "$proName" "$proMakeArgs" "$proCPPFLAGS" "$dep";
-  makeTarget "$name" "$anaName" "$anaMakeArgs" "$anaCPPFLAGS" "$dep";
+
+  for ((k=0; k<${#targetsName[@]}; k++)); do
+    makeTarget "$projectIndex" "$k";
+  done
 }
 
-# Causes 8 parallel tasks including within called makefiles. User setting
-# overwrites this if the user has specified -jX on the command line.
-echo "MAKEFLAGS += -j8 V=0"
-echo "all: memtailor mathic mathicgb"
-makeProject "memtailor" "https://github.com/broune/memtailor.git" "";
-makeProject "mathic" "https://github.com/broune/mathic.git" "memtailor";
-makeProject "mathicgb" "https://github.com/broune/mathicgb.git" "mathic";
+function makeMakefile {
+  makeHelpComment;
+
+  # -j8: Causes 8 parallel tasks including within called makefiles. User
+  # setting overwrites this if the user has specified -jX on the command line.
+  #
+  # V=0: Causes a non-verbose build.
+  echo "MAKEFLAGS += -j8 V=0"
+
+  for ((j=0; j<${#projectsName[@]}; j++)); do
+    makeProject "$j";
+  done
+}
+
+makeMakefile
