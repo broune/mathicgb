@@ -21,13 +21,8 @@ void SignatureGB::computeGrobnerBasis()
   R->resetCoefficientStats();
   std::ostream& out = std::cout;
 
-  if (!mComputeSignatureBasis)
-    SP->setTrackEssentialPair(true);
-
   while (true) {
     if (SP->empty())
-      break;
-    if (!mComputeSignatureBasis && !SP->hasEssentialPair())
       break;
     step();
 
@@ -85,7 +80,6 @@ SignatureGB::SignatureGB(
 ):
   mBreakAfter(0),
   mPrintInterval(0),
-  mComputeSignatureBasis(true),
   R(ideal.getPolyRing()),
   F(FreeModuleOrder::makeOrder(typ, &ideal)),
   mPostponeKoszul(postponeKoszul),
@@ -319,8 +313,7 @@ void SignatureGB::displayStats(std::ostream &o) const
   o << "-- stats: -- \n";
   o << " strategy: signature"
     << (mPostponeKoszul ? "-postpone" : "")
-    << (mUseBaseDivisors ? "-basediv" : "")
-    << (mComputeSignatureBasis ? "-full" : "-stopGB") << '\n';
+    << (mUseBaseDivisors ? "-basediv" : "") << '\n';
   o << " sig-order:      " << F->description() << '\n';
   o << " reduction type: " << reducer->description() << '\n';
   o << " divisor tab type: " << GB->basis().divisorLookup().getName() << '\n';

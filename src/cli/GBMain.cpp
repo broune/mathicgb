@@ -55,12 +55,6 @@ public:
       "Postpone the construction of Koszul syzygy signatures.",
       true),
 
-    mComputeSignatureBasis("computeSignatureBasis",
-      "Compute a signature basis. If false and using the signature "
-      "algorithm, stop the computation early when detecting "
-      "a grobner basis.",
-      true),
-
     mUseBaseDivisors("useBaseDivisors",
       "Use high ratio and low ratio base divisors to eliminate "
       "S-spairs quickly based on signature.",
@@ -153,7 +147,6 @@ public:
     case 8: mStrategy.processArgument(tokens[6]);
       mClassicBuchbergerAlgorithm.setValue((mStrategy.value() &  1) == 1);
       mPostponeKoszul.setValue((mStrategy.value() &  2) != 0);
-      mComputeSignatureBasis.setValue((mStrategy.value() &  8) != 0);
       mUseBaseDivisors.setValue((mStrategy.value() & 16) != 0);
     case 7: mTracingLevel.processArgument(tokens[5]);
     case 6: // ignore this value
@@ -216,7 +209,6 @@ public:
         mSPairQueue.value());
       alg.setBreakAfter(mBreakAfter.value());
       alg.setPrintInterval(mPrintInterval.value());
-      alg.setComputeSignatureBasis(mComputeSignatureBasis.value());
       alg.computeGrobnerBasis();
 
       // print statistics
@@ -268,7 +260,6 @@ public:
     parameters.push_back(&mAutoTopReduce);
     parameters.push_back(&mClassicBuchbergerAlgorithm);
     parameters.push_back(&mPostponeKoszul);
-    parameters.push_back(&mComputeSignatureBasis);
     parameters.push_back(&mUseBaseDivisors);
     parameters.push_back(&mSPairQueue);
     parameters.push_back(&mTracingLevel);
@@ -292,7 +283,6 @@ private:
   mic::BoolParameter mAutoTopReduce;
   mic::BoolParameter mClassicBuchbergerAlgorithm;
   mic::BoolParameter mPostponeKoszul;
-  mic::BoolParameter mComputeSignatureBasis;
   mic::BoolParameter mUseBaseDivisors;
   mic::IntegerParameter mSPairQueue;
   mic::IntegerParameter mTracingLevel;

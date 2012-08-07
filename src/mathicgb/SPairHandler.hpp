@@ -21,7 +21,6 @@ class GroebnerBasis;
 class FreeModuleOrder;
 class Reducer;
 
-
 class SPairHandler
 {
 public:
@@ -43,13 +42,6 @@ public:
 
   // fills in all the S-pairs with i.
   void newPairs(size_t i);
-
-  // Set to true to enable hasEssentialPair().
-  void setTrackEssentialPair(bool value);
-
-  // Returns true if any essential pairs are yet to be popped. Requires
-  // tracking of essential pairs to be turned on.
-  bool hasEssentialPair() const;
 
   // Inform the S-pair handler that there is a new syzygy signature in play.
   void newSyzygy(const_monomial sig);
@@ -101,25 +93,6 @@ public:
   std::string name();
 
 private:
-  void nextEssentialPair();
-  bool isEssential(size_t a, size_t b) const;
-
-  // If there is no essential pair, then essentialFirst == GB->size().
-  // Otherwise (a,b)=(essentialFirst, essentialSecond) is an essential
-  // S-pair such that a > b. Among all essential S-pairs, a is minimal
-  // and b is maximal.
-  bool mTrackEssentialPair; // whether to keep track of an essential pair
-  size_t mEssentialFirst; // first generator of the essential pair
-  size_t mEssentialSecond; // second generator of the essential pair
-  monomial mEssentialSig; // signature of the essential pair
-  // classic reduced S-pair of the essential pair
-  std::auto_ptr<Poly> mEssentialPoly;
-
-  // Value at be is true if we have reduced an S-pair (be,div) where
-  // div is the index of a basis element whose lead term divides the
-  // lead term of div. Only used if mTrackEssentialPair is true.
-  std::vector<char> mDidReducingSPair;
-
   void makePreSPairs(size_t newGen);
 
   struct BaseDivisor { // a low ratio base divisor
