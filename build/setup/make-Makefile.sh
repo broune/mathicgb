@@ -1,6 +1,6 @@
 #!/bin/env bash
 
-mildWarn="-Wall -Wextra"
+mildWarn="" #-Wall -Wextra"
 
 #############################################
 ################## projects #################
@@ -34,6 +34,7 @@ targetsName+=("rel");
 targetsDescription+=("Release build. Optimized, no debug symbols, no asserts.");
 targetsCPPFLAGS+=("-O2");
 targetsCXXFLAGS+=("");
+targetsLDFLAGS+=("");
 targetsMakeArgs+=("");
 targetsDefault+=("yes");
 
@@ -43,6 +44,7 @@ targetsName+=("relass");
 targetsDescription+=("Optimized build with asserts. No debug symbols.");
 targetsCPPFLAGS+=("-O2 -DMEMTAILOR_DEBUG -DMATHIC_DEBUG -DMATHICGB_DEBUG $mildWarn");
 targetsCXXFLAGS+=("");
+targetsLDFLAGS+=("");
 targetsMakeArgs+=("");
 targetsDefault+=("yes");
 
@@ -52,6 +54,7 @@ targetsName+=("deb");
 targetsDescription+=("Debug build with asserts. Not optimized.");
 targetsCPPFLAGS+=("-g -DMEMTAILOR_DEBUG -DMATHIC_DEBUG -DMATHICGB_DEBUG $mildWarn");
 targetsCXXFLAGS+=("");
+targetsLDFLAGS+=("");
 targetsMakeArgs+=("");
 targetsDefault+=("yes");
 
@@ -61,6 +64,7 @@ targetsName+=("debnoass");
 targetsDescription+=("Debug build without asserts. Not optimized.");
 targetsCPPFLAGS+=("-g $mildWarn");
 targetsCXXFLAGS+=("");
+targetsLDFLAGS+=("");
 targetsMakeArgs+=("");
 targetsDefault+=("no");
 
@@ -70,15 +74,17 @@ targetsName+=("pro");
 targetsDescription+=("Profile build with optimization and no asserts.");
 targetsCPPFLAGS+=("-g -pg -O2 $mildWarn");
 targetsCXXFLAGS+=("");
+targetsLDFLAGS+=("-pg");
 targetsMakeArgs+=("");
 targetsDefault+=("no");
 
-# profile profile with asserts
-proIndex=${#targetsName[@]};
-targetsName+=("pro");
+# profile with asserts
+proassIndex=${#targetsName[@]};
+targetsName+=("proass");
 targetsDescription+=("Profile build with optimization and asserts.");
-targetsCPPFLAGS+=("-g -pg -O2 $mildWarn");
+targetsCPPFLAGS+=("-g -pg -O2 -DMEMTAILOR_DEBUG -DMATHIC_DEBUG -DMATHICGB_DEBUG $mildWarn");
 targetsCXXFLAGS+=("");
+targetsLDFLAGS+=("-pg");
 targetsMakeArgs+=("");
 targetsDefault+=("no");
 
@@ -96,6 +102,7 @@ targetsCPPFLAGS+=("-Wall -Wextra -Wno-uninitialized -Wno-unused-parameter\
   -Wno-invalid-offsetof -Winvalid-pch -Wlong-long \
   -Wdisabled-optimization -D DEBUG -Werror");
 targetsCXXFLAGS+=("");
+targetsLDFLAGS+=("");
 targetsMakeArgs+=("");
 targetsDefault+=("no");
 
@@ -121,6 +128,7 @@ function makeHelpComment {
     echo "#   Target: ${targetsName[i]}. ${targetsDescription[i]}";
     echo "#     CPPFLAGS=${targetsCPPFLAGS[i]}";
     echo "#     CXXFLAGS=${targetsCXXFLAGS[i]}";
+    echo "#     LDFLAGS=${targetsLDFLAGS[i]}";
     echo "#     makeArgs=${targetsMakeArgs[i]}";
     echo "#     buildsByDefault=${targetsDefault[i]}";
   done
@@ -144,6 +152,7 @@ function makeTarget {
   targetName="${targetsName[targetIndex]}";
   targetCPPFLAGS="${targetsCPPFLAGS[targetIndex]}";
   targetCXXFLAGS="${targetsCXXFLAGS[targetIndex]}";
+  targetLDFLAGS="${targetsLDFLAGS[targetIndex]}";
   targetMakeArgs="${targetsMakeArgs[targetIndex]}";
   targetDefault="${targetsDefault[targetIndex]}";
 
@@ -164,6 +173,7 @@ function makeTarget {
   echo $'\t'"  export PKG_CONFIG_PATH=\"$prefix/lib/pkgconfig\"; \\";
   echo $'\t'"  export CXXFLAGS=\"$targetCXXFLAGS\"; \\";
   echo $'\t'"  export CPPFLAGS=\"$targetCPPFLAGS\"; \\";
+  echo $'\t'"  export LDFLAGS=\"$targetLDFLAGS\"; \\";
   echo $'\t'"  ../configure --prefix=\"$prefix\"; \\"
   echo $'\t'"  make $targetMakeArgs install; \\"
   echo $'\t'");"
