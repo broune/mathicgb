@@ -62,7 +62,7 @@ void PolyHashTable::reset()
   mNodeCount = 0;
   
   resetStats();
-  ASSERT(computeNodeCount() == 0);
+  MATHICGB_SLOW_ASSERT(computeNodeCount() == 0);
 }
 
 size_t PolyHashTable::computeNodeCount() const
@@ -199,7 +199,7 @@ bool PolyHashTable::lookup_and_insert(const_monomial m, coefficient val, node *&
   if (mNodeCount > mMaxCountBeforeRebuild)
     resize(mLogTableSize + 2);  // increase by a factor of 4??
 
-  ASSERT(computeNodeCount() == mNodeCount);
+  MATHICGB_SLOW_ASSERT(computeNodeCount() == mNodeCount);
 
   return false;
 }
