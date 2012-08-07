@@ -165,16 +165,17 @@ size_t GroebnerBasis::regularReducer(
   const_monomial term
 ) const {
   size_t reducer = divisorLookup().regularReducer(sig, term);
-#ifdef DEBUG
+#ifdef MATHICGB_SLOW_DEBUG
   const size_t debugValue = regularReducerSlow(sig, term);
   if (reducer == static_cast<size_t>(-1)) {
-    ASSERT(debugValue == static_cast<size_t>(-1));
+    MATHICGB_SLOW_ASSERT(debugValue == static_cast<size_t>(-1));
   } else {
-    ASSERT(debugValue != static_cast<size_t>(-1));
+    MATHICGB_SLOW_ASSERT(debugValue != static_cast<size_t>(-1));
     monomial m = ring().allocMonomial();
-    ASSERT(ring().monomialDivide(term, getLeadMonomial(reducer), m));
+    MATHICGB_SLOW_ASSERT
+      (ring().monomialDivide(term, getLeadMonomial(reducer), m));
     ring().monomialMultTo(m, getSignature(reducer));
-    ASSERT(order().signatureCompare(sig, m) == GT);
+    MATHICGB_SLOW_ASSERT(order().signatureCompare(sig, m) == GT);
     ring().freeMonomial(m);
   }
 #endif

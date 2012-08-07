@@ -54,5 +54,12 @@
 // ASSERT.
 #define MATHICGB_ASSERT(X) ASSERT(X)
 
+#ifdef MATHICGB_SLOW_DEBUG
+// for asserts that take a long time.
+#define MATHICGB_SLOW_ASSERT(X) MATHICGB_ASSERT(X)
+#else
+#define MATHICGB_SLOW_ASSERT(X)
+#endif
+
 static const size_t BitsPerByte = 8;
 static const size_t MemoryAlignment = sizeof(void*);

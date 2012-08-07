@@ -158,7 +158,7 @@ public:
   bool leadMinimal(size_t index) const {
     ASSERT(index < size());
     ASSERT(!retired(index));
-    ASSERT(mEntries[index].leadMinimal == leadMinimalSlow(index));
+    MATHICGB_SLOW_ASSERT(mEntries[index].leadMinimal == leadMinimalSlow(index));
     return mEntries[index].leadMinimal;
   }
 
