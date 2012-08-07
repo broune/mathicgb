@@ -61,14 +61,9 @@ public:
     mPrintInterval = reductions;
   }
 
-  void setComputeSignatureBasis(bool value) {
-    mComputeSignatureBasis = value;
-  }
-
 private:
   unsigned int mBreakAfter;
   unsigned int mPrintInterval;
-  bool mComputeSignatureBasis;
 
   bool processSPair(monomial sig, const SPairHandler::PairContainer& pairs);
   void step();

@@ -44,6 +44,9 @@ void testGB(int freeModuleOrder,
             std::string initialIdealStr,
             size_t nonSingularReductions)
 {
+  // todo: signatureBasis no longer does anything, rerun pict to get rid
+  // of that variable.
+  //
   // Put the contents of pict.out into allPairsTest as a string. This
   // works because pict.out does not have any commas and we do not
   // care about whitespace. pict.out contains a set of tests such that
@@ -251,7 +254,6 @@ spairQueue	reducerType	divLookup	monTable	signatureBasis	buchberger	postponeKosz
       (Reducer::makeReducerNullOnUnknown(red, I->ring()).get() != 0);
 
     if (buchberger) {
-      ASSERT(!signatureBasis);
       BuchbergerAlg alg(
         *I, freeModuleOrder, Reducer::reducerType(reducerType), divLookup, preferSparseReducers, spairQueue);
       alg.setUseAutoTopReduction(autoTopReduce);
@@ -266,28 +268,19 @@ spairQueue	reducerType	divLookup	monTable	signatureBasis	buchberger	postponeKosz
       SignatureGB basis
         (*I, freeModuleOrder, Reducer::reducerType(reducerType),
           divLookup, monTable, postponeKoszul, useBaseDivisors, preferSparseReducers, useSingularCriterionEarly, spairQueue);
-      basis.setComputeSignatureBasis(signatureBasis);
       basis.computeGrobnerBasis();
-      if (!signatureBasis) {
-        std::auto_ptr<Ideal> initialIdeal =
-          basis.getGB()->basis().initialIdeal();
-        EXPECT_EQ(initialIdealStr, toString(initialIdeal.get()))
-          << reducerType << ' ' << divLookup << ' '
-          << monTable << ' ' << postponeKoszul << ' ' << useBaseDivisors;
-      } else {
-        EXPECT_EQ(sigBasisStr, toString(basis.getGB(), 1))
-          << reducerType << ' ' << divLookup << ' '
-          << monTable << ' ' << ' ' << postponeKoszul << ' '
-          << useBaseDivisors;
-        EXPECT_EQ(syzygiesStr, toString(basis.getSyzTable()))
-          << reducerType << ' ' << divLookup << ' '
-          << monTable << ' ' << ' ' << postponeKoszul << ' '
-          << useBaseDivisors;
-        EXPECT_EQ(nonSingularReductions, basis.getSigReductionCount() - basis.getSingularReductionCount())
-          << reducerType << ' ' << divLookup << ' '
-          << monTable << ' ' << ' ' << postponeKoszul << ' '
-          << useBaseDivisors;
-      }
+      EXPECT_EQ(sigBasisStr, toString(basis.getGB(), 1))
+        << reducerType << ' ' << divLookup << ' '
+        << monTable << ' ' << ' ' << postponeKoszul << ' '
+        << useBaseDivisors;
+      EXPECT_EQ(syzygiesStr, toString(basis.getSyzTable()))
+        << reducerType << ' ' << divLookup << ' '
+        << monTable << ' ' << ' ' << postponeKoszul << ' '
+        << useBaseDivisors;
+      EXPECT_EQ(nonSingularReductions, basis.getSigReductionCount() - basis.getSingularReductionCount())
+        << reducerType << ' ' << divLookup << ' '
+        << monTable << ' ' << ' ' << postponeKoszul << ' '
+        << useBaseDivisors;
     }
   }
 }
