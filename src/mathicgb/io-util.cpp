@@ -12,7 +12,6 @@
 #include "PolyHeap.hpp"
 #include "PolyGeoBucket.hpp"
 #include "GroebnerBasis.hpp"
-#include "SPairHandler.hpp"
 #include "SignatureGB.hpp"
 #include "MTArray.hpp"
 

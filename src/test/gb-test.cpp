@@ -9,7 +9,6 @@
 #include "mathicgb/io-util.hpp"
 #include "mathicgb/PolyHeap.hpp"
 #include "mathicgb/GroebnerBasis.hpp"
-#include "mathicgb/SPairHandler.hpp"
 #include "mathicgb/SignatureGB.hpp"
 #include "mathicgb/BuchbergerAlg.hpp"
 #include "test/ideals.hpp"

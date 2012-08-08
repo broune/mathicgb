@@ -1,19 +1,13 @@
-// Copyright 2011 Michael E. Stillman
 
 #ifndef _spair_handler_h_
 #define _spair_handler_h_
 
-// This class is designed for the Gao GB algorithm, or other signature based methods.
-// The idea is to keep the size of the spair structures as small as possible
-
-// Externally, an spair is (signature, integer).
-
-#include "PairTriangle.hpp"
-#include <vector>
 #include "PolyRing.hpp"
 #include "KoszulQueue.hpp"
+#include "SigSPairQueue.hpp"
 #include <mathic.h>
 #include <memtailor.h>
+#include <vector>
 
 class Poly;
 class MonomialTableArray;
@@ -21,10 +15,12 @@ class GroebnerBasis;
 class FreeModuleOrder;
 class Reducer;
 
-class SPairHandler
+// Handles S-pairs in signature Grobner basis algorithms. Responsible
+// for eliminating S-pairs, storing S-pairs and ordering S-pairs.
+class SigSPairs
 {
 public:
-  SPairHandler(
+  SigSPairs(
     const PolyRing *R0,
     FreeModuleOrder *F0,
     const GroebnerBasis *GB0,
@@ -34,9 +30,8 @@ public:
     bool useBaseDivisors,
     bool useSingularCriterionEarly,
     size_t queueType);
-  ~SPairHandler();
+  ~SigSPairs();
 
-  bool empty() const {return mTri.empty();}
   typedef std::vector<std::pair<size_t, size_t> > PairContainer;
   monomial popSignature(PairContainer& pairs);
 
@@ -80,7 +75,7 @@ public:
   };
   Stats getStats() const;
 
-  size_t pairCount() const {return mTri.pairCount();}
+  size_t pairCount() const;
 
   size_t getMemoryUse() const;
   size_t getKnownSyzygyBitsMemoryUse() const;
@@ -132,15 +127,10 @@ private:
   Reducer* mReducer;
   const bool mPostponeKoszuls;
 
-  class SigPairTriangle : public PairTriangle {
-  public:
-    SigPairTriangle(const GroebnerBasis& basis, size_t queueType);
-  protected:
-    virtual bool calculateOrderBy(size_t a, size_t b, monomial orderBy) const;
-  private:
-    const GroebnerBasis& mBasis;
-  };
-  SigPairTriangle mTri;
+  typedef std::vector<PreSPair> PrePairContainer;
+
+  std::auto_ptr<SigSPairQueue> mQueue;
+  SigSPairQueue::IndexSigs mIndexSigs;
 
   mutable Stats mStats;
 };

@@ -1,39 +1,19 @@
 // Copyright 2011 Michael E. Stillman
 
 #include "stdinc.h"
-#include <iostream>
-#include "SPairHandler.hpp"
+#include "SigSPairs.hpp"
+
 #include "GroebnerBasis.hpp"
 #include "MTArray.hpp"
 #include "FreeModuleOrder.hpp"
 #include "Reducer.hpp"
 #include <limits>
 #include <stdexcept>
+#include <iostream>
 
 extern int tracingLevel;
 
-SPairHandler::SigPairTriangle::SigPairTriangle(const GroebnerBasis& basis, size_t queueType):
-  PairTriangle(basis.order(), basis.ring(), queueType),
-  mBasis(basis) {}
-
-bool SPairHandler::SigPairTriangle::calculateOrderBy(
-  size_t a,
-  size_t b,
-  monomial orderBy
-) const {
-  ASSERT(mBasis.ratioCompare(a, b) != EQ);
-  // ensure that ratio(a) > ratio(b)
-  if (mBasis.ratioCompare(a, b) == LT)
-    std::swap(a, b);
-  mBasis.ring().monomialFindSignature(
-    mBasis.getLeadMonomial(a),
-    mBasis.getLeadMonomial(b),
-    mBasis.getSignature(a),
-    orderBy);
-  return true;
-}
-
-SPairHandler::SPairHandler(
+SigSPairs::SigSPairs(
   const PolyRing *R0,
   FreeModuleOrder *F0,
   const GroebnerBasis *GB0,
@@ -53,66 +33,46 @@ SPairHandler::SPairHandler(
   GB(GB0),
   mReducer(reducer),
   mPostponeKoszuls(postponeKoszuls),
-  mTri(*GB0, queueType) {
+  mQueue(GB->order().createSigSPairQueue(*GB)) {
 }
 
-SPairHandler::~SPairHandler()
+SigSPairs::~SigSPairs()
 {
   ASSERT(mUseBaseDivisors || mUseHighBaseDivisors || mKnownSyzygyTri.empty());
 }
 
-void SPairHandler::newSyzygy(const_monomial sig) {
+void SigSPairs::newSyzygy(const_monomial sig) {
   ASSERT(Hsyz->member(sig));
 }
 
-SPairHandler::Stats SPairHandler::getStats() const
+SigSPairs::Stats SigSPairs::getStats() const
 {
   F->getStats(mStats.comparisons, mStats.precomparisons);
   return mStats;
 }
 
-monomial SPairHandler::popSignature(PairContainer& pairs) {
-  ASSERT(!empty());
-
-  monomial sig = R->allocMonomial();
-  R->monomialCopy(mTri.topOrderBy(), sig);
-  R->setHashOnly(sig); // mTri returns monomials without the hash value set, so we set it here
-
-  pairs.clear();
-  do { // pop top as long as the top S-pair has signature sig
-    // loop invariant: topGroup is the top of the queue and has signature sig
-
-    { // push the current top S-pair onto pairs
-      std::pair<size_t, size_t> p = mTri.topPair();
-      size_t greater = p.first;
-      size_t smaller = p.second;
-      ASSERT(GB->ratioCompare(greater, smaller) != EQ);
-      if (GB->ratioCompare(greater, smaller) == LT)
-        std::swap(greater, smaller);
-      // now, greater in sense of signature in S-pair or, equivalently,
-      // in sense of sig/lead ratio.
-      ++mStats.spairsFinal;
-      pairs.push_back(std::make_pair(greater, smaller));
-    }
-    mTri.pop();
-    ++mStats.duplicateSignatures;
-  } while (!mTri.empty() && R->monomialEQ(mTri.topOrderBy(), sig));
-
-  --mStats.duplicateSignatures; // We added one too many in this loop
+monomial SigSPairs::popSignature(PairContainer& pairs) {
+  monomial sig = mQueue->popSignature(pairs);
+  if (!sig.isNull()) {
+    size_t const pairCount = pairs.size();
+    mStats.spairsFinal += pairCount;
+    mStats.duplicateSignatures += pairCount - 1;
+  }
   return sig;
 }
 
-void SPairHandler::newPairs(size_t newGen)
+void SigSPairs::newPairs(size_t newGen)
 {
-  mTri.beginColumn();
+  ASSERT(mIndexSigs.empty());
   makePreSPairs(newGen);
-  mTri.endColumn();
+  mQueue->pushPairs(newGen, mIndexSigs);
+  mIndexSigs.clear();
 
   ASSERT((!mUseBaseDivisors && !mUseHighBaseDivisors) ||
     mKnownSyzygyTri.columnCount() == newGen + 1);
 }
 
-void SPairHandler::setupBaseDivisors(
+void SigSPairs::setupBaseDivisors(
   BaseDivisor& divisor1,
   BaseDivisor& divisor2,
   size_t& highDivisorCmp,
@@ -184,8 +144,9 @@ void SPairHandler::setupBaseDivisors(
   }
 }
 
-void SPairHandler::makePreSPairs(size_t newGen)
+void SigSPairs::makePreSPairs(size_t newGen)
 {
+  ASSERT(mIndexSigs.empty());
   ASSERT(newGen < GB->size());
   mStats.spairsConstructed += newGen;
 
@@ -325,7 +286,7 @@ void SPairHandler::makePreSPairs(size_t newGen)
     result.signature = pairSig;
     pairSig = R->allocMonomial();
     result.i = static_cast<BigIndex>(oldGen);
-    mTri.addPair(result.i, result.signature);
+    mIndexSigs.push_back(result);
     ++mStats.queuedPairs;
     //pairs.push_back(result);
   }
@@ -336,14 +297,14 @@ void SPairHandler::makePreSPairs(size_t newGen)
     R->freeMonomial(hsyz);
 }
 
-void SPairHandler::setKnownSyzygies(std::vector<std::pair<size_t, size_t> >& pairs) {
+void SigSPairs::setKnownSyzygies(std::vector<std::pair<size_t, size_t> >& pairs) {
   if (!mUseBaseDivisors && !mUseHighBaseDivisors)
     return;
   for (size_t i = 0; i < pairs.size(); ++i)
     setKnownSyzygy(pairs[i].first, pairs[i].second);
 }
 
-void SPairHandler::setKnownSyzygy(size_t gen1, size_t gen2) {
+void SigSPairs::setKnownSyzygy(size_t gen1, size_t gen2) {
   ASSERT(gen1 < GB->size());
   ASSERT(gen2 < GB->size());
   ASSERT(gen1 != gen2);
@@ -351,16 +312,20 @@ void SPairHandler::setKnownSyzygy(size_t gen1, size_t gen2) {
     mKnownSyzygyTri.setBitUnordered(gen1, gen2, true);
 }
 
-std::string SPairHandler::name() {
-  return mTri.name();
+size_t SigSPairs::pairCount() const {
+  return mQueue->pairCount();
 }
 
-size_t SPairHandler::getMemoryUse() const
+std::string SigSPairs::name() {
+  return mQueue->name();
+}
+
+size_t SigSPairs::getMemoryUse() const
 {
-  return mTri.getMemoryUse() + getKnownSyzygyBitsMemoryUse();
+  return mQueue->memoryUse() + getKnownSyzygyBitsMemoryUse();
 }
 
-size_t SPairHandler::getKnownSyzygyBitsMemoryUse() const {
+size_t SigSPairs::getKnownSyzygyBitsMemoryUse() const {
   return mKnownSyzygyTri.getMemoryUse();
 }
 

@@ -19,7 +19,6 @@
 #include "mathicgb/PolyHeap.hpp"
 #include "mathicgb/PolyGeoBucket.hpp"
 #include "mathicgb/GroebnerBasis.hpp"
-#include "mathicgb/SPairHandler.hpp"
 #include "mathicgb/SignatureGB.hpp"
 
 #include <gtest/gtest.h>

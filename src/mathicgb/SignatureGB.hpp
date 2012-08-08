@@ -11,13 +11,13 @@
 #include "MTArray.hpp"
 #include "GroebnerBasis.hpp"
 #include "FreeModuleOrder.hpp"
-#include "SPairHandler.hpp"
+#include "SigSPairs.hpp"
 #include "Reducer.hpp"
 #include "KoszulQueue.hpp"
 #include "SPairs.hpp"
 #include <map>
 
-class SPairHandler;
+class SigSPairs;
 class DivisorLookup;
 
 class SignatureGB {
@@ -45,7 +45,7 @@ public:
 
   GroebnerBasis* getGB() { return GB; }
   MonomialTableArray* getSyzTable() { return Hsyz; }
-  SPairHandler* getSPairHandler() { return SP; }
+  SigSPairs* getSigSPairs() { return SP; }
 
   size_t getMemoryUse() const;
   void displayStats(std::ostream& out) const;
@@ -65,13 +65,13 @@ private:
   unsigned int mBreakAfter;
   unsigned int mPrintInterval;
 
-  bool processSPair(monomial sig, const SPairHandler::PairContainer& pairs);
-  void step();
+  bool processSPair(monomial sig, const SigSPairs::PairContainer& pairs);
+  bool step();
 
   const PolyRing *R;
   FreeModuleOrder *F;
 
-  SPairHandler *SP;
+  SigSPairs *SP;
   MonomialTableArray *Hsyz;
   GroebnerBasis *GB;
   KoszulQueue *mKoszuls;
@@ -83,7 +83,7 @@ private:
   // Currently we use either both criteria (high and loow) or neither.
   bool const mUseBaseDivisors;
 
-  SPairHandler::PairContainer mSpairTmp; // use only for getting S-pairs
+  SigSPairs::PairContainer mSpairTmp; // use only for getting S-pairs
 
   // stats //////////
   size_t stats_sPairSignaturesDone; // distinct S-pair signatures done

@@ -7,7 +7,7 @@
 #include "FreeModuleOrder.hpp"
 #include "Ideal.hpp"
 #include "DivisorLookup.hpp"
-#include "SPairHandler.hpp"
+#include "SigSPairs.hpp"
 #include "PolyHeap.hpp"
 #include "MTArray.hpp"
 
@@ -22,20 +22,21 @@ void SignatureGB::computeGrobnerBasis()
   std::ostream& out = std::cout;
 
   while (true) {
-    if (SP->empty())
+    if (!step())
       break;
-    step();
 
     if (mBreakAfter > 0 && GB->size() > mBreakAfter) {
       break;
       const size_t pairs = SP->pairCount();
       size_t sigs = 0;
       size_t syzygySigs = 0;
-      while (!SP->empty()) {
-        ++sigs;
-        size_t a;
+      while (true) {
         monomial sig = SP->popSignature(mSpairTmp);
-        if (Hsyz->member(sig, a))
+        if (sig.isNull())
+          break;
+        ++sigs;
+        size_t dummy;
+        if (Hsyz->member(sig, dummy))
           ++syzygySigs;
         else
           GB->minimalLeadInSig(sig);
@@ -99,7 +100,7 @@ SignatureGB::SignatureGB(
   Hsyz = MonomialTableArray::make(R, montable_type, ideal.size(), allowRemovals);
 
   reducer = Reducer::makeReducer(reductiontyp, *R).release();
-  SP = new SPairHandler(R, F, GB, Hsyz, reducer, mPostponeKoszul, mUseBaseDivisors, useSingularCriterionEarly, queueType);
+  SP = new SigSPairs(R, F, GB, Hsyz, reducer, mPostponeKoszul, mUseBaseDivisors, useSingularCriterionEarly, queueType);
 
   // Populate GB
   for (size_t i = 0; i < ideal.size(); i++) {
@@ -135,20 +136,12 @@ SignatureGB::~SignatureGB()
 }
 
 bool SignatureGB::processSPair
-  (monomial sig, const SPairHandler::PairContainer& pairs)
+  (monomial sig, const SigSPairs::PairContainer& pairs)
 {
   ASSERT(!pairs.empty());
 
   // the module term to reduce is multiple * GB->getSignature(gen)
-  const bool constrainTermChoice = false;
-  size_t gen = mSpairTmp.back().first;
-  if (!constrainTermChoice)
-    gen = GB->minimalLeadInSig(sig);
-  else {
-    for (size_t i = 0; i < pairs.size(); ++i)
-      if (GB->ratioCompare(pairs[i].first, gen) == GT)
-        gen = pairs[i].first;
-  }
+  size_t gen = GB->minimalLeadInSig(sig);
   ASSERT(gen != static_cast<size_t>(-1));
   monomial multiple = R->allocMonomial();
   R->monomialDivide(sig, GB->getSignature(gen), multiple);
@@ -158,13 +151,6 @@ bool SignatureGB::processSPair
   Poly* f = reducer->regularReduce(sig, multiple, gen, *GB);
 
   R->freeMonomial(multiple);
-
-  if (constrainTermChoice && f != 0) {
-    if (GB->isSingularTopReducible(*f, sig)) {
-      delete f;
-      f = 0;
-    }
-  }
 
   if (f == 0) { // singular reduction
     ASSERT(f == 0);
@@ -206,11 +192,11 @@ bool SignatureGB::processSPair
   return true;
 }
 
-void SignatureGB::step()
+bool SignatureGB::step()
 {
-  ASSERT(!SP->empty());
-
   monomial sig = SP->popSignature(mSpairTmp);
+  if (sig.isNull())
+    return false;
   ++stats_sPairSignaturesDone;
   stats_sPairsDone += mSpairTmp.size();
 
@@ -227,7 +213,7 @@ void SignatureGB::step()
     if (tracingLevel >= 3)
       std::cerr << "eliminated as in syzygy module" << std::endl;
     R->freeMonomial(sig);
-    return;
+    return true;
   }
 
   // Not a known syzygy
@@ -245,7 +231,7 @@ void SignatureGB::step()
       Hsyz->insert(sig, 0);
       SP->newSyzygy(sig);
       SP->setKnownSyzygies(mSpairTmp);
-      return;
+      return true;
     }
 
   typedef std::vector<std::pair<size_t, size_t> >::const_iterator iter;
@@ -263,35 +249,38 @@ void SignatureGB::step()
               Hsyz->insert(sig, not_used);
               SP->newSyzygy(sig);
               SP->setKnownSyzygies(mSpairTmp);
-              return;
+              return true;
             }
         }
     }
 #ifdef DEBUG
-  for (iter it = mSpairTmp.begin(); it != mSpairTmp.end(); ++it)
-    {
-      const_monomial a = GB->getLeadMonomial(it->first);
-      const_monomial b = GB->getLeadMonomial(it->second);
-      ASSERT(!R->monomialRelativelyPrime(a, b));
-    }
+  for (iter it = mSpairTmp.begin(); it != mSpairTmp.end(); ++it) {
+    const_monomial a = GB->getLeadMonomial(it->first);
+    const_monomial b = GB->getLeadMonomial(it->second);
+    ASSERT(!R->monomialRelativelyPrime(a, b));
+  }
 #endif
 
   // Reduce the pair
   ++stats_pairsReduced;
   if (!processSPair(sig, mSpairTmp) || !mPostponeKoszul)
-    return;
-  for (iter it = mSpairTmp.begin(); it != mSpairTmp.end(); ++it)
-    {
-      const_monomial greaterSig = GB->getSignature(it->first);
-      const_monomial smallerLead = GB->getLeadMonomial(it->second);
-      monomial koszul = R->allocMonomial();
-      R->monomialMult(greaterSig, smallerLead, koszul);
-      size_t dummy;
-      if (Hsyz->member(koszul, dummy))
-        R->freeMonomial(koszul);
-      else
-        mKoszuls->push(koszul);
-    }
+    return true;
+  for (iter it = mSpairTmp.begin(); it != mSpairTmp.end(); ++it) {
+    std::pair<size_t, size_t> p = *it;
+    if (GB->ratioCompare(p.first, p.second) == LT)
+      std::swap(p.first, p.second);
+
+    const_monomial greaterSig = GB->getSignature(p.first);
+    const_monomial smallerLead = GB->getLeadMonomial(p.second);   
+    monomial koszul = R->allocMonomial();
+    R->monomialMult(greaterSig, smallerLead, koszul);
+    size_t dummy;
+    if (Hsyz->member(koszul, dummy))
+      R->freeMonomial(koszul);
+    else
+      mKoszuls->push(koszul);
+  }
+  return true;
 }
 
 size_t SignatureGB::getMemoryUse() const {
@@ -342,7 +331,7 @@ void SignatureGB::displayStats(std::ostream &o) const
 }
 
 void SignatureGB::displayPaperStats(std::ostream& out) const {
-  SPairHandler::Stats stats = SP->getStats();
+  SigSPairs::Stats stats = SP->getStats();
   Reducer::Stats reducerStats = reducer->sigStats();
   mic::ColumnPrinter pr;
   pr.addColumn(true, " ");
@@ -546,7 +535,7 @@ void SignatureGB::displaySomeStats(std::ostream& out) const {
   extra << '\n';
 
   unsigned long long earlyNonElim;
-  SPairHandler::Stats stats = SP->getStats();
+  SigSPairs::Stats stats = SP->getStats();
   const unsigned long long lowElim = stats.lowBaseDivisorHits;
   const unsigned long long highElim = stats.highBaseDivisorHits;
   const unsigned long long syzElim = stats.syzygyModuleHits;
