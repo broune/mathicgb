@@ -64,7 +64,7 @@ namespace {
 }
 
 void PairTriangle::endColumn() {
-  mOrder.destructiveSort(mPrePairs);
+  mOrder.sortAndScrambleSignatures(mPrePairs);
   typedef IndexIterator<std::vector<PreSPair>::const_iterator> Iter;
   mPairQueue.addColumnDescending
 	(Iter(mPrePairs.begin()), Iter(mPrePairs.end()));

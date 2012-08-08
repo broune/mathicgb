@@ -45,7 +45,7 @@ void runTest(
 
   std::auto_ptr<FreeModuleOrder> order
     (FreeModuleOrder::makeOrder(orderType, ideal.get()));
-  order->destructiveSort(pairs);
+  order->sortAndScrambleSignatures(pairs);
   for (size_t i = 0; i < pairs.size(); ++i) {
     ring->freeMonomial(pairs[i].signature);
     pairs[i].signature = sigs[pairs[i].i];

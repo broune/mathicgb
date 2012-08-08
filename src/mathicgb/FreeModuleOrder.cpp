@@ -1,13 +1,222 @@
 // Copyright 2011 Michael E. Stillman
 
 #include "stdinc.h"
-#include <iostream>
-#include <algorithm>
 #include "FreeModuleOrder.hpp"
+
 #include "Poly.hpp"
 #include "Ideal.hpp"
+#include "SigSPairQueue.hpp"
+#include "GroebnerBasis.hpp"
+#include "PolyRing.hpp"
 #include <mathic.h>
-#include "PairTriangle.hpp"
+#include <iostream>
+#include <algorithm>
+#include <limits>
+#include <stdexcept>
+
+// In this file we define various term orders. Some classes need to be
+// specialized to each term order which we do using templates. Those
+// classes are defined here since they should not be used from
+// anywhere else - instead they should be accessed through their
+// virtual interface.
+
+// *******************************************************
+// ** Utility objects
+
+namespace {
+  // Comparer for scrambled signatures
+  template<class Cmp>
+  class ScrambledComparer {
+  public:
+    ScrambledComparer(const Cmp& cmp): mCmp(cmp), mComparisons(0) {}
+    bool operator()(const PreSPair& a, const PreSPair& b) const {
+      ++mComparisons;
+      return mCmp.scrambledLessThan(a.signature, b.signature);
+    }
+    size_t comparisons() const {return mComparisons;}
+  private:
+    const Cmp& mCmp;
+    mutable size_t mComparisons;
+  };
+
+  // Iterator that accesses the field i based on a passed-in iterator.
+  template<class PairIterator>
+  class IndexIterator {
+  public:
+	typedef typename PairIterator::iterator_category iterator_category;
+	typedef typename PairIterator::value_type value_type;
+	typedef typename PairIterator::difference_type difference_type;
+	typedef typename PairIterator::pointer pointer;
+	typedef typename PairIterator::reference reference;
+
+	IndexIterator(PairIterator pairIterator): mIterator(pairIterator) {}
+	IndexIterator& operator++() {++mIterator; return *this;}
+	size_t operator*() const {return mIterator->i;}
+	difference_type operator-(const IndexIterator<PairIterator>& it) const {
+	  return mIterator - it.mIterator;
+	}
+	bool operator==(const IndexIterator<PairIterator>& it) const {
+	  return mIterator == it.mIterator;
+	}
+	bool operator!=(const IndexIterator<PairIterator>& it) const {
+	  return mIterator != it.mIterator;
+	}
+
+  private:
+	PairIterator mIterator;
+  };
+}
+
+// *******************************************************
+// ** SigSPairQueue
+namespace {
+  // Configuration of mathic::PairTriangle for use with signature queues.
+  template<class Cmp>
+  class SigPTConfiguration {
+  public:
+	SigPTConfiguration
+    (GroebnerBasis const& basis, Cmp const& cmp): mBasis(basis), mCmp(cmp) {}
+
+	typedef monomial PairData;
+	void computePairData(size_t col, size_t row, monomial sig) {
+      ASSERT(mBasis.ratioCompare(col, row) != EQ);
+      // ensure that ratio(col) > ratio(row)
+      if (mBasis.ratioCompare(col, row) == LT)
+        std::swap(col, row);
+      mBasis.ring().monomialFindSignature
+        (mBasis.getLeadMonomial(col),
+         mBasis.getLeadMonomial(row),
+         mBasis.getSignature(col), sig);
+      mCmp.scrambleSignatureForFastComparison(sig);
+    }
+
+	typedef bool CompareResult;
+	bool compare(int colA, int rowA, const_monomial a,
+				 int colB, int rowB, const_monomial b) const {
+      return mCmp.scrambledLessThan(b, a);
+	}
+	bool cmpLessThan(bool v) const {return v;}
+
+    GroebnerBasis const& basis() const {return mBasis;}
+    Cmp const& comparer() const {return mCmp;}
+
+  private:
+    GroebnerBasis const& mBasis;
+    Cmp const& mCmp;
+  };
+
+  // Object that stores S-pairs and orders them according to a monomial
+  // or signature.
+  template<class Cmp>
+  class ConcreteSigSPairQueue : public SigSPairQueue {
+  public:
+    ConcreteSigSPairQueue(GroebnerBasis const& basis, Cmp const& cmp):
+      mPairQueue(PC(basis, cmp)) {}
+
+    virtual monomial popSignature(Pairs& pairs) {
+      pairs.clear();
+      if (mPairQueue.empty())
+        return 0;
+      monomial sig = ring().allocMonomial();
+      ring().monomialCopy(mPairQueue.topPairData(), sig);
+      do {
+        pairs.push_back(mPairQueue.topPair());
+        mPairQueue.pop();
+      } while
+          (!mPairQueue.empty() && ring().monomialEQ(mPairQueue.topPairData(), sig));
+      comparer().unscrambleSignature(sig);
+      return sig;
+    }
+
+    virtual void pushPairs(size_t pairWith, IndexSigs& pairs) {
+#ifdef DEBUG
+      monomial tmp = ring().allocMonomial();
+      for (size_t i = 0; i < pairs.size(); ++i) {
+        ASSERT(pairs[i].i < columnCount());
+        mPairQueue.configuration().computePairData
+          (columnCount(), pairs[i].i, tmp);
+        comparer().unscrambleSignature(tmp);
+        ASSERT(ring().monomialEQ(tmp, pairs[i].signature));
+      }
+      ring().freeMonomial(tmp);
+#endif
+
+      if (columnCount() >= std::numeric_limits<BigIndex>::max())
+        throw std::overflow_error
+          ("Too large basis element index in constructing S-pairs.");
+    
+      // sort and insert new column
+      ScrambledComparer<Cmp> cmp(comparer());
+      comparer().scrambleSignaturesForFastComparison(pairs);
+      std::sort(pairs.begin(), pairs.end(), cmp);
+      //mPreComparisons += cmp.comparisons();
+      //order().destructiveSort(pairs);
+      typedef IndexIterator<std::vector<PreSPair>::const_iterator> Iter;
+      mPairQueue.addColumnDescending(Iter(pairs.begin()), Iter(pairs.end()));
+    
+      // free signatures
+      std::vector<PreSPair>::iterator end = pairs.end();
+      for (std::vector<PreSPair>::iterator it = pairs.begin(); it != end; ++it)
+        ring().freeMonomial(it->signature);
+      pairs.clear();
+    }
+  
+    virtual std::string name() const {return "todo";}
+
+    virtual size_t memoryUse() const {return mPairQueue.getMemoryUse();}
+
+    virtual size_t pairCount() const {return mPairQueue.pairCount();}
+
+    virtual size_t columnCount() const {return mPairQueue.columnCount();}
+
+  private:
+    ConcreteSigSPairQueue(const ConcreteSigSPairQueue<Cmp>&); // not available
+    void operator=(const ConcreteSigSPairQueue<Cmp>&); // not available
+
+    // the compiler should be able to resolve these accessors into a direct
+    // offset as though these were member variables.
+    const GroebnerBasis& basis() const {
+      return mPairQueue.configuration().basis();
+    }
+    const Cmp& comparer() const {return mPairQueue.configuration().comparer();}
+    PolyRing const& ring() const {return basis().ring();}
+    FreeModuleOrder const& order() const {return basis().order();}
+
+    typedef SigPTConfiguration<Cmp> PC;
+    mathic::PairQueue<PC> mPairQueue;
+    friend class mathic::PairQueueNamespace::ConstructPairDataFunction<PC>;
+    friend class mathic::PairQueueNamespace::DestructPairDataFunction<PC>;
+  };
+}
+
+namespace mathic {
+  namespace PairQueueNamespace {
+	template<class Cmp>
+    struct ConstructPairDataFunction<SigPTConfiguration<Cmp> > {
+      inline static void function
+      (void* memory, Index col, Index row, SigPTConfiguration<Cmp>& conf) {
+        MATHICGB_ASSERT(memory != 0);
+        MATHICGB_ASSERT(col > row);
+        monomial* pd = new (memory) monomial
+          (conf.basis().ring().allocMonomial());
+        conf.computePairData(col, row, *pd);
+      }
+	};
+
+	template<class Cmp>
+    struct DestructPairDataFunction<SigPTConfiguration<Cmp> > {
+      inline static void function
+      (monomial* pd, Index col, Index row, SigPTConfiguration<Cmp>& conf) {
+        MATHICGB_ASSERT(pd != 0);
+        MATHICGB_ASSERT(col > row);
+        conf.basis().ring().freeMonomial(*pd);
+      }
+    };
+  }
+}
+
+// *******************************************************
+// ** Term orders
 
 template<class Cmp>
 class ConcreteOrder : public FreeModuleOrder {
@@ -29,9 +238,9 @@ public:
     return mCmp.signatureCompare(sigA, monoB, sigB);
   }
 
-  virtual void destructiveSort(std::vector<PreSPair>& pairs) const {
-    DestructiveSortComparer cmp(mCmp);
-    mCmp.prepareDestructiveSort(pairs);
+  virtual void sortAndScrambleSignatures(std::vector<PreSPair>& pairs) const {
+    ScrambledComparer<Cmp> cmp(mCmp);
+    mCmp.scrambleSignaturesForFastComparison(pairs);
     std::sort(pairs.begin(), pairs.end(), cmp);
     mPreComparisons += cmp.comparisons();
   }
@@ -49,24 +258,19 @@ public:
     preComparisons = mPreComparisons;
   }
 
-private:
-  class DestructiveSortComparer {
-  public:
-    DestructiveSortComparer(const Cmp& cmp): mCmp(cmp), mComparisons(0) {}
-    bool operator()(const PreSPair& a, const PreSPair& b) const {
-      ++mComparisons;
-      return mCmp.lessThanForDestructiveSort(a.signature, b.signature);
-    }
-    size_t comparisons() const {return mComparisons;}
-  private:
-    const Cmp& mCmp;
-    mutable size_t mComparisons;
-  };
+  virtual std::auto_ptr<SigSPairQueue>
+  createSigSPairQueue(GroebnerBasis const& basis) const {
+    return std::auto_ptr<SigSPairQueue>
+      (new ConcreteSigSPairQueue<Cmp>(basis, mCmp));
+  }
 
+private:
   Cmp mCmp;
   mutable size_t mComparisons;
   mutable size_t mPreComparisons;
 };
+
+
 
 // ** Graded reverse lex.
 // Degrees and exponents considered from high index to low index.
@@ -83,11 +287,12 @@ public:
     return mRing->monomialCompare(sigA, sigB);
   }
 
-  void prepareDestructiveSort(std::vector<PreSPair>& pairs) const {}
-
-  bool lessThanForDestructiveSort(const_monomial sigA, const_monomial sigB) const {
+  void scrambleSignatureForFastComparison(monomial sig) const {}
+  void scrambleSignaturesForFastComparison(std::vector<PreSPair>& pairs) const {}
+  bool scrambledLessThan(const_monomial sigA, const_monomial sigB) const {
     return mRing->monomialLT(sigA, sigB);
   }
+  void unscrambleSignature(monomial sig) const {}
 
   int signatureCompare(const_monomial sigA,
     const_monomial monoB, const_monomial sigB) const {
@@ -121,11 +326,12 @@ public:
       appendBasisElement(I->getPoly(i)->getLeadMonomial());
   }
 
-  void prepareDestructiveSort(std::vector<PreSPair>& pairs) const {}
-
-  bool lessThanForDestructiveSort(const_monomial a, const_monomial b) const {
+  void scrambleSignatureForFastComparison(monomial sig) const {}
+  void scrambleSignaturesForFastComparison(std::vector<PreSPair>& pairs) const {}
+  bool scrambledLessThan(const_monomial a, const_monomial b) const {
     return signatureCompare(a, b) == LT;
   }
+  void unscrambleSignature(monomial sig) const {}
 
   int signatureCompare(const_monomial sig, const_monomial sig2) const {
     int da = - sig[topindex] + deg[*sig];
@@ -192,11 +398,12 @@ public:
 
   void appendBasisElement(const_monomial m) {deg.push_back(-m[topindex]);}
 
-  void prepareDestructiveSort(std::vector<PreSPair>& pairs) const {}
-
-  bool lessThanForDestructiveSort(const_monomial a, const_monomial b) const {
+  void scrambleSignatureForFastComparison(monomial sig) const {}
+  void scrambleSignaturesForFastComparison(std::vector<PreSPair>& pairs) const {}
+  bool scrambledLessThan(const_monomial a, const_monomial b) const {
     return signatureCompare(a, b) == LT;
   }
+  void unscrambleSignature(monomial sig) const {}
 
   int signatureCompare(const_monomial sig, const_monomial sig2) const {
     int da = - sig[topindex] + deg[*sig];
@@ -282,20 +489,34 @@ public:
       return *a < *b ? GT : LT;
   }
 
-  void prepareDestructiveSort(std::vector<PreSPair>& pairs) const {
-    typedef std::vector<PreSPair>::iterator Iter;
-    Iter end = pairs.end();
-    for (Iter it = pairs.begin(); it != end; ++it) {
-      monomial sig = it->signature;
-      const_monomial adjust = monoms[*sig];
-      for (size_t i = topindex; i >= 1; --i)
-        sig[i] += adjust[i];
-      if (mUp)
-        *sig = -*sig;
-    }
+  void scrambleSignatureForFastComparison(monomial sig) const {
+#ifdef DEBUG
+    monomial original = mRing->allocMonomial();
+    mRing->monomialCopy(sig, original);
+#endif
+    const_monomial adjust = monoms[*sig];
+    for (size_t i = topindex; i >= 1; --i) 
+      sig[i] += adjust[i];
+    if (mUp)
+      *sig = -*sig;
+#ifdef DEBUG
+    monomial unscrambled = mRing->allocMonomial();
+    mRing->monomialCopy(sig, unscrambled);
+    unscrambleSignature(unscrambled);
+    ASSERT(mRing->monomialEQ(original, unscrambled));
+    mRing->freeMonomial(original);
+    mRing->freeMonomial(unscrambled);
+#endif
   }
 
-  inline bool lessThanForDestructiveSort(
+  void scrambleSignaturesForFastComparison(std::vector<PreSPair>& pairs) const {
+    typedef std::vector<PreSPair>::iterator Iter;
+    Iter end = pairs.end();
+    for (Iter it = pairs.begin(); it != end; ++it)
+      scrambleSignatureForFastComparison(it->signature);
+  }
+
+  inline bool scrambledLessThan(
     const_monomial a,
     const_monomial b
   ) const {
@@ -325,6 +546,14 @@ public:
         return cmp2 > 0;
     }
     return false; // equality
+  }
+
+  void unscrambleSignature(monomial sig) const {
+    if (mUp)
+      *sig = -*sig;
+    const_monomial adjust = monoms[*sig];
+    for (size_t i = topindex; i >= 1; --i) 
+      sig[i] -= adjust[i];
   }
 
   int signatureCompare(const_monomial a, const_monomial m2, const_monomial b) const {
@@ -406,15 +635,12 @@ public:
     return EQ;
   }
 
-  void prepareDestructiveSort(std::vector<PreSPair>& pairs) const {
-  }
-
-  inline bool lessThanForDestructiveSort(
-    const_monomial a,
-    const_monomial b
-  ) const {
+  void scrambleSignatureForFastComparison(monomial sig) const {}
+  void scrambleSignaturesForFastComparison(std::vector<PreSPair>& pairs) const {}
+  inline bool scrambledLessThan(const_monomial a, const_monomial b) const {
     return signatureCompare(a,b) == LT;
   }
+  void unscrambleSignature(monomial sig) const {}
 
   int signatureCompare(const_monomial a, const_monomial m2, const_monomial b) const {
     const_monomial ma = monoms[*a];

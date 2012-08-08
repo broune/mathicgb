@@ -4,18 +4,13 @@
 #define _free_module_order_h_
 
 #include "PolyRing.hpp"
+#include "SigSpairQueue.hpp"
 
 class PolyRing;
 class Ideal;
+class GroebnerBasis;
+class SigSPairQueue;
 typedef int FreeModuleOrderType;
-
-typedef unsigned short SmallIndex;
-typedef unsigned int BigIndex;
-
-struct PreSPair {
-  BigIndex i;
-  monomial signature;
-};
 
 class FreeModuleOrder
 {
@@ -35,7 +30,7 @@ public:
 
   // Sorts in ascending order of signature. May alter the signatures,
   // so do not use them after calling this method other than to free them.
-  virtual void destructiveSort(std::vector<PreSPair>& pairs) const = 0;
+  virtual void sortAndScrambleSignatures(std::vector<PreSPair>& pairs) const = 0;
 
   // You must use this method to inform the order when a
   // new basis element has been added.
@@ -45,9 +40,13 @@ public:
 
   virtual std::string description() const = 0;
 
+  virtual std::auto_ptr<SigSPairQueue>
+  createSigSPairQueue(GroebnerBasis const& basis) const = 0;
+
   static FreeModuleOrder* makeOrder(FreeModuleOrderType type, const Ideal* I);
 
   static void displayOrderTypes(std::ostream &o);
+
 };
 
 #endif
