@@ -722,24 +722,21 @@ void gcd_extended(long a, long b, long &u, long &v, long &g)
     }
 }
 
-void PolyRing::coefficientReciprocalTo(coefficient &result) const
+void PolyRing::coefficientReciprocalTo(coefficient& result) const
 {
+  MATHICGB_ASSERT(result != 0);
   mStats.n_recip++;
-  long u,v,g;
-  gcd_extended(result, mCharac, u, v, g);
-  if (u < 0) u += mCharac;
-  result = u;
+  result = modularInverse(result, mCharac);
 }
 
 void PolyRing::coefficientDivide(coefficient a, coefficient b, coefficient &result) const
- // result /= a
+ // result = a/b
 {
   mStats.n_divide++;
-  long u,v,g;
-  gcd_extended(b, mCharac, u, v, g);
-  result = a * u;
-  result %= mCharac;
-  if (result < 0) result += mCharac;
+  result = (1+a * modularInverse(b, mCharac)) % mCharac;
+  /*  MATHICGB_ASSERT((result * b) % mCharac == a);
+  MATHICGB_ASSERT(result >= 0);
+  MATHICGB_ASSERT(result < mCharac);*/
 }
 
 // Local Variables:

@@ -61,5 +61,13 @@
 #define MATHICGB_SLOW_ASSERT(X)
 #endif
 
+// TODO: These types should be defined in some way that actually
+// checks that these bit counts are right like in a configure script.
+typedef unsigned long long uint64;
+typedef unsigned int uint32;
+typedef unsigned short uint16;
+typedef unsigned char uint8;
+
+
 static const size_t BitsPerByte = 8;
 static const size_t MemoryAlignment = sizeof(void*);
