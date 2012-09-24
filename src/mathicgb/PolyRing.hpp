@@ -14,6 +14,49 @@
 #define EQ 0
 #define GT 1
 
+template<class T>
+T modularInverse(T a, T modulus) {
+  // we do two turns of the extended Euclidian algorithm per
+  // loop. Usually the sign of x changes each time through the loop,
+  // but we avoid that by representing every other x as its negative,
+  // which is the value minusLastX. This way no negative values show
+  // up.
+  MATHICGB_ASSERT(a != 0);
+  MATHICGB_ASSERT(a < modulus);
+#ifdef MATHICGB_DEBUG
+  T origA = a;
+#endif
+  T b = modulus; // note that we actually only need modulus for asserts
+  T minusLastX = 0;
+  T x = 1;
+  while (true) {
+    MATHICGB_ASSERT(x <= modulus);
+    MATHICGB_ASSERT(minusLastX <= modulus);
+
+    // first turn
+    if (a == 1)
+      break;
+    T const firstQuotient = b / a;
+    b -= firstQuotient * a;
+    minusLastX += firstQuotient * x;
+
+    // second turn
+    if (b == 1) {
+      MATHICGB_ASSERT(minusLastX != 0);
+      MATHICGB_ASSERT(minusLastX < modulus);
+      x = modulus - minusLastX;
+      break;
+    }
+    T const secondQuotient = a / b;
+    a -= secondQuotient * b;
+    x += secondQuotient * minusLastX;
+  }
+  MATHICGB_ASSERT(x >= 1);
+  MATHICGB_ASSERT(x < modulus);
+  MATHICGB_ASSERT((static_cast<uint64>(origA) * x) % modulus == 1);
+  return x;
+}
+
 typedef int exponent ;
 typedef long coefficient;
 typedef exponent *vecmonomial; // includes a component
