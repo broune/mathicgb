@@ -2,7 +2,7 @@ dnl AC_INIT sets up autoconf and must be first macro.
 AC_INIT([mathicgb], [1.0]) # package, version, bug-report-email
 
 # Check that mathicgb is installed and locate it
-PKG_CHECK_MODULES([DEPS], [memtailor-1.0 mathic-1.0])
+PKG_CHECK_MODULES([DEPS], [memtailor-1.0] [mathic-1.0])
 
 # set up information about directories
 AC_CONFIG_MACRO_DIR([build/autotools/m4]) # directory of extra autoconf macroes
