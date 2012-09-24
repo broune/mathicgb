@@ -733,10 +733,10 @@ void PolyRing::coefficientDivide(coefficient a, coefficient b, coefficient &resu
  // result = a/b
 {
   mStats.n_divide++;
-  result = (1+a * modularInverse(b, mCharac)) % mCharac;
-  /*  MATHICGB_ASSERT((result * b) % mCharac == a);
+  result = (a * modularInverse(b, mCharac)) % mCharac;
+  MATHICGB_ASSERT((result * b) % mCharac == a);
   MATHICGB_ASSERT(result >= 0);
-  MATHICGB_ASSERT(result < mCharac);*/
+  MATHICGB_ASSERT(result < mCharac);
 }
 
 // Local Variables:
