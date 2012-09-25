@@ -54,7 +54,8 @@ libmathicgb_la_SOURCES = src/mathicgb/BjarkeGeobucket2.cpp				\
   src/mathicgb/stdinc.h src/mathicgb/TournamentReducer.cpp				\
   src/mathicgb/TournamentReducer.hpp src/mathicgb/SigSPairQueue.hpp		\
   src/mathicgb/SigSPairQueue.cpp src/mathicgb/SparseMatrix.hpp			\
-  src/mathicgb/SparseMatrix.cpp
+  src/mathicgb/SparseMatrix.cpp src/mathicgb/QuadMatrixBuilder.hpp		\
+  src/mathicgb/QuadMatrixBuilder.cpp
 
 # When making a distribution file, Automake knows to include all files
 # that are necessary to build the project. EXTRA_DIST specifies files
@@ -84,4 +85,4 @@ test_LIBS=
 unittest_SOURCES=src/test/FreeModuleOrderTest.cpp						\
   src/test/gtestInclude.cpp src/test/testMain.cpp src/test/gb-test.cpp	\
   src/test/ideals.cpp src/test/poly-test.cpp src/test/ideals.hpp		\
-  src/test/SparseMatrix.cpp
+  src/test/SparseMatrix.cpp src/test/QuadMatrixBuilder.cpp
