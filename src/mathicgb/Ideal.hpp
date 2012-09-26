@@ -22,10 +22,10 @@ public:
   static Ideal *parse(std::istream &i); // reads ring, #gens, each generator in turn
   void display(std::ostream &o, bool print_comp) const; // inverse operation
 
-  const PolyRing & ring() const { return mRing; }
+  const PolyRing& ring() const { return mRing; }
 
   const PolyRing *getPolyRing() const { return &mRing; }
-  const std::vector<Poly *> & viewGenerators() { return mGenerators; }
+  const std::vector<Poly *>& viewGenerators() { return mGenerators; }
   const Poly *getPoly(size_t i) const { return mGenerators[i]; }
   size_t size() const { return mGenerators.size(); }
 

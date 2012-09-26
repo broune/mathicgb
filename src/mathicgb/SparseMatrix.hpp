@@ -74,10 +74,9 @@ class SparseMatrix {
     return mRowOffsets[row] == mRowOffsets[row + 1];
   }
 
-  /** Removes the leading trimThisMany columns.
-
-    The columns are removed by replacing all column indices col by col
-    - trimThisMany. No entry can have a column index less than
+  /** Removes the leading trimThisMany columns. The columns are
+    removed by replacing all column indices col by col -
+    trimThisMany. No entry can have a column index less than
     trimThisMany, even if the scalar of that entry is set to zero. */
   void trimLeadingZeroColumns(ColIndex trimThisMany) {
     MATHICGB_ASSERT(trimThisMany <= colCount());
@@ -127,6 +126,7 @@ class SparseMatrix {
     print(out);
     return out.str();
   }
+
 
   /** Adds a new row that contains all terms that have been appended
     since the last time a row was added or the matrix was created. */
@@ -345,7 +345,12 @@ class SparseMatrix {
     return mColIndices;
   }
 
- private:
+  typedef std::vector<ColIndex>::iterator AllColIndicesIterator;
+  AllColIndicesIterator allColIndicesBegin() {return mColIndices.begin();}
+  AllColIndicesIterator allColIndicesEnd() {return mColIndices.end();}
+
+
+private:
   friend class RowIterator;
 
   ColIndex indexAtOffset(size_t offset) const {

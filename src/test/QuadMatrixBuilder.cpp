@@ -4,6 +4,8 @@
 #include "mathicgb/PolyRing.hpp"
 #include "mathicgb/QuadMatrixBuilder.hpp"
 #include "mathicgb/io-util.hpp"
+#include "mathicgb/FreeModuleOrder.hpp"
+#include "mathicgb/Ideal.hpp"
 #include <gtest/gtest.h>
 
 namespace {
@@ -118,5 +120,80 @@ TEST(QuadMatrixBuilder, ColumnQuery) {
       else
         ASSERT_TRUE(col.left());
     }
+  }
+}
+
+TEST(QuadMatrixBuilder, SortColumns) {
+  // construct builder and reverse lex order
+  std::auto_ptr<PolyRing> ring(ringFromString("32003 6 1\n1 1 1 1 1 1"));
+  Ideal ideal(*ring);
+  std::auto_ptr<FreeModuleOrder> order(FreeModuleOrder::makeOrder(1, &ideal));
+  
+  // one row top, no rows bottom, no columns
+  {
+    QuadMatrixBuilder b(*ring);
+    b.rowDoneTopLeftAndRight();
+    b.sortColumnsLeft(*order);
+    b.sortColumnsRight(*order);
+    const char* matrixStr = 
+      "Left columns:\n"
+      "Right columns:\n"
+      "0:                  | 0:                 \n"
+      "                    |                    \n"
+      "matrix with no rows | matrix with no rows\n";
+    ASSERT_EQ(matrixStr, b.toString());
+  }
+
+  {
+    QuadMatrixBuilder b(*ring);
+    createColumns("<0>+a<0>", "b<0>+bcd<0>+bc<0>", b);
+    b.appendEntryTopLeft(0,1);
+    b.appendEntryTopLeft(1,2);
+    b.appendEntryTopRight(0,3);
+    b.appendEntryTopRight(1,4);
+    b.appendEntryTopRight(2,5);
+    b.rowDoneTopLeftAndRight();
+
+    b.appendEntryBottomLeft(0,6);
+    b.appendEntryBottomLeft(1,7);
+    b.appendEntryBottomRight(0,8);
+    b.appendEntryBottomRight(1,9);
+    b.appendEntryBottomRight(2,10);
+    b.rowDoneBottomLeftAndRight();
+
+    const char* matrixStr1 =
+      "Left columns: 1 a\n"
+      "Right columns: b bcd bc\n"
+      "0: 0#1 1#2 | 0: 0#3 1#4 2#5 \n"
+      "           |                \n"
+      "0: 0#6 1#7 | 0: 0#8 1#9 2#10\n";
+    ASSERT_EQ(matrixStr1, b.toString());
+
+    const char* matrixStr2 =
+      "Left columns: a 1\n"
+      "Right columns: b bcd bc\n"
+      "0: 1#1 0#2 | 0: 0#3 1#4 2#5 \n"
+      "           |                \n"
+      "0: 1#6 0#7 | 0: 0#8 1#9 2#10\n";
+    b.sortColumnsLeft(*order);
+    ASSERT_EQ(matrixStr2, b.toString());
+
+    b.sortColumnsLeft(*order); // sort when already sorted
+    ASSERT_EQ(matrixStr2, b.toString());
+
+    const char* matrixStr3 =
+      "Left columns: a 1\n"
+      "Right columns: bcd bc b\n"
+      "0: 1#1 0#2 | 0: 2#3 0#4 1#5 \n"
+      "           |                \n"
+      "0: 1#6 0#7 | 0: 2#8 0#9 1#10\n";
+    b.sortColumnsRight(*order);
+    ASSERT_EQ(matrixStr3, b.toString());
+
+    b.sortColumnsRight(*order); // sort when already sorted
+    ASSERT_EQ(matrixStr3, b.toString());
+
+    b.sortColumnsLeft(*order);
+    ASSERT_EQ(matrixStr3, b.toString());
   }
 }
