@@ -70,13 +70,13 @@ public:
 
     mTracingLevel("tracingLevel",
       "How much information to print out about actions taken. Nothing "
-      "extra is printed if the value is zero. Higher values than zero "
+      "extra is printed if the value is zero. Higher values "
       "result in more information.",
       0),
 
     mBreakAfter("breakAfter",
-      "Stop the computation after this elements have been added to the basis. "
-      "The computation runs to the end of the value is zero.",
+      "Stop the computation after this many elements have been added to "
+      "the basis. The computation runs uninterrupted if the value is zero.",
       0),
 
     mPrintInterval("printInterval",
