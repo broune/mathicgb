@@ -697,7 +697,7 @@ void FreeModuleOrder::displayOrderTypes(std::ostream &o)
   o << "  7   IndexDown SchreyerGrevLex" << std::endl;
 }
 
-FreeModuleOrder *FreeModuleOrder::makeOrder(FreeModuleOrderType type, const Ideal *I)
+FreeModuleOrder* FreeModuleOrder::makeOrder(FreeModuleOrderType type, const Ideal* I)
 {
   int i;
   if (type == 0)

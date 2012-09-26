@@ -7,6 +7,7 @@
 #include <map>
 #include <string>
 #include <ostream>
+class FreeModuleOrder;
 
 /** Builder for a set of 4 sub-matrices that fit together and where
   columns have an associated monomial.
@@ -132,7 +133,7 @@ class QuadMatrixBuilder {
     mBottomRight.rowDone();
   }
 
-  // *** Creating columns
+  // *** Creating and reordering columns
   // Unlike the interface for SparseMatrix, here you have to create
   // columns before you can append entries in those columns. All
   // passed in monomials are copied so that ownership of the memory is
@@ -147,6 +148,16 @@ class QuadMatrixBuilder {
     to the right matrices. There must not already exist a column for
     this monomial on the left or on the right. */
   ColIndex createColumnRight(const_monomial monomialToBeCopied);
+
+  /** Sorts the left columns to be decreasing with respect to
+    order. Also updates the column indices already in the matrix to
+    reflect the new ordering. */
+  void sortColumnsLeft(const FreeModuleOrder& order);
+
+  /** Sorts the right columns to be decreasing with respect to
+    order. Also updates the column indices already in the matrix to
+    reflect the new ordering. */
+  void sortColumnsRight(const FreeModuleOrder& order);
 
 
   // *** Querying columns
