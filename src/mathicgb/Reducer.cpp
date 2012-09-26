@@ -13,8 +13,8 @@
 #include "ReducerNoDedup.hpp"
 #include "ReducerDedup.hpp"
 #include "ReducerHash.hpp"
-
 #include "ReducerHashPack.hpp"
+#include "F4Reducer.hpp"
 
 #include "GroebnerBasis.hpp"
 #include <iostream>
@@ -108,6 +108,12 @@ std::auto_ptr<Reducer> Reducer::makeReducerNullOnUnknown(
   case Reducer_Geobucket_Hashed_Packed:
     return std::auto_ptr<Reducer>(new ReducerHashPack<mic::Geobucket>(ring));
 
+  case Reducer_F4:
+    {
+      std::auto_ptr<Reducer> fallback = makeReducer(Reducer_BjarkeGeo, ring);
+      return std::auto_ptr<Reducer>(new F4Reducer(ring, fallback));
+    }
+
   default:
     break;
   };
@@ -146,6 +152,8 @@ Reducer::ReducerType Reducer::reducerType(int typ)
   case 23: return Reducer_Geobucket_Dedup_Packed;
   case 24: return Reducer_Geobucket_Hashed_Packed;
 
+  case 25: return Reducer_F4;
+
   default: return Reducer_PolyHeap;
   }
 }
@@ -181,6 +189,8 @@ void Reducer::displayReducerTypes(std::ostream &o)
   o << "  22   Geobucket.NoDedup.Packed" << std::endl;
   o << "  23   Geobucket.Dedup.Packed" << std::endl;
   o << "  24   Geobucket.Hashed.Packed" << std::endl;
+
+  o << "  25   F4 reducer" << std::endl;
 }
 
 // Todo: can't this be machine generated?

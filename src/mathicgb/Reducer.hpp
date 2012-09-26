@@ -76,7 +76,9 @@ public:
     Reducer_Geobucket_Hashed,
     Reducer_Geobucket_NoDedup_Packed,
     Reducer_Geobucket_Dedup_Packed,
-    Reducer_Geobucket_Hashed_Packed
+    Reducer_Geobucket_Hashed_Packed,
+
+    Reducer_F4
   };
 
   static std::auto_ptr<Reducer> makeReducer
