@@ -6,15 +6,11 @@
 #include <memtailor.h>
 #include <mathic.h>
 
-#include "Reducer.hpp"
+#include "TypicalReducer.hpp"
 #include "ReducerHelper.hpp"
 
-/**
-
-todo: consider changing name of findLeadTerm to leadTerm.
-*/
 template<template<typename> class Queue>
-class ReducerPack : public Reducer {
+class ReducerPack : public TypicalReducer {
 public:
   ReducerPack(const PolyRing& ring);
   virtual ~ReducerPack();
@@ -26,7 +22,7 @@ public:
   virtual void insertTail(const_term multiplier, const Poly* f);
   virtual void insert(monomial multiplier, const Poly* f);
 
-  virtual bool findLeadTerm(const_term& result);
+  virtual bool leadTerm(const_term& result);
   virtual void removeLeadTerm();
 
   virtual size_t getMemoryUse() const;
@@ -79,7 +75,6 @@ extern int tracingLevel;
 
 template<template<typename> class Q>
 ReducerPack<Q>::ReducerPack(const PolyRing& ring):
-  Reducer(),
   mRing(ring),
   mLeadTerm(0, mRing.allocMonomial()),
   mLeadTermKnown(false),
@@ -175,7 +170,7 @@ void ReducerPack<Q>::MultipleWithPos::destroy(const PolyRing& ring) {
 }
 
 template<template<typename> class Q>
-bool ReducerPack<Q>::findLeadTerm(const_term& result)
+bool ReducerPack<Q>::leadTerm(const_term& result)
 {
   if (mLeadTermKnown) {
     result = mLeadTerm;
@@ -223,7 +218,7 @@ void ReducerPack<Q>::removeLeadTerm()
 {
   if (!mLeadTermKnown) {
     const_term dummy;
-    findLeadTerm(dummy);
+    leadTerm(dummy);
   }
   mLeadTermKnown = false;
 }
@@ -239,7 +234,10 @@ void ReducerPack<Q>::resetReducer()
 template<template<typename> class Q>
 size_t ReducerPack<Q>::getMemoryUse() const
 {
-  return mQueue.getMemoryUse() + mPool.getMemoryUse();
+  return
+    TypicalReducer::getMemoryUse() +
+    mQueue.getMemoryUse() +
+    mPool.getMemoryUse();
 }
 
 #endif

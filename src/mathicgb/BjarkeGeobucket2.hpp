@@ -4,7 +4,7 @@
 #define _bjarkeGeoBucket_h_
 
 #include <mathic.h>
-#include "Reducer.hpp"
+#include "TypicalReducer.hpp"
 #include "PolyHashTable.hpp"
 
 class GeoConfiguration {
@@ -67,22 +67,21 @@ private:
   const PolyRing &mRing;
 };
 
-class BjarkeGeobucket2 : public Reducer {
+class BjarkeGeobucket2 : public TypicalReducer {
 public:
   BjarkeGeobucket2(const PolyRing *R);
-  ~BjarkeGeobucket2();
 
   virtual std::string description() const { return "bjarke geo buckets"; }
 
   void insertTail(const_term multiplier, const Poly *f);
   void insert(monomial multiplier, const Poly *f);
 
-  bool findLeadTerm(const_term &result);
-  void removeLeadTerm();
+  virtual bool leadTerm(const_term &result);
+  virtual void removeLeadTerm();
 
   void value(Poly &result); // keep extracting lead term until done
 
-  size_t getMemoryUse() const;
+  virtual size_t getMemoryUse() const;
 
   void dump() const; // Used for debugging
 

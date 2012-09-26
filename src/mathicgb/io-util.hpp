@@ -29,9 +29,6 @@ std::string toString(const Poly *);
 std::auto_ptr<Ideal> idealParseFromString(std::string str);
 std::auto_ptr<Poly> polyParseFromString(const PolyRing *R, const std::string &s);
 
-std::auto_ptr<Poly> multIdealByPolyReducer(int typ, const Ideal& I, const Poly& g);
-
-
 void output(std::ostream &o, const PolyBasis &I);
 
 #endif

@@ -3,11 +3,11 @@
 #ifndef _polyGeoBucket_h_
 #define _polyGeoBucket_h_
 
-#include "Reducer.hpp"
+#include "TypicalReducer.hpp"
 
 #define GEOHEAP_SIZE 15
 
-class PolyGeoBucket : public Reducer {
+class PolyGeoBucket : public TypicalReducer {
 public:
   PolyGeoBucket(const PolyRing *R);
   ~PolyGeoBucket();
@@ -17,8 +17,8 @@ public:
   void insertTail(const_term multiplier, const Poly *f);
   void insert(monomial multiplier, const Poly *f);
 
-  bool findLeadTerm(const_term &result);
-  void removeLeadTerm();
+  virtual bool leadTerm(const_term& result);
+  virtual void removeLeadTerm();
 
   void value(Poly &result); // keep extracting lead term until done
   void resetReducer();

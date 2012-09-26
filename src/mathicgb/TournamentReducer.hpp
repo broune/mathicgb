@@ -3,11 +3,11 @@
 #ifndef _tournament_reducer_h_
 #define _tournament_reducer_h_
 
+#include "TypicalReducer.hpp"
 #include <mathic.h>
 #include <memtailor.h>
-#include "Reducer.hpp"
 
-class TournamentReducer : public Reducer {
+class TournamentReducer : public TypicalReducer {
 public:
   TournamentReducer(const PolyRing& R);
   virtual ~TournamentReducer();
@@ -17,7 +17,7 @@ public:
   virtual void insertTail(const_term multiplier, const Poly *f);
   virtual void insert(monomial multiplier, const Poly *f);
 
-  virtual bool findLeadTerm(const_term &result);
+  virtual bool leadTerm(const_term &result);
   virtual void removeLeadTerm();
 
   virtual void value(Poly &result); // keep extracting lead term until done

@@ -8,11 +8,8 @@ const size_t heap_size[GEOHEAP_SIZE] = {4, 16, 64, 256, 1024, 4096,
                                16777216, 67108864, 268435456,
                                1073741824};
 
-PolyGeoBucket::PolyGeoBucket(const PolyRing *R0)
-  : Reducer(),
-    R(R0),
-    top_of_heap(-1),
-    lead(-1)
+PolyGeoBucket::PolyGeoBucket(const PolyRing *R0): 
+  R(R0), top_of_heap(-1), lead(-1)
 {
   int i;
   for (i=0; i<GEOHEAP_SIZE; i++)
@@ -184,7 +181,7 @@ void PolyGeoBucket::insert(monomial multiplier, const Poly *f)
   insert(a);
 }
 
-bool PolyGeoBucket::findLeadTerm(const_term &result)
+bool PolyGeoBucket::leadTerm(const_term &result)
 {
   if (lead == -1 && !computeLeadTerm()) return false;
   result.coeff = heap[lead].first.getCoefficient();
@@ -246,7 +243,7 @@ size_t PolyGeoBucket::getMemoryUse() const
   // size includes: each poly in the heap, as well as the
   // size of the heap itself
   size_t result =
-    Reducer::getMemoryUse() +
+    TypicalReducer::getMemoryUse() +
     sizeof(heap_record) * GEOHEAP_SIZE;
   for (int i=0; i<GEOHEAP_SIZE; ++i)
     if (heap[i].poly != 0)

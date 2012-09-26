@@ -10,11 +10,8 @@ extern int tracingLevel;
 
 size_t PolyHeap::stats_static_n_compares = 0;
 
-PolyHeap::PolyHeap(const PolyRing *R_)
-  : Reducer(),
-    R(R_),
-    heapCompare(R_),
-    lead_is_computed(false)
+PolyHeap::PolyHeap(const PolyRing *R_):
+  R(R_), heapCompare(R_), lead_is_computed(false)
 {
   stats_static_n_compares = 0;
 }
@@ -125,7 +122,7 @@ bool PolyHeap::computeLeadTerm()
   return lead_is_computed; // will be false if could not compute
 }
 
-bool PolyHeap::findLeadTerm(const_term &result)
+bool PolyHeap::leadTerm(const_term &result)
 {
   if (!lead_is_computed && !computeLeadTerm()) return false;
   result = lead_term;
@@ -141,7 +138,7 @@ void PolyHeap::removeLeadTerm()
 void PolyHeap::value(Poly &result)
 {
   const_term t;
-  while (findLeadTerm(t))
+  while (leadTerm(t))
     {
       result.appendTerm(t.coeff, t.monom);
       lead_is_computed = false;
@@ -152,7 +149,7 @@ void PolyHeap::value(Poly &result)
 size_t PolyHeap::getMemoryUse() const
 {
   return
-    Reducer::getMemoryUse() +
+    TypicalReducer::getMemoryUse() +
     terms_.capacity() * sizeof(heap_term);
 }
 

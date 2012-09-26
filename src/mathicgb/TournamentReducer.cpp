@@ -8,7 +8,6 @@
 extern int tracingLevel;
 
 TournamentReducer::TournamentReducer(const PolyRing& ring):
-  Reducer(),
   mRing(ring),
   mLeadTerm(0, mRing.allocMonomial()),
   mLeadTermKnown(false),
@@ -99,7 +98,7 @@ void TournamentReducer::MultipleWithPos::destroy(const PolyRing& ring) {
   this->~MultipleWithPos();
 }
 
-bool TournamentReducer::findLeadTerm(const_term& result)
+bool TournamentReducer::leadTerm(const_term& result)
 {
   if (mLeadTermKnown) {
     result = mLeadTerm;
@@ -145,7 +144,7 @@ void TournamentReducer::removeLeadTerm()
 {
   if (!mLeadTermKnown) {
     const_term dummy;
-    findLeadTerm(dummy);
+    leadTerm(dummy);
   }
   mLeadTermKnown = false;
 }
@@ -153,7 +152,7 @@ void TournamentReducer::removeLeadTerm()
 void TournamentReducer::value(Poly &result)
 {
   const_term t;
-  while (findLeadTerm(t)) {
+  while (leadTerm(t)) {
     result.appendTerm(t.coeff, t.monom);
     removeLeadTerm();
   }
@@ -169,7 +168,10 @@ void TournamentReducer::resetReducer()
 
 size_t TournamentReducer::getMemoryUse() const
 {
-  return mQueue.getMemoryUse() + mPool.getMemoryUse();
+  return
+    TypicalReducer::getMemoryUse() +
+    mQueue.getMemoryUse() +
+    mPool.getMemoryUse();
 }
 
 void TournamentReducer::dump() const

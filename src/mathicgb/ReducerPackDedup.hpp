@@ -6,11 +6,11 @@
 #include <memtailor.h>
 #include <mathic.h>
 
-#include "Reducer.hpp"
+#include "TypicalReducer.hpp"
 #include "ReducerHelper.hpp"
 
 template<template<typename> class Queue>
-class ReducerPackDedup : public Reducer {
+class ReducerPackDedup : public TypicalReducer {
 public:
   ReducerPackDedup(const PolyRing& ring);
   virtual ~ReducerPackDedup();
@@ -22,7 +22,7 @@ public:
   virtual void insertTail(const_term multiplier, const Poly* f);
   virtual void insert(monomial multiplier, const Poly* f);
 
-  virtual bool findLeadTerm(const_term& result);
+  virtual bool leadTerm(const_term& result);
   virtual void removeLeadTerm();
 
   virtual size_t getMemoryUse() const;
@@ -90,13 +90,11 @@ extern int tracingLevel;
 
 template<template<typename> class Q>
 ReducerPackDedup<Q>::ReducerPackDedup(const PolyRing& ring):
-  Reducer(),
   mRing(ring),
   mLeadTerm(0, mRing.allocMonomial()),
   mLeadTermKnown(false),
   mQueue(Configuration(ring)),
-  mPool(sizeof(MultipleWithPos))
-{
+  mPool(sizeof(MultipleWithPos)) {
 }
 
 template<template<typename> class Q>
@@ -202,7 +200,7 @@ void ReducerPackDedup<Q>::MultipleWithPos::destroy(const PolyRing& ring) {
 }
 
 template<template<typename> class Q>
-bool ReducerPackDedup<Q>::findLeadTerm(const_term& result)
+bool ReducerPackDedup<Q>::leadTerm(const_term& result)
 {
   if (mLeadTermKnown) {
     result = mLeadTerm;
@@ -279,7 +277,7 @@ void ReducerPackDedup<Q>::removeLeadTerm()
 {
   if (!mLeadTermKnown) {
     const_term dummy;
-    findLeadTerm(dummy);
+    leadTerm(dummy);
   }
   mLeadTermKnown = false;
 }
@@ -288,15 +286,17 @@ template<template<typename> class Q>
 void ReducerPackDedup<Q>::resetReducer()
 {
   MonomialFree freeer(mRing);
-  // todo: uncomment when all queues have forAll and clear.
-  //mQueue.forAll(freeer);
-  //  mQueue.clear();
+  mQueue.forAll(freeer);
+  mQueue.clear();
 }
 
 template<template<typename> class Q>
 size_t ReducerPackDedup<Q>::getMemoryUse() const
 {
-  return mQueue.getMemoryUse() + mPool.getMemoryUse();
+  return
+    TypicalReducer::getMemoryUse() +
+    mQueue.getMemoryUse() +
+    mPool.getMemoryUse();
 }
 
 #endif

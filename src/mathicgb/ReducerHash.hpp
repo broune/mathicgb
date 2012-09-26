@@ -6,14 +6,14 @@
 #include <memtailor.h>
 #include <mathic.h>
 
-#include "Reducer.hpp"
+#include "TypicalReducer.hpp"
 #include "ReducerHelper.hpp"
 #include "PolyHashTable.hpp"
 
 template<template<typename ConfigType> class Queue> class ReducerHash;
 
 template<template<typename> class Queue>
-class ReducerHash : public Reducer {
+class ReducerHash : public TypicalReducer {
 public:
   ReducerHash(const PolyRing &ring);
   ~ReducerHash();
@@ -25,7 +25,7 @@ public:
   void insertTail(const_term multiplier, const Poly *f);
   void insert(monomial multiplier, const Poly *f);
 
-  bool findLeadTerm(const_term &result);
+  virtual bool leadTerm(const_term& result);
   void removeLeadTerm();
 
   size_t getMemoryUse() const;
@@ -66,13 +66,11 @@ private:
 };
 
 template<template<typename> class Q>
-ReducerHash<Q>::ReducerHash(const PolyRing &ring)
-  : Reducer(),
-    mRing(ring),
-    mHashTable(&ring,10),
-    mQueue(Configuration(ring)),
-    mNodeCount(0)
-{
+ReducerHash<Q>::ReducerHash(const PolyRing &ring):
+  mRing(ring),
+  mHashTable(&ring,10),
+  mQueue(Configuration(ring)),
+  mNodeCount(0) {
 }
 
 template<template<typename> class Q>
@@ -132,7 +130,7 @@ void ReducerHash<Q>::insert(monomial multiplier, const Poly *g1)
 }
 
 template<template<typename> class Q>
-bool ReducerHash<Q>::findLeadTerm(const_term &result)
+bool ReducerHash<Q>::leadTerm(const_term &result)
 {
   ASSERT(mNodeCount == mHashTable.getNodeCount());
   while (!mQueue.empty())
@@ -161,7 +159,7 @@ void ReducerHash<Q>::resetReducer()
 {
   ASSERT(mNodeCount == mHashTable.getNodeCount());
   const_term t;
-  while (findLeadTerm(t))
+  while (leadTerm(t))
     {
       mQueue.pop();
       mNodeCount--;
@@ -175,7 +173,8 @@ void ReducerHash<Q>::resetReducer()
 template<template<typename> class Q>
 size_t ReducerHash<Q>::getMemoryUse() const
 {
-  size_t result = mHashTable.getMemoryUse();
+  size_t result = TypicalReducer::getMemoryUse();
+  result += mHashTable.getMemoryUse();
   result += mQueue.getMemoryUse();
   return result;
 }

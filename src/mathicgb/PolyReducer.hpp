@@ -3,9 +3,9 @@
 #ifndef _polyReducer_h_
 #define _polyReducer_h_
 
-#include "Reducer.hpp"
+#include "TypicalReducer.hpp"
 
-class PolyReducer : public Reducer {
+class PolyReducer : public TypicalReducer {
 public:
   PolyReducer(const PolyRing *R);
 
@@ -16,13 +16,14 @@ public:
   void insertTail(const_term multiplier, const Poly *f);
   void insert(monomial multiplier, const Poly *f);
 
-  bool findLeadTerm(const_term &result);
-  void removeLeadTerm();
+  virtual bool leadTerm(const_term& result);
+  virtual void removeLeadTerm();
 
   void value(Poly &result); // keep extracting lead term until done
   void dump() const;
 
-  size_t getMemoryUse() const { return mMemUsage; } // this one reports high water usage
+  virtual size_t getMemoryUse() const;
+
 protected:
   void resetReducer();
 

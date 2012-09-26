@@ -3,10 +3,10 @@
 #ifndef _polyHashReducer_h_
 #define _polyHashReducer_h_
 
-#include "Reducer.hpp"
+#include "TypicalReducer.hpp"
 #include "PolyHashTable.hpp"
 
-class PolyHashReducer : public Reducer {
+class PolyHashReducer : public TypicalReducer {
 public:
   PolyHashReducer(const PolyRing *R);
 
@@ -17,13 +17,13 @@ public:
   void insertTail(const_term multiplier, const Poly *f);
   void insert(monomial multiplier, const Poly *f);
 
-  bool findLeadTerm(const_term &result);
-  void removeLeadTerm();
+  virtual bool leadTerm(const_term &result);
+  virtual void removeLeadTerm();
 
   void value(Poly &result); // keep extracting lead term until done
   void dump() const;
 
-  size_t getMemoryUse() const;
+  virtual size_t getMemoryUse() const;
 
 protected:
   virtual void resetReducer();
