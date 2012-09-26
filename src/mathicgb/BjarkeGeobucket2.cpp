@@ -6,18 +6,11 @@
 
 extern int tracingLevel;
 
-BjarkeGeobucket2::BjarkeGeobucket2(const PolyRing *R0)
-  : Reducer(),
-    mRing(*R0),
-    mHashTableOLD(R0,10),
-    mHeap(GeoConfiguration(*R0,4,1)),
-    mHashTable(BjarkeGeobucket2Configuration(*R0),10)
-{
-  //std::cerr << "Creating geobucket2" << std::endl;
-}
-
-BjarkeGeobucket2::~BjarkeGeobucket2()
-{
+BjarkeGeobucket2::BjarkeGeobucket2(const PolyRing *R0):
+  mRing(*R0),
+  mHashTableOLD(R0, 10),
+  mHeap(GeoConfiguration(*R0, 4, 1)),
+  mHashTable(BjarkeGeobucket2Configuration(*R0), 10) {
 }
 
 void BjarkeGeobucket2::insert(Poly::const_iterator first, 
@@ -79,7 +72,7 @@ void BjarkeGeobucket2::insert(monomial multiplier, const Poly *g1)
   mHeap.getConfiguration().resetComparisons();
 }
 
-bool BjarkeGeobucket2::findLeadTerm(const_term &result)
+bool BjarkeGeobucket2::leadTerm(const_term &result)
 {
   while (!mHeap.empty())
     {
@@ -101,7 +94,7 @@ void BjarkeGeobucket2::value(Poly &result)
 // keep extracting lead term until done
 {
   const_term t;
-  while (findLeadTerm(t))
+  while (leadTerm(t))
     {
       result.appendTerm(t.coeff, t.monom);
       mHeap.pop();
@@ -112,7 +105,7 @@ void BjarkeGeobucket2::value(Poly &result)
 void BjarkeGeobucket2::resetReducer()
 {
   const_term t;
-  while (findLeadTerm(t))
+  while (leadTerm(t))
     {
       mHeap.pop();
     }
@@ -122,7 +115,8 @@ void BjarkeGeobucket2::resetReducer()
 
 size_t BjarkeGeobucket2::getMemoryUse() const
 {
-  size_t result = mHashTableOLD.getMemoryUse();
+  size_t result = TypicalReducer::getMemoryUse();
+  result += mHashTableOLD.getMemoryUse();
   result += mHeap.getMemoryUse();
   result += mHashTable.memoryUse();
   return result;

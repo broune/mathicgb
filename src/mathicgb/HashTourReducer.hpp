@@ -3,12 +3,12 @@
 #ifndef _hash_tour_reducer_h_
 #define _hash_tour_reducer_h_
 
-#include "Reducer.hpp"
+#include "TypicalReducer.hpp"
 #include "PolyHashTable.hpp"
 #include <mathic.h>
 #include <memtailor.h>
 
-class HashTourReducer : public Reducer {
+class HashTourReducer : public TypicalReducer {
 public:
   HashTourReducer(const PolyRing& R);
   virtual ~HashTourReducer();
@@ -20,7 +20,7 @@ public:
   virtual void insertTail(const_term multiplier, const Poly *f);
   virtual void insert(monomial multiplier, const Poly *f);
 
-  virtual bool findLeadTerm(const_term &result);
+  virtual bool leadTerm(const_term& result);
   virtual void removeLeadTerm();
 
   virtual void value(Poly &result); // keep extracting lead term until done

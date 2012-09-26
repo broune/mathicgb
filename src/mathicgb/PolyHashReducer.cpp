@@ -5,10 +5,8 @@
 #include "stdinc.h"
 #include "PolyHashReducer.hpp"
 
-PolyHashReducer::PolyHashReducer(const PolyRing *R0)
-  : Reducer(),
-    R_(R0),
-    H_(R0,15)
+PolyHashReducer::PolyHashReducer(const PolyRing *R0):
+  R_(R0), H_(R0,15)
 {
   f_ = new HashPoly;
   f_iter_ = f_->begin();
@@ -119,7 +117,7 @@ void PolyHashReducer::insert(monomial multiplier, const Poly *g1)
   f_iter_ = f_->begin();
 }
 
-bool PolyHashReducer::findLeadTerm(const_term &result)
+bool PolyHashReducer::leadTerm(const_term &result)
 {
   while (f_iter_ != f_->end())
     {
@@ -143,7 +141,7 @@ void PolyHashReducer::value(Poly &result)
 {
   const_term t;
   for ( ; f_iter_ != f_->end(); ++f_iter_)
-    if (findLeadTerm(t))
+    if (leadTerm(t))
       result.appendTerm(t.coeff, t.monom);
   resetReducer();
 }
@@ -151,7 +149,7 @@ void PolyHashReducer::value(Poly &result)
 size_t PolyHashReducer::getMemoryUse() const
 {
   return
-    Reducer::getMemoryUse() +
+    TypicalReducer::getMemoryUse() +
     H_.getMemoryUse() +
     f_->capacity() * sizeof(PolyHashTable::node *);
 }
@@ -160,7 +158,7 @@ void PolyHashReducer::resetReducer()
 {
   const_term t;
   for ( ; f_iter_ != f_->end(); ++f_iter_)
-    findLeadTerm(t);
+    leadTerm(t);
 
   delete f_;
   f_ = new HashPoly;

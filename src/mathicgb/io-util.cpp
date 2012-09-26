@@ -134,28 +134,6 @@ std::string toString(Ideal *I)
   return o.str();
 }
 
-std::auto_ptr<Poly> multIdealByPolyReducer(int typ, const Ideal& ideal, const Poly& g)
-{
-  const PolyRing& R = ideal.ring();
-  std::auto_ptr<Reducer> H = Reducer::makeReducer(static_cast<Reducer::ReducerType>(typ), R);
-  for (Poly::const_iterator i = g.begin(); i != g.end(); ++i) {
-    monomial mon = R.allocMonomial();
-    R.monomialCopy(i.getMonomial(), mon);
-    int x = R.monomialGetComponent(mon);
-    R.monomialChangeComponent(mon, 0);
-    std::auto_ptr<Poly> h(ideal.getPoly(x)->copy());
-    h->multByCoefficient(i.getCoefficient());
-    H->insert(mon, h.release());
-  }
-  std::auto_ptr<Poly> result(new Poly(&R));
-  const_term t;
-  while (H->findLeadTerm(t)) {
-    result->appendTerm(t.coeff, t.monom);
-    H->removeLeadTerm();
-  }
-  return result;
-}
-
 void output(std::ostream &o, const PolyBasis &I)
 {
   for (size_t i = 0; i < I.size(); i++)

@@ -6,14 +6,14 @@
 #include <mathic.h>
 #include <memtailor.h>
 
-#include "Reducer.hpp"
+#include "TypicalReducer.hpp"
 #include "ReducerHelper.hpp"
 #include "PolyHashTable.hpp"
 
 template<template<typename ConfigType> class Queue> class ReducerHashPack;
 
 template<template<typename> class Queue>
-class ReducerHashPack : public Reducer {
+class ReducerHashPack : public TypicalReducer {
 public:
   ReducerHashPack(const PolyRing& R);
   virtual ~ReducerHashPack();
@@ -25,7 +25,7 @@ public:
   virtual void insertTail(const_term multiplier, const Poly *f);
   virtual void insert(monomial multiplier, const Poly *f);
 
-  virtual bool findLeadTerm(const_term &result);
+  virtual bool leadTerm(const_term &result);
   virtual void removeLeadTerm();
 
   virtual size_t getMemoryUse() const;
@@ -73,7 +73,6 @@ private:
 
 template<template<typename> class Q>
 ReducerHashPack<Q>::ReducerHashPack(const PolyRing& ring):
-  Reducer(),
   mRing(ring),
   mLeadTerm(0, mRing.allocMonomial()),
   mLeadTermKnown(false),
@@ -173,7 +172,7 @@ void ReducerHashPack<Q>::MultipleWithPos::destroy(const PolyRing& ring) {
 }
 
 template<template<typename> class Q>
-bool ReducerHashPack<Q>::findLeadTerm(const_term& result)
+bool ReducerHashPack<Q>::leadTerm(const_term& result)
 {
   if (mLeadTermKnown) {
     result = mLeadTerm;
@@ -230,7 +229,7 @@ void ReducerHashPack<Q>::removeLeadTerm()
 {
   if (!mLeadTermKnown) {
     const_term dummy;
-    findLeadTerm(dummy);
+    leadTerm(dummy);
   }
   mLeadTermKnown = false;
 }

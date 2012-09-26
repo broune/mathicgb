@@ -8,7 +8,6 @@
 extern int tracingLevel;
 
 HashTourReducer::HashTourReducer(const PolyRing& ring):
-  Reducer(),
   mRing(ring),
   mLeadTerm(0, mRing.allocMonomial()),
   mLeadTermKnown(false),
@@ -99,7 +98,7 @@ void HashTourReducer::MultipleWithPos::destroy(const PolyRing& ring) {
   this->~MultipleWithPos();
 }
 
-bool HashTourReducer::findLeadTerm(const_term& result)
+bool HashTourReducer::leadTerm(const_term& result)
 {
   if (mLeadTermKnown) {
     result = mLeadTerm;
@@ -155,7 +154,7 @@ void HashTourReducer::removeLeadTerm()
 {
   if (!mLeadTermKnown) {
     const_term dummy;
-    findLeadTerm(dummy);
+    leadTerm(dummy);
   }
   mLeadTermKnown = false;
 }
@@ -183,7 +182,7 @@ void HashTourReducer::insertEntry(MultipleWithPos* entry) {
 void HashTourReducer::value(Poly &result)
 {
   const_term t;
-  while (findLeadTerm(t)) {
+  while (leadTerm(t)) {
     result.appendTerm(t.coeff, t.monom);
     removeLeadTerm();
   }
@@ -201,7 +200,9 @@ void HashTourReducer::resetReducer()
 
 size_t HashTourReducer::getMemoryUse() const
 {
-  return mQueue.getMemoryUse() +
+  return
+    TypicalReducer::getMemoryUse() +
+    mQueue.getMemoryUse() +
     mPool.getMemoryUse() +
     mHashTable.getMemoryUse();
 }

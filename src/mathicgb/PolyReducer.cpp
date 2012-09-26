@@ -3,10 +3,8 @@
 #include "stdinc.h"
 #include "PolyReducer.hpp"
 
-PolyReducer::PolyReducer(const PolyRing *R0)
-  : Reducer(),
-    R(R0),
-    mMemUsage(0)
+PolyReducer::PolyReducer(const PolyRing *R0):
+  R(R0), mMemUsage(0)
 {
   f = new Poly(R);
   f_iter = f->begin();
@@ -68,7 +66,7 @@ void PolyReducer::insert(monomial multiplier, const Poly *g1)
     mMemUsage = fmem;
 }
 
-bool PolyReducer::findLeadTerm(const_term &result)
+bool PolyReducer::leadTerm(const_term &result)
 {
   if (f_iter != f->end())
     {
@@ -105,6 +103,10 @@ void PolyReducer::resetReducer()
 
 void PolyReducer::dump() const
 {
+}
+
+size_t PolyReducer::getMemoryUse() const {
+  return mMemUsage;
 }
 
 // Local Variables:

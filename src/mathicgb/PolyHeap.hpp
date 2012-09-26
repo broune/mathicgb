@@ -3,7 +3,7 @@
 #ifndef _polyHeap_h_
 #define _polyHeap_h_
 
-#include "Reducer.hpp"
+#include "TypicalReducer.hpp"
 
 struct heap_term {
   monomial actual;  // multiplier * *first
@@ -19,7 +19,7 @@ public:
   bool operator()(heap_term &a, heap_term &b);
 };
 
-class PolyHeap : public Reducer {
+class PolyHeap : public TypicalReducer {
 public:
   PolyHeap(const PolyRing *R);
   ~PolyHeap() {}
@@ -29,8 +29,8 @@ public:
   void insertTail(const_term multiplier, const Poly *f);
   void insert(monomial multiplier, const Poly *f);
 
-  bool findLeadTerm(const_term &result);
-  void removeLeadTerm();
+  virtual bool leadTerm(const_term& result);
+  virtual void removeLeadTerm();
 
   void value(Poly &result); // keep extracting lead term until done
   void dump() const;

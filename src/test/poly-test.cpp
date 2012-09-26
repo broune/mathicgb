@@ -685,6 +685,28 @@ TEST(Poly,lead) {
 // Test reducer code /////////
 //////////////////////////////
 
+std::auto_ptr<Poly> multIdealByPolyReducer(int typ, const Ideal& ideal, const Poly& g)
+{
+  const PolyRing& R = ideal.ring();
+  std::auto_ptr<Poly> poly(new Poly(&R));
+  std::auto_ptr<Reducer> H = Reducer::makeReducer(static_cast<Reducer::ReducerType>(typ), R);
+  for (Poly::const_iterator i = g.begin(); i != g.end(); ++i) {
+    monomial mon = R.allocMonomial();
+    R.monomialCopy(i.getMonomial(), mon);
+    int x = R.monomialGetComponent(mon);
+    R.monomialChangeComponent(mon, 0);
+    std::auto_ptr<Poly> h(ideal.getPoly(x)->copy());
+    h->multByTerm(i.getCoefficient(), mon);
+    R.monomialSetIdentity(mon);
+
+    size_t ncmps;
+    Poly* sum =
+      Poly::add(&R, h->begin(), h->end(), poly->begin(), poly->end(), ncmps); 
+    poly.reset(sum);
+  }
+  return poly;
+}
+
 void testPolyReducer(
   Reducer::ReducerType reducerType,
   const Ideal& ideal,
@@ -706,6 +728,7 @@ void testPolyReducer(
   EXPECT_EQ(ans, toString(h.get())) << "Reducer type " << reducerType;
 }
 
+/// @todo: this is no longer a test of a reducer. What to do this this test?
 TEST(Reducer, insert) {
   // plan: read an ideal, and another poly
   //  use this last poly to determine what to add to the heap

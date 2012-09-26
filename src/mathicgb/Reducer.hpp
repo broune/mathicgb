@@ -17,6 +17,37 @@ todo: consider changing name of findLeadTerm to leadTerm.
 */
 class Reducer {
 public:
+  virtual ~Reducer();
+
+  // ***** Methods that do reduction
+
+  /** Clasically reduces poly by the basis elements of basis. The reduction
+    is classic in that no signatures are taken into account. */
+  virtual std::auto_ptr<Poly> classicReduce
+  (const Poly& poly, const PolyBasis& basis) = 0;
+
+  /** Clasically reduces poly by the basis elements of basis, except that the
+   lead term is not reduced. The reduction is classic in that no signatures
+   are taken into account. */
+  virtual std::auto_ptr<Poly> classicTailReduce
+  (const Poly& poly, const PolyBasis& basis) = 0;
+
+  /** Clasically reduces the S-polynomial between a and b. */
+  virtual std::auto_ptr<Poly> classicReduceSPoly
+  (const Poly& a, const Poly& b, const PolyBasis& basis) = 0;
+
+  /** Regular reduce multiple*basisElement in signature sig by the
+    basis elements in basis. Returns null (0) if multiple*basisElement
+    is not regular top reducible -- this indicates a singular
+    reduction. */
+  virtual Poly* regularReduce(
+    const_monomial sig,
+    const_monomial multiple,
+    size_t basisElement,
+    const GroebnerBasis& basis) = 0;
+
+  // ***** Kinds of reducers and creating a Reducer 
+
   enum ReducerType {
     Reducer_PolyHeap,
     Reducer_PolyGeoBucket,
@@ -48,6 +79,18 @@ public:
     Reducer_Geobucket_Hashed_Packed
   };
 
+  static std::auto_ptr<Reducer> makeReducer
+    (ReducerType t, PolyRing const& ring);
+
+  static std::auto_ptr<Reducer> makeReducerNullOnUnknown
+    (ReducerType t, PolyRing const& ring);
+
+  static ReducerType reducerType(int typ);
+  static void displayReducerTypes(std::ostream &o);
+
+
+  // ***** Obtaining statistics about the reduction process
+
   struct Stats {
     Stats();
 
@@ -69,63 +112,18 @@ public:
     unsigned long long maxSteps;
   };
 
-  Reducer();
-  virtual ~Reducer() {}
-
-  static ReducerType reducerType(int typ);
-  static void displayReducerTypes(std::ostream &o);
-
   Stats sigStats() const {return mSigStats;}
   Stats classicStats() const {return mClassicStats;}
 
-  void reset();
+
+  // ***** Miscellaneous
 
   virtual std::string description() const = 0;
-  virtual void insertTail(const_term multiplier, const Poly *f) = 0;
-  virtual void insert(monomial multiplier, const Poly *f) = 0;
-
-  virtual bool findLeadTerm(const_term &result) = 0;
-  virtual void removeLeadTerm() = 0;
-
-  virtual void dump() const {}
-
   virtual size_t getMemoryUse() const = 0;
-
-  // Regular reduce multiple*basisElement in signature sig by the
-  // basis elements in basis.
-  //
-  // Returns null (0) if multiple*basisElement is not regular top
-  // reducible. This indicates a singular reduction.
-  Poly* regularReduce(
-    const_monomial sig,
-    const_monomial multiple,
-    size_t basisElement,
-    const GroebnerBasis& basis);
-
-  // Clasically reduces poly by the basis elements of basis. The reduction
-  // is classic in that no signatures are taken into account.
-  std::auto_ptr<Poly> classicReduce(const Poly& poly, const PolyBasis& basis);
-
-  // Clasically reduces poly by the basis elements of basis, except that the
-  // lead term is not reduced. The reduction is classic in that no signatures
-  // are taken into account.
-  std::auto_ptr<Poly> classicTailReduce(const Poly& poly, const PolyBasis& basis);
-
-  // Clasically reduces the S-polynomial between a and b.
-  std::auto_ptr<Poly> classicReduceSPoly
-    (const Poly& a, const Poly& b, const PolyBasis& basis);
-
-  static std::auto_ptr<Reducer> makeReducer
-    (ReducerType t, PolyRing const& ring);
-  static std::auto_ptr<Reducer> makeReducerNullOnUnknown
-    (ReducerType t, PolyRing const& ring);
+  virtual void dump() const;
 
 protected:
-  std::auto_ptr<Poly> classicReduce(const PolyBasis& basis);
-  std::auto_ptr<Poly> classicReduce
-    (std::auto_ptr<Poly> partialResult, const PolyBasis& basis);
-
-  virtual void resetReducer() = 0;
+  Reducer();
 
   size_t stats_maxsize;
   size_t stats_maxsize_live;
@@ -134,16 +132,7 @@ protected:
 
   Stats mSigStats;
   Stats mClassicStats;
-  memt::Arena mArena;
 };
-
-#if 0
-template<typename Queue, bool Deduplicate> class ReducerPacked;  // *,(0,1),1, although Dup and DeDup have 
-  // different Entry types...
-template<typename Queue, bool Deduplicate> class ReducerNotPacked;  // *,(0,1),0
-template<typename Queue> class ReducerHashedNotPacked;  // *,2,0
-template<typename Queue> class ReducerHashedPacked;  // *,2,1
-#endif
 
 #endif
 

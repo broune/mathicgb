@@ -6,13 +6,13 @@
 #include <memtailor.h>
 #include <mathic.h>
 
-#include "Reducer.hpp"
+#include "TypicalReducer.hpp"
 #include "ReducerHelper.hpp"
 
 template<template<typename ConfigType> class Queue> class ReducerNoDedup;
 
 template<template<typename> class Queue>
-class ReducerNoDedup : public Reducer {
+class ReducerNoDedup : public TypicalReducer {
 public:
   ReducerNoDedup(const PolyRing& R);
   virtual ~ReducerNoDedup();
@@ -24,7 +24,7 @@ public:
   virtual void insertTail(const_term multiplier, const Poly *f);
   virtual void insert(monomial multiplier, const Poly *f);
 
-  virtual bool findLeadTerm(const_term &result);
+  virtual bool leadTerm(const_term &result);
   virtual void removeLeadTerm();
 
   virtual size_t getMemoryUse() const;
@@ -56,12 +56,10 @@ private:
 
 template<template<typename> class Q>
 ReducerNoDedup<Q>::ReducerNoDedup(const PolyRing& ring):
-  Reducer(),
   mRing(ring),
   mLeadTerm(0, mRing.allocMonomial()),
   mLeadTermKnown(false),
-  mQueue(Configuration(ring))
-{
+  mQueue(Configuration(ring)) {
 }
 
 template<template<typename> class Q>
@@ -122,7 +120,7 @@ void ReducerNoDedup<Q>::insert(monomial multiple, const Poly* poly)
 }
 
 template<template<typename> class Q>
-bool ReducerNoDedup<Q>::findLeadTerm(const_term& result)
+bool ReducerNoDedup<Q>::leadTerm(const_term& result)
 {
   if (mLeadTermKnown) {
     result = mLeadTerm;
@@ -158,7 +156,7 @@ void ReducerNoDedup<Q>::removeLeadTerm()
 {
   if (!mLeadTermKnown) {
     const_term dummy;
-    findLeadTerm(dummy);
+    leadTerm(dummy);
   }
   mLeadTermKnown = false;
 }
@@ -174,7 +172,7 @@ void ReducerNoDedup<Q>::resetReducer()
 template<template<typename> class Q>
 size_t ReducerNoDedup<Q>::getMemoryUse() const
 {
-  return mQueue.getMemoryUse();
+  return TypicalReducer::getMemoryUse() + mQueue.getMemoryUse();
 }
 
 
