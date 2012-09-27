@@ -35,7 +35,7 @@ BuchbergerAlg::BuchbergerAlg(
 }
 
 void BuchbergerAlg::insertReducedPoly(
-  std::auto_ptr<Poly> polyToInsert
+  std::unique_ptr<Poly> polyToInsert
 ) {
   ASSERT(polyToInsert.get() != 0);
   if (polyToInsert->isZero())
@@ -59,7 +59,7 @@ void BuchbergerAlg::insertReducedPoly(
 
   if (!mUseAutoTopReduction) {
     size_t const newGen = mBasis.size();
-    mBasis.insert(polyToInsert);
+    mBasis.insert(std::move(polyToInsert));
     mSPairs.addPairs(newGen);
     return;
   }
@@ -71,9 +71,9 @@ void BuchbergerAlg::insertReducedPoly(
     do {
       // reduce polynomial and insert into basis
       {
-        std::auto_ptr<Poly> reduced;
+        std::unique_ptr<Poly> reduced;
         if (toReduce.empty()) // if first iteration
-          reduced = polyToInsert;
+          reduced = std::move(polyToInsert);
         else {
           reduced = mReducer->classicReduce(*toReduce.back(), mBasis);
           if (tracingLevel > 20) {
@@ -95,8 +95,8 @@ void BuchbergerAlg::insertReducedPoly(
         }
         if (reduced->isZero())
           continue;
-        reduced->makeMonic();
-        mBasis.insert(reduced);
+        reduced->makeMonic(); 
+        mBasis.insert(std::move(reduced));
       }
 
       // form S-pairs and retire basis elements that become top reducible.
@@ -161,10 +161,10 @@ void BuchbergerAlg::step() {
       << p.first << ", "
       << p.second << ")" << std::endl;
   }
-  std::auto_ptr<Poly> reduced(mReducer->classicReduceSPoly
+  std::unique_ptr<Poly> reduced(mReducer->classicReduceSPoly
     (mBasis.poly(p.first), mBasis.poly(p.second), mBasis));
   if (!reduced->isZero()) {
-    insertReducedPoly(reduced);
+    insertReducedPoly(std::move(reduced));
     if (mUseAutoTailReduction)
       autoTailReduce();
   }

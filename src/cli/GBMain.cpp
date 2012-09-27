@@ -165,7 +165,7 @@ public:
     tracingLevel = mTracingLevel.value();
 
     // read input file
-    std::auto_ptr<Ideal> ideal;
+    std::unique_ptr<Ideal> ideal;
     {
       std::string const inputIdealFile = mProjectName.value() + ".ideal";
       std::ifstream inputFile(inputIdealFile.c_str());
@@ -173,7 +173,7 @@ public:
         mic::reportError("Could not read input file " + inputIdealFile);
       ideal.reset(Ideal::parse(inputFile));
     }
-    std::auto_ptr<PolyRing const> ring(&(ideal->ring()));
+    std::unique_ptr<PolyRing const> ring(&(ideal->ring()));
       
     if (mClassicBuchbergerAlgorithm.value()) {
       BuchbergerAlg alg(
@@ -310,7 +310,9 @@ int main(int argc, char **argv) {
       commandLine[0] = "gb";
     } else
       commandLine.erase(commandLine.begin());
-    std::auto_ptr<mic::Action> action = parser.parse(commandLine);
+    // todo: remove the .release once parser returns unique_ptr
+    // instead of auto_ptr.
+    std::unique_ptr<mic::Action> action(parser.parse(commandLine).release());
     action->performAction();
   } catch (const mic::MathicException& e) {
     mic::display(e.what());

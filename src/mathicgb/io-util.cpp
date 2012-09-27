@@ -18,9 +18,9 @@
 #include "Ideal.hpp"
 #include "PolyBasis.hpp"
 
-std::auto_ptr<Poly> polyParseFromString(const PolyRing *R, const std::string &s)
+std::unique_ptr<Poly> polyParseFromString(const PolyRing *R, const std::string &s)
 {
-  std::auto_ptr<Poly> f(new Poly(R));
+  std::unique_ptr<Poly> f(new Poly(R));
   std::istringstream in(s);
   f->parse(in);
   return f;
@@ -33,16 +33,16 @@ std::string toString(const Poly *g)
   return o.str();
 }
 
-std::auto_ptr<Ideal> idealParseFromString(std::string str)
+std::unique_ptr<Ideal> idealParseFromString(std::string str)
 {
   std::istringstream i(str);
-  return std::auto_ptr<Ideal>(Ideal::parse(i));
+  return std::unique_ptr<Ideal>(Ideal::parse(i));
 }
 
-std::auto_ptr<PolyRing> ringFromString(std::string ringinfo)
+std::unique_ptr<PolyRing> ringFromString(std::string ringinfo)
 {
   std::stringstream ifil(ringinfo);
-  return std::auto_ptr<PolyRing>(PolyRing::read(ifil));
+  return std::unique_ptr<PolyRing>(PolyRing::read(ifil));
 }
 
 Monomial stringToMonomial(const PolyRing *R, std::string mon)

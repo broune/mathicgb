@@ -40,7 +40,7 @@ public:
 
   virtual std::string description() const = 0;
 
-  virtual std::auto_ptr<SigSPairQueue>
+  virtual std::unique_ptr<SigSPairQueue>
   createSigSPairQueue(GroebnerBasis const& basis) const = 0;
 
   /// @todo: We need at least an enum to make this clearer and the return type

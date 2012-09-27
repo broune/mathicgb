@@ -24,13 +24,13 @@ public:
     size_t basisElement,
     const GroebnerBasis& basis);
 
-  virtual std::auto_ptr<Poly> classicReduce
+  virtual std::unique_ptr<Poly> classicReduce
   (const Poly& poly, const PolyBasis& basis);
 
-  virtual std::auto_ptr<Poly> classicTailReduce
+  virtual std::unique_ptr<Poly> classicTailReduce
   (const Poly& poly, const PolyBasis& basis);
 
-  virtual std::auto_ptr<Poly> classicReduceSPoly
+  virtual std::unique_ptr<Poly> classicReduceSPoly
     (const Poly& a, const Poly& b, const PolyBasis& basis);
 
 protected:
@@ -49,9 +49,9 @@ protected:
 
 private:
   void reset();
-  std::auto_ptr<Poly> classicReduce(const PolyBasis& basis);
-  std::auto_ptr<Poly> classicReduce
-    (std::auto_ptr<Poly> partialResult, const PolyBasis& basis);
+  std::unique_ptr<Poly> classicReduce(const PolyBasis& basis);
+  std::unique_ptr<Poly> classicReduce
+    (std::unique_ptr<Poly> partialResult, const PolyBasis& basis);
 };
 
 #endif

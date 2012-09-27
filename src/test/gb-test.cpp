@@ -32,7 +32,7 @@ TEST(IO, ideal) {
 -bc2+a2e \
 ";
 
-  std::auto_ptr<Ideal> I = idealParseFromString(idealA_fromStr_format);
+  std::unique_ptr<Ideal> I = idealParseFromString(idealA_fromStr_format);
   EXPECT_EQ("  -bc+ad\n  -b2+af\n  -bc2+a2e\n", toString(I.get()));
 }
 
@@ -245,7 +245,7 @@ spairQueue	reducerType	divLookup	monTable	buchberger	postponeKoszul	useBaseDivis
     // check that we have a valid reducer type
     Reducer::ReducerType red = Reducer::ReducerType(reducerType);
     MATHICGB_ASSERT(static_cast<int>(red) == reducerType);
-    std::auto_ptr<Ideal> I(idealParseFromString(idealStr));
+    std::unique_ptr<Ideal> I(idealParseFromString(idealStr));
     MATHICGB_ASSERT
       (Reducer::makeReducerNullOnUnknown(red, I->ring()).get() != 0);
 
@@ -255,7 +255,7 @@ spairQueue	reducerType	divLookup	monTable	buchberger	postponeKoszul	useBaseDivis
       alg.setUseAutoTopReduction(autoTopReduce);
       alg.setUseAutoTailReduction(autoTailReduce);
       alg.computeGrobnerBasis();
-      std::auto_ptr<Ideal> initialIdeal =
+      std::unique_ptr<Ideal> initialIdeal =
         alg.basis().initialIdeal();
       EXPECT_EQ(initialIdealStr, toString(initialIdeal.get()))
         << reducerType << ' ' << divLookup << ' '

@@ -25,10 +25,10 @@ namespace {
     }
 
     const Poly& addBasisElement(const std::string& str) {
-      std::auto_ptr<Poly> p(new Poly(mRing.get()));
+      std::unique_ptr<Poly> p(new Poly(mRing.get()));
       std::istringstream in(str);
       p->parse(in);
-      mBasis.insert(p);
+      mBasis.insert(std::move(p));
       return mBasis.poly(mBasis.size() - 1);
     }
 
@@ -41,11 +41,11 @@ namespace {
     const PolyRing& ring() const {return *mRing;}
      
   private:
-    std::auto_ptr<PolyRing> mRing;
+    std::unique_ptr<PolyRing> mRing;
     Ideal mIdeal;
-    std::auto_ptr<FreeModuleOrder> mOrder;
+    std::unique_ptr<FreeModuleOrder> mOrder;
     PolyBasis mBasis;
-    std::auto_ptr<F4MatrixBuilder> mBuilder;
+    std::unique_ptr<F4MatrixBuilder> mBuilder;
   };
 }
 

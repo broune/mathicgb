@@ -46,7 +46,7 @@ c3d3-b2d4 \
 TEST(PolyRing, read) {
   std::stringstream o;
   std::string ringinfo = "32003 6\n1 1 1 1 1 1";
-  std::auto_ptr<PolyRing> R(ringFromString(ringinfo));
+  std::unique_ptr<PolyRing> R(ringFromString(ringinfo));
   R->write(o);
 
   EXPECT_EQ("32003 6 1\n 1 1 1 1 1 1\n", o.str());
@@ -54,7 +54,7 @@ TEST(PolyRing, read) {
 
 TEST(Poly,readwrite) {
   std::string f1 = "14ce2<72>+13adf<16>";
-  std::auto_ptr<PolyRing> R(ringFromString("32003 6 1\n1 1 1 1 1 1"));
+  std::unique_ptr<PolyRing> R(ringFromString("32003 6 1\n1 1 1 1 1 1"));
   Poly f(R.get());
   std::stringstream ifil(f1);
   f.parse(ifil);
@@ -89,7 +89,7 @@ bool testPolyParse2(PolyRing* R, std::string s, std::string answer)
 }
 
 TEST(Poly,parse) {
-  std::auto_ptr<PolyRing> R(ringFromString("32003 6 1\n1 1 1 1 1 1"));
+  std::unique_ptr<PolyRing> R(ringFromString("32003 6 1\n1 1 1 1 1 1"));
 
   EXPECT_TRUE(testPolyParse(R.get(), "3a<1>+<0>"));
   EXPECT_TRUE(testPolyParse(R.get(), "3a<1>+13af3<0>+14cde<0>"));
@@ -104,7 +104,7 @@ bool testMonomialParse(PolyRing* R, std::string s)
 }
 
 TEST(Monomial, parse) {
-  std::auto_ptr<PolyRing> R(ringFromString("32003 6 1\n1 1 1 1 1 1"));
+  std::unique_ptr<PolyRing> R(ringFromString("32003 6 1\n1 1 1 1 1 1"));
   EXPECT_TRUE(testMonomialParse(R.get(), "ab2d<2>"));
   EXPECT_TRUE(testMonomialParse(R.get(), "ab2d<0>"));
   EXPECT_TRUE(testMonomialParse(R.get(), "<13>"));
@@ -113,7 +113,7 @@ TEST(Monomial, parse) {
 }
 
 TEST(Monomial,compare) {
-  std::auto_ptr<PolyRing> R(ringFromString("32003 6 1\n1 1 1 1 1 1"));
+  std::unique_ptr<PolyRing> R(ringFromString("32003 6 1\n1 1 1 1 1 1"));
   
   Monomial mone = stringToMonomial(R.get(), "<0>");
   Monomial mone2 = stringToMonomial(R.get(), "1");
@@ -149,7 +149,7 @@ TEST(Monomial,compare) {
 }
 
 TEST(Monomial,mult) {
-  std::auto_ptr<PolyRing> R(ringFromString("32003 6 1\n1 1 1 1 1 1"));
+  std::unique_ptr<PolyRing> R(ringFromString("32003 6 1\n1 1 1 1 1 1"));
 
   Monomial m1 = stringToMonomial(R.get(), "ab2<0>");
   Monomial m2 = stringToMonomial(R.get(), "a2b<0>");
@@ -166,7 +166,7 @@ TEST(Monomial,mult) {
 }
 
 TEST(Monomial,multTo) {
-  std::auto_ptr<PolyRing> R(ringFromString("32003 6 1\n1 1 1 1 1 1"));
+  std::unique_ptr<PolyRing> R(ringFromString("32003 6 1\n1 1 1 1 1 1"));
 
   Monomial m1 = stringToMonomial(R.get(), "ab2<0>");
   Monomial m2 = stringToMonomial(R.get(), "a2b<0>");
@@ -181,7 +181,7 @@ TEST(Monomial,multTo) {
 
 TEST(Monomial, divide) {
   // test of monomialDivide, monomialIsDivisibleBy, monomialQuotientAndMult
-  std::auto_ptr<PolyRing> R(ringFromString("32003 6 1\n1 1 1 1 1 1"));
+  std::unique_ptr<PolyRing> R(ringFromString("32003 6 1\n1 1 1 1 1 1"));
 
   Monomial m1 = stringToMonomial(R.get(), "ab2<0>");
   Monomial m2 = stringToMonomial(R.get(), "a2b<0>");
@@ -204,7 +204,7 @@ TEST(Monomial, divide) {
 
 TEST(Monomial, monomialQuotientAndMult) {
   // test of monomialQuotientAndMult
-  std::auto_ptr<PolyRing> R(ringFromString("32003 6 1\n1 1 1 1 1 1"));
+  std::unique_ptr<PolyRing> R(ringFromString("32003 6 1\n1 1 1 1 1 1"));
 
   Monomial m1 = stringToMonomial(R.get(), "ab2f2<0>");
   Monomial m2 = stringToMonomial(R.get(), "af<0>");
@@ -275,7 +275,7 @@ void testMonomialOps(const PolyRing* R, std::string s1, std::string s2)
 
 TEST(Monomial, ops)
 {
-  std::auto_ptr<PolyRing> R(ringFromString("32003 6 1\n1 1 1 1 1 1"));
+  std::unique_ptr<PolyRing> R(ringFromString("32003 6 1\n1 1 1 1 1 1"));
 
   testMonomialOps(R.get(), "ab2f2<0>", "bc2df3<0>");
   testMonomialOps(R.get(), "ab2f2<0>", "<0>");
@@ -287,7 +287,7 @@ TEST(Monomial, ops)
 
 TEST(Monomial, ei)
 {
-  std::auto_ptr<PolyRing> R(ringFromString("32003 6 1\n1 1 1 1 1 1"));
+  std::unique_ptr<PolyRing> R(ringFromString("32003 6 1\n1 1 1 1 1 1"));
 
   Monomial m1 = stringToMonomial(R.get(), "<1>");
   Monomial m1a = R->allocMonomial1();
@@ -310,7 +310,7 @@ TEST(Monomial, ei)
 
 TEST(Monomial, strict)
 {
-  std::auto_ptr<PolyRing> R(ringFromString("32003 6 1\n1 1 1 1 1 1"));
+  std::unique_ptr<PolyRing> R(ringFromString("32003 6 1\n1 1 1 1 1 1"));
 
   Monomial m1 = stringToMonomial(R.get(), "ab2c3d4e");
   Monomial m2 = stringToMonomial(R.get(), "ab2c3d4");
@@ -323,7 +323,7 @@ TEST(Monomial, strict)
 
 TEST(Monomial, divideToNegative)
 {
-  std::auto_ptr<PolyRing> R(ringFromString("32003 6 1\n1 1 1 1 1 1"));
+  std::unique_ptr<PolyRing> R(ringFromString("32003 6 1\n1 1 1 1 1 1"));
 
   Monomial m1 = stringToMonomial(R.get(), "ab100<0>");
   Monomial m2 = stringToMonomial(R.get(), "ab2c3d4<0>");
@@ -347,7 +347,7 @@ TEST(Monomial, divideToNegative)
 
 TEST(Monomial, findSignature)
 {
-  std::auto_ptr<PolyRing> R(ringFromString("32003 6 1\n1 1 1 1 1 1"));
+  std::unique_ptr<PolyRing> R(ringFromString("32003 6 1\n1 1 1 1 1 1"));
 
   Monomial v1 = stringToMonomial(R.get(), "abef");
   Monomial v2 = stringToMonomial(R.get(), "acdf2");
@@ -461,7 +461,7 @@ TEST(OldMonomial, monomialQuotientAndMult) {
 
 
 TEST(Coeff, reciprocal) {
-  std::auto_ptr<PolyRing> R(ringFromString("11 6 1\n1 1 1 1 1 1"));
+  std::unique_ptr<PolyRing> R(ringFromString("11 6 1\n1 1 1 1 1 1"));
   coefficient vals[10] = {1,2,3,4,5,6,7,8,9,10};
   coefficient ans[10] = {1,6,4,3,9,2,8,7,5,10};
   for (int i=0; i<10; i++)
@@ -473,7 +473,7 @@ TEST(Coeff, reciprocal) {
 }
 
 TEST(Coeff, reciprocal2) {
-  std::auto_ptr<PolyRing> R(ringFromString("32003 6 1\n1 1 1 1 1 1"));
+  std::unique_ptr<PolyRing> R(ringFromString("32003 6 1\n1 1 1 1 1 1"));
   for (int i=1; i<32002; i++)
     {
       coefficient a1;
@@ -489,7 +489,7 @@ TEST(Coeff, reciprocal2) {
 }
 
 TEST(Coeff, negate) {
-  std::auto_ptr<PolyRing> R(ringFromString("32003 6 1\n1 1 1 1 1 1"));
+  std::unique_ptr<PolyRing> R(ringFromString("32003 6 1\n1 1 1 1 1 1"));
   for (int i=1; i<32002; i++)
     {
       coefficient a1 = i;
@@ -503,7 +503,7 @@ TEST(Coeff, negate) {
 }
 
 TEST(Coeff, addone) {
-  std::auto_ptr<PolyRing> R(ringFromString("32003 6 1\n1 1 1 1 1 1"));
+  std::unique_ptr<PolyRing> R(ringFromString("32003 6 1\n1 1 1 1 1 1"));
   for (int i=0; i<32002; i++)
     {
       coefficient a1 = i;
@@ -519,8 +519,8 @@ TEST(Coeff, addone) {
 TEST(MTArray,Naive1) {
   // We create a table here
   size_t not_used = 0;
-  std::auto_ptr<PolyRing> R(ringFromString("32003 6 1\n1 1 1 1 1 1"));
-  std::auto_ptr<MonomialTableArray> M(MonomialTableArray::make(R.get(), 1, 6, false));
+  std::unique_ptr<PolyRing> R(ringFromString("32003 6 1\n1 1 1 1 1 1"));
+  std::unique_ptr<MonomialTableArray> M(MonomialTableArray::make(R.get(), 1, 6, false));
   std::string mons[2] = {
     "abc<1>",
     "a2d<1>"
@@ -545,7 +545,7 @@ TEST(MTArray,Naive1) {
 TEST(MTArray,DivList1) {
   // We create a table here
   size_t not_used = 0;
-  std::auto_ptr<PolyRing> R(ringFromString("32003 6 1\n1 1 1 1 1 1"));
+  std::unique_ptr<PolyRing> R(ringFromString("32003 6 1\n1 1 1 1 1 1"));
   MonomialTableArray* M(MonomialTableArray::make(R.get(), 1, 6, false));
   std::string mons[2] = {
     "abc<1>",
@@ -570,8 +570,8 @@ TEST(MTArray,DivList1) {
 TEST(MTArray,KDTree1) {
   // We create a table here
   size_t not_used = 0;
-  std::auto_ptr<PolyRing> R(ringFromString("32003 6 1\n1 1 1 1 1 1"));
-  std::auto_ptr<MonomialTableArray> M(MonomialTableArray::make(R.get(), 2, 6, false));
+  std::unique_ptr<PolyRing> R(ringFromString("32003 6 1\n1 1 1 1 1 1"));
+  std::unique_ptr<MonomialTableArray> M(MonomialTableArray::make(R.get(), 2, 6, false));
   std::string mons[2] = {
     "abc<1>",
     "a2d<1>"
@@ -653,7 +653,7 @@ TEST(OldMonomial, findSignatures) {
 
 TEST(Ideal,readwrite) {
   // This also tests Poly::iterator
-  std::auto_ptr<Ideal> I = idealParseFromString(ideal1);
+  std::unique_ptr<Ideal> I = idealParseFromString(ideal1);
   size_t ngens = I->viewGenerators().size();
   EXPECT_TRUE(2 == ngens);
 
@@ -672,8 +672,8 @@ TEST(Ideal,readwrite) {
 
 TEST(Poly,lead) {
   // This also tests Poly::iterator, Poly::read, Poly::write
-  std::auto_ptr<Ideal> I = idealParseFromString(ideal1);
-  std::auto_ptr<const PolyRing> R(I->getPolyRing());
+  std::unique_ptr<Ideal> I = idealParseFromString(ideal1);
+  std::unique_ptr<const PolyRing> R(I->getPolyRing());
   monomial lm = stringToMonomial(R.get(), "ab");
   EXPECT_TRUE(R->monomialEQ(lm, I->getPoly(0)->getLeadMonomial()));
   EXPECT_EQ(1, I->getPoly(0)->getLeadCoefficient());
@@ -685,17 +685,17 @@ TEST(Poly,lead) {
 // Test reducer code /////////
 //////////////////////////////
 
-std::auto_ptr<Poly> multIdealByPolyReducer(int typ, const Ideal& ideal, const Poly& g)
+std::unique_ptr<Poly> multIdealByPolyReducer(int typ, const Ideal& ideal, const Poly& g)
 {
   const PolyRing& R = ideal.ring();
-  std::auto_ptr<Poly> poly(new Poly(&R));
-  std::auto_ptr<Reducer> H = Reducer::makeReducer(static_cast<Reducer::ReducerType>(typ), R);
+  std::unique_ptr<Poly> poly(new Poly(&R));
+  std::unique_ptr<Reducer> H = Reducer::makeReducer(static_cast<Reducer::ReducerType>(typ), R);
   for (Poly::const_iterator i = g.begin(); i != g.end(); ++i) {
     monomial mon = R.allocMonomial();
     R.monomialCopy(i.getMonomial(), mon);
     int x = R.monomialGetComponent(mon);
     R.monomialChangeComponent(mon, 0);
-    std::auto_ptr<Poly> h(ideal.getPoly(x)->copy());
+    std::unique_ptr<Poly> h(ideal.getPoly(x)->copy());
     h->multByTerm(i.getCoefficient(), mon);
     R.monomialSetIdentity(mon);
 
@@ -714,8 +714,8 @@ void testPolyReducer(
   const std::string& ans
 ) {
   const PolyRing& ring = *ideal.getPolyRing();
-  std::auto_ptr<Poly> g = polyParseFromString(&ring, f);
-  std::auto_ptr<Poly> h = multIdealByPolyReducer(reducerType, ideal, *g);
+  std::unique_ptr<Poly> g = polyParseFromString(&ring, f);
+  std::unique_ptr<Poly> h = multIdealByPolyReducer(reducerType, ideal, *g);
   if (!h->isZero()) {
     Poly::iterator prev = h->begin();
     Poly::iterator it = prev;
@@ -734,7 +734,7 @@ TEST(Reducer, insert) {
   //  use this last poly to determine what to add to the heap
   // at the end, take the value of the heap, compare to answer
 
-  std::auto_ptr<Ideal> I = idealParseFromString(ideal2); // charac is 32003
+  std::unique_ptr<Ideal> I = idealParseFromString(ideal2); // charac is 32003
   for (int typ = 0; typ <= 30; ++typ) {
     Reducer::ReducerType red = Reducer::ReducerType(typ);
     if (static_cast<int>(red) != typ ||
@@ -770,9 +770,9 @@ std::string somePolys =
 ";
 
 TEST(PolyHashTable,test1) {
-  std::auto_ptr<PolyRing> R = ringFromString("32003 6 1\n1 1 1 1 1 1");
+  std::unique_ptr<PolyRing> R = ringFromString("32003 6 1\n1 1 1 1 1 1");
   PolyHashTable H(R.get(),3);
-  std::auto_ptr<Poly> f1 = polyParseFromString(R.get(), "3bd2+7cd2+5c2f+2adf+bdf+10cef");
+  std::unique_ptr<Poly> f1 = polyParseFromString(R.get(), "3bd2+7cd2+5c2f+2adf+bdf+10cef");
   PolyHashTable::MonomialArray M1, M2;
   H.fromPoly(*f1, M1);
   H.fromPoly(*f1, M2);
@@ -796,10 +796,10 @@ TEST(PolyHashTable,test1) {
 }
 
 TEST(PolyHashTable,test2) {
-  std::auto_ptr<PolyRing> R(ringFromString("32003 6 1\n1 1 1 1 1 1"));
+  std::unique_ptr<PolyRing> R(ringFromString("32003 6 1\n1 1 1 1 1 1"));
   PolyHashTable H(R.get(), 3);
-  std::auto_ptr<Poly> f1(polyParseFromString(R.get(), "3bd2+7cd2+5c2f+2adf+bdf+10cef"));
-  std::auto_ptr<Poly> f2(polyParseFromString(R.get(), "-3bd2+4c2f+cef+f3"));
+  std::unique_ptr<Poly> f1(polyParseFromString(R.get(), "3bd2+7cd2+5c2f+2adf+bdf+10cef"));
+  std::unique_ptr<Poly> f2(polyParseFromString(R.get(), "-3bd2+4c2f+cef+f3"));
   PolyHashTable::MonomialArray M1, M2;
   H.fromPoly(*f1, M1);
   H.fromPoly(*f2, M2);
@@ -807,9 +807,9 @@ TEST(PolyHashTable,test2) {
 }
 
 TEST(MonomialHashTable,test1) {
-  std::auto_ptr<PolyRing> R = ringFromString("32003 6 1\n1 1 1 1 1 1");
+  std::unique_ptr<PolyRing> R = ringFromString("32003 6 1\n1 1 1 1 1 1");
   MonomialHashTable H(R.get(), 3);
-  std::auto_ptr<Poly> f1 = polyParseFromString(R.get(), "3bd2+7cd2+5c2f+2adf+bdf+10cef");
+  std::unique_ptr<Poly> f1 = polyParseFromString(R.get(), "3bd2+7cd2+5c2f+2adf+bdf+10cef");
   int count = 0;
   int was_there_count = 0;
   for (int j = 0; j<10; j++)

@@ -16,7 +16,7 @@ Ideal::~Ideal()
     delete mGenerators[i];
 }
 
-void Ideal::insert(std::auto_ptr<Poly> p) {
+void Ideal::insert(std::unique_ptr<Poly> p) {
   mGenerators.reserve(mGenerators.size() + 1);
   mGenerators.push_back(p.release());
 }

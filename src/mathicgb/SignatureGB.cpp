@@ -112,8 +112,10 @@ SignatureGB::SignatureGB(
     sig = R->allocMonomial();
     R->monomialEi(i, sig);
     GB->addComponent();
-    std::auto_ptr<Poly> autoG(g);
-    GB->insert(sig, autoG);
+    {
+      std::unique_ptr<Poly> autoG(g);
+      GB->insert(sig, std::move(autoG));
+    }
   }
 
   // Populate SP
@@ -173,8 +175,10 @@ bool SignatureGB::processSPair
 
   // new basis element
   ASSERT(!GB->isSingularTopReducible(*f, sig));
-  std::auto_ptr<Poly> autoF(f);
-  GB->insert(sig, autoF);
+  {
+    std::unique_ptr<Poly> autoF(f);
+    GB->insert(sig, std::move(autoF));
+  }
   Hsyz->addComponent();
   SP->newPairs(GB->size()-1);
 

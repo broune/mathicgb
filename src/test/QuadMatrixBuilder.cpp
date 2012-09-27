@@ -69,7 +69,7 @@ TEST(QuadMatrixBuilder, Empty) {
 }
 
 TEST(QuadMatrixBuilder, Construction) {
-  std::auto_ptr<PolyRing> ring(ringFromString("32003 6 1\n1 1 1 1 1 1"));
+  std::unique_ptr<PolyRing> ring(ringFromString("32003 6 1\n1 1 1 1 1 1"));
   QuadMatrixBuilder b(*ring);
   createColumns("a<1>+<0>", "b<0>+c<0>+bc<0>", b);
 
@@ -106,7 +106,7 @@ TEST(QuadMatrixBuilder, Construction) {
 }
 
 TEST(QuadMatrixBuilder, ColumnQuery) {
-  std::auto_ptr<PolyRing> ring(ringFromString("32003 6 1\n1 1 1 1 1 1"));
+  std::unique_ptr<PolyRing> ring(ringFromString("32003 6 1\n1 1 1 1 1 1"));
   QuadMatrixBuilder b(*ring);
   createColumns("a<1>+<0>", "b<0>+c<0>+bc<0>", b);
 
@@ -132,9 +132,9 @@ TEST(QuadMatrixBuilder, ColumnQuery) {
 
 TEST(QuadMatrixBuilder, SortColumns) {
   // construct builder and reverse lex order
-  std::auto_ptr<PolyRing> ring(ringFromString("32003 6 1\n1 1 1 1 1 1"));
+  std::unique_ptr<PolyRing> ring(ringFromString("32003 6 1\n1 1 1 1 1 1"));
   Ideal ideal(*ring);
-  std::auto_ptr<FreeModuleOrder> order(FreeModuleOrder::makeOrder(1, &ideal));
+  std::unique_ptr<FreeModuleOrder> order(FreeModuleOrder::makeOrder(1, &ideal));
   
   // one row top, no rows bottom, no columns
   {
@@ -206,7 +206,7 @@ TEST(QuadMatrixBuilder, SortColumns) {
 }
 
 TEST(QuadMatrixBuilder, BuildAndClear) {
-  std::auto_ptr<PolyRing> ring(ringFromString("32003 6 1\n1 1 1 1 1 1"));
+  std::unique_ptr<PolyRing> ring(ringFromString("32003 6 1\n1 1 1 1 1 1"));
   QuadMatrixBuilder b(*ring);
   createColumns("a<1>+<0>", "b<0>+c<0>+bc<0>", b);
 

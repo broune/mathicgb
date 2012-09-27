@@ -17,7 +17,7 @@ public:
   Ideal(const PolyRing &R) : mRing(R) {}
   ~Ideal();
 
-  void insert(std::auto_ptr<Poly> p);
+  void insert(std::unique_ptr<Poly> p);
 
   static Ideal *parse(std::istream &i); // reads ring, #gens, each generator in turn
   void display(std::ostream &o, bool print_comp) const; // inverse operation
