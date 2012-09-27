@@ -21,7 +21,7 @@ namespace {
   class DivListFactory : public DivisorLookup::Factory {
   public:
     DivListFactory(const PolyRing& ring, bool useDivMask): mRing(ring), mUseDivMask(useDivMask) {}
-    virtual std::auto_ptr<DivisorLookup> create(
+    virtual std::unique_ptr<DivisorLookup> create(
       bool preferSparseReducers,
       bool allowRemovals
     ) const {
@@ -33,7 +33,7 @@ namespace {
 
   private:
     template<bool UseDivMask>
-    std::auto_ptr<DivisorLookup> createIt(bool preferSparseReducers) const {
+    std::unique_ptr<DivisorLookup> createIt(bool preferSparseReducers) const {
       typedef DivLookupConfiguration<true, UseDivMask> Configuration;
       bool useDM = UseDivMask;
       Configuration configuration(
@@ -45,7 +45,7 @@ namespace {
         DefaultParams::minRebuildRatio,
         (useDM ? 1 : 3),
         preferSparseReducers);
-      return std::auto_ptr<DivisorLookup>
+      return std::unique_ptr<DivisorLookup>
         (new DivLookup<mathic::DivList<Configuration> >(configuration));
     }
 
@@ -56,7 +56,7 @@ namespace {
   class KDTreeFactory : public DivisorLookup::Factory {
   public:
     KDTreeFactory(const PolyRing& ring, bool useDivMask): mRing(ring), mUseDivMask(useDivMask) {}
-    virtual std::auto_ptr<DivisorLookup> create(
+    virtual std::unique_ptr<DivisorLookup> create(
       bool preferSparseReducers,
       bool allowRemovals
     ) const {
@@ -75,7 +75,7 @@ namespace {
 
   private:
     template<bool AllowRemovals, bool UseDivMask>
-    std::auto_ptr<DivisorLookup> createAllowRemovals(
+    std::unique_ptr<DivisorLookup> createAllowRemovals(
       bool preferSparseReducers
     ) const {
       typedef DivLookupConfiguration<AllowRemovals, UseDivMask> Configuration;
@@ -89,7 +89,7 @@ namespace {
         DefaultParams::minRebuildRatio,
         (useDM ? 2 : 4),
         preferSparseReducers);
-      return std::auto_ptr<DivisorLookup>
+      return std::unique_ptr<DivisorLookup>
         (new DivLookup<mathic::KDTree<Configuration> >(configuration));
     }
     const PolyRing& mRing;
@@ -97,18 +97,18 @@ namespace {
   };
 }
 
-std::auto_ptr<DivisorLookup::Factory> DivisorLookup::makeFactory(
+std::unique_ptr<DivisorLookup::Factory> DivisorLookup::makeFactory(
   const PolyRing& ring,
   int type
 ) {
   if (type == 1)
-    return std::auto_ptr<Factory>(new DivListFactory(ring, true));
+    return std::unique_ptr<Factory>(new DivListFactory(ring, true));
   else if (type == 2)
-    return std::auto_ptr<Factory>(new KDTreeFactory(ring, true));
+    return std::unique_ptr<Factory>(new KDTreeFactory(ring, true));
   if (type == 3)
-    return std::auto_ptr<Factory>(new DivListFactory(ring, false));
+    return std::unique_ptr<Factory>(new DivListFactory(ring, false));
   else if (type == 4)
-    return std::auto_ptr<Factory>(new KDTreeFactory(ring, false));
+    return std::unique_ptr<Factory>(new KDTreeFactory(ring, false));
   else if (type == 0)
     throw std::runtime_error("Divisor lookup 0 (DivisorLookupGB) disabled.");
   else

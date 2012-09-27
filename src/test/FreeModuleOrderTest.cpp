@@ -15,7 +15,7 @@ void runTest(
 ) {
   std::string line;
 
-  std::auto_ptr<Ideal> ideal = idealParseFromString(idealStr);
+  std::unique_ptr<Ideal> ideal = idealParseFromString(idealStr);
   const PolyRing* ring = ideal->getPolyRing();
 
   std::vector<monomial> sigs;
@@ -43,7 +43,7 @@ void runTest(
   ASSERT(sigs.size() == pairs.size());
   ASSERT(sigs.size() == pairs.size());
 
-  std::auto_ptr<FreeModuleOrder> order
+  std::unique_ptr<FreeModuleOrder> order
     (FreeModuleOrder::makeOrder(orderType, ideal.get()));
   order->sortAndScrambleSignatures(pairs);
   for (size_t i = 0; i < pairs.size(); ++i) {

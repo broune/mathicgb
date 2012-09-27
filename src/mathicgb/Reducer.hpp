@@ -23,17 +23,17 @@ public:
 
   /** Clasically reduces poly by the basis elements of basis. The reduction
     is classic in that no signatures are taken into account. */
-  virtual std::auto_ptr<Poly> classicReduce
+  virtual std::unique_ptr<Poly> classicReduce
   (const Poly& poly, const PolyBasis& basis) = 0;
 
   /** Clasically reduces poly by the basis elements of basis, except that the
    lead term is not reduced. The reduction is classic in that no signatures
    are taken into account. */
-  virtual std::auto_ptr<Poly> classicTailReduce
+  virtual std::unique_ptr<Poly> classicTailReduce
   (const Poly& poly, const PolyBasis& basis) = 0;
 
   /** Clasically reduces the S-polynomial between a and b. */
-  virtual std::auto_ptr<Poly> classicReduceSPoly
+  virtual std::unique_ptr<Poly> classicReduceSPoly
   (const Poly& a, const Poly& b, const PolyBasis& basis) = 0;
 
   /** Regular reduce multiple*basisElement in signature sig by the
@@ -81,10 +81,10 @@ public:
     Reducer_F4
   };
 
-  static std::auto_ptr<Reducer> makeReducer
+  static std::unique_ptr<Reducer> makeReducer
     (ReducerType t, PolyRing const& ring);
 
-  static std::auto_ptr<Reducer> makeReducerNullOnUnknown
+  static std::unique_ptr<Reducer> makeReducerNullOnUnknown
     (ReducerType t, PolyRing const& ring);
 
   static ReducerType reducerType(int typ);

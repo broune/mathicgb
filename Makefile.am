@@ -10,7 +10,7 @@ libmathicgb_la_CPPFLAGS = $(DEPS_CFLAGS)
 noinst_LTLIBRARIES = libmathicgb.la
 
 # set the C++ compiler to include src/
-AM_CXXFLAGS=-I$(top_srcdir)/src/
+AM_CXXFLAGS=-I$(top_srcdir)/src/ -std=gnu++0x
 
 # libraries that are needed by this library
 libmathicgb_la_LIBADD= $(DEPS_LIBS)
@@ -82,7 +82,7 @@ unittest_CPPFLAGS = $(DEPS_CFLAGS)
 unittest_CXXFLAGS=\
   -I$(top_srcdir)/libs/gtest/include\
   -I$(top_srcdir)/libs/gtest/\
-  -I$(top_srcdir)/src/
+  -I$(top_srcdir)/src/ -std=gnu++0x
 unittest_LDADD = $(DEPS_LIBS) libmathicgb.la
 
 test_LIBS=

@@ -17,18 +17,18 @@ public:
   PolyBasis(
     const PolyRing& ring,
     FreeModuleOrder& order,
-    std::auto_ptr<DivisorLookup> divisorLookup);
+    std::unique_ptr<DivisorLookup> divisorLookup);
 
   // Deletes the Poly's stored in the basis.
   ~PolyBasis();
 
   // Returns the initial monomial ideal of the basis (not the ideal).
-  std::auto_ptr<Ideal> initialIdeal() const;
+  std::unique_ptr<Ideal> initialIdeal() const;
 
   // Inserts a polynomial into the basis at index size().
   // Lead monomials must be unique among basis elements.
   // So the index is size() - 1 afterwards since size() will increase by 1.
-  void insert(std::auto_ptr<Poly> poly);
+  void insert(std::unique_ptr<Poly> poly);
 
   // Returns the index of a basis element whose lead term divides mon.
   // Returns -1 if there is no such basis element.
@@ -40,7 +40,7 @@ public:
   // Replaces basis element at index with the given new value. The lead
   // term of the new polynomial must be the same as the previous one.
   // This is useful for auto-tail-reduction.
-  void replaceSameLeadTerm(size_t index, std::auto_ptr<Poly> newValue) {
+  void replaceSameLeadTerm(size_t index, std::unique_ptr<Poly> newValue) {
     ASSERT(index < size());
     ASSERT(!retired(index));
     ASSERT(newValue.get() != 0);
@@ -109,11 +109,11 @@ public:
   // Retires the basis element at index, which frees the memory associated
   // to it, including the basis element polynomial, and marks it as retired. 
   // todo: implement
-  std::auto_ptr<Poly> retire(size_t index) {
+  std::unique_ptr<Poly> retire(size_t index) {
     ASSERT(index < size());
     ASSERT(!retired(index));
     mDivisorLookup->remove(leadMonomial(index));
-    std::auto_ptr<Poly> poly(mEntries[index].poly);
+    std::unique_ptr<Poly> poly(mEntries[index].poly);
     mEntries[index].poly = 0;
     mEntries[index].retired = true;
     return poly;
@@ -256,7 +256,7 @@ private:
 
   const PolyRing& mRing;
   FreeModuleOrder& mOrder;
-  std::auto_ptr<DivisorLookup> mDivisorLookup;
+  std::unique_ptr<DivisorLookup> mDivisorLookup;
   std::vector<Entry> mEntries;
   mutable Stats mStats;
 

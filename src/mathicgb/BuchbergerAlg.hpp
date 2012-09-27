@@ -64,11 +64,11 @@ private:
 
   void autoTailReduce();
 
-  void insertReducedPoly(std::auto_ptr<Poly> poly);
+  void insertReducedPoly(std::unique_ptr<Poly> poly);
 
   const PolyRing& mRing;
-  std::auto_ptr<FreeModuleOrder> mOrder;
-  std::auto_ptr<Reducer> mReducer;
+  std::unique_ptr<FreeModuleOrder> mOrder;
+  std::unique_ptr<Reducer> mReducer;
   PolyBasis mBasis;
   SPairs mSPairs;
   mic::Timer mTimer;

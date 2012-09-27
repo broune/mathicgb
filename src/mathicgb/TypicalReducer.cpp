@@ -77,7 +77,7 @@ Poly* TypicalReducer::regularReduce(
   return result;
 }
 
-std::auto_ptr<Poly> TypicalReducer::classicReduce(const Poly& poly, const PolyBasis& basis) {
+std::unique_ptr<Poly> TypicalReducer::classicReduce(const Poly& poly, const PolyBasis& basis) {
   monomial identity = basis.ring().allocMonomial(mArena);
   basis.ring().monomialSetIdentity(identity);
   insert(identity, &poly);
@@ -85,7 +85,7 @@ std::auto_ptr<Poly> TypicalReducer::classicReduce(const Poly& poly, const PolyBa
   return classicReduce(basis);
 }
 
-std::auto_ptr<Poly> TypicalReducer::classicTailReduce(const Poly& poly, const PolyBasis& basis) {
+std::unique_ptr<Poly> TypicalReducer::classicTailReduce(const Poly& poly, const PolyBasis& basis) {
   ASSERT(&poly.ring() == &basis.ring());
   ASSERT(!poly.isZero());
   term identity;
@@ -94,13 +94,13 @@ std::auto_ptr<Poly> TypicalReducer::classicTailReduce(const Poly& poly, const Po
   basis.ring().coefficientSetOne(identity.coeff);
   insertTail(identity, &poly);
 
-  std::auto_ptr<Poly> result(new Poly(&basis.ring()));
+  std::unique_ptr<Poly> result(new Poly(&basis.ring()));
   result->appendTerm(poly.getLeadCoefficient(), poly.getLeadMonomial());
 
-  return classicReduce(result, basis);
+  return classicReduce(std::move(result), basis);
 }
 
-std::auto_ptr<Poly> TypicalReducer::classicReduceSPoly(
+std::unique_ptr<Poly> TypicalReducer::classicReduceSPoly(
   const Poly& a,
   const Poly& b,
   const PolyBasis& basis
@@ -125,15 +125,15 @@ std::auto_ptr<Poly> TypicalReducer::classicReduceSPoly(
   ring.coefficientNegateTo(minusOne);
   insertTail(const_term(minusOne, multiple2), &b);
 
-  std::auto_ptr<Poly> reduced = classicReduce(basis);
+  std::unique_ptr<Poly> reduced = classicReduce(basis);
   ring.freeMonomial(lcm);
   ring.freeMonomial(multiple1);
   ring.freeMonomial(multiple2);
-  return reduced;
+  return std::move(reduced);
 }
 
-std::auto_ptr<Poly> TypicalReducer::classicReduce
-    (std::auto_ptr<Poly> result, const PolyBasis& basis) {
+std::unique_ptr<Poly> TypicalReducer::classicReduce
+    (std::unique_ptr<Poly> result, const PolyBasis& basis) {
   const PolyRing& ring = basis.ring();
   ASSERT(&result->ring() == &ring);
   ++mClassicStats.reductions;
@@ -186,10 +186,10 @@ std::auto_ptr<Poly> TypicalReducer::classicReduce
     std::cerr << "Classic reduction done." << std::endl;
 
   reset();
-  return result;
+  return std::move(result);
 }
 
-std::auto_ptr<Poly> TypicalReducer::classicReduce(const PolyBasis& basis) {
-  std::auto_ptr<Poly> result(new Poly(&basis.ring()));
-  return classicReduce(result, basis);
+std::unique_ptr<Poly> TypicalReducer::classicReduce(const PolyBasis& basis) {
+  std::unique_ptr<Poly> result(new Poly(&basis.ring()));
+  return classicReduce(std::move(result), basis);
 }

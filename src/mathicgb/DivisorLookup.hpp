@@ -51,10 +51,10 @@ public:
 
   class Factory {
   public:
-    virtual std::auto_ptr<DivisorLookup> create
+    virtual std::unique_ptr<DivisorLookup> create
       (bool preferSparseReducers, bool allowRemovals) const = 0;
   };
-  static std::auto_ptr<Factory> makeFactory(const PolyRing& ring, int type);
+  static std::unique_ptr<Factory> makeFactory(const PolyRing& ring, int type);
   // choices for type: 1: divlist, 2:kdtree.
 
   class EntryOutput {

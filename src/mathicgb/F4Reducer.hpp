@@ -6,15 +6,15 @@
 
 class F4Reducer : public Reducer {
 public:
-  F4Reducer(const PolyRing& ring, std::auto_ptr<Reducer> fallback);
+  F4Reducer(const PolyRing& ring, std::unique_ptr<Reducer> fallback);
 
-  virtual std::auto_ptr<Poly> classicReduce
+  virtual std::unique_ptr<Poly> classicReduce
   (const Poly& poly, const PolyBasis& basis);
 
-  virtual std::auto_ptr<Poly> classicTailReduce
+  virtual std::unique_ptr<Poly> classicTailReduce
   (const Poly& poly, const PolyBasis& basis);
 
-  virtual std::auto_ptr<Poly> classicReduceSPoly
+  virtual std::unique_ptr<Poly> classicReduceSPoly
   (const Poly& a, const Poly& b, const PolyBasis& basis);
 
   virtual Poly* regularReduce(
@@ -27,7 +27,7 @@ public:
   virtual size_t getMemoryUse() const;
 
 private:
-  std::auto_ptr<Reducer> mFallback;
+  std::unique_ptr<Reducer> mFallback;
   const PolyRing& mRing;
 };
 

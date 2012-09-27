@@ -258,9 +258,9 @@ public:
     preComparisons = mPreComparisons;
   }
 
-  virtual std::auto_ptr<SigSPairQueue>
+  virtual std::unique_ptr<SigSPairQueue>
   createSigSPairQueue(GroebnerBasis const& basis) const {
-    return std::auto_ptr<SigSPairQueue>
+    return std::unique_ptr<SigSPairQueue>
       (new ConcreteSigSPairQueue<Cmp>(basis, mCmp));
   }
 

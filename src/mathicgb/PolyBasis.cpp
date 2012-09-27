@@ -7,11 +7,11 @@
 PolyBasis::PolyBasis(
   const PolyRing& ring,
   FreeModuleOrder& order,
-  std::auto_ptr<DivisorLookup> divisorLookup
+  std::unique_ptr<DivisorLookup> divisorLookup
 ):
   mRing(ring),
   mOrder(order),
-  mDivisorLookup(divisorLookup)
+  mDivisorLookup(std::move(divisorLookup))
 {
   ASSERT(mDivisorLookup.get() != 0);
   mDivisorLookup->setBasis(*this);
@@ -25,21 +25,21 @@ PolyBasis::~PolyBasis() {
   }
 }
 
-std::auto_ptr<Ideal> PolyBasis::initialIdeal() const {
-  std::auto_ptr<Ideal> ideal(new Ideal(mRing));
+std::unique_ptr<Ideal> PolyBasis::initialIdeal() const {
+  std::unique_ptr<Ideal> ideal(new Ideal(mRing));
   size_t const idealSize = size();
   for (size_t gen = 0; gen != idealSize; ++gen) {
     if (!retired(gen) && leadMinimal(gen)) {
-      std::auto_ptr<Poly> p(new Poly(&mRing));
+      std::unique_ptr<Poly> p(new Poly(&mRing));
       p->appendTerm(1, leadMonomial(gen));
-      ideal->insert(p);
+      ideal->insert(std::move(p));
     }
   }
   ideal->sort(mOrder);
   return ideal;
 }
 
-void PolyBasis::insert(std::auto_ptr<Poly> poly) {
+void PolyBasis::insert(std::unique_ptr<Poly> poly) {
   ASSERT(poly.get() != 0);
   const size_t index = size();
   EntryIter const stop = mEntries.end();

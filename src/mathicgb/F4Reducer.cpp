@@ -3,31 +3,31 @@
 
 #include "F4MatrixBuilder.hpp"
 
-F4Reducer::F4Reducer(const PolyRing& ring, std::auto_ptr<Reducer> fallback):
-  mFallback(fallback), mRing(ring) {
+F4Reducer::F4Reducer(const PolyRing& ring, std::unique_ptr<Reducer> fallback):
+  mFallback(std::move(fallback)), mRing(ring) {
 }
 
-std::auto_ptr<Poly> F4Reducer::classicReduce
+std::unique_ptr<Poly> F4Reducer::classicReduce
 (const Poly& poly, const PolyBasis& basis) {
-  std::auto_ptr<Poly> p;
+  std::unique_ptr<Poly> p;
   p = mFallback->classicReduce(poly, basis);
   mSigStats = mFallback->sigStats();
   mClassicStats = mFallback->classicStats();
   return p;
 }
 
-std::auto_ptr<Poly> F4Reducer::classicTailReduce
+std::unique_ptr<Poly> F4Reducer::classicTailReduce
 (const Poly& poly, const PolyBasis& basis) {
-  std::auto_ptr<Poly> p;
+  std::unique_ptr<Poly> p;
   p = mFallback->classicTailReduce(poly, basis);
   mSigStats = mFallback->sigStats();
   mClassicStats = mFallback->classicStats();
   return p;
 }
 
-std::auto_ptr<Poly> F4Reducer::classicReduceSPoly
+std::unique_ptr<Poly> F4Reducer::classicReduceSPoly
 (const Poly& a, const Poly& b, const PolyBasis& basis) {
-  std::auto_ptr<Poly> p;
+  std::unique_ptr<Poly> p;
   {
     p = mFallback->classicReduceSPoly(a, b, basis);
     mSigStats = mFallback->sigStats();

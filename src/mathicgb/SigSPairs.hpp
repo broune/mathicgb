@@ -129,7 +129,7 @@ private:
 
   typedef std::vector<PreSPair> PrePairContainer;
 
-  std::auto_ptr<SigSPairQueue> mQueue;
+  std::unique_ptr<SigSPairQueue> mQueue;
   SigSPairQueue::IndexSigs mIndexSigs;
 
   mutable Stats mStats;

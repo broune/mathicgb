@@ -31,11 +31,11 @@ Reducer::Reducer():
 Reducer::~Reducer() {
 }
 
-std::auto_ptr<Reducer> Reducer::makeReducer(
+std::unique_ptr<Reducer> Reducer::makeReducer(
   ReducerType type,
   PolyRing const& ring
 ) {
-  std::auto_ptr<Reducer> reducer = makeReducerNullOnUnknown(type, ring);
+  std::unique_ptr<Reducer> reducer = makeReducerNullOnUnknown(type, ring);
   if (reducer.get() == 0) {
     std::ostringstream error;
     error << "Unknown or unimplemented reducer type " << type << ".\n";
@@ -44,80 +44,80 @@ std::auto_ptr<Reducer> Reducer::makeReducer(
   return reducer;
 }
 
-std::auto_ptr<Reducer> Reducer::makeReducerNullOnUnknown(
+std::unique_ptr<Reducer> Reducer::makeReducerNullOnUnknown(
   ReducerType type,
   PolyRing const& ring
 ) {
   switch (type) {
   case Reducer_PolyHeap:
-    return std::auto_ptr<Reducer>(new PolyHeap(&ring));
+    return std::unique_ptr<Reducer>(new PolyHeap(&ring));
   case Reducer_PolyGeoBucket:
-    return std::auto_ptr<Reducer>(new PolyGeoBucket(&ring));
+    return std::unique_ptr<Reducer>(new PolyGeoBucket(&ring));
   case Reducer_Poly:
-    return std::auto_ptr<Reducer>(new PolyReducer(&ring));
+    return std::unique_ptr<Reducer>(new PolyReducer(&ring));
   case Reducer_PolyHash:
-    return std::auto_ptr<Reducer>(new PolyHashReducer(&ring));
+    return std::unique_ptr<Reducer>(new PolyHashReducer(&ring));
   case Reducer_BjarkeGeo:
-    return std::auto_ptr<Reducer>(new BjarkeGeobucket2(&ring));
+    return std::unique_ptr<Reducer>(new BjarkeGeobucket2(&ring));
   case Reducer_TournamentTree:
-    return std::auto_ptr<Reducer>(new TournamentReducer(ring));
-    //return std::auto_ptr<Reducer>
+    return std::unique_ptr<Reducer>(new TournamentReducer(ring));
+    //return std::unique_ptr<Reducer>
       //(new ReducerPack<mic::TourTree>(ring));
   case Reducer_HashTourTree:
-    return std::auto_ptr<Reducer>(new HashTourReducer(ring));
+    return std::unique_ptr<Reducer>(new HashTourReducer(ring));
 
 
   case Reducer_TourTree_NoDedup:
-    return std::auto_ptr<Reducer>(new ReducerNoDedup<mic::TourTree>(ring));
+    return std::unique_ptr<Reducer>(new ReducerNoDedup<mic::TourTree>(ring));
   case Reducer_TourTree_Dedup:
-    return std::auto_ptr<Reducer>(new ReducerDedup<mic::TourTree>(ring));
+    return std::unique_ptr<Reducer>(new ReducerDedup<mic::TourTree>(ring));
   case Reducer_TourTree_Hashed:
-    return std::auto_ptr<Reducer>(new ReducerHash<mic::TourTree>(ring));
+    return std::unique_ptr<Reducer>(new ReducerHash<mic::TourTree>(ring));
     //break;
   case Reducer_TourTree_NoDedup_Packed:
-    return std::auto_ptr<Reducer>(new ReducerPack<mic::TourTree>(ring));
+    return std::unique_ptr<Reducer>(new ReducerPack<mic::TourTree>(ring));
   case Reducer_TourTree_Dedup_Packed:
-    return std::auto_ptr<Reducer>(new ReducerPackDedup<mic::TourTree>(ring));
+    return std::unique_ptr<Reducer>(new ReducerPackDedup<mic::TourTree>(ring));
   case Reducer_TourTree_Hashed_Packed:
-    return std::auto_ptr<Reducer>(new ReducerHashPack<mic::TourTree>(ring));
+    return std::unique_ptr<Reducer>(new ReducerHashPack<mic::TourTree>(ring));
 
   case Reducer_Heap_NoDedup:
-    return std::auto_ptr<Reducer>(new ReducerNoDedup<mic::Heap>(ring));
+    return std::unique_ptr<Reducer>(new ReducerNoDedup<mic::Heap>(ring));
   case Reducer_Heap_Dedup:
-    return std::auto_ptr<Reducer>(new ReducerDedup<mic::Heap>(ring));
+    return std::unique_ptr<Reducer>(new ReducerDedup<mic::Heap>(ring));
   case Reducer_Heap_Hashed:
-    return std::auto_ptr<Reducer>(new ReducerHash<mic::Heap>(ring));
+    return std::unique_ptr<Reducer>(new ReducerHash<mic::Heap>(ring));
     //break;
   case Reducer_Heap_NoDedup_Packed:
-    return std::auto_ptr<Reducer>(new ReducerPack<mic::Heap>(ring));
+    return std::unique_ptr<Reducer>(new ReducerPack<mic::Heap>(ring));
   case Reducer_Heap_Dedup_Packed:
-    return std::auto_ptr<Reducer>(new ReducerPackDedup<mic::Heap>(ring));
+    return std::unique_ptr<Reducer>(new ReducerPackDedup<mic::Heap>(ring));
   case Reducer_Heap_Hashed_Packed:
-    return std::auto_ptr<Reducer>(new ReducerHashPack<mic::Heap>(ring));
+    return std::unique_ptr<Reducer>(new ReducerHashPack<mic::Heap>(ring));
 
   case Reducer_Geobucket_NoDedup:
-    return std::auto_ptr<Reducer>(new ReducerNoDedup<mic::Geobucket>(ring));
+    return std::unique_ptr<Reducer>(new ReducerNoDedup<mic::Geobucket>(ring));
   case Reducer_Geobucket_Dedup:
-    return std::auto_ptr<Reducer>(new ReducerDedup<mic::Geobucket>(ring));
+    return std::unique_ptr<Reducer>(new ReducerDedup<mic::Geobucket>(ring));
   case Reducer_Geobucket_Hashed:
-    return std::auto_ptr<Reducer>(new ReducerHash<mic::Geobucket>(ring));
+    return std::unique_ptr<Reducer>(new ReducerHash<mic::Geobucket>(ring));
   case Reducer_Geobucket_NoDedup_Packed:
-    return std::auto_ptr<Reducer>(new ReducerPack<mic::Geobucket>(ring));
+    return std::unique_ptr<Reducer>(new ReducerPack<mic::Geobucket>(ring));
   case Reducer_Geobucket_Dedup_Packed:
-    return std::auto_ptr<Reducer>(new ReducerPackDedup<mic::Geobucket>(ring));
+    return std::unique_ptr<Reducer>(new ReducerPackDedup<mic::Geobucket>(ring));
   case Reducer_Geobucket_Hashed_Packed:
-    return std::auto_ptr<Reducer>(new ReducerHashPack<mic::Geobucket>(ring));
+    return std::unique_ptr<Reducer>(new ReducerHashPack<mic::Geobucket>(ring));
 
   case Reducer_F4:
     {
-      std::auto_ptr<Reducer> fallback = makeReducer(Reducer_BjarkeGeo, ring);
-      return std::auto_ptr<Reducer>(new F4Reducer(ring, fallback));
+      std::unique_ptr<Reducer> fallback = makeReducer(Reducer_BjarkeGeo, ring);
+      return std::unique_ptr<Reducer>(new F4Reducer(ring, std::move(fallback)));
     }
 
   default:
     break;
   };
-  return std::auto_ptr<Reducer>();
+  return std::unique_ptr<Reducer>();
 }
 
 Reducer::ReducerType Reducer::reducerType(int typ)

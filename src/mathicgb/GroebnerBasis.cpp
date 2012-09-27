@@ -42,14 +42,14 @@ GroebnerBasis::~GroebnerBasis()
 }
 
 void GroebnerBasis::addComponent() {
-  std::auto_ptr<DivisorLookup> lookup =
+  std::unique_ptr<DivisorLookup> lookup =
     mDivisorLookupFactory->create(mPreferSparseReducers, true);
   lookup->setSigBasis(*this);
   mSignatureLookup.push_back(0);
   mSignatureLookup.back() = lookup.release(); // only release after alloc
 }
 
-void GroebnerBasis::insert(monomial sig, std::auto_ptr<Poly> f)
+void GroebnerBasis::insert(monomial sig, std::unique_ptr<Poly> f)
 {
   ASSERT(f.get() != 0);
   ASSERT(f->getLeadCoefficient() != 0);
@@ -70,7 +70,7 @@ void GroebnerBasis::insert(monomial sig, std::auto_ptr<Poly> f)
   sigLeadRatio.push_back(ratio);
 
   const_monomial const lead = f->getLeadMonomial();
-  mBasis.insert(f);
+  mBasis.insert(std::move(f));
   if (mBasis.leadMinimal(mBasis.size() - 1)) {
     mMinimalDivisorLookup->removeMultiples(lead);
     mMinimalDivisorLookup->insert(lead, index);

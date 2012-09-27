@@ -55,7 +55,7 @@ public:
 
   // Takes over ownership of sig and f. sig must come from the pool
   // of ring() and f must have been allocated with new.
-  void insert(monomial sig, std::auto_ptr<Poly> f);
+  void insert(monomial sig, std::unique_ptr<Poly> f);
 
   const_monomial getSignature(size_t i) const {
     ASSERT(i < size());
@@ -139,7 +139,7 @@ private:
     return mBasis.divisorLookup();
   }
 
-  std::auto_ptr<DivisorLookup::Factory const> const mDivisorLookupFactory;
+  std::unique_ptr<DivisorLookup::Factory const> const mDivisorLookupFactory;
 
   // may change at next insert!
   size_t ratioRank(size_t index) const {
@@ -180,7 +180,7 @@ private:
   std::vector<DivisorLookup*> mSignatureLookup;
 
   // contains those lead terms that are minimal
-  std::auto_ptr<DivisorLookup> const mMinimalDivisorLookup;
+  std::unique_ptr<DivisorLookup> const mMinimalDivisorLookup;
 
   PolyBasis mBasis;
   bool const mPreferSparseReducers;
