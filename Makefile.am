@@ -2,7 +2,7 @@
 # autoconf. We use -I to tell aclocal where we put the local macros.
 ACLOCAL_AMFLAGS = -I build/autotools/m4
 
-# Options passed to the C PreProcessor (CPP), NOT the C Plus Plus compiler.
+# Options passed to the C and C++ PreProcessor (CPP) and compiler
 AM_CPPFLAGS = -I${top_srcdir}/
 libmathicgb_la_CPPFLAGS = $(DEPS_CFLAGS)
 
@@ -58,7 +58,8 @@ libmathicgb_la_SOURCES = src/mathicgb/BjarkeGeobucket2.cpp				\
   src/mathicgb/QuadMatrixBuilder.cpp src/mathicgb/TypicalReducer.cpp	\
   src/mathicgb/TypicalReducer.cpp src/mathicgb/F4Reducer.hpp			\
   src/mathicgb/F4Reducer.cpp src/mathicgb/F4MatrixBuilder.hpp			\
-  src/mathicgb/F4MatrixBuilder.cpp
+  src/mathicgb/F4MatrixBuilder.cpp src/mathicgb/QuadMatrix.hpp			\
+  src/mathicgb/QuadMatrix.cpp
 
 # When making a distribution file, Automake knows to include all files
 # that are necessary to build the project. EXTRA_DIST specifies files
@@ -67,8 +68,8 @@ EXTRA_DIST = autogen.sh libs/gtest
 
 bin_PROGRAMS = mgb
 
-# set up the divisor query simulation. Listing the headers in sources
-# ensure that those files are included in distributions.
+# set up the tests. Listing the headers in sources ensure that those
+# files are included in distributions.
 mgb_CPPFLAGS = $(DEPS_CFLAGS)
 mgb_SOURCES = src/cli/GBMain.cpp
 mgb_LDADD = $(top_builddir)/libmathicgb.la
@@ -88,4 +89,5 @@ test_LIBS=
 unittest_SOURCES=src/test/FreeModuleOrderTest.cpp						\
   src/test/gtestInclude.cpp src/test/testMain.cpp src/test/gb-test.cpp	\
   src/test/ideals.cpp src/test/poly-test.cpp src/test/ideals.hpp		\
-  src/test/SparseMatrix.cpp src/test/QuadMatrixBuilder.cpp
+  src/test/SparseMatrix.cpp src/test/QuadMatrixBuilder.cpp				\
+  src/test/F4MatrixBuilder.cpp
