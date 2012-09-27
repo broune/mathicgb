@@ -34,16 +34,11 @@ std::auto_ptr<Poly> F4Reducer::classicReduceSPoly
     mClassicStats = mFallback->classicStats();
   }
 
-  SparseMatrix topLeft;
-  SparseMatrix topRight;
-  SparseMatrix bottomLeft;
-  SparseMatrix bottomRight;
-  std::vector<monomial> monomialsOfRightColumns;
+  QuadMatrix qm;
   {
     F4MatrixBuilder builder(basis);
     builder.addTwoRowsForSPairToMatrix(a, b);
-    builder.buildMatricesAndClear
-      (topLeft, topRight, bottomLeft, bottomRight, monomialsOfRightColumns);
+    builder.buildMatrixAndClear(qm);
   }
 
   return p;
@@ -65,5 +60,5 @@ std::string F4Reducer::description() const {
 }
 
 size_t F4Reducer::getMemoryUse() const {
-  return 0;
+  return 0; // @todo: implement
 }

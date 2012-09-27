@@ -6,9 +6,16 @@
 #include "mathicgb/io-util.hpp"
 #include "mathicgb/FreeModuleOrder.hpp"
 #include "mathicgb/Ideal.hpp"
+#include "mathicgb/QuadMatrix.hpp"
 #include <gtest/gtest.h>
 
 namespace {
+  std::string monToStr(const PolyRing& ring, ConstMonomial a) {
+    std::ostringstream out;
+    ring.monomialDisplay(out, a, false, true);
+    return out.str();
+  }
+
   void createColumns(const char* left, const char* right, QuadMatrixBuilder& b)
   {
     const PolyRing& ring = b.ring();
@@ -196,4 +203,43 @@ TEST(QuadMatrixBuilder, SortColumns) {
     b.sortColumnsLeft(*order);
     ASSERT_EQ(matrixStr3, b.toString());
   }
+}
+
+TEST(QuadMatrixBuilder, BuildAndClear) {
+  std::auto_ptr<PolyRing> ring(ringFromString("32003 6 1\n1 1 1 1 1 1"));
+  QuadMatrixBuilder b(*ring);
+  createColumns("a<1>+<0>", "b<0>+c<0>+bc<0>", b);
+
+  b.appendEntryTopLeft(1, 1);
+  b.appendEntryTopRight(2, 2);
+  b.rowDoneTopLeftAndRight();
+
+  b.appendEntryBottomLeft(1, 3);
+  b.appendEntryBottomRight(2, 4);
+  b.rowDoneBottomLeftAndRight();
+
+  QuadMatrix qm;
+  b.buildMatrixAndClear(qm);
+
+  // test that the matrix was really cleared
+  ASSERT_EQ(ring.get(), &b.ring()); // still same ring though
+  const char* matrixStr = 
+    "Left columns:\n"
+    "Right columns:\n"
+    "matrix with no rows | matrix with no rows\n"
+    "                    |                    \n"
+    "matrix with no rows | matrix with no rows\n";
+  ASSERT_EQ(matrixStr, b.toString());
+  ASSERT_EQ(0, b.leftColCount());
+  ASSERT_EQ(0, b.rightColCount());
+
+  // test that the quad matrix is right
+  ASSERT_EQ("0: 1#1\n", qm.topLeft.toString());
+  ASSERT_EQ("0: 2#2\n", qm.topRight.toString());
+  ASSERT_EQ("0: 1#3\n", qm.bottomLeft.toString());
+  ASSERT_EQ("0: 2#4\n", qm.bottomRight.toString());
+  ASSERT_EQ(2, qm.leftColumnMonomials.size());
+  ASSERT_EQ(3, qm.rightColumnMonomials.size());
+  ASSERT_EQ("a", monToStr(*ring, qm.leftColumnMonomials[0]));
+  ASSERT_EQ("b", monToStr(*ring, qm.rightColumnMonomials[0]));
 }

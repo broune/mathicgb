@@ -2,6 +2,7 @@
 #include "QuadMatrixBuilder.hpp"
 
 #include "FreeModuleOrder.hpp"
+#include "QuadMatrix.hpp"
 #include <mathic.h>
 #include <sstream>
 
@@ -189,4 +190,29 @@ std::string QuadMatrixBuilder::toString() const {
   std::ostringstream out;
   print(out);
   return out.str();
+}
+
+void QuadMatrixBuilder::buildMatrixAndClear(QuadMatrix& out) {
+  // we cannot use std::move as the builder is supposed to remain in a
+  // valid state. @todo: consider using a QuadMatrix as the internal
+  // data representation.
+
+  mTopLeft.swap(out.topLeft);
+  mTopRight.swap(out.topRight);
+  mBottomLeft.swap(out.bottomLeft);
+  mBottomRight.swap(out.bottomRight);
+  mMonomialsLeft.swap(out.leftColumnMonomials);
+  mMonomialsRight.swap(out.rightColumnMonomials);
+  out.ring = &ring();
+
+  mTopLeft.clear();
+  mTopRight.clear();
+  mBottomLeft.clear();
+  mBottomRight.clear();
+  mMonomialsLeft.clear();
+  mMonomialsRight.clear();
+
+  mMonomialToCol.clear();
+
+  MATHICGB_ASSERT(out.debugAssertValid());
 }

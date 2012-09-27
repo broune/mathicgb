@@ -8,20 +8,12 @@
 #include <string>
 #include <ostream>
 class FreeModuleOrder;
+class QuadMatrix;
 
-/** Builder for a set of 4 sub-matrices that fit together and where
-  columns have an associated monomial.
-
-  The sub-matrices are top left, top right, bottom left and bottom
-  right. The interface ensures that these fit together in terms of
-  number of rows and columns so that they could form one bigger
-  matrix.
-
-  Columns have an associated monomial and it is possible to search for
-  the column with a given monomial.
-
-  This matrix is intended to be used while constructing matrices to
-  reduce polynomials using the F4 algorithm of Faugere. */
+/** Builder for QuadMatrix. This is not quite the builder pattern in
+  that the interface is not virtual and the implementation cannot be
+  swapped out - it only follows the builder pattern in that it is a
+  class that allows step-wise construction of a final product. */
 class QuadMatrixBuilder {
  public:
   typedef SparseMatrix::RowIndex RowIndex;
@@ -218,6 +210,10 @@ class QuadMatrixBuilder {
     MATHICGB_ASSERT(topRight().colCount() == bottomRight().colCount());
     return topRight().colCount();
   }
+
+  /// Puts the built matrix into out and sets the builder to a state
+  /// with no columns and no rows.
+  void buildMatrixAndClear(QuadMatrix& out);
 
 private:
   // Store the monomials for each left and right column respectivewy.

@@ -43,9 +43,6 @@ void testGB(int freeModuleOrder,
             std::string initialIdealStr,
             size_t nonSingularReductions)
 {
-  // todo: signatureBasis no longer does anything, rerun pict to get rid
-  // of that variable.
-  //
   // Put the contents of pict.out into allPairsTest as a string. This
   // works because pict.out does not have any commas and we do not
   // care about whitespace. pict.out contains a set of tests such that
@@ -53,116 +50,121 @@ void testGB(int freeModuleOrder,
   // pict.in for details.
 #define MATHICGB_ESCAPE_MULTILINE_STRING(str) #str
   char const allPairsTests[] = MATHICGB_ESCAPE_MULTILINE_STRING(
-spairQueue	reducerType	divLookup	monTable	signatureBasis	buchberger	postponeKoszul	useBaseDivisors	autoTailReduce	autoTopReduce	preferSparseReducers	useSingularCriterionEarly
-1	13	1	0	1	0	0	0	0	0	1	0
-1	18	2	2	0	0	1	1	0	0	0	1
-2	2	2	1	0	1	0	0	1	1	0	0
-2	18	1	1	1	0	0	1	0	0	1	1
-3	16	1	2	0	1	0	0	1	1	1	0
-0	13	2	0	1	0	1	1	0	0	0	1
-1	11	2	0	0	1	0	0	1	1	1	0
-1	17	2	1	0	1	0	0	1	0	1	0
-1	15	1	0	0	1	0	0	0	1	0	0
-0	21	1	1	0	1	0	0	1	1	1	0
-2	0	2	0	0	1	0	0	1	0	1	0
-1	24	1	1	1	0	1	1	0	0	1	0
-1	6	1	2	1	0	1	0	0	0	0	1
-2	16	2	1	1	0	1	1	0	0	0	1
-3	22	2	1	1	0	1	1	0	0	0	1
-2	8	1	2	0	0	1	1	0	0	1	1
-0	12	2	2	0	0	1	1	0	0	1	1
-0	17	1	0	1	0	1	1	0	0	0	1
-2	6	2	0	0	1	0	0	1	1	1	0
-0	9	1	0	1	0	0	0	0	0	1	1
-3	3	2	0	0	1	0	0	0	1	0	0
-3	10	1	1	0	1	0	0	1	0	0	0
-2	13	1	2	0	0	0	0	0	0	1	1
-2	19	1	0	0	0	1	0	0	0	0	1
-2	11	1	2	1	0	1	1	0	0	0	1
-3	21	2	2	1	0	1	1	0	0	0	1
-3	12	1	1	0	1	0	0	1	1	0	0
-3	0	1	1	1	0	1	1	0	0	0	1
-3	23	2	0	0	0	0	0	0	0	1	1
-3	24	2	2	0	0	0	0	0	0	0	1
-1	22	1	2	0	1	0	0	1	1	1	0
-2	9	2	2	0	1	0	0	1	1	0	0
-1	0	2	2	1	0	0	1	0	0	1	1
-1	21	2	0	0	1	0	0	0	0	1	0
-3	9	2	1	0	1	0	0	0	1	0	0
-3	6	1	1	0	0	0	1	0	0	1	0
-3	15	2	1	1	0	1	1	0	0	1	1
-2	7	1	2	0	0	1	0	0	0	0	0
-0	19	2	1	0	1	0	0	1	1	1	0
-0	23	1	1	0	1	0	0	1	1	0	0
-2	12	2	0	1	0	1	1	0	0	1	1
-2	14	2	2	0	1	0	0	1	0	1	0
-0	5	2	0	0	0	1	1	0	0	0	0
-3	11	1	1	0	0	1	0	0	0	0	1
-2	23	2	2	1	0	1	1	0	0	0	0
-3	17	2	2	0	1	0	0	0	1	0	0
-1	2	1	2	1	0	1	1	0	0	1	1
-3	18	1	0	0	1	0	0	1	1	0	0
-0	20	1	2	0	1	0	0	1	0	0	0
-3	20	2	1	1	0	1	1	0	0	1	1
-0	15	1	2	0	1	0	0	1	0	0	0
-0	0	1	1	0	1	0	0	1	1	1	0
-0	7	2	0	1	0	0	1	0	0	1	1
-1	14	1	0	1	0	1	1	0	0	0	1
-0	16	1	0	0	1	0	0	1	0	1	0
-2	22	1	0	0	0	0	1	0	0	1	1
-1	16	1	2	1	0	0	1	0	0	0	1
-3	14	1	1	1	0	1	0	0	0	1	1
-0	4	2	1	0	0	1	0	0	0	1	1
-0	6	2	1	1	0	1	1	0	0	1	1
-2	5	1	2	1	0	0	0	0	0	1	1
-2	15	1	2	1	0	0	1	0	0	1	1
-1	9	2	2	0	0	1	1	0	0	0	1
-1	12	2	1	1	0	0	0	0	0	0	1
-0	8	2	1	0	1	0	0	1	1	0	0
-3	4	1	0	0	1	0	0	1	1	0	0
-1	5	2	1	0	1	0	0	1	1	0	0
-0	3	1	2	1	0	1	1	0	0	1	1
-0	2	1	0	0	0	1	1	0	0	0	0
-1	10	2	0	1	0	1	1	0	0	1	1
-2	24	2	0	0	1	0	0	1	1	0	0
-0	22	2	0	0	0	1	1	0	0	1	1
-3	19	2	2	1	0	0	1	0	0	1	0
-3	7	2	1	0	1	0	0	1	1	1	0
-3	8	1	0	0	1	0	0	1	1	1	0
-2	17	2	0	0	0	1	1	0	0	1	1
-1	8	2	0	0	1	0	0	0	1	0	0
-2	3	1	1	0	0	1	1	0	0	1	1
-3	5	1	1	0	0	1	0	0	0	1	1
-0	24	1	2	1	0	1	1	0	0	1	1
-0	18	1	2	0	1	0	0	1	1	1	0
-1	7	2	2	1	0	1	0	0	0	0	1
-2	4	1	2	0	1	0	0	1	0	1	0
-1	4	2	1	1	0	0	1	0	0	1	1
-0	14	1	1	0	1	0	0	0	1	0	0
-3	1	1	2	0	1	0	0	1	1	1	0
-2	20	2	0	1	0	0	1	0	0	1	1
-0	10	2	2	0	0	1	1	0	0	1	1
-3	13	1	1	0	1	0	0	1	1	0	0
-2	21	2	2	0	1	0	0	0	1	0	0
-3	2	1	2	0	1	0	0	1	0	1	0
-0	11	2	2	1	0	1	1	0	0	0	1
-1	19	2	2	0	0	0	0	0	0	0	1
-1	3	2	0	0	1	0	0	1	1	1	0
-1	1	2	1	1	0	1	1	0	0	0	1
-2	10	1	0	1	0	0	0	0	0	0	1
-1	20	1	1	1	0	1	1	0	0	1	1
-0	1	1	0	0	0	0	0	0	0	1	1
-0	20	1	2	0	1	0	0	0	1	1	0
-2	1	1	1	0	1	0	0	1	1	0	0
-1	23	2	0	0	0	0	0	0	0	1	1
-0	10	2	1	0	1	0	0	0	1	1	0
-3	8	1	0	1	0	1	1	0	0	0	1
+spairQueue	reducerType	divLookup	monTable	buchberger	postponeKoszul	useBaseDivisors	autoTailReduce	autoTopReduce	preferSparseReducers	useSingularCriterionEarly
+2	12	1	1	0	0	0	0	0	1	0
+1	6	2	2	0	1	1	0	0	0	1
+0	6	2	0	1	0	0	1	1	0	0
+1	7	1	2	1	0	0	1	1	1	0
+0	15	1	0	0	1	1	0	0	1	1
+2	8	2	1	0	0	1	0	0	0	1
+2	4	1	1	1	0	0	0	1	0	0
+3	19	2	1	1	0	0	1	0	1	0
+1	11	1	1	1	0	0	1	0	1	0
+0	14	1	1	1	0	0	1	0	0	0
+1	9	2	0	1	0	0	1	1	0	0
+1	15	2	1	1	0	0	1	1	0	0
+2	22	1	0	1	0	0	1	0	1	0
+3	14	1	0	0	1	1	0	0	1	1
+2	6	1	1	1	0	0	1	1	1	0
+0	10	2	2	1	0	0	0	1	1	0
+2	7	2	1	0	1	0	0	0	0	1
+2	14	2	2	1	0	0	1	1	1	0
+3	20	1	2	1	0	0	0	1	0	0
+0	8	1	2	1	0	0	1	1	1	0
+0	1	1	1	0	1	1	0	0	1	0
+3	22	2	1	0	1	1	0	0	0	1
+1	10	1	1	0	1	1	0	0	0	1
+2	11	2	0	0	1	1	0	0	0	1
+0	25	2	0	1	0	0	0	1	0	0
+2	15	1	2	0	0	1	0	0	0	1
+2	21	2	0	0	1	0	0	0	1	1
+3	2	2	1	0	1	0	0	0	0	0
+2	5	1	0	0	1	1	0	0	0	1
+1	12	2	0	0	1	1	0	0	0	1
+0	19	1	2	0	1	1	0	0	0	1
+3	17	1	0	0	1	1	0	0	0	0
+1	14	2	2	0	0	0	0	0	1	1
+3	1	2	0	0	0	0	0	0	0	1
+2	0	1	1	1	0	0	1	0	1	0
+2	20	2	0	0	1	1	0	0	1	1
+0	23	1	2	1	0	0	1	0	1	0
+0	0	2	0	0	1	1	0	0	0	1
+2	2	1	2	0	0	1	0	0	1	1
+2	16	2	0	1	0	0	0	1	0	0
+0	20	2	1	1	0	0	1	0	0	0
+1	3	2	2	0	0	1	0	0	1	1
+0	24	2	0	1	0	0	1	0	0	0
+3	7	2	0	0	1	1	0	0	1	1
+1	0	1	2	0	1	0	0	0	0	1
+2	23	2	1	0	1	1	0	0	0	1
+1	18	2	1	0	1	0	0	0	1	1
+1	20	1	1	0	0	0	0	0	0	1
+2	25	1	1	0	1	1	0	0	1	1
+3	9	1	1	0	1	1	0	0	1	1
+1	23	2	0	0	1	1	0	0	0	1
+2	17	2	2	0	0	0	0	0	1	1
+0	21	1	2	1	0	0	1	1	0	0
+3	3	1	1	1	0	0	1	1	0	0
+2	1	1	2	1	0	0	1	1	0	0
+1	5	2	2	1	0	0	1	1	1	0
+3	21	1	1	1	0	0	1	0	1	0
+3	6	1	0	0	0	0	0	0	1	1
+0	9	2	2	1	0	0	0	1	1	0
+3	11	2	2	0	0	0	0	0	1	1
+3	10	1	0	1	0	0	1	0	1	0
+2	19	1	0	1	0	0	1	1	1	0
+0	12	2	2	1	0	0	1	1	1	0
+0	2	2	0	0	1	0	0	0	0	1
+1	25	1	2	1	0	0	1	1	0	0
+1	16	1	2	0	1	1	0	0	1	1
+1	4	2	2	0	1	1	0	0	1	1
+3	25	1	2	0	1	1	0	0	0	1
+1	8	1	0	1	0	0	1	0	0	0
+2	18	1	0	1	0	0	1	1	0	0
+0	4	2	0	1	0	0	1	1	0	0
+0	18	2	2	0	1	1	0	0	1	1
+1	17	2	1	0	0	1	0	0	1	1
+1	24	1	2	0	1	1	0	0	1	1
+3	24	2	1	1	0	0	0	1	0	0
+1	19	1	2	0	0	1	0	0	0	1
+1	21	2	2	0	1	1	0	0	1	1
+3	16	2	1	0	1	0	0	0	1	1
+0	22	2	2	0	1	0	0	0	1	1
+3	0	2	2	0	1	1	0	0	0	1
+2	9	2	2	1	0	0	1	0	1	0
+3	18	1	1	0	1	0	0	0	1	1
+3	15	1	2	0	1	0	0	0	0	1
+1	1	1	1	0	1	0	0	0	1	1
+2	24	1	1	0	0	1	0	0	0	1
+2	3	2	0	0	1	1	0	0	0	1
+0	11	2	2	1	0	0	1	1	1	0
+3	13	2	1	1	0	0	1	0	0	0
+3	12	1	1	1	0	0	1	1	1	0
+0	5	2	1	1	0	0	1	0	0	0
+1	22	1	0	1	0	0	0	1	0	0
+2	13	1	2	0	1	1	0	0	1	1
+0	16	2	0	0	0	0	0	0	0	1
+0	17	2	2	0	0	0	0	0	0	1
+1	2	1	1	1	0	0	1	1	0	0
+3	23	2	0	0	1	1	0	0	0	1
+0	7	1	0	0	1	0	0	0	1	1
+1	13	1	0	0	1	1	0	0	0	1
+2	10	1	0	0	1	0	0	0	1	1
+0	13	1	0	1	0	0	0	1	0	0
+3	4	1	0	0	0	0	0	0	1	1
+2	23	1	0	1	0	0	1	1	1	0
+3	5	1	0	0	1	0	0	0	0	1
+0	3	1	2	0	1	0	0	0	1	1
+3	16	1	1	1	0	0	1	1	0	0
+0	17	1	0	1	0	0	1	1	1	0
+3	8	1	2	0	1	1	0	0	0	1
+2	0	2	0	1	0	0	0	1	0	0
 );
   std::istringstream tests(allPairsTests);
   // skip the initial line with the parameter names.
   {
       char const* params[] = {
-        "spairQueue", "reducerType", "divLookup", "monTable", "signatureBasis",
+        "spairQueue", "reducerType", "divLookup", "monTable",
         "buchberger", "postponeKoszul", "useBaseDivisors", "autoTailReduce",
         "autoTopReduce", "preferSparseReducers", "useSingularCriterionEarly"};
 
@@ -202,10 +204,6 @@ spairQueue	reducerType	divLookup	monTable	signatureBasis	buchberger	postponeKosz
     tests >> monTable;
     MATHICGB_ASSERT(0 <= monTable && monTable <= 2);
     
-    int signatureBasis;
-    tests >> signatureBasis;
-    MATHICGB_ASSERT(0 <= signatureBasis && signatureBasis <= 1);
-
     int buchberger;
     tests >> buchberger;
     MATHICGB_ASSERT(0 <= buchberger && buchberger <= 1);
@@ -242,7 +240,6 @@ spairQueue	reducerType	divLookup	monTable	signatureBasis	buchberger	postponeKosz
     MATHICGB_ASSERT(buchberger || !autoTailReduce);
     MATHICGB_ASSERT(!buchberger || !postponeKoszul);
     MATHICGB_ASSERT(!buchberger || !useBaseDivisors);
-    MATHICGB_ASSERT(!buchberger || !signatureBasis);
     MATHICGB_ASSERT(!buchberger || !useSingularCriterionEarly);
 
     // check that we have a valid reducer type
