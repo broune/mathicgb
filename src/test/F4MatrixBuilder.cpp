@@ -7,6 +7,7 @@
 #include "mathicgb/Ideal.hpp"
 #include "mathicgb/PolyBasis.hpp"
 #include "mathicgb/io-util.hpp"
+
 #include <gtest/gtest.h>
 #include <memory>
 

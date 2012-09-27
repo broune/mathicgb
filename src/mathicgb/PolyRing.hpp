@@ -14,6 +14,7 @@
 #define EQ 0
 #define GT 1
 
+/** Returns a^-1 mod modulus. It is required that 0 < a < modulus. */
 template<class T>
 T modularInverse(T a, T modulus) {
   // we do two turns of the extended Euclidian algorithm per
@@ -21,7 +22,7 @@ T modularInverse(T a, T modulus) {
   // but we avoid that by representing every other x as its negative,
   // which is the value minusLastX. This way no negative values show
   // up.
-  MATHICGB_ASSERT(a != 0);
+  MATHICGB_ASSERT(0 < a);
   MATHICGB_ASSERT(a < modulus);
 #ifdef MATHICGB_DEBUG
   T origA = a;
@@ -36,7 +37,7 @@ T modularInverse(T a, T modulus) {
     // first turn
     if (a == 1)
       break;
-    T const firstQuotient = b / a;
+    const T firstQuotient = b / a;
     b -= firstQuotient * a;
     minusLastX += firstQuotient * x;
 
@@ -47,7 +48,7 @@ T modularInverse(T a, T modulus) {
       x = modulus - minusLastX;
       break;
     }
-    T const secondQuotient = a / b;
+    const T secondQuotient = a / b;
     a -= secondQuotient * b;
     x += secondQuotient * minusLastX;
   }
@@ -55,6 +56,43 @@ T modularInverse(T a, T modulus) {
   MATHICGB_ASSERT(x < modulus);
   MATHICGB_ASSERT((static_cast<uint64>(origA) * x) % modulus == 1);
   return x;
+}
+
+template<class T>
+struct ModularProdType {};
+template<> struct ModularProdType<uint8> {typedef uint16 type;};
+template<> struct ModularProdType<uint16> {typedef uint32 type;};
+template<> struct ModularProdType<uint32> {typedef uint64 type;};
+template<> struct ModularProdType<int8> {typedef int16 type;};
+template<> struct ModularProdType<int16> {typedef int32 type;};
+template<> struct ModularProdType<int32> {typedef int64 type;};
+
+/** Returns a*b mod modulus.  It is required that 0 <= a, b < modulus. */
+template<class T, class BigT = typename ModularProdType<T>::type>
+T modularProduct(T a, T b, T modulus) {
+  MATHICGB_ASSERT(0 <= a);
+  MATHICGB_ASSERT(a < modulus);
+  MATHICGB_ASSERT(0 <= b);
+  MATHICGB_ASSERT(b < modulus);
+  BigT bigProd = static_cast<BigT>(a) * b;
+  MATHICGB_ASSERT(a == 0 || bigProd / a == b);
+  return static_cast<T>(bigProd % modulus);
+}
+
+/** Returns -a mod modulus. It is required that 0 <= a < modulus. */
+template<class T>
+T modularNegative(T a, T modulus) {
+  MATHICGB_ASSERT(0 <= a);
+  MATHICGB_ASSERT(a < modulus);
+  return a == 0 ? 0 : modulus - a;
+}
+
+/** Returns -a mod modulus. It is required that 0 < a < modulus. */
+template<class T>
+T modularNegativeNonZero(T a, T modulus) {
+  MATHICGB_ASSERT(0 < a);
+  MATHICGB_ASSERT(a < modulus);
+  return modulus - a;
 }
 
 typedef int exponent ;

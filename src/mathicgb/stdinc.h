@@ -1,7 +1,7 @@
-#ifdef STDINC_GUARD
+#ifdef MATHICGB_STDINC_GUARD
 #error stdinc.h included twice. Only include stdinc.h once per cpp file.
 #endif
-#define STDINC_GUARD
+#define MATHICGB_STDINC_GUARD
 
 #ifdef _MSC_VER // For Microsoft Compiler in Visual Studio C++.
 #pragma warning (push, 1) // Reduce warning level for GMP headers.
@@ -67,6 +67,11 @@ typedef unsigned long long uint64;
 typedef unsigned int uint32;
 typedef unsigned short uint16;
 typedef unsigned char uint8;
+
+typedef signed long long int64;
+typedef signed int int32;
+typedef signed short int16;
+typedef signed char int8;
 
 
 static const size_t BitsPerByte = 8;
