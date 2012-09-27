@@ -2,6 +2,7 @@
 #include "F4Reducer.hpp"
 
 #include "F4MatrixBuilder.hpp"
+#include "F4MatrixReducer.hpp"
 
 F4Reducer::F4Reducer(const PolyRing& ring, std::unique_ptr<Reducer> fallback):
   mFallback(std::move(fallback)), mRing(ring) {
@@ -39,6 +40,12 @@ std::unique_ptr<Poly> F4Reducer::classicReduceSPoly
     F4MatrixBuilder builder(basis);
     builder.addTwoRowsForSPairToMatrix(a, b);
     builder.buildMatrixAndClear(qm);
+  }
+
+  SparseMatrix reduced;
+  {
+    F4MatrixReducer red;
+    red.reduce(basis.ring(), qm, reduced);
   }
 
   return p;
