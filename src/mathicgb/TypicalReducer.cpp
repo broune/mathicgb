@@ -3,6 +3,7 @@
 
 #include "GroebnerBasis.hpp"
 #include "PolyBasis.hpp"
+#include <iostream>
 
 extern int tracingLevel;
 
