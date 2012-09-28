@@ -119,8 +119,12 @@ public:
       "Specifies how many S-pair to reduce at one time. A value of 0 "
       "indicates not to group S-pairs together. Only currently relevant "
       "for the classic Buchberger algorithm.",
-     0)
+     0),
 
+    mThreadCount("threadCount",
+      "Specifies how many threads to use to run the program in parallel.",
+     1)
+    
   {
     {
       std::ostringstream orderOut;
@@ -193,6 +197,7 @@ public:
       alg.setBreakAfter(mBreakAfter.value());
       alg.setPrintInterval(mPrintInterval.value());
       alg.setSPairGroupSize(mSPairGroupSize.value());
+      alg.setThreadCount(mThreadCount.value());
       alg.setUseAutoTopReduction(mAutoTopReduce.value());
       alg.setUseAutoTailReduction(mAutoTailReduce.value());
 
@@ -279,6 +284,7 @@ public:
     parameters.push_back(&mModuleOrder);
     parameters.push_back(&mProjectName);
     parameters.push_back(&mSPairGroupSize);
+    parameters.push_back(&mThreadCount);
 
     // we do not expose the strategy parameter - it is only here to
     // support the old format of using direct numeric parameters to
@@ -305,6 +311,7 @@ private:
   mic::StringParameter mProjectName;
   mic::IntegerParameter mStrategy;
   mic::IntegerParameter mSPairGroupSize;
+  mic::IntegerParameter mThreadCount;  
 };
 
 int oldmain(int argc, char **argv);

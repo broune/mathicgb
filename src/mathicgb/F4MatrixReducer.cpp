@@ -11,6 +11,10 @@
 #include <string>
 #include <cstdio>
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 template<class T>
 class DenseRow {
 public:
@@ -367,7 +371,7 @@ void myReduceToEchelonForm5
     size_t const reducerCount = reduced.rowCount();
 
     //std::cout << "reducing " << reduced.rowCount() << " out of " << toReduce.rowCount() << std::endl;
-    //#pragma omp parallel for num_threads(threadCount) schedule(dynamic)
+#pragma omp parallel for num_threads(threadCount) schedule(dynamic)
     for (size_t row = 0; row < rowCount; ++row) {
       MATHICGB_ASSERT(leadCols[row] <= colCount);
       DenseRow<uint64>& denseRow = dense[row];
@@ -761,7 +765,6 @@ void F4MatrixReducer::reduce
   if (ring.charac() > std::numeric_limits<SparseMatrix::Scalar>::max())
     throw std::overflow_error("Too large modulus in F4 matrix computation.");
 
-  const int threadCount = 1;
   SparseMatrix::Scalar modulus = ring.charac();
 
   SparseMatrix reducedD;
@@ -779,10 +782,10 @@ void F4MatrixReducer::reduce
     concatenateMatricesHorizontal
       (matrix.bottomLeft, matrix.bottomRight, matrixCD);
 
-    myReduce(matrixCD, matrixAB, modulus, reducedD, threadCount);
+    myReduce(matrixCD, matrixAB, modulus, reducedD, mThreadCount);
     reducedD.trimLeadingZeroColumns(pivotColCount);
   }
 
-  myReduceToEchelonForm5(reducedD, modulus, threadCount);
+  myReduceToEchelonForm5(reducedD, modulus, mThreadCount);
   sortRowsByIncreasingPivots(reducedD, newPivots);
 }

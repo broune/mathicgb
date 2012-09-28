@@ -35,7 +35,8 @@ std::unique_ptr<Reducer> Reducer::makeReducer(
   ReducerType type,
   PolyRing const& ring
 ) {
-  std::unique_ptr<Reducer> reducer = makeReducerNullOnUnknown(type, ring);
+  std::unique_ptr<Reducer> reducer =
+    makeReducerNullOnUnknown(type, ring);
   if (reducer.get() == 0) {
     std::ostringstream error;
     error << "Unknown or unimplemented reducer type " << type << ".\n";
@@ -111,7 +112,8 @@ std::unique_ptr<Reducer> Reducer::makeReducerNullOnUnknown(
   case Reducer_F4:
     {
       std::unique_ptr<Reducer> fallback = makeReducer(Reducer_BjarkeGeo, ring);
-      return std::unique_ptr<Reducer>(new F4Reducer(ring, std::move(fallback)));
+      return std::unique_ptr<Reducer>
+        (new F4Reducer(ring, std::move(fallback)));
     }
 
   default:

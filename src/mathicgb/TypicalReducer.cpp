@@ -145,6 +145,10 @@ void TypicalReducer::classicReduceSPolyGroup
   }
 }
 
+void TypicalReducer::setThreadCount(size_t threadCount) {
+  // multithreading not supported here (yet!)
+}
+
 std::unique_ptr<Poly> TypicalReducer::classicReduce
     (std::unique_ptr<Poly> result, const PolyBasis& basis) {
   const PolyRing& ring = basis.ring();

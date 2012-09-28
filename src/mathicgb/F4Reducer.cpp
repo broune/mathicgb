@@ -4,8 +4,12 @@
 #include "F4MatrixBuilder.hpp"
 #include "F4MatrixReducer.hpp"
 
-F4Reducer::F4Reducer(const PolyRing& ring, std::unique_ptr<Reducer> fallback):
-  mFallback(std::move(fallback)), mRing(ring) {
+F4Reducer::F4Reducer(
+  const PolyRing& ring,
+  std::unique_ptr<Reducer> fallback
+):
+  mFallback(std::move(fallback)),
+  mRing(ring) {
 }
 
 std::unique_ptr<Poly> F4Reducer::classicReduce
@@ -40,7 +44,7 @@ std::unique_ptr<Poly> F4Reducer::classicReduceSPoly
 
   SparseMatrix reduced;
   {
-    F4MatrixReducer red;
+    F4MatrixReducer red(mThreadCount);
     red.reduce(basis.ring(), qm, reduced);
   }
 
@@ -76,13 +80,14 @@ void F4Reducer::classicReduceSPolyGroup
       // there has to be something to reduce
       MATHICGB_ASSERT(qm.bottomLeft.rowCount() > 0);
     }
-    F4MatrixReducer().reduce(basis.ring(), qm, reduced);
+    F4MatrixReducer(mThreadCount).reduce(basis.ring(), qm, reduced);
     monomials = std::move(qm.rightColumnMonomials);
   }
 
   for (SparseMatrix::RowIndex row = 0; row < reduced.rowCount(); ++row) {
     auto p = make_unique<Poly>(&basis.ring());
     reduced.rowToPolynomial(row, monomials, *p);
+    
     reducedOut.push_back(std::move(p));
   }
 }
@@ -96,6 +101,10 @@ Poly* F4Reducer::regularReduce
   mSigStats = mFallback->sigStats();
   mClassicStats = mFallback->classicStats();
   return p;
+}
+
+void F4Reducer::setThreadCount(size_t threadCount) {
+  mThreadCount = threadCount;
 }
 
 std::string F4Reducer::description() const {
