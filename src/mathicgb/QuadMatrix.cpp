@@ -56,9 +56,13 @@ void QuadMatrix::print(std::ostream& out) const {
   out << printer;
 }
 
-// String representation intended for debugging.
 std::string QuadMatrix::toString() const {
   std::ostringstream out;
   print(out);
   return out.str();
+}
+
+std::ostream& operator<<(std::ostream& out, const QuadMatrix qm) {
+  qm.print(out);
+  return out;
 }
