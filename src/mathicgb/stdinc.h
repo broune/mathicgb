@@ -3,10 +3,6 @@
 #endif
 #define MATHICGB_STDINC_GUARD
 
-#ifdef _MSC_VER // For Microsoft Compiler in Visual Studio C++.
-#pragma warning (push, 1) // Reduce warning level for GMP headers.
-#endif
-
 #ifdef PROFILE
 #define NO_PINLINE NO_INLINE
 #else
@@ -19,7 +15,6 @@
 
 #ifdef _MSC_VER // For Microsoft Compiler in Visual Studio C++.
 #define NO_INLINE __declspec(noinline)
-#pragma warning (pop) // Go back to previous warning level.
 #pragma warning (disable: 4996) // std::copy is flagged as dangerous.
 #pragma warning (disable: 4290) // VC++ ignores throw () specification.
 #pragma warning (disable: 4127) // Warns about using "while (true)".
@@ -61,6 +56,49 @@
 #define MATHICGB_SLOW_ASSERT(X)
 #endif
 
+#include <utility>
+/*
+See http://herbsutter.com/gotw/_102/ for a reason to have a
+make_unique function. It's pretty easy to do, too:
+
+template<typename T, typename ...Args>
+std::unique_ptr<T> make_unique( Args&& ...args )
+{
+    return std::unique_ptr<T>( new T( std::forward<Args>(args)... ) );
+}
+
+Unfortunately, MSVC does not have variadic templates, so this turns
+into the monstrosity of overloads below. At least they got the perfect
+forwarding working, otherwise this would have required N^2 overloads
+for N parameters! Add more overloads below if you need more
+parameters.
+*/
+
+template<class T>
+std::unique_ptr<T> make_unique() {
+  return std::unique_ptr<T>(new T());
+}
+template<class T, class A1>
+std::unique_ptr<T> make_unique(A1&& a1) {
+  return std::unique_ptr<T>(new T(std::forward<A1>(a1)));
+}
+template<class T, class A1, class A2>
+std::unique_ptr<T> make_unique(A1&& a1, A2&& a2) {
+  return std::unique_ptr<T>(new T(std::forward<A1>(a1), std::forward<A2>(a2)));
+}
+template<class T, class A1, class A2, class A3>
+std::unique_ptr<T> make_unique(A1&& a1, A2&& a2, A3&& a3) {
+  return std::unique_ptr<T>
+    (new T(std::forward<A1>(a1), std::forward<A2>(a2), std::forward<A3>(a3)));
+}
+template<class T, class A1, class A2, class A3, class A4>
+  std::unique_ptr<T> make_unique(A1&& a1, A2&& a2, A3&& a3, A4&& a4) {
+  return std::unique_ptr<T>
+    (new T(std::forward<A1>(a1), std::forward<A2>(a2),
+           std::forward<A3>(a3), std::forward<A3>(a3)));
+}
+
+
 // TODO: These types should be defined in some way that actually
 // checks that these bit counts are right like in a configure script.
 typedef unsigned long long uint64;
@@ -72,7 +110,6 @@ typedef signed long long int64;
 typedef signed int int32;
 typedef signed short int16;
 typedef signed char int8;
-
 
 static const size_t BitsPerByte = 8;
 static const size_t MemoryAlignment = sizeof(void*);
