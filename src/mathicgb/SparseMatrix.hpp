@@ -369,6 +369,6 @@ private:
   ColIndex mColCount;
 };
 
-std::ostream& operator<<(std::ostream& out, SparseMatrix& matrix);
+std::ostream& operator<<(std::ostream& out, const SparseMatrix& matrix);
 
 #endif

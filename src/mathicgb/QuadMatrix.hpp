@@ -5,6 +5,7 @@
 #include "SparseMatrix.hpp"
 #include <vector>
 #include <string>
+#include <ostream>
 class ostream;
 
 /** Represents a matrix composed of 4 sub-matrices that fit together
@@ -35,5 +36,7 @@ public:
   bool debugAssertValid() const;
 #endif
 };
+
+std::ostream& operator<<(std::ostream& out, const QuadMatrix qm);
 
 #endif

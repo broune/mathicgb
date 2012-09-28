@@ -17,12 +17,17 @@ public:
   DenseRow() {}
   DenseRow(size_t colCount): mEntries(colCount) {}
 
-  void takeModulus(SparseMatrix::Scalar modulus, size_t startCol = 0) {
+  /// returns false if all entries are zero
+  bool takeModulus(SparseMatrix::Scalar modulus, size_t startCol = 0) {
     typedef typename std::vector<T>::iterator Iter;
+    T bitwiseOr = 0;
     Iter end = mEntries.end();
-    for (Iter it = mEntries.begin() + startCol; it != end; ++it)
+    for (Iter it = mEntries.begin() + startCol; it != end; ++it) {
       if (*it >= modulus)
         *it %= modulus;
+      bitwiseOr |= *it;
+    }
+    return bitwiseOr != 0;
   }
 
   void clear() {
@@ -301,6 +306,8 @@ void myReduce
 
 #pragma omp parallel for num_threads(threadCount) schedule(dynamic)
   for (size_t row = 0; row < rowCount; ++row) {
+    if (toReduce.emptyRow(row))
+      continue;
 #ifdef _OPENMP
     DenseRow<uint64>& denseRow = denseRowPerThread[omp_get_thread_num()];
 #endif
@@ -311,17 +318,18 @@ void myReduce
         continue;
       denseRow.rowReduceByUnitary(pivot, reduceBy, modulus);
     }
-    denseRow.takeModulus(modulus, pivotCount);
+    if (denseRow.takeModulus(modulus, pivotCount)) {
 #pragma omp critical
-    {
-      denseRow.appendTo(reduced, pivotCount);
+      {
+        denseRow.appendTo(reduced, pivotCount);
+      }
     }
   }
 }
 
 void myReduceToEchelonForm5
 (SparseMatrix& toReduce, SparseMatrix::Scalar modulus, size_t threadCount) {
-  // making no assumptions on toReduce.
+  // making no assumptions on toReduce except no zero rows
 
   SparseMatrix::RowIndex const rowCount = toReduce.rowCount();
   SparseMatrix::ColIndex const colCount = toReduce.colCount();
@@ -330,6 +338,7 @@ void myReduceToEchelonForm5
   std::vector<DenseRow<uint64> > dense(rowCount);
 #pragma omp parallel for num_threads(threadCount) schedule(dynamic)
   for (SparseMatrix::RowIndex row = 0; row < rowCount; ++row) {
+    MATHICGB_ASSERT(!toReduce.emptyRow(row));
     dense[row].reset(colCount);
     dense[row].addRow(toReduce, row);
   }
@@ -361,6 +370,8 @@ void myReduceToEchelonForm5
 #pragma omp parallel for num_threads(threadCount) schedule(dynamic)
     for (size_t row = 0; row < rowCount; ++row) {
       DenseRow<uint64>& denseRow = dense[row];
+      if (denseRow.empty())
+        continue;
 
       // reduce by each row of reduced.
       for (size_t reducerRow = 0; reducerRow < reducerCount; ++reducerRow) {
@@ -380,7 +391,10 @@ void myReduceToEchelonForm5
       leadCols[row] = col;
 
       // note if we have found a new pivot row
-      if (col < colCount) {
+      if (col == colCount)
+        denseRow.clear();
+      else {
+        MATHICGB_ASSERT(col < colCount);
         bool isNewReducer = false;
 #pragma omp critical
         {
@@ -424,300 +438,8 @@ void myReduceToEchelonForm5
 
   toReduce.clear(colCount);
   for (size_t row = 0; row < rowCount; ++row)
-    dense[row].appendTo(toReduce);
-}
-
-void myReduceToEchelonForm4
-(SparseMatrix& toReduce,
- SparseMatrix::Scalar modulus,
- SparseMatrix& reduced,
- size_t threadCount) {
-  // making no assumptions on toReduce.
-
-  size_t const colCount = toReduce.colCount();
-  reduced.clear(colCount);
-  MATHICGB_ASSERT(reduced.colCount() == colCount);
-
-  size_t const noReducer = static_cast<size_t>(-1);
-  std::vector<size_t> reducer(colCount);
-  std::fill(reducer.begin(), reducer.end(), noReducer);
-
-  std::vector<size_t> reduceThese;
-  std::vector<size_t> lookAtThese;
-
-  SparseMatrix::RowIndex rowCount = toReduce.rowCount();
-  std::vector<DenseRow<uint64> > dense(rowCount);
-  for (SparseMatrix::RowIndex row = 0; row < rowCount; ++row) {
-    dense[row].reset(colCount);
-    dense[row].addRow(toReduce, row);
-  }
-
-  std::vector<size_t> leadCols(colCount);
-
-  std::vector<size_t> newReducers;
-
-  for (size_t i = 0; i < rowCount; ++i)
-    lookAtThese.push_back(i);
-
-  while (true) {
-    size_t const lookAtTheseCount = lookAtThese.size();
-    //for (SparseMatrix::RowIndex row = 0; row < rowCount; ++row) {
-    for (size_t i = 0; i < lookAtTheseCount; ++i) {
-      size_t const row = lookAtThese[i];
-      MATHICGB_ASSERT(!dense[row].empty());
-      for (size_t col = leadCols[row]; col < colCount; ++col) {
-        if (dense[row][col] == 0)
-          continue;
-        dense[row][col] %= modulus;
-        if (dense[row][col] == 0)
-          continue;
-        if (reducer[col] == noReducer) {
-          reducer[col] = row; //reduced.rowCount();
-          newReducers.push_back(col);
-          MATHICGB_ASSERT(reduced.colCount() == colCount);
-          MATHICGB_ASSERT(dense[row].colCount() == colCount);
-          dense[row].normalize(modulus, col);
-          MATHICGB_ASSERT(dense[row][col] == 1);
-          dense[row].appendTo(reduced);
-          MATHICGB_ASSERT(reduced.rowBegin(reduced.rowCount()-1).scalar() == 1);
-          MATHICGB_ASSERT(dense[reducer[col]][col] == 1);
-        } else {
-          leadCols[row] = col;
-          reduceThese.push_back(row);
-        }
-        break;
-      }
-    }
-    std::sort(newReducers.begin(), newReducers.end());
-    size_t const newReducerCount = newReducers.size();
-
-    size_t const reduceCount = reduceThese.size();
-    if (reduceCount == 0)
-      break;
-    //std::cout << "reducing " << reduceCount << " out of " << toReduce.rowCount() << std::;
-#pragma omp parallel for num_threads(threadCount) schedule(dynamic)
-    for (size_t i = 0; i < reduceCount; ++i) {
-      //std::cout << omp_get_thread_num();
-      size_t row = reduceThese[i];
-      DenseRow<uint64>& denseRow = dense[row];
-      for (size_t i = 0; i < newReducerCount; ++i) {
-        size_t col = newReducers[i];
-        if (denseRow[col] == 0)
-          continue;
-        if (reducer[col] == noReducer)
-          continue;
-        MATHICGB_ASSERT(dense[reducer[col]][col] == 1);
-        denseRow.rowReduceByUnitary(dense[reducer[col]], col, modulus);
-      }
-    }
-    //std::cout << "done reducing that batch" << std::endl;
-    newReducers.clear();
-    lookAtThese.swap(reduceThese);
-    reduceThese.clear();
-  }
-}
-
-void myReduceToEchelonForm3
-(SparseMatrix& toReduce,
- SparseMatrix::Scalar modulus,
- SparseMatrix& reduced,
- size_t threadCount) {
-  // making no assumptions on toReduce.
-
-  size_t const colCount = toReduce.colCount();
-  reduced.clear(colCount);
-  MATHICGB_ASSERT(reduced.colCount() == colCount);
-
-  size_t const noReducer = static_cast<size_t>(-1);
-  std::vector<size_t> reducer(colCount);
-  std::fill(reducer.begin(), reducer.end(), noReducer);
-
-  std::vector<size_t> reduceThese;
-
-  SparseMatrix::RowIndex rowCount = toReduce.rowCount();
-  std::vector<DenseRow<uint64> > dense(rowCount);
-  for (SparseMatrix::RowIndex row = 0; row < rowCount; ++row) {
-    dense[row].reset(colCount);
-    dense[row].addRow(toReduce, row);
-  }
-
-  std::vector<size_t> leadCols(colCount);
-
-  std::vector<size_t> newReducers;
-
-  while (true) {
-    SparseMatrix::RowIndex rowCount = toReduce.rowCount();
-    for (SparseMatrix::RowIndex row = 0; row < rowCount; ++row) {
-      if (dense[row].empty())
-        continue;
-      for (size_t col = 0; col < colCount; ++col) {
-        if (dense[row][col] == 0)
-          continue;
-        dense[row][col] %= modulus;
-        if (dense[row][col] == 0)
-          continue;
-        if (reducer[col] == noReducer) {
-          reducer[col] = reduced.rowCount();
-          newReducers.push_back(col);
-          MATHICGB_ASSERT(reduced.colCount() == colCount);
-          MATHICGB_ASSERT(dense[row].colCount() == colCount);
-          reduced.appendRowWithModulusNormalized(dense[row].mEntries, modulus);
-          dense[row].clear();
-          MATHICGB_ASSERT(reduced.rowBegin(reduced.rowCount()-1).scalar() == 1);
-        } else {
-          leadCols[row] = col;
-          reduceThese.push_back(row);
-        }
-        break;
-      }
-    }
-    std::sort(newReducers.begin(), newReducers.end());
-    size_t const newReducerCount = newReducers.size();
-
-    size_t const reduceCount = reduceThese.size();
-    if (reduceCount == 0)
-      break;
-    //std::cout << "reducing " << reduceCount << " out of " << toReduce.rowCount() << std::;
-#pragma omp parallel for num_threads(threadCount) schedule(dynamic)
-    for (size_t i = 0; i < reduceCount; ++i) {
-      //std::cout << omp_get_thread_num();
-      size_t row = reduceThese[i];
-      DenseRow<uint64>& denseRow = dense[row];
-      //for (size_t col = leadCols[row]; col < colCount; ++col) {
-      for (size_t i = 0; i < newReducerCount; ++i) {
-        size_t col = newReducers[i];
-        if (denseRow[col] == 0)
-          continue;
-        if (reducer[col] == noReducer)
-          continue;
-        denseRow.rowReduceByUnitary(reducer[col], reduced, modulus);
-      }
-    }
-    //std::cout << "done reducing that batch" << std::endl;
-    reduceThese.clear();
-    newReducers.clear();
-  }
-}
-
-void myReduceToEchelonForm2
-(SparseMatrix& toReduce,
- SparseMatrix::Scalar modulus,
- SparseMatrix& reduced,
- size_t threadCount) {
-  // making no assumptions on toReduce.
-
-  size_t const colCount = toReduce.colCount();
-  reduced.clear(colCount);
-
-  SparseMatrix somewhatReduced;
-  somewhatReduced.ensureAtLeastThisManyColumns(colCount);
-
-  size_t const noReducer = static_cast<size_t>(-1);
-  std::vector<size_t> reducer(colCount);
-  std::fill(reducer.begin(), reducer.end(), noReducer);
-
-
-  std::vector<size_t> reduceThese;
-
-#ifdef _OPENMP
-  std::vector<DenseRow<uint64> > denseRowPerThread(threadCount);
-#else
-  DenseRow<uint64> denseRow;
-#endif
-
-  while (toReduce.rowCount() > 0) {
-    SparseMatrix::RowIndex rowCount = toReduce.rowCount();
-    for (SparseMatrix::RowIndex row = 0; row < rowCount; ++row) {
-      SparseMatrix::RowIterator rowBegin = toReduce.rowBegin(row);
-      SparseMatrix::RowIterator rowEnd = toReduce.rowEnd(row);
-      if (rowBegin == rowEnd)
-        continue;
-      if (reducer[rowBegin.index()] == noReducer) {
-        reducer[rowBegin.index()] = reduced.rowCount();
-        reduced.appendRowAndNormalize(toReduce, row, modulus);
-        MATHICGB_ASSERT(reduced.rowBegin(reduced.rowCount()-1).scalar() == 1);
-      } else
-        reduceThese.push_back(row);
-    }
-
-    size_t const reduceCount = reduceThese.size();
-    //    std::cout << "reducing " << reduceCount << " out of " << toReduce.rowCount() << std::endl;
-#pragma omp parallel for num_threads(threadCount) schedule(dynamic)
-    for (size_t i = 0; i < reduceCount; ++i) {
-#ifdef _OPENMP
-    DenseRow<uint64>& denseRow = denseRowPerThread[omp_get_thread_num()];
-#endif
-      size_t row = reduceThese[i];
-      denseRow.reset(colCount);
-      denseRow.addRow(toReduce, row);
-      for (size_t col = 0; col < colCount; ++col) {
-        if (denseRow[col] == 0)
-          continue;
-        if (reducer[col] == noReducer)
-          continue;
-        denseRow.rowReduceByUnitary(reducer[col], reduced, modulus);
-      }
-
-#pragma omp critical
-      {
-        denseRow.appendToWithModulus(somewhatReduced, modulus);
-        MATHICGB_ASSERT(reducer[somewhatReduced.rowBegin(somewhatReduced.rowCount() - 1).index()] == noReducer);
-      }
-    }
-    //    std::cout << "done reducing that batch" << std::endl;
-    reduceThese.clear();
-    toReduce.swap(somewhatReduced);
-    somewhatReduced.clear();
-  }
-}
-
-void myReduceToEchelonForm
-(SparseMatrix const& toReduce,
- SparseMatrix::Scalar modulus,
- SparseMatrix& reduced) {
-  // making no assumptions on toReduce.
-
-  size_t const colCount = toReduce.colCount();
-  reduced.clear(colCount);
-
-  size_t const noReducer = static_cast<size_t>(-1);
-  std::vector<size_t> reducer(colCount);
-  std::fill(reducer.begin(), reducer.end(), noReducer);
-
-  DenseRow<uint64> denseRow;
-  SparseMatrix::RowIndex rowCount = toReduce.rowCount();
-  for (SparseMatrix::RowIndex row = 0; row < rowCount; ++row) {
-    SparseMatrix::RowIterator rowEnd = toReduce.rowEnd(row);
-    SparseMatrix::RowIterator rowBegin = toReduce.rowBegin(row);
-    if (rowBegin == rowEnd) {
-      // I think we don't need to copy empty rows
-      //reduced.rowDone();
-      continue; // zero row
-    }
-    if (reducer[rowBegin.index()] == noReducer) {
-      reducer[rowBegin.index()] = reduced.rowCount();
-      reduced.appendRowAndNormalize(toReduce, row, modulus);
-      MATHICGB_ASSERT(reduced.rowBegin(reduced.rowCount()-1).scalar() == 1);
-      continue;
-    }
-
-    denseRow.reset(colCount);
-    denseRow.addRow(toReduce, row);
-    for (size_t col = 0; col < colCount; ++col) {
-      //MATHICGB_ASSERT(reducer[col] != noReducer);
-      if (denseRow[col] == 0)
-        continue;
-      if (reducer[col] == noReducer)
-        continue;
-      denseRow.rowReduceByUnitary(reducer[col], reduced, modulus);
-    }
-    reduced.appendRowWithModulusNormalized(denseRow.mEntries, modulus);
-    size_t last = reduced.rowCount() - 1;
-    if (reduced.rowBegin(last) != reduced.rowEnd(last)) {
-      reducer[reduced.rowBegin(last).index()] = last;
-      MATHICGB_ASSERT(reduced.rowBegin(reduced.rowCount()-1).scalar() == 1);
-    }
-  }
+    if (!dense[row].empty())
+      dense[row].appendTo(toReduce);
 }
 
 class IOException : public std::runtime_error {

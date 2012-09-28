@@ -54,36 +54,66 @@ TEST(F4MatrixReducer, Reduce) {
 
   // bottom left
   m.bottomLeft.clear(4);
+  m.bottomLeft.rowDone();
+  m.bottomLeft.appendEntry(1, 9);
+  m.bottomLeft.rowDone();
+  m.bottomLeft.appendEntry(0, 2);
+  m.bottomLeft.appendEntry(1, 99); // 100 = -2 mod 101
+  m.bottomLeft.appendEntry(2, 83); // 83 = -18 mod 101
+  m.bottomLeft.appendEntry(3, 6);
+  m.bottomLeft.rowDone();
   m.bottomLeft.appendEntry(0, 1);
   m.bottomLeft.appendEntry(1, 1);
   m.bottomLeft.appendEntry(3, 24);
   m.bottomLeft.rowDone();
-  m.bottomLeft.appendEntry(1, 9);
+  m.bottomLeft.rowDone();
+  m.bottomLeft.appendEntry(3, 100);
   m.bottomLeft.rowDone();
 
   // bottom right
   m.bottomRight.clear(5);
+  m.bottomRight.rowDone();
+  m.bottomRight.appendEntry(1, 2);
+  m.bottomRight.appendEntry(3, 11);
+  m.bottomRight.rowDone();
+  m.bottomRight.appendEntry(2, 16);
+  m.bottomRight.appendEntry(3, 47);
+  m.bottomRight.rowDone();
   m.bottomRight.appendEntry(0, 1);
   m.bottomRight.appendEntry(2, 12);
   m.bottomRight.appendEntry(3, 13);
   m.bottomRight.appendEntry(4, 41);
   m.bottomRight.rowDone();
+  m.bottomRight.appendEntry(0, 2);
   m.bottomRight.appendEntry(1, 2);
-  m.bottomRight.appendEntry(3, 11);
+  m.bottomRight.appendEntry(2, 8);
+  m.bottomRight.appendEntry(3, 75);
+  m.bottomRight.appendEntry(4, 90);
+  m.bottomRight.rowDone();
+  m.bottomRight.appendEntry(0, 1);
+  m.bottomRight.appendEntry(1, 1);
+  m.bottomRight.appendEntry(2, 4);
+  m.bottomRight.appendEntry(3, 88);
+  m.bottomRight.appendEntry(4, 45);
   m.bottomRight.rowDone();
 
   MATHICGB_ASSERT(m.debugAssertValid());
   const char* origStr = 
     "Left columns: a a2 a3 a4\n"
     "Right columns: b b2 b3 b4 b5\n"
-    "0: 0#1 1#2 3#3  | 0: 2#8               \n"
-    "1: 1#1 2#3      | 1: 3#9               \n"
-    "2: 2#1 3#7      | 2: 4#10              \n"
-    "3: 3#1          | 3:                   \n"
-    "                |                      \n"
-    "0: 0#1 1#1 3#24 | 0: 0#1 2#12 3#13 4#41\n"
-    "1: 1#9          | 1: 1#2 3#11          \n";
-  ASSERT_EQ(origStr, m.toString());
+    "0: 0#1 1#2 3#3       | 0: 2#8                  \n"
+    "1: 1#1 2#3           | 1: 3#9                  \n"
+    "2: 2#1 3#7           | 2: 4#10                 \n"
+    "3: 3#1               | 3:                      \n"
+    "                     |                         \n"
+    "0:                   | 0:                      \n" // zero row
+    "1: 1#9               | 1: 1#2 3#11             \n" // becomes second row
+    "2: 0#2 1#99 2#83 3#6 | 2: 2#16 3#47            \n" // zero on left red.  
+    "3: 0#1 1#1 3#24      | 3: 0#1 2#12 3#13 4#41   \n" // becomes first row
+    "4:                   | 4: 0#2 1#2 2#8 3#75 4#90\n" // zero on right red.
+    "5: 3#100             | 5: 0#1 1#1 2#4 3#88 4#45\n"; // zero on right red.
+
+  ASSERT_EQ(origStr, m.toString()) << "Printed m:\n" << m;
 
   SparseMatrix reduced;
   F4MatrixReducer red;
@@ -92,5 +122,5 @@ TEST(F4MatrixReducer, Reduce) {
   const char* redStr =
     "0: 0#1 2#4 3#22 4#11\n"
     "1: 1#1 3#66 4#34\n";
-  ASSERT_EQ(redStr, reduced.toString());
+  ASSERT_EQ(redStr, reduced.toString()) << "Printed reduced:\n" << reduced;
 }
