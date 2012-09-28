@@ -325,6 +325,8 @@ public:
 
   inline void setHashOnly(Monomial& a) const;
 
+  bool hashValid(const_monomial m) const;
+
   bool weightsCorrect(ConstMonomial a) const;
 
   int monomialCompare(ConstMonomial a, 
@@ -529,6 +531,8 @@ public:
   void resetCoefficientStats() const;
 
 private:
+  inline size_t computeHashValue(const_monomial a1) const;
+
   long mCharac; // p=mCharac: ring is ZZ/p
   size_t mNumVars;
   int mNumWeights; // stored as negative of weight vectors
@@ -593,14 +597,19 @@ inline void PolyRing::setWeightsOnly(Monomial& a1) const
     }
 }
 
-inline void PolyRing::setHashOnly(Monomial& a1) const
-{
-  exponent *a = a1.unsafeGetRepresentation();
+inline size_t PolyRing::computeHashValue(const_monomial a1) const {
+  const exponent* a = a1.unsafeGetRepresentation();
   int hash = *a;
   a++;
   for (size_t i = 0; i < mNumVars; ++i)
     hash += a[i] * mHashVals[i];
-  a[mHashIndex - 1] = hash;
+  return hash;
+}
+
+inline void PolyRing::setHashOnly(Monomial& a1) const
+{
+  exponent* a = a1.unsafeGetRepresentation();
+  a[mHashIndex] = computeHashValue(a1);
 }
 
 inline int PolyRing::monomialCompare(ConstMonomial a, ConstMonomial b) const
@@ -656,8 +665,11 @@ inline void PolyRing::monomialDivideToNegative(ConstMonomial a,
                                                ConstMonomial b, 
                                                Monomial& result) const 
 {
-  for (size_t i = 0; i <= this->mTopIndex; ++i)
+  for (size_t i = 0; i <= mHashIndex; ++i)
     result[i] = a[i] - b[i];
+  MATHICGB_ASSERT(result[mHashIndex] == a[mHashIndex] - b[mHashIndex]);
+  MATHICGB_ASSERT(!hashValid(a) || !hashValid(b) || hashValid(result));
+  MATHICGB_ASSERT(computeHashValue(result) == computeHashValue(a) - computeHashValue(b));
 }
 
 inline bool PolyRing::monomialRelativelyPrime(ConstMonomial a, 

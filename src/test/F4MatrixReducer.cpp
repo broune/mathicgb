@@ -20,6 +20,7 @@ TEST(F4MatrixReducer, Reduce) {
   size_t count = 0;
   for (Poly::iterator it = p.begin(); it != p.end(); ++it) {
     monomial mono = it.getMonomial();
+    MATHICGB_ASSERT(ring->hashValid(mono));
     if (count < 4)
       m.leftColumnMonomials.push_back(mono);
     else

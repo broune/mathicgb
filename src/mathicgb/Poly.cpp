@@ -22,6 +22,7 @@ void Poly::copy(Poly &result) const
   std::copy(coeffs.begin(), coeffs.end(), result.coeffs.begin());
   std::copy(monoms.begin(), monoms.end(), result.monoms.begin());
 }
+
 void Poly::appendTerm(coefficient a, const_monomial m)
 {
   // the monomial will be copied on.
@@ -30,11 +31,13 @@ void Poly::appendTerm(coefficient a, const_monomial m)
   exponent const * e = m.unsafeGetRepresentation();
   monoms.insert(monoms.end(), e, e + len);
 }
+
 void Poly::append(iterator &first, iterator &last)
 {
   for ( ; first != last; ++first)
     appendTerm(first.getCoefficient(), first.getMonomial());
 }
+
 Poly *Poly::copy() const
 {
   Poly *const_this = const_cast<Poly *>(this);
@@ -228,9 +231,10 @@ void Poly::parse(std::istream &i)
           R->coefficientFromInt(b,a);
           coeffs.push_back(b);
           if (isalpha(next) || next == '<')
-            {
-              R->monomialParse(i, m);
-            }
+            R->monomialParse(i, m);
+          else
+            R->monomialSetIdentity(m); // have to do this to set hash value
+          MATHICGB_ASSERT(ring().hashValid(m));
           next = i.peek();
           if (next == '>') i.get();
         }

@@ -28,13 +28,6 @@ std::unique_ptr<Poly> F4Reducer::classicTailReduce
 
 std::unique_ptr<Poly> F4Reducer::classicReduceSPoly
 (const Poly& a, const Poly& b, const PolyBasis& basis) {
-  std::unique_ptr<Poly> p;
-  {
-    p = mFallback->classicReduceSPoly(a, b, basis);
-    mSigStats = mFallback->sigStats();
-    mClassicStats = mFallback->classicStats();
-  }
-
   QuadMatrix qm;
   {
     F4MatrixBuilder builder(basis);
@@ -49,15 +42,13 @@ std::unique_ptr<Poly> F4Reducer::classicReduceSPoly
   {
     F4MatrixReducer red;
     red.reduce(basis.ring(), qm, reduced);
-    if (reduced.rowCount() > 0) {
-      MATHICGB_ASSERT(reduced.rowCount() == 1);
-      Poly q(&basis.ring());
-      reduced.rowToPolynomial(0, qm.rightColumnMonomials, q);
-      MATHICGB_ASSERT(q == *p);
-    } else
-      MATHICGB_ASSERT(p->isZero());
   }
 
+  auto p = make_unique<Poly>(&basis.ring());
+  if (reduced.rowCount() > 0) {
+    MATHICGB_ASSERT(reduced.rowCount() == 1);
+    reduced.rowToPolynomial(0, qm.rightColumnMonomials, *p);
+  }
   return p;
 }
 
