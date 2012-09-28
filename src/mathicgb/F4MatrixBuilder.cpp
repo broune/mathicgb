@@ -14,10 +14,10 @@ void F4MatrixBuilder::addTwoRowsForSPairToMatrix(const Poly& polyA, const Poly& 
 
   monomial multiple = ring().allocMonomial();
 
-  ring().monomialDivide(polyA.getLeadMonomial(), lcm, multiple);
+  ring().monomialDivide(lcm, polyA.getLeadMonomial(), multiple);
   addRowToMatrix(multiple, polyA);
 
-  ring().monomialDivide(polyB.getLeadMonomial(), lcm, multiple);
+  ring().monomialDivide(lcm, polyB.getLeadMonomial(), multiple);
   addRowToMatrix(multiple, polyB);
 
   ring().freeMonomial(lcm);
@@ -67,6 +67,8 @@ void F4MatrixBuilder::buildMatrixAndClear(QuadMatrix& matrix) {
       appendRowBottom(task.multiple, *task.poly);
   }
 
+  mBuilder.sortColumnsLeft(mBasis.order());
+  mBuilder.sortColumnsRight(mBasis.order());
   mBuilder.buildMatrixAndClear(matrix);
 }
 

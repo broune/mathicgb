@@ -7,6 +7,7 @@
 #include <limits>
 #include <sstream>
 #include <string>
+class Poly;
 
 /** A class that implements a sparse matrix.
 
@@ -348,6 +349,10 @@ class SparseMatrix {
   typedef std::vector<ColIndex>::iterator AllColIndicesIterator;
   AllColIndicesIterator allColIndicesBegin() {return mColIndices.begin();}
   AllColIndicesIterator allColIndicesEnd() {return mColIndices.end();}
+
+  /// Let poly be the dot product of colMonomials and the given row.
+  void rowToPolynomial
+  (RowIndex row, std::vector<monomial> colMonomials, Poly& poly);
 
 
 private:
