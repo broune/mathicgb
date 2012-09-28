@@ -11,6 +11,10 @@
 #include <cstdlib>
 #include <limits>
 
+bool PolyRing::hashValid(const_monomial m) const {
+  return monomialHashValue(m) == computeHashValue(m);
+}
+
 PolyRing::PolyRing(long p0,
                    int nvars,
                    int nweights)
@@ -144,7 +148,7 @@ void PolyRing::monomialFindSignature(ConstMonomial v1,
       else
         weight -= t1[i] = u1[i];
     }
-#ifdef DEBUG
+#ifdef MATHICGB_DEBUG
     setWeightsOnly(t1);
     ASSERT(t1[mNumVars + 1] == weight);
 #endif
@@ -408,6 +412,7 @@ void PolyRing::monomialCopy(const_monomial a, monomial &result) const
   for (size_t i = mHashIndex; i != static_cast<size_t>(-1); --i)
     result[i] = a[i];
 }
+
 void PolyRing::monomialQuotientAndMult(const_monomial a,
                                        const_monomial b,
                                        const_monomial c,
@@ -430,7 +435,7 @@ void PolyRing::setWeightsAndHash(monomial a) const
   a++;
   for (size_t i = 0; i < mNumVars; ++i)
     hash += a[i] * mHashVals[i];
-  a[mHashIndex - 1] = hash;
+  a[mHashIndex - 1] = hash; // index-1 as we did ++a above
 }
 
 void PolyRing::monomialFindSignatures(const_monomial v1,

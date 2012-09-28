@@ -1,12 +1,17 @@
 #ifndef MATHICGB_QUAD_MATRIX_BUILDER_GUARD
 #define MATHICGB_QUAD_MATRIX_BUILDER_GUARD
 
+#define MATHICGB_USE_QUADMATRIX_STD_HASH
+
 #include "SparseMatrix.hpp"
 #include "PolyRing.hpp"
 #include <vector>
 #include <map>
 #include <string>
 #include <ostream>
+#ifdef MATHICGB_USE_QUADMATRIX_STD_HASH
+#include <unordered_map>
+#endif
 class FreeModuleOrder;
 class QuadMatrix;
 
@@ -21,7 +26,11 @@ class QuadMatrixBuilder {
   typedef SparseMatrix::Scalar Scalar;
 
   QuadMatrixBuilder(const PolyRing& ring):
+#ifndef MATHICGB_USE_QUADMATRIX_STD_HASH
     mMonomialToCol(ArbitraryOrdering(ring)) {}
+#else
+  mMonomialToCol(100, Hash(ring), Equal(ring)) {}
+#endif
 
   /// The index of a column that can be either on the left or the
   /// right side. The largest representable ColIndex is an invalid
@@ -198,7 +207,11 @@ class QuadMatrixBuilder {
     // The key comparer object already has a ring reference - we might
     // as well use that one instead of adding another reference to
     // this object.
+#ifndef MATHICGB_USE_QUADMATRIX_STD_HASH
     return mMonomialToCol.key_comp().ring();
+#else
+    return mMonomialToCol.key_eq().ring();
+#endif
   }
 
   ColIndex leftColCount() const {
@@ -221,6 +234,7 @@ private:
   MonomialsType mMonomialsLeft;
   MonomialsType mMonomialsRight;
 
+#ifndef MATHICGB_USE_QUADMATRIX_STD_HASH
   /// We need SOME ordering to make std::map work.
   class ArbitraryOrdering {
   public:
@@ -237,6 +251,35 @@ private:
   typedef std::map<const_monomial, LeftRightColIndex, ArbitraryOrdering>
     MonomialToColType;
   MonomialToColType mMonomialToCol;
+#else
+  struct Hash {
+  public:
+    Hash(const PolyRing& ring): mRing(ring) {}
+    size_t operator()(const_monomial m) const {
+      MATHICGB_ASSERT(mRing.hashValid(m));
+      return mRing.monomialHashValue(m);
+    }
+    const PolyRing& ring() const {return mRing;}
+
+  private:
+    const PolyRing& mRing;
+  };
+  struct Equal {
+  public:
+    Equal(const PolyRing& ring): mRing(ring) {}
+    size_t operator()(const_monomial a, const_monomial b) const {
+      return mRing.monomialEQ(a, b);
+    }
+    const PolyRing& ring() const {return mRing;}
+
+  private:
+    const PolyRing& mRing;
+  };
+
+  typedef std::unordered_map<const_monomial, LeftRightColIndex, Hash, Equal> 
+    MonomialToColType;
+  MonomialToColType mMonomialToCol;
+#endif
 
   SparseMatrix mTopLeft;
   SparseMatrix mTopRight;

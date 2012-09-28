@@ -32,6 +32,7 @@ void F4MatrixBuilder::addRowToMatrix
 
   task.multiple = ring().allocMonomial();
   ring().monomialCopy(multiple, task.multiple);
+  MATHICGB_ASSERT(ring().hashValid(task.multiple));
   mTodo.push_back(task);
 }
 
@@ -46,6 +47,7 @@ void F4MatrixBuilder::buildMatrixAndClear(QuadMatrix& matrix) {
   typedef std::vector<RowTask>::iterator TaskIter;
   TaskIter end = mTodo.end();
   for (TaskIter it = mTodo.begin(); it != end; ++it) {
+    MATHICGB_ASSERT(ring().hashValid(it->multiple));
     ring().monomialMult(it->multiple, it->poly->getLeadMonomial(), mono);
     LeftRightColIndex leadCol = mBuilder.findColumn(mono);
     it->useAsReducer = !leadCol.valid();
@@ -60,6 +62,7 @@ void F4MatrixBuilder::buildMatrixAndClear(QuadMatrix& matrix) {
   // we are calling here can add more items to mTodo.
   while (!mTodo.empty()) {
     RowTask task = mTodo.back();
+    MATHICGB_ASSERT(ring().hashValid(task.multiple));
     mTodo.pop_back();
     if (task.useAsReducer)
       appendRowTop(task.multiple, *task.poly);
@@ -90,6 +93,7 @@ F4MatrixBuilder::createOrFindColumnOf(const_monomial mono) {
   task.multiple = ring().allocMonomial();
   ring().monomialDivideToNegative
     (mono, task.poly->getLeadMonomial(), task.multiple);
+  MATHICGB_ASSERT(ring().hashValid(task.multiple));
   mTodo.push_back(task);
 
   return LeftRightColIndex(mBuilder.createColumnLeft(mono), true);
