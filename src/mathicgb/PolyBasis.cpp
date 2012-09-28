@@ -20,6 +20,8 @@ PolyBasis::PolyBasis(
 PolyBasis::~PolyBasis() {
   EntryIter const stop = mEntries.end();
   for (EntryIter it = mEntries.begin(); it != stop; ++it) {
+    if (it->retired)
+      continue;
     ASSERT(it->poly != 0);
     delete it->poly;
   }
@@ -80,6 +82,7 @@ void PolyBasis::insert(std::unique_ptr<Poly> poly) {
 
   if (mUseBuchbergerLcmHitCache)
     mBuchbergerLcmHitCache.push_back(0);
+  MATHICGB_ASSERT(mEntries.back().poly != 0);
 }
 
 size_t PolyBasis::divisor(const_monomial mon) const {

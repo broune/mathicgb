@@ -17,6 +17,11 @@ public:
   virtual std::unique_ptr<Poly> classicReduceSPoly
   (const Poly& a, const Poly& b, const PolyBasis& basis);
 
+  virtual void classicReduceSPolyGroup
+  (std::vector<std::pair<size_t, size_t> >& spairs,
+   const PolyBasis& basis,
+   std::vector<std::unique_ptr<Poly> >& reducedOut);
+
   virtual Poly* regularReduce(
     const_monomial sig,
     const_monomial multiple,

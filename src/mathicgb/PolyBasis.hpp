@@ -41,15 +41,17 @@ public:
   // term of the new polynomial must be the same as the previous one.
   // This is useful for auto-tail-reduction.
   void replaceSameLeadTerm(size_t index, std::unique_ptr<Poly> newValue) {
-    ASSERT(index < size());
-    ASSERT(!retired(index));
-    ASSERT(newValue.get() != 0);
-    ASSERT(!newValue->isZero());
-    ASSERT(mRing.monomialEQ(leadMonomial(index), newValue->getLeadMonomial()));
+    MATHICGB_ASSERT(index < size());
+    MATHICGB_ASSERT(!retired(index));
+    MATHICGB_ASSERT(newValue.get() != 0);
+    MATHICGB_ASSERT(!newValue->isZero());
+    MATHICGB_ASSERT(mRing.monomialEQ
+                    (leadMonomial(index), newValue->getLeadMonomial()));
     mDivisorLookup->remove(leadMonomial(index));
     delete mEntries[index].poly;
     mEntries[index].poly = newValue.release();
     mDivisorLookup->insert(leadMonomial(index), index);    
+    MATHICGB_ASSERT(mEntries[index].poly != 0);
   }
 
   struct Stats {
@@ -110,8 +112,8 @@ public:
   // to it, including the basis element polynomial, and marks it as retired. 
   // todo: implement
   std::unique_ptr<Poly> retire(size_t index) {
-    ASSERT(index < size());
-    ASSERT(!retired(index));
+    MATHICGB_ASSERT(index < size());
+    MATHICGB_ASSERT(!retired(index));
     mDivisorLookup->remove(leadMonomial(index));
     std::unique_ptr<Poly> poly(mEntries[index].poly);
     mEntries[index].poly = 0;
@@ -121,33 +123,33 @@ public:
 
   // Returns true of the basis element at index has been retired.
   bool retired(size_t index) const {
-    ASSERT(index < size());
+    MATHICGB_ASSERT(index < size());
     return mEntries[index].retired;
   }
 
   // Returns the basis element polynomial at index.
   Poly& poly(size_t index) {
-    ASSERT(index < size());
-    ASSERT(!retired(index));
+    MATHICGB_ASSERT(index < size());
+    MATHICGB_ASSERT(!retired(index));
     return *mEntries[index].poly;
   }
 
   // Returns the basis element polynomial at index.
   const Poly& poly(size_t index) const {
-    ASSERT(index < size());
-    ASSERT(!retired(index));
+    MATHICGB_ASSERT(index < size());
+    MATHICGB_ASSERT(!retired(index));
     return *mEntries[index].poly;
   }
 
   const_monomial leadMonomial(size_t index) const {
-    ASSERT(index < size());
-    ASSERT(!retired(index));
+    MATHICGB_ASSERT(index < size());
+    MATHICGB_ASSERT(!retired(index));
     return poly(index).getLeadMonomial();
   }
 
   coefficient leadCoefficient(size_t index) const {
-    ASSERT(index < size());
-    ASSERT(!retired(index));
+    MATHICGB_ASSERT(index < size());
+    MATHICGB_ASSERT(!retired(index));
     return poly(index).getLeadCoefficient();
   }
 
@@ -156,16 +158,16 @@ public:
   // monomials are required to be unique among basis elements, so the case
   // of several equal lead monomials does not occur.
   bool leadMinimal(size_t index) const {
-    ASSERT(index < size());
-    ASSERT(!retired(index));
+    MATHICGB_ASSERT(index < size());
+    MATHICGB_ASSERT(!retired(index));
     MATHICGB_SLOW_ASSERT(mEntries[index].leadMinimal == leadMinimalSlow(index));
     return mEntries[index].leadMinimal;
   }
 
-  // Returns true m is not divisible by the lead monomial of any
+  // Returns true if m is not divisible by the lead monomial of any
   // basis element. Equality counts as divisibility.
   bool leadMinimal(const Poly& poly) const {
-    ASSERT(&poly != 0);
+    MATHICGB_ASSERT(&poly != 0);
     return mDivisorLookup->divisor(poly.getLeadMonomial()) !=
       static_cast<size_t>(-1);
   }
@@ -179,8 +181,8 @@ public:
 
   // Returns the basis element polynomial at index.
   const Poly& basisElement(size_t index) const {
-    ASSERT(index < size());
-    ASSERT(!retired(index));
+    MATHICGB_ASSERT(index < size());
+    MATHICGB_ASSERT(!retired(index));
     return *mEntries[index].poly;
   }
 
@@ -193,42 +195,42 @@ public:
   size_t getMemoryUse() const;
 
   void usedAsStart(size_t index) const {
-    ASSERT(index < size());
+    MATHICGB_ASSERT(index < size());
     ++mEntries[index].usedAsStartCount;
   }
 
   unsigned long long usedAsStartCount(size_t index) const {
-    ASSERT(index < size());
+    MATHICGB_ASSERT(index < size());
     return mEntries[index].usedAsStartCount;
   }
 
   void usedAsReducer(size_t index) const {
-    ASSERT(index < size());
+    MATHICGB_ASSERT(index < size());
     ++mEntries[index].usedAsReducerCount;
   }
 
   unsigned long long usedAsReducerCount(size_t index) const {
-    ASSERT(index < size());
+    MATHICGB_ASSERT(index < size());
     return mEntries[index].usedAsReducerCount;
   }
 
   void wasPossibleReducer(size_t index) const {
-    ASSERT(index < size());
+    MATHICGB_ASSERT(index < size());
     ++mEntries[index].possibleReducerCount;
   }
 
   unsigned long long wasPossibleReducerCount(size_t index) const {
-    ASSERT(index < size());
+    MATHICGB_ASSERT(index < size());
     return mEntries[index].possibleReducerCount;
   }
 
   void wasNonSignatureReducer(size_t index) const {
-    ASSERT(index < size());
+    MATHICGB_ASSERT(index < size());
     ++mEntries[index].nonSignatureReducerCount;
   }
 
   unsigned long long wasNonSignatureReducerCount(size_t index) const {
-    ASSERT(index < size());
+    MATHICGB_ASSERT(index < size());
     return mEntries[index].nonSignatureReducerCount;
   }
 

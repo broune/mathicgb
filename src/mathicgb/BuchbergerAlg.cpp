@@ -16,6 +16,7 @@ BuchbergerAlg::BuchbergerAlg(
 ):
   mBreakAfter(0),
   mPrintInterval(0),
+  mSPairGroupSize(0),
   mUseAutoTopReduction(true),
   mUseAutoTailReduction(false),
   mRing(*ideal.getPolyRing()),
@@ -140,31 +141,70 @@ void BuchbergerAlg::computeGrobnerBasis() {
   }
   //printStats(std::cerr);
   //mReducer->dump();
+
+  for (size_t i = 0; i < mBasis.size(); ++i)
+    if (!mBasis.retired(i))
+      mBasis.replaceSameLeadTerm
+        (i, mReducer->classicTailReduce(mBasis.poly(i), mBasis));
 }
 
 void BuchbergerAlg::step() {
   ASSERT(!mSPairs.empty());
   if (tracingLevel > 30)
     std::cerr << "Determining next S-pair" << std::endl;
-  std::pair<size_t, size_t> p = mSPairs.pop();
-  if (p.first == static_cast<size_t>(-1)) {
-    ASSERT(p.second == static_cast<size_t>(-1));
-    return; // no more S-pairs
-  }
-  ASSERT(p.first != static_cast<size_t>(-1));
-  ASSERT(p.second != static_cast<size_t>(-1));
-  ASSERT(!mBasis.retired(p.first));
-  ASSERT(!mBasis.retired(p.second));
 
-  if (tracingLevel > 20) {
-    std::cerr << "Reducing S-pair ("
-      << p.first << ", "
-      << p.second << ")" << std::endl;
-  }
-  std::unique_ptr<Poly> reduced(mReducer->classicReduceSPoly
-    (mBasis.poly(p.first), mBasis.poly(p.second), mBasis));
-  if (!reduced->isZero()) {
-    insertReducedPoly(std::move(reduced));
+  if (mSPairGroupSize == 0) {
+    std::pair<size_t, size_t> p = mSPairs.pop();
+    if (p.first == static_cast<size_t>(-1)) {
+      ASSERT(p.second == static_cast<size_t>(-1));
+      return; // no more S-pairs
+    }
+    ASSERT(p.first != static_cast<size_t>(-1));
+    ASSERT(p.second != static_cast<size_t>(-1));
+    ASSERT(!mBasis.retired(p.first));
+    ASSERT(!mBasis.retired(p.second));
+
+    if (tracingLevel > 20) {
+      std::cerr << "Reducing S-pair ("
+                << p.first << ", "
+                << p.second << ")" << std::endl;
+    }
+    std::unique_ptr<Poly> reduced
+      (mReducer->classicReduceSPoly
+       (mBasis.poly(p.first), mBasis.poly(p.second), mBasis));
+    if (!reduced->isZero()) {
+      insertReducedPoly(std::move(reduced));
+      if (mUseAutoTailReduction)
+        autoTailReduce();
+    }
+  } else {
+    std::vector<std::pair<size_t, size_t> > spairGroup;
+    for (unsigned int i = 0; i < mSPairGroupSize; ++i) {
+      std::pair<size_t, size_t> p = mSPairs.pop();
+      if (p.first == static_cast<size_t>(-1)) {
+        ASSERT(p.second == static_cast<size_t>(-1));
+        break; // no more S-pairs
+      }
+      ASSERT(p.first != static_cast<size_t>(-1));
+      ASSERT(p.second != static_cast<size_t>(-1));
+      ASSERT(!mBasis.retired(p.first));
+      ASSERT(!mBasis.retired(p.second));
+
+      spairGroup.push_back(p);
+    }
+    if (spairGroup.empty())
+      return; // no more s-pairs
+    std::vector<std::unique_ptr<Poly> > reduced;
+    mReducer->classicReduceSPolyGroup(spairGroup, mBasis, reduced);
+    
+    for (auto it = reduced.begin(); it != reduced.end(); ++it) {
+      auto p = std::move(*it);
+      MATHICGB_ASSERT(!p->isZero());
+      if (it != reduced.begin())
+        p = mReducer->classicReduce(*p, mBasis);
+      if (!p->isZero())
+        insertReducedPoly(std::move(p));
+    }
     if (mUseAutoTailReduction)
       autoTailReduce();
   }
@@ -197,6 +237,7 @@ void BuchbergerAlg::printStats(std::ostream& out) const {
   out << " divisor tab type:   " << mBasis.divisorLookup().getName() << '\n';
   out << " S-pair queue type:  " << mSPairs.name() << '\n';
   out << " total compute time: " << mTimer.getMilliseconds()/1000.0 << " seconds " << '\n';
+  out << " S-pair group size:  " << mSPairGroupSize << '\n';
 
   const PolyRing::coefficientStats& cstats = mRing.getCoefficientStats();
   out << "n-coeff-add:         " << cstats.n_add << '\n';
@@ -221,32 +262,32 @@ void BuchbergerAlg::printStats(std::ostream& out) const {
   name << "Time spent:\n";
   value << mTimer << '\n';
   extra << mic::ColumnPrinter::oneDecimal(mseconds / basisSize)
-    << " ms per basis element\n";
+        << " ms per basis element\n";
 
   const double pendingRatio = static_cast<double>(pending) / basisSize;
   name << "Basis elements:\n";
   value << mic::ColumnPrinter::commafy(basisSize) << '\n';
   extra << mic::ColumnPrinter::oneDecimal(pendingRatio)
-    << " Sp pend per basis ele\n";
+        << " Sp pend per basis ele\n";
 
   const size_t basisTermCount = mBasis.monomialCount();
   name << "Terms for basis:\n";
   value << mic::ColumnPrinter::commafy(basisTermCount) << '\n';
   extra << mic::ColumnPrinter::ratio(basisTermCount, basisSize)
-    << " terms per basis ele\n";
+        << " terms per basis ele\n";
 
   const size_t minLeadCount = mBasis.minimalLeadCount();
   name << "Minimum lead terms:\n";
   value << mic::ColumnPrinter::commafy(minLeadCount) << '\n';
   extra << mic::ColumnPrinter::percent(minLeadCount, basisSize)
-    << " basis ele have min lead\n";
+        << " basis ele have min lead\n";
 
   const size_t lastMinLead = mBasis.maxIndexMinimalLead() + 1;
   const size_t timeSinceLastMinLead = basisSize - lastMinLead;
   name << "Index of last min lead:\n";
   value << mic::ColumnPrinter::commafy(lastMinLead) << '\n';
   extra << mic::ColumnPrinter::percent(timeSinceLastMinLead, basisSize)
-    << " of basis added since then\n";
+        << " of basis added since then\n";
 
   const unsigned long long considered =
     mBasis.size() * (mBasis.size() - 1) / 2;
@@ -257,7 +298,7 @@ void BuchbergerAlg::printStats(std::ostream& out) const {
   name << "S-pairs pending:\n";
   value << mic::ColumnPrinter::commafy(pending) << '\n';
   extra << mic::ColumnPrinter::percent(pending, considered)
-    << " of considered\n";
+        << " of considered\n";
 
   unsigned long long const reductions = sPolyReductionCount();
   name << "S-pairs reduced:\n";
@@ -271,27 +312,27 @@ void BuchbergerAlg::printStats(std::ostream& out) const {
   name << "Rel.prime sp eliminated:\n";
   value << mic::ColumnPrinter::commafy(primeElim) << '\n';
   extra << mic::ColumnPrinter::percent(primeElim, reductions)
-    << " of late eliminations\n";
+        << " of late eliminations\n";
 
   const unsigned long long singularReductions =
     reducerStats.singularReductions;
   name << "Singular reductions:\n";
   value << mic::ColumnPrinter::commafy(singularReductions) << '\n';
   extra << mic::ColumnPrinter::percent(singularReductions, reductions)
-    << " of reductions\n";
+        << " of reductions\n";
 
   const unsigned long long zeroReductions = reducerStats.zeroReductions;
   name << "Reductions to zero:\n";
   value << mic::ColumnPrinter::commafy(zeroReductions) << '\n';
   extra << mic::ColumnPrinter::percent(zeroReductions, reductions)
-    << " of reductions\n";
+        << " of reductions\n";
 
   const unsigned long long newReductions =
     reductions - singularReductions - zeroReductions;
   name << "Reductions to new ele:\n";
   value << mic::ColumnPrinter::commafy(newReductions) << '\n';
   extra << mic::ColumnPrinter::percent(newReductions, reductions)
-    << " of reductions\n";
+        << " of reductions\n";
 
   const unsigned long long redSteps = reducerStats.steps;
   const double stepsRatio =
@@ -299,7 +340,7 @@ void BuchbergerAlg::printStats(std::ostream& out) const {
   name << "Sig reduction steps:\n";
   value << mic::ColumnPrinter::commafy(redSteps) << '\n';
   extra << mic::ColumnPrinter::oneDecimal(stepsRatio)
-    << " steps per non-sing reduction\n";
+        << " steps per non-sing reduction\n";
 
   const unsigned long long longestReduction = reducerStats.maxSteps;
   name << "Longest sig reduction:\n";
@@ -317,7 +358,7 @@ void BuchbergerAlg::printStats(std::ostream& out) const {
   name << "Classic reduction steps:\n";
   value << mic::ColumnPrinter::commafy(clRedSteps) << '\n';
   extra << mic::ColumnPrinter::oneDecimal(clStepsRatio)
-    << " steps per reduction\n";
+        << " steps per reduction\n";
 
   const unsigned long long clLongestReduction = classicRedStats.maxSteps;
   name << "Longest classic red:\n";
@@ -368,7 +409,7 @@ void BuchbergerAlg::printStats(std::ostream& out) const {
     " of simple hits\n";
 
   out << "***** Classic Buchberger algorithm statistics *****\n"
-    << pr << std::flush;
+      << pr << std::flush;
 }
 
 void BuchbergerAlg::printMemoryUse(std::ostream& out) const

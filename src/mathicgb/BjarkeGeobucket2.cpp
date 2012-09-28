@@ -1,8 +1,9 @@
 // Copyright 2011 Michael E. Stillman
-
-#include <iostream>
 #include "stdinc.h"
 #include "BjarkeGeobucket2.hpp"
+
+#include <iostream>
+
 
 extern int tracingLevel;
 

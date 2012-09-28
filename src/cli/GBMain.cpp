@@ -113,7 +113,14 @@ public:
       "  2   late koszul\n"
       "  4   not used (used to be MES reduction)\n"
       "  8   signature\n",
-      2)
+     2),
+
+    mSPairGroupSize("sPairGroupSize",
+      "Specifies how many S-pair to reduce at one time. A value of 0 "
+      "indicates not to group S-pairs together. Only currently relevant "
+      "for the classic Buchberger algorithm.",
+     0)
+
   {
     {
       std::ostringstream orderOut;
@@ -185,6 +192,7 @@ public:
         mSPairQueue.value());
       alg.setBreakAfter(mBreakAfter.value());
       alg.setPrintInterval(mPrintInterval.value());
+      alg.setSPairGroupSize(mSPairGroupSize.value());
       alg.setUseAutoTopReduction(mAutoTopReduce.value());
       alg.setUseAutoTailReduction(mAutoTailReduce.value());
 
@@ -270,10 +278,12 @@ public:
     parameters.push_back(&mReducer);
     parameters.push_back(&mModuleOrder);
     parameters.push_back(&mProjectName);
+    parameters.push_back(&mSPairGroupSize);
 
-    // do not expose the strategy parameter - it is only here to support
-    // the old format of using direct numeric parameters to the action.
-    //parameters.push_back(&mStrategy);
+    // we do not expose the strategy parameter - it is only here to
+    // support the old format of using direct numeric parameters to
+    // the action.
+    // parameters.push_back(&mStrategy);
   }
 
 private:
@@ -294,6 +304,7 @@ private:
   mic::IntegerParameter mModuleOrder;
   mic::StringParameter mProjectName;
   mic::IntegerParameter mStrategy;
+  mic::IntegerParameter mSPairGroupSize;
 };
 
 int oldmain(int argc, char **argv);

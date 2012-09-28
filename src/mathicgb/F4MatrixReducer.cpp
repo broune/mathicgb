@@ -343,8 +343,8 @@ void myReduceToEchelonForm5
     dense[row].addRow(toReduce, row);
   }
 
-  // invariant: all columns to the left of leadCols[row] are zero.
-  std::vector<size_t> leadCols(colCount);
+  // invariant: all columns in row to the left of leadCols[row] are zero.
+  std::vector<size_t> leadCols(rowCount);
 
   // pivot rows get copied here before being used to reduce the matrix.
   SparseMatrix reduced;
@@ -367,8 +367,9 @@ void myReduceToEchelonForm5
     size_t const reducerCount = reduced.rowCount();
 
     //std::cout << "reducing " << reduced.rowCount() << " out of " << toReduce.rowCount() << std::endl;
-#pragma omp parallel for num_threads(threadCount) schedule(dynamic)
+    //#pragma omp parallel for num_threads(threadCount) schedule(dynamic)
     for (size_t row = 0; row < rowCount; ++row) {
+      MATHICGB_ASSERT(leadCols[row] <= colCount);
       DenseRow<uint64>& denseRow = dense[row];
       if (denseRow.empty())
         continue;
@@ -383,12 +384,14 @@ void myReduceToEchelonForm5
 
       // update leadCols[row]
       size_t col;
+      MATHICGB_ASSERT(leadCols[row] <= colCount);
       for (col = leadCols[row]; col < colCount; ++col) {
         denseRow[col] %= modulus;
         if (denseRow[col] != 0)
           break;
       }
       leadCols[row] = col;
+      MATHICGB_ASSERT(leadCols[row] <= colCount);
 
       // note if we have found a new pivot row
       if (col == colCount)

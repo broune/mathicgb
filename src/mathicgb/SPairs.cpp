@@ -147,7 +147,7 @@ SPairs::ClassicPairTriangle::ClassicPairTriangle(const PolyBasis& basis, size_t 
   mBasis(basis) {}
 
 bool SPairs::simpleBuchbergerLcmCriterion
-  (size_t a, size_t b, const_monomial lcmAB) const
+(size_t a, size_t b, const_monomial lcmAB) const
 {
   ASSERT(a < mBasis.size());
   ASSERT(b < mBasis.size());
@@ -155,7 +155,7 @@ bool SPairs::simpleBuchbergerLcmCriterion
   ASSERT(!mBasis.retired(a));
   ASSERT(!mBasis.retired(b));
   ASSERT(mRing.monomialIsLeastCommonMultipleNoWeights
-    (mBasis.leadMonomial(a), mBasis.leadMonomial(b), lcmAB));
+         (mBasis.leadMonomial(a), mBasis.leadMonomial(b), lcmAB));
   ASSERT(mEliminated.columnCount() == mBasis.size());
 
   class Criterion : public DivisorLookup::EntryOutput {
@@ -173,8 +173,6 @@ bool SPairs::simpleBuchbergerLcmCriterion
       ASSERT(index < mBasis.size());
       ASSERT(!applies()); // should have stopped search in this case
       ASSERT(mRing.monomialIsDivisibleBy(mLcmAB, mBasis.leadMonomial(index)));
-      if (!mBasis.leadMinimal(index))
-        return true;
       if (index == mA || index == mB)
         return true;
       mAlmostApplies = true;
@@ -186,12 +184,12 @@ bool SPairs::simpleBuchbergerLcmCriterion
       const_monomial leadB = mBasis.leadMonomial(mB);
       const_monomial leadC = mBasis.leadMonomial(index);
       if (!mSPairs.eliminated(index, mA) &&
-        !mRing.monomialHasStrictlyLargerExponent(leadB, leadC, leadA))
+          !mRing.monomialHasStrictlyLargerExponent(leadB, leadC, leadA))
         return true;
 
       // check lcm(b,index) != lcm(a,b)
       if (!mSPairs.eliminated(index, mB) &&
-        !mRing.monomialHasStrictlyLargerExponent(leadA, leadC, leadB))
+          !mRing.monomialHasStrictlyLargerExponent(leadA, leadC, leadB))
         return true;
 
       mHit = index;
@@ -240,13 +238,13 @@ bool SPairs::simpleBuchbergerLcmCriterion
       // test I did.
       size_t cacheB = mBuchbergerLcmHitCache[b];
       if (!applies && !mBasis.retired(cacheB) &&
-        mRing.monomialIsDivisibleBy
+          mRing.monomialIsDivisibleBy
           (criterion.lcmAB(), mBasis.leadMonomial(cacheB)))
         applies = !criterion.Criterion::proceed(cacheB);
 
       size_t cacheA = mBuchbergerLcmHitCache[a];
       if (!applies && !mBasis.retired(cacheA) &&
-        mRing.monomialIsDivisibleBy
+          mRing.monomialIsDivisibleBy
           (criterion.lcmAB(), mBasis.leadMonomial(cacheA))) {
         applies = !criterion.Criterion::proceed(cacheA);
         if (applies)
@@ -255,10 +253,10 @@ bool SPairs::simpleBuchbergerLcmCriterion
     }
     if (applies)
       {
-	if (mStats.late)
-	  ++mStats.buchbergerLcmCacheHitsLate;
-	else
-	  ++mStats.buchbergerLcmCacheHits;
+        if (mStats.late)
+          ++mStats.buchbergerLcmCacheHitsLate;
+        else
+          ++mStats.buchbergerLcmCacheHits;
       }
     else {
       ASSERT(!criterion.applies());
@@ -278,9 +276,9 @@ bool SPairs::simpleBuchbergerLcmCriterion
   if (applies)
     {
       if (mStats.late)
-	++mStats.buchbergerLcmSimpleHitsLate;
+        ++mStats.buchbergerLcmSimpleHitsLate;
       else
-	++mStats.buchbergerLcmSimpleHits;
+        ++mStats.buchbergerLcmSimpleHits;
     }
 
   ASSERT(applies == simpleBuchbergerLcmCriterionSlow(a, b));
@@ -303,7 +301,7 @@ bool SPairs::simpleBuchbergerLcmCriterionSlow(size_t a, size_t b) const {
   size_t stop = mBasis.size();
   size_t i = 0;
   for (; i < stop; ++i) {
-    if (mBasis.retired(i) || !mBasis.leadMinimal(i))
+    if (mBasis.retired(i))
       continue;
     if (!mRing.monomialIsDivisibleBy(lcmAB, mBasis.leadMonomial(i)))
       continue;

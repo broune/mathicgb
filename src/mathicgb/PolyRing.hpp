@@ -669,7 +669,8 @@ inline void PolyRing::monomialDivideToNegative(ConstMonomial a,
     result[i] = a[i] - b[i];
   MATHICGB_ASSERT(result[mHashIndex] == a[mHashIndex] - b[mHashIndex]);
   MATHICGB_ASSERT(!hashValid(a) || !hashValid(b) || hashValid(result));
-  MATHICGB_ASSERT(computeHashValue(result) == computeHashValue(a) - computeHashValue(b));
+  MATHICGB_ASSERT(computeHashValue(result) ==
+                  computeHashValue(a) - computeHashValue(b));
 }
 
 inline bool PolyRing::monomialRelativelyPrime(ConstMonomial a, 
