@@ -49,6 +49,10 @@ public:
     mSPairGroupSize = groupSize;
   }
 
+  void setThreadCount(size_t threadCount) {
+    mThreadCount = threadCount;
+  }
+
   void setUseAutoTopReduction(bool value) {
     mUseAutoTopReduction = value;
   }
@@ -61,6 +65,7 @@ private:
   unsigned int mBreakAfter;
   unsigned int mPrintInterval;
   unsigned int mSPairGroupSize;
+  size_t mThreadCount;
   bool mUseAutoTopReduction;
   bool mUseAutoTailReduction;
 

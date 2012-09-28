@@ -54,6 +54,10 @@ public:
     size_t basisElement,
     const GroebnerBasis& basis) = 0;
 
+  /** Sets how many parallel threads to use for reduction - if the
+    reducer supports it. */
+  virtual void setThreadCount(size_t threadCount) = 0;
+
   // ***** Kinds of reducers and creating a Reducer 
 
   enum ReducerType {
@@ -90,10 +94,10 @@ public:
   };
 
   static std::unique_ptr<Reducer> makeReducer
-    (ReducerType t, PolyRing const& ring);
+  (ReducerType t, PolyRing const& ring);
 
   static std::unique_ptr<Reducer> makeReducerNullOnUnknown
-    (ReducerType t, PolyRing const& ring);
+  (ReducerType t, PolyRing const& ring);
 
   static ReducerType reducerType(int typ);
   static void displayReducerTypes(std::ostream &o);
