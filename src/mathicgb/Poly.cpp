@@ -272,10 +272,20 @@ size_t Poly::getMemoryUse() const
   return total;
 }
 
+void Poly::setToZero() {
+  MATHICGB_ASSERT(R != 0);
+  coeffs.clear();
+  monoms.clear();
+}
+
 void Poly::see(bool print_comp) const
 {
   display(std::cout, print_comp);
   std::cout << std::endl;
+}
+
+std::ostream& operator<<(std::ostream& out, const Poly& p) {
+  p.see(false);
 }
 
 // Local Variables:

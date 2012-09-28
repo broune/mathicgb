@@ -40,12 +40,22 @@ std::unique_ptr<Poly> F4Reducer::classicReduceSPoly
     F4MatrixBuilder builder(basis);
     builder.addTwoRowsForSPairToMatrix(a, b);
     builder.buildMatrixAndClear(qm);
+
+    // there has to be something to reduce
+    MATHICGB_ASSERT(qm.bottomLeft.rowCount() > 0);
   }
 
   SparseMatrix reduced;
   {
     F4MatrixReducer red;
     red.reduce(basis.ring(), qm, reduced);
+    if (reduced.rowCount() > 0) {
+      MATHICGB_ASSERT(reduced.rowCount() == 1);
+      Poly q(&basis.ring());
+      reduced.rowToPolynomial(0, qm.rightColumnMonomials, q);
+      MATHICGB_ASSERT(q == *p);
+    } else
+      MATHICGB_ASSERT(p->isZero());
   }
 
   return p;
