@@ -33,6 +33,11 @@ public:
   virtual std::unique_ptr<Poly> classicReduceSPoly
     (const Poly& a, const Poly& b, const PolyBasis& basis);
 
+  virtual void classicReduceSPolyGroup
+  (std::vector<std::pair<size_t, size_t> >& spairs,
+   const PolyBasis& basis,
+   std::vector<std::unique_ptr<Poly> >& reducedOut);
+
 protected:
   // These are the methods that sub-classes define in order to carry
   // out sub-steps in the reduction.

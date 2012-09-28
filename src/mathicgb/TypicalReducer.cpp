@@ -133,6 +133,18 @@ std::unique_ptr<Poly> TypicalReducer::classicReduceSPoly(
   return std::move(reduced);
 }
 
+void TypicalReducer::classicReduceSPolyGroup
+(std::vector<std::pair<size_t, size_t> >& spairs,
+ const PolyBasis& basis,
+ std::vector<std::unique_ptr<Poly> >& reducedOut) {
+  for (auto it = spairs.begin(); it != spairs.end(); ++it) {
+    auto reducedSPoly =
+      classicReduceSPoly(basis.poly(it->first), basis.poly(it->second), basis);
+    if (!reducedSPoly->isZero())
+      reducedOut.push_back(std::move(reducedSPoly));
+  }
+}
+
 std::unique_ptr<Poly> TypicalReducer::classicReduce
     (std::unique_ptr<Poly> result, const PolyBasis& basis) {
   const PolyRing& ring = basis.ring();

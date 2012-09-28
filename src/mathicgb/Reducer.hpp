@@ -36,6 +36,14 @@ public:
   virtual std::unique_ptr<Poly> classicReduceSPoly
   (const Poly& a, const Poly& b, const PolyBasis& basis) = 0;
 
+  /** Clasically reduces the S-polynomial of these pairs. May or may
+      not also interreduce these to some extent. Polynomials that are
+      reduced to zero are not put into reducedOut. */
+  virtual void classicReduceSPolyGroup
+  (std::vector<std::pair<size_t, size_t> >& spairs,
+   const PolyBasis& basis,
+   std::vector<std::unique_ptr<Poly> >& reducedOut) = 0;
+
   /** Regular reduce multiple*basisElement in signature sig by the
     basis elements in basis. Returns null (0) if multiple*basisElement
     is not regular top reducible -- this indicates a singular

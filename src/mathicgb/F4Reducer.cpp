@@ -52,6 +52,41 @@ std::unique_ptr<Poly> F4Reducer::classicReduceSPoly
   return p;
 }
 
+void F4Reducer::classicReduceSPolyGroup
+(std::vector<std::pair<size_t, size_t> >& spairs,
+ const PolyBasis& basis,
+ std::vector<std::unique_ptr<Poly> >& reducedOut)
+{
+  reducedOut.clear();
+  if (spairs.empty())
+    return;
+
+  SparseMatrix reduced;
+  std::vector<monomial> monomials;
+  {
+    QuadMatrix qm;
+    {
+      F4MatrixBuilder builder(basis);
+      for (auto it = spairs.begin(); it != spairs.end(); ++it) {
+        builder.addTwoRowsForSPairToMatrix
+          (basis.poly(it->first), basis.poly(it->second));
+      }
+      builder.buildMatrixAndClear(qm);
+
+      // there has to be something to reduce
+      MATHICGB_ASSERT(qm.bottomLeft.rowCount() > 0);
+    }
+    F4MatrixReducer().reduce(basis.ring(), qm, reduced);
+    monomials = std::move(qm.rightColumnMonomials);
+  }
+
+  for (SparseMatrix::RowIndex row = 0; row < reduced.rowCount(); ++row) {
+    auto p = make_unique<Poly>(&basis.ring());
+    reduced.rowToPolynomial(row, monomials, *p);
+    reducedOut.push_back(std::move(p));
+  }
+}
+
 Poly* F4Reducer::regularReduce
 (const_monomial sig,
  const_monomial multiple,

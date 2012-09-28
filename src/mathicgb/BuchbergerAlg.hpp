@@ -9,7 +9,7 @@
 #include <memory>
 #include <ostream>
 
-// Calculates a non-signature Grobner basis using Buchberger's algorithm.
+/// Calculates a classic Grobner basis using Buchberger's algorithm.
 class BuchbergerAlg {
 public:
   BuchbergerAlg(
@@ -45,6 +45,10 @@ public:
     mPrintInterval = reductions;
   }
 
+  void setSPairGroupSize(unsigned int groupSize) {
+    mSPairGroupSize = groupSize;
+  }
+
   void setUseAutoTopReduction(bool value) {
     mUseAutoTopReduction = value;
   }
@@ -56,6 +60,7 @@ public:
 private:
   unsigned int mBreakAfter;
   unsigned int mPrintInterval;
+  unsigned int mSPairGroupSize;
   bool mUseAutoTopReduction;
   bool mUseAutoTailReduction;
 

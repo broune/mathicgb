@@ -33,6 +33,7 @@ autoTailReduce: 0,1
 autoTopReduce: 0,1
 preferSparseReducers: 0,1
 useSingularCriterionEarly: 0, 1
+sPairGroupSize: 0, 1, 2, 10, 100
 
 ##############################################################
 # PICT submodels go here.
