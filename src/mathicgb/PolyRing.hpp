@@ -219,16 +219,23 @@ public:
   void printRingFrobbyM2Format(std::ostream& out) const;
 
   //  Allocate a monomial from an arena A
-  //  This monomial may only be freed if no other elements have
-  //  been allocated on A.  In this case, use freeMonomial(A,m) to free 'm'.
+  //  This monomial may only be freed if no other elements that were allocated
+  // later are live on A.  In this case, use freeMonomial(A,m) to free 'm'.
   Monomial allocMonomial(memt::Arena &A) const {
-    return static_cast<exponent *>(A.alloc(mMaxMonomialByteSize));
+    exponent* ptr = static_cast<exponent*>(A.alloc(mMaxMonomialByteSize));
+#ifdef MATHICGB_DEBUG
+    // fill with value that do not make sense to catch bugs in debug
+    // mode. The maximum value of setting all bits increases the
+    // chances of getting an assert.
+    std::fill_n(reinterpret_cast<char*>(ptr), mMaxMonomialByteSize,
+                ~static_cast<char>(0));
+#endif
+    return ptr;
   }
 
-  // Free monomial 'm' obtained by allocMonomial(A) 
-  // by calling freeMonomial(A,m)
-  // Recall this only works if this was the last thing 
-  // allocated in A.
+  // Free monomial 'm' obtained by allocMonomial(A) by calling
+  // freeMonomial(A,m) Recall this only works if this was the last
+  // thing allocated in A.
   void freeTopMonomial(memt::Arena &A, Monomial m) const {
     A.freeTop(m.unsafeGetRepresentation());
   }
@@ -237,7 +244,15 @@ public:
   //   maxMonomialByteSize()
   //  Free monomials here using the SAME pool
   Monomial allocMonomial(memt::BufferPool &P) const {
-    return static_cast<exponent *>(P.alloc());
+    exponent* ptr = static_cast<exponent*>(P.alloc());
+#ifdef MATHICGB_DEBUG
+    // fill with value that do not make sense to catch bugs in debug
+    // mode. The maximum value of setting all bits increases the
+    // chances of getting an assert.
+    std::fill_n(reinterpret_cast<char*>(ptr), mMaxMonomialByteSize,
+                ~static_cast<char>(0));
+#endif
+    return ptr;
   }
 
   // Free monomial 'm' obtained by allocMonomial(P) 
@@ -299,7 +314,7 @@ public:
 
   void displayHashValues() const;
 
-  size_t monomialHashIndex() const { return mHashIndex; }
+  exponent monomialHashIndex() const { return mHashIndex; }
 
   ///////////////////////////////////////////
   // Monomial Routines //////////////////////
@@ -531,7 +546,7 @@ public:
   void resetCoefficientStats() const;
 
 private:
-  inline size_t computeHashValue(const_monomial a1) const;
+  inline exponent computeHashValue(const_monomial a1) const;
 
   long mCharac; // p=mCharac: ring is ZZ/p
   size_t mNumVars;
@@ -563,11 +578,13 @@ inline bool PolyRing::monomialEQ(ConstMonomial a, ConstMonomial b) const
 }
 
 inline void PolyRing::monomialMult(ConstMonomial a, 
-                            ConstMonomial b, 
-                            Monomial &result) const
+                                   ConstMonomial b, 
+                                   Monomial &result) const
 {
   for (size_t i = mHashIndex; i != static_cast<size_t>(-1); --i)
     result[i] = a[i] + b[i];
+  MATHICGB_ASSERT(computeHashValue(result) ==
+                  computeHashValue(a) + computeHashValue(b));
 
 #if 0
   // testing different things to see if we can speed it up further.
@@ -597,7 +614,7 @@ inline void PolyRing::setWeightsOnly(Monomial& a1) const
     }
 }
 
-inline size_t PolyRing::computeHashValue(const_monomial a1) const {
+inline exponent PolyRing::computeHashValue(const_monomial a1) const {
   const exponent* a = a1.unsafeGetRepresentation();
   int hash = *a;
   a++;
