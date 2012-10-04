@@ -106,11 +106,15 @@ void Poly::multByCoefficient(coefficient c)
 
 void Poly::makeMonic()
 {
-  if (isZero()) return;
+  if (isZero())
+    return;
   coefficient c = getLeadCoefficient();
+  if (R->coefficientIsOne(c))
+    return;
   R->coefficientReciprocalTo(c);
-  for (std::vector<coefficient>::iterator i = coeffs.begin(); i != coeffs.end(); i++)
+  for (auto i = coeffs.begin(); i != coeffs.end(); i++)
     R->coefficientMultTo(*i, c);
+  MATHICGB_ASSERT(R->coefficientIsOne(getLeadCoefficient()))
 }
 
 bool operator==(const Poly &a, const Poly &b)

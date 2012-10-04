@@ -8,6 +8,7 @@
 #include <mathic.h>
 #include <memory>
 #include <ostream>
+#include <vector>
 
 /// Calculates a classic Grobner basis using Buchberger's algorithm.
 class BuchbergerAlg {
@@ -75,6 +76,9 @@ private:
   void autoTailReduce();
 
   void insertReducedPoly(std::unique_ptr<Poly> poly);
+
+  // clears polynomials.
+  void insertPolys(std::vector<std::unique_ptr<Poly> >& polynomials);
 
   const PolyRing& mRing;
   std::unique_ptr<FreeModuleOrder> mOrder;

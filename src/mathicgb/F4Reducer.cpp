@@ -70,7 +70,7 @@ std::unique_ptr<Poly> F4Reducer::classicReduceSPoly
   return p;
 }
 
-void F4Reducer::classicReduceSPolyGroup
+void F4Reducer::classicReduceSPolySet
 (std::vector<std::pair<size_t, size_t> >& spairs,
  const PolyBasis& basis,
  std::vector<std::unique_ptr<Poly> >& reducedOut)
@@ -110,6 +110,18 @@ void F4Reducer::classicReduceSPolyGroup
     reduced.rowToPolynomial(row, monomials, *p);
     
     reducedOut.push_back(std::move(p));
+  }
+}
+
+void F4Reducer::classicReducePolySet
+(const std::vector<std::unique_ptr<Poly> >& polys,
+ const PolyBasis& basis,
+ std::vector<std::unique_ptr<Poly> >& reducedOut)
+{
+  for (auto it = polys.begin(); it != polys.end(); ++it) {
+    auto reducedPoly = classicReduce(**it, basis);
+    if (!reducedPoly->isZero())
+      reducedOut.push_back(std::move(reducedPoly));
   }
 }
 

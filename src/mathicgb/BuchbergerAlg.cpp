@@ -36,6 +36,70 @@ BuchbergerAlg::BuchbergerAlg(
     insertReducedPoly(mReducer->classicReduce(*ideal.getPoly(gen), mBasis));
 }
 
+void BuchbergerAlg::insertPolys
+(std::vector<std::unique_ptr<Poly> >& polynomials)
+{
+  if (!mUseAutoTopReduction) {
+    for (auto it = polynomials.begin(); it != polynomials.end(); ++it) {
+      MATHICGB_ASSERT(it->get() != 0);
+      if ((*it)->isZero())
+        continue;
+      if (mBasis.divisor((*it)->getLeadMonomial()) != static_cast<size_t>(-1)) {
+        *it = mReducer->classicReduce(**it, mBasis);
+        if ((*it)->isZero())
+          continue;
+      }
+
+      mBasis.insert(std::move(*it));
+      mSPairs.addPairs(mBasis.size() - 1);
+    }
+    polynomials.clear();
+    return;
+  }
+
+  std::vector<size_t> toRetire;
+  std::vector<std::unique_ptr<Poly> > toReduce;
+  std::vector<std::unique_ptr<Poly> > toInsert;
+  std::swap(toInsert, polynomials);
+
+  while (!toInsert.empty()) {
+    // todo: sort by lead term to avoid insert followed by immediate
+    // removal.
+
+    // insert polynomials from toInsert with minimal lead term and
+    // extract those from the basis that become non-minimal.
+    for (auto it = toInsert.begin(); it != toInsert.end(); ++it) {
+      MATHICGB_ASSERT(it->get() != 0);
+      if ((*it)->isZero())
+        continue;
+
+      // We check for a divisor from mBasis because a new reducer
+      // might have been added since we did the reduction or perhaps a
+      // non-reduced polynomial was passed in.
+      if (mBasis.divisor((*it)->getLeadMonomial()) != static_cast<size_t>(-1))
+        toReduce.push_back(std::move(*it));
+      else {
+        mBasis.insert(std::move(*it));
+        MATHICGB_ASSERT(toRetire.empty());
+        mSPairs.addPairsAssumeAutoReduce(mBasis.size() - 1, toRetire);
+        for (auto r = toRetire.begin(); r != toRetire.end(); ++r)
+          toReduce.push_back(mBasis.retire(*r));
+        toRetire.clear();
+      }
+    }
+    toInsert.clear();
+    MATHICGB_ASSERT(toRetire.empty());
+
+    // reduce everything in toReduce
+    mReducer->classicReducePolySet(toReduce, mBasis, toInsert);
+    toReduce.clear();
+  }
+
+  MATHICGB_ASSERT(toRetire.empty());
+  MATHICGB_ASSERT(toInsert.empty());
+  MATHICGB_ASSERT(toReduce.empty());
+}
+
 void BuchbergerAlg::insertReducedPoly(
   std::unique_ptr<Poly> polyToInsert
 ) {
@@ -103,6 +167,7 @@ void BuchbergerAlg::insertReducedPoly(
 
       // form S-pairs and retire basis elements that become top reducible.
       const size_t newGen = mBasis.size() - 1;
+      MATHICGB_ASSERT(toRetireAndReduce.empty());
       mSPairs.addPairsAssumeAutoReduce(newGen, toRetireAndReduce);
       for (std::vector<size_t>::const_iterator it = toRetireAndReduce.begin();
         it != toRetireAndReduce.end(); ++it) {
@@ -197,8 +262,10 @@ void BuchbergerAlg::step() {
     if (spairGroup.empty())
       return; // no more s-pairs
     std::vector<std::unique_ptr<Poly> > reduced;
-    mReducer->classicReduceSPolyGroup(spairGroup, mBasis, reduced);
+    mReducer->classicReduceSPolySet(spairGroup, mBasis, reduced);
     
+    insertPolys(reduced);
+    /*
     for (auto it = reduced.begin(); it != reduced.end(); ++it) {
       auto p = std::move(*it);
       MATHICGB_ASSERT(!p->isZero());
@@ -207,6 +274,7 @@ void BuchbergerAlg::step() {
       if (!p->isZero())
         insertReducedPoly(std::move(p));
     }
+    */
     if (mUseAutoTailReduction)
       autoTailReduce();
   }

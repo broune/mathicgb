@@ -39,8 +39,16 @@ public:
   /** Clasically reduces the S-polynomial of these pairs. May or may
       not also interreduce these to some extent. Polynomials that are
       reduced to zero are not put into reducedOut. */
-  virtual void classicReduceSPolyGroup
+  virtual void classicReduceSPolySet
   (std::vector<std::pair<size_t, size_t> >& spairs,
+   const PolyBasis& basis,
+   std::vector<std::unique_ptr<Poly> >& reducedOut) = 0;
+
+  /** Clasically reduces the passed-in polynomials of these pairs. May
+      or may not also interreduce these to some extent. Polynomials
+      that are reduced to zero are not put into reducedOut. */
+  virtual void classicReducePolySet
+  (const std::vector<std::unique_ptr<Poly> >& polys,
    const PolyBasis& basis,
    std::vector<std::unique_ptr<Poly> >& reducedOut) = 0;
 

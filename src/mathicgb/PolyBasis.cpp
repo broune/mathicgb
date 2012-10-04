@@ -42,7 +42,9 @@ std::unique_ptr<Ideal> PolyBasis::initialIdeal() const {
 }
 
 void PolyBasis::insert(std::unique_ptr<Poly> poly) {
-  ASSERT(poly.get() != 0);
+  MATHICGB_ASSERT(poly.get() != 0);
+  MATHICGB_ASSERT(!poly->isZero());
+  poly->makeMonic();
   const size_t index = size();
   EntryIter const stop = mEntries.end();
   const_monomial const lead = poly->getLeadMonomial();
