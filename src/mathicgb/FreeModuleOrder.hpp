@@ -4,7 +4,7 @@
 #define _free_module_order_h_
 
 #include "PolyRing.hpp"
-#include "SigSpairQueue.hpp"
+#include "SigSPairQueue.hpp"
 
 class PolyRing;
 class Ideal;
