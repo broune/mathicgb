@@ -9,13 +9,13 @@
 #include <sstream>
 
 TEST(F4MatrixReducer, Reduce) {
-  auto ring = ringFromString("101 6 1\n1 1 1 1 1 1");
+  auto ring = ringFromString("101 6 1\n10 1 1 1 1 1");
 
   QuadMatrix m;
   m.ring = ring.get();
 
   Poly p(ring.get());
-  std::istringstream in("a1+a2+a3+a4+b1+b2+b3+b4+b5");
+  std::istringstream in("a4+a3+a2+a1+b5+b4+b3+b2+b1");
   p.parse(in);
   size_t count = 0;
   for (Poly::iterator it = p.begin(); it != p.end(); ++it) {
@@ -100,8 +100,8 @@ TEST(F4MatrixReducer, Reduce) {
 
   MATHICGB_ASSERT(m.debugAssertValid());
   const char* origStr = 
-    "Left columns: a a2 a3 a4\n"
-    "Right columns: b b2 b3 b4 b5\n"
+    "Left columns: a4 a3 a2 a\n"
+    "Right columns: b5 b4 b3 b2 b\n"
     "0: 0#1 1#2 3#3       | 0: 2#8                  \n"
     "1: 1#1 2#3           | 1: 3#9                  \n"
     "2: 2#1 3#7           | 2: 4#10                 \n"

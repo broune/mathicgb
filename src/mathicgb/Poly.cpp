@@ -3,8 +3,8 @@
 #include "stdinc.h"
 #include "Poly.hpp"
 #include <ostream>
-#include <istream>
 #include <iostream>
+#include <algorithm>
 
 // Format for input/output:
 //  #terms term1 term2 ...
@@ -21,6 +21,56 @@ void Poly::copy(Poly &result) const
   result.monoms.resize(monoms.size());
   std::copy(coeffs.begin(), coeffs.end(), result.coeffs.begin());
   std::copy(monoms.begin(), monoms.end(), result.monoms.begin());
+}
+
+void Poly::sortTermsDescending() {
+  struct Cmp {
+  public:
+    Cmp(const Poly& poly): mPoly(poly) {}
+
+    bool operator()(size_t a, size_t b) {
+      MATHICGB_ASSERT(a < mPoly.nTerms());
+      MATHICGB_ASSERT(b < mPoly.nTerms());
+      return mPoly.R->monomialLT(mPoly.monomialAt(b), mPoly.monomialAt(a));
+    }
+
+  private:
+    const Poly& mPoly;
+  };
+
+  const size_t count = nTerms();
+  std::vector<size_t> ordered(count);
+  for (size_t i = 0; i < count; ++i)
+    ordered[i] = i;
+
+  std::sort(ordered.begin(), ordered.end(), Cmp(*this));
+
+  Poly poly(R);
+  for (size_t i = 0; i < count; ++i)
+    poly.appendTerm(coefficientAt(ordered[i]), monomialAt(ordered[i]));
+  *this = std::move(poly);
+
+  MATHICGB_ASSERT(termsAreInDescendingOrder());
+}
+
+monomial Poly::monomialAt(size_t index) {
+  MATHICGB_ASSERT(index < nTerms());
+  return &monoms[index * R->maxMonomialSize()];
+}
+
+const_monomial Poly::monomialAt(size_t index) const {
+  MATHICGB_ASSERT(index < nTerms());
+  return &monoms[index * R->maxMonomialSize()];
+}
+
+coefficient& Poly::coefficientAt(size_t index) {
+  MATHICGB_ASSERT(index < nTerms());
+  return coeffs[index];
+}
+
+const coefficient Poly::coefficientAt(size_t index) const {
+  MATHICGB_ASSERT(index < nTerms());
+  return coeffs[index];
 }
 
 void Poly::appendTerm(coefficient a, const_monomial m)
@@ -192,54 +242,55 @@ void Poly::dump() const
   std::cout << std::endl;
 }
 
-void Poly::parse(std::istream &i)
+void Poly::parseDoNotOrder(std::istream& i)
 {
   char next = i.peek();
-  if (next == '0')
-    {
+  if (next == '0') {
+    i.get();
+    return;
+  }
+
+  for (;;) {
+    bool is_neg = false;
+    next = i.peek();
+    if (next == '+') {
       i.get();
-      return;
-    }
-  for (;;)
-    {
-      bool is_neg = false;
       next = i.peek();
-      if (next == '+')
-        {
+    } else if (next == '-') {
+        is_neg = true;
+        i.get();
+        next = i.peek();
+    } if (isdigit(next) || isalpha(next) || next == '<') {
+        int a = 1;
+        coefficient b;
+        if (isdigit(next))
+          {
+            i >> a;
+            next = i.peek();
+          }
+        if (is_neg) a = -a;
+        size_t firstloc = monoms.size();
+        monoms.resize(firstloc + R->maxMonomialSize());
+        monomial m = &monoms[firstloc];
+        R->coefficientFromInt(b,a);
+        coeffs.push_back(b);
+        if (isalpha(next) || next == '<')
+          R->monomialParse(i, m);
+        else
+          R->monomialSetIdentity(m); // have to do this to set hash value
+        MATHICGB_ASSERT(ring().hashValid(m));
+        next = i.peek();
+        if (next == '>')
           i.get();
-          next = i.peek();
-        }
-      else if (next == '-')
-        {
-          is_neg = true;
-          i.get();
-          next = i.peek();
-        }
-      if (isdigit(next) || isalpha(next) || next == '<')
-        {
-          int a = 1;
-          coefficient b;
-          if (isdigit(next))
-            {
-              i >> a;
-              next = i.peek();
-            }
-          if (is_neg) a = -a;
-          size_t firstloc = monoms.size();
-          monoms.resize(firstloc + R->maxMonomialSize());
-          monomial m = &monoms[firstloc];
-          R->coefficientFromInt(b,a);
-          coeffs.push_back(b);
-          if (isalpha(next) || next == '<')
-            R->monomialParse(i, m);
-          else
-            R->monomialSetIdentity(m); // have to do this to set hash value
-          MATHICGB_ASSERT(ring().hashValid(m));
-          next = i.peek();
-          if (next == '>') i.get();
-        }
-      else return;
-    }
+      }
+    else
+      break;
+  }
+}
+
+void Poly::parse(std::istream& in) {
+  parseDoNotOrder(in);
+  sortTermsDescending();
 }
 
 void Poly::display(std::ostream &o, bool print_comp) const
@@ -291,6 +342,24 @@ void Poly::see(bool print_comp) const
 std::ostream& operator<<(std::ostream& out, const Poly& p) {
   p.see(false);
 }
+
+bool Poly::termsAreInDescendingOrder() const {
+  if (isZero())
+    return true;
+
+  auto stop = end();
+  auto it = begin();
+  auto previous = it;
+  ++it;
+  while (it != stop) {
+    if (R->monomialCompare(previous.getMonomial(), it.getMonomial()) == LT)
+      return false;
+    previous = it;
+    ++it;
+  }
+  return true;
+}
+
 
 // Local Variables:
 // compile-command: "make -C .. "
