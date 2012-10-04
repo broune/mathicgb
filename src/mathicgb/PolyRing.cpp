@@ -96,7 +96,8 @@ void PolyRing::monomialSetIdentity(Monomial& result) const
 
 void PolyRing::monomialEi(size_t i, Monomial &result) const
 {
-  for (size_t j=mTopIndex; j != static_cast<size_t>(-1); --j) result[j] = 0;
+  for (size_t j=mTopIndex; j != static_cast<size_t>(-1); --j)
+    result[j] = 0;
   *result  = static_cast<int>(i); // todo: handle overflow or change representation
   result[mHashIndex] = static_cast<int>(i); // todo: handle overflow or change representation
 }

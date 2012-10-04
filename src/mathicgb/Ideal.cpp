@@ -17,6 +17,8 @@ Ideal::~Ideal()
 }
 
 void Ideal::insert(std::unique_ptr<Poly> p) {
+  MATHICGB_ASSERT(p.get() != 0);
+  MATHICGB_ASSERT(p->termsAreInDescendingOrder());
   mGenerators.reserve(mGenerators.size() + 1);
   mGenerators.push_back(p.release());
 }
@@ -40,21 +42,22 @@ void Ideal::sort(FreeModuleOrder& order) {
   std::sort(mGenerators.begin(), mGenerators.end(), cmp);
 }
 
-Ideal *Ideal::parse(std::istream &i)
+Ideal *Ideal::parse(std::istream& in)
 {
-  PolyRing *R = PolyRing::read(i);
+  PolyRing *R = PolyRing::read(in);
   size_t npolys;
-  i >> npolys;
+  in >> npolys;
   Ideal *result = new Ideal(*R);
-  for (size_t j= 0; j<npolys; j++)
-    {
-      Poly *g = new Poly(R);
-      while (std::isspace(i.peek())) i.get();
-      g->parse(i);
-      result->mGenerators.push_back(g);
-    }
+  for (size_t j= 0; j < npolys; j++) {
+    auto g = make_unique<Poly>(R);
+    while (std::isspace(in.peek()))
+      in.get();
+    g->parse(in);
+    result->insert(std::move(g));
+  }
   return result;
 }
+
 void Ideal::display(std::ostream &o, bool print_comp) const
 {
   mRing.write(o);

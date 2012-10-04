@@ -22,7 +22,7 @@ namespace {
     {
       Poly p(&b.ring());
       std::istringstream in(left);
-      p.parse(in);
+      p.parseDoNotOrder(in);
       size_t colCount = 0;
       for (Poly::iterator it = p.begin(); it != p.end(); ++it) {
         QuadMatrixBuilder::ColIndex col = b.createColumnLeft(it.getMonomial());
@@ -39,7 +39,7 @@ namespace {
     {
       Poly p(&b.ring());
       std::istringstream in(right);
-      p.parse(in);
+      p.parseDoNotOrder(in);
       size_t colCount = 0;
       for (Poly::iterator it = p.begin(); it != p.end(); ++it) {
         QuadMatrixBuilder::ColIndex col = b.createColumnRight(it.getMonomial());
@@ -71,7 +71,7 @@ TEST(QuadMatrixBuilder, Empty) {
 TEST(QuadMatrixBuilder, Construction) {
   std::unique_ptr<PolyRing> ring(ringFromString("32003 6 1\n1 1 1 1 1 1"));
   QuadMatrixBuilder b(*ring);
-  createColumns("a<1>+<0>", "b<0>+c<0>+bc<0>", b);
+  createColumns("a<1>+<0>", "bc<0>+b<0>+c<0>", b);
 
   // top row: nothing, nothing
   b.rowDoneTopLeftAndRight();
@@ -95,7 +95,7 @@ TEST(QuadMatrixBuilder, Construction) {
 
   const char* matrixStr =
     "Left columns: a 1\n"
-    "Right columns: b c bc\n"
+    "Right columns: bc b c\n"
     "0:         | 0:    \n"
     "1: 0#1 1#2 | 1: 2#3\n"
     "           |       \n"
@@ -114,7 +114,7 @@ TEST(QuadMatrixBuilder, ColumnQuery) {
   // coefficient 1X=left, 2X=right, 30=not there, % 10 = column index
   std::istringstream in
     ("10a<1>+11<0>+20b<0>+21c<0>+22bc<0>+30ab<0>+30e<0>+10a<1>");
-  p.parse(in);
+  p.parseDoNotOrder(in);
   for (Poly::iterator it = p.begin(); it != p.end(); ++it) {
     QuadMatrixBuilder::LeftRightColIndex col = b.findColumn(it.getMonomial());
     if (it.getCoefficient() / 10 == 3)

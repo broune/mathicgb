@@ -12,7 +12,8 @@ class Poly {
 public:
   Poly(const PolyRing *R0) : R(R0) {MATHICGB_ASSERT(R != 0);}
 
-  void parse(std::istream &i); // reads into this.
+  void parse(std::istream &i); // reads into this, sorts terms
+  void parseDoNotOrder(std::istream &i); // reads into this, does not sort terms
   void display(std::ostream &o, bool print_comp=true) const;
   void see(bool print_comp) const;
 
@@ -61,11 +62,19 @@ public:
     }
   };
 
+  void sortTermsDescending();
+
   void append(iterator &first, iterator &last);
   // Insert [first, last) onto the end of this.
   // This invalidates iterators on this.
 
   Poly *copy() const;
+
+  // Cannot call this monomial() since that is already a type :-(
+  monomial monomialAt(size_t index);
+  const_monomial monomialAt(size_t index) const;
+  coefficient& coefficientAt(size_t index);
+  const coefficient coefficientAt(size_t index) const;
 
   void appendTerm(coefficient a, const_monomial m);
   // all iterators are invalid after this
@@ -111,6 +120,8 @@ public:
   const PolyRing& ring() const {return *R;}
 
   void dump() const; // used for debugging
+
+  bool termsAreInDescendingOrder() const;
 
 private:
   const PolyRing *R;

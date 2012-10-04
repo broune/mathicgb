@@ -59,14 +59,13 @@ void BjarkeGeobucket2::insertTail(const_term multiplier, const Poly *g1)
 
 void BjarkeGeobucket2::insert(monomial multiplier, const Poly *g1)
 {
+  MATHICGB_ASSERT(g1 != 0);
+  MATHICGB_ASSERT(g1->termsAreInDescendingOrder());
+
   HashPoly M;
-
   mHashTableOLD.insert(multiplier, g1->begin(), g1->end(), M);
-
   if (!M.empty())
-    {
-      mHeap.push(M.begin(),M.end());
-    }
+    mHeap.push(M.begin(),M.end());
 
   stats_n_inserts++;
   stats_n_compares += mHeap.getConfiguration().getComparisons();

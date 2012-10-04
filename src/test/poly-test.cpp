@@ -57,7 +57,7 @@ TEST(Poly,readwrite) {
   std::unique_ptr<PolyRing> R(ringFromString("32003 6 1\n1 1 1 1 1 1"));
   Poly f(R.get());
   std::stringstream ifil(f1);
-  f.parse(ifil);
+  f.parseDoNotOrder(ifil);
   std::ostringstream o;
   f.display(o,true);
   EXPECT_EQ(o.str(), f1);
@@ -68,7 +68,7 @@ bool testPolyParse(PolyRing* R, std::string s)
   // parse poly, then see if it matches the orig string
   Poly f(R);
   std::istringstream i(s);
-  f.parse(i);
+  f.parseDoNotOrder(i);
   std::ostringstream o;
   f.display(o);
   //  std::cout << "orig = " << s << std::endl;
@@ -80,7 +80,7 @@ bool testPolyParse2(PolyRing* R, std::string s, std::string answer)
   // parse poly, then see if it matches the orig string
   Poly f(R);
   std::istringstream i(s);
-  f.parse(i);
+  f.parseDoNotOrder(i);
   std::ostringstream o;
   f.display(o);
   //  std::cout << "orig = " << s << std::endl;

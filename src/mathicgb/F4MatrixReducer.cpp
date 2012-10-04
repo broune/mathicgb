@@ -10,10 +10,13 @@
 #include <map>
 #include <string>
 #include <cstdio>
+#include <iostream>
 
 #ifdef _OPENMP
 #include <omp.h>
 #endif
+
+extern int tracingLevel;
 
 template<class T>
 class DenseRow {
@@ -762,6 +765,18 @@ void concatenateMatricesHorizontal
 
 void F4MatrixReducer::reduce
 (const PolyRing& ring, QuadMatrix& matrix, SparseMatrix& newPivots) {
+  if (tracingLevel >= 3)
+    std::cerr << "Row reducing (" << matrix.topLeft.rowCount()
+              << " + " << matrix.bottomLeft.rowCount()
+              << ") x (" << matrix.topLeft.colCount()
+              << " + " << matrix.topRight.colCount()
+              << ") matrix.\n#nz entry: top-left "
+              << matrix.topLeft.entryCount()
+              << ", top right " << matrix.topRight.entryCount()
+              << ", bot left " << matrix.bottomLeft.entryCount()
+              << ", bot right " << matrix.bottomRight.entryCount()
+              << '\n';
+
   if (ring.charac() > std::numeric_limits<SparseMatrix::Scalar>::max())
     throw std::overflow_error("Too large modulus in F4 matrix computation.");
 

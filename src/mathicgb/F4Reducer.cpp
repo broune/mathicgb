@@ -3,6 +3,9 @@
 
 #include "F4MatrixBuilder.hpp"
 #include "F4MatrixReducer.hpp"
+#include <iostream>
+
+extern int tracingLevel;
 
 F4Reducer::F4Reducer(
   const PolyRing& ring,
@@ -14,6 +17,10 @@ F4Reducer::F4Reducer(
 
 std::unique_ptr<Poly> F4Reducer::classicReduce
 (const Poly& poly, const PolyBasis& basis) {
+  if (tracingLevel >= 2)
+    std::cerr <<
+      "F4Reducer: Using fall-back reducer for single classic reduction\n";
+
   std::unique_ptr<Poly> p;
   p = mFallback->classicReduce(poly, basis);
   mSigStats = mFallback->sigStats();
@@ -24,6 +31,10 @@ std::unique_ptr<Poly> F4Reducer::classicReduce
 std::unique_ptr<Poly> F4Reducer::classicTailReduce
 (const Poly& poly, const PolyBasis& basis) {
   std::unique_ptr<Poly> p;
+  if (tracingLevel >= 2)
+    std::cerr <<
+      "F4Reducer: Using fall-back reducer for single classic tail reduction\n";
+
   p = mFallback->classicTailReduce(poly, basis);
   mSigStats = mFallback->sigStats();
   mClassicStats = mFallback->classicStats();
@@ -32,6 +43,9 @@ std::unique_ptr<Poly> F4Reducer::classicTailReduce
 
 std::unique_ptr<Poly> F4Reducer::classicReduceSPoly
 (const Poly& a, const Poly& b, const PolyBasis& basis) {
+  if (tracingLevel >= 2)
+    std::cerr << "F4Reducer: Reducing single S-pair.\n";
+
   QuadMatrix qm;
   {
     F4MatrixBuilder builder(basis);
@@ -65,6 +79,9 @@ void F4Reducer::classicReduceSPolyGroup
   if (spairs.empty())
     return;
 
+  if (tracingLevel >= 2)
+    std::cerr << "F4Reducer: Reducing " << spairs.size() << " S-pair.\n";
+
   SparseMatrix reduced;
   std::vector<monomial> monomials;
   {
@@ -83,6 +100,10 @@ void F4Reducer::classicReduceSPolyGroup
     F4MatrixReducer(mThreadCount).reduce(basis.ring(), qm, reduced);
     monomials = std::move(qm.rightColumnMonomials);
   }
+
+  if (tracingLevel >= 2)
+    std::cerr << "F4Reducer: Extracted " << reduced.rowCount()
+              << " non-zero rows\n";
 
   for (SparseMatrix::RowIndex row = 0; row < reduced.rowCount(); ++row) {
     auto p = make_unique<Poly>(&basis.ring());
