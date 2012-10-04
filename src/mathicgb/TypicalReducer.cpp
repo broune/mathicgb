@@ -133,7 +133,7 @@ std::unique_ptr<Poly> TypicalReducer::classicReduceSPoly(
   return std::move(reduced);
 }
 
-void TypicalReducer::classicReduceSPolyGroup
+void TypicalReducer::classicReduceSPolySet
 (std::vector<std::pair<size_t, size_t> >& spairs,
  const PolyBasis& basis,
  std::vector<std::unique_ptr<Poly> >& reducedOut) {
@@ -143,6 +143,18 @@ void TypicalReducer::classicReduceSPolyGroup
     if (!reducedSPoly->isZero())
       reducedOut.push_back(std::move(reducedSPoly));
   }
+}
+
+void TypicalReducer::classicReducePolySet
+(const std::vector<std::unique_ptr<Poly> >& polys,
+ const PolyBasis& basis,
+ std::vector<std::unique_ptr<Poly> >& reducedOut)
+{
+  for (auto it = polys.begin(); it != polys.end(); ++it) {
+    auto reducedPoly = classicReduce(**it, basis);
+    if (!reducedPoly->isZero())
+      reducedOut.push_back(std::move(reducedPoly));
+  }  
 }
 
 void TypicalReducer::setThreadCount(size_t threadCount) {

@@ -48,9 +48,8 @@ namespace {
     ):
       mNewGen(newGen),
       mEliminated(eliminated),
-      mIndexes(indexes) {
-      mIndexes.clear();
-    }
+      mIndexes(indexes) {}
+
     virtual bool proceed(size_t index) {
       if (index == mNewGen)
         return true;

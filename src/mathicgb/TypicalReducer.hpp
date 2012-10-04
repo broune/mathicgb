@@ -33,8 +33,13 @@ public:
   virtual std::unique_ptr<Poly> classicReduceSPoly
     (const Poly& a, const Poly& b, const PolyBasis& basis);
 
-  virtual void classicReduceSPolyGroup
+  virtual void classicReduceSPolySet
   (std::vector<std::pair<size_t, size_t> >& spairs,
+   const PolyBasis& basis,
+   std::vector<std::unique_ptr<Poly> >& reducedOut);
+
+  virtual void classicReducePolySet
+  (const std::vector<std::unique_ptr<Poly> >& polys,
    const PolyBasis& basis,
    std::vector<std::unique_ptr<Poly> >& reducedOut);
 
