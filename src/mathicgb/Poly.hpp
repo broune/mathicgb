@@ -99,6 +99,7 @@ public:
   void multByCoefficient(coefficient a);
 
   void makeMonic();
+  bool isMonic() const;
 
   const_monomial getLeadMonomial() const { return &(monoms[0]); }
   const_coefficient getLeadCoefficient() const  { return coeffs[0]; }
@@ -147,6 +148,15 @@ inline bool operator==(const Poly::const_iterator &a, const Poly::const_iterator
 inline bool operator!=(const Poly::const_iterator &a, const Poly::const_iterator &b)
 {
   return a.ic != b.ic;
+}
+
+inline void Poly::appendTerm(coefficient a, const_monomial m)
+{
+  // the monomial will be copied on.
+  coeffs.push_back(a);
+  size_t len = R->monomialSize(m);
+  exponent const * e = m.unsafeGetRepresentation();
+  monoms.insert(monoms.end(), e, e + len);
 }
 
 #endif

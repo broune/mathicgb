@@ -7,7 +7,9 @@ F4MatrixBuilder::F4MatrixBuilder(const PolyBasis& basis):
 void F4MatrixBuilder::addSPolynomialToMatrix
 (const Poly& polyA, const Poly& polyB) {
   MATHICGB_ASSERT(!polyA.isZero());
+  MATHICGB_ASSERT(polyA.isMonic());
   MATHICGB_ASSERT(!polyB.isZero());
+  MATHICGB_ASSERT(polyB.isMonic());
 
   monomial lcm = ring().allocMonomial();
   ring().monomialLeastCommonMultiple
@@ -25,6 +27,21 @@ void F4MatrixBuilder::addSPolynomialToMatrix
 
   mSPairTodo.push_back(task);
   ring().freeMonomial(lcm);
+}
+
+void F4MatrixBuilder::addPolynomialToMatrix(const Poly& poly) {
+  if (poly.isZero())
+    return;
+
+  SPairTask task = {};
+
+  task.polyA = &poly;
+  task.multiplyA = ring().allocMonomial();
+  ring().monomialSetIdentity(task.multiplyA);
+
+  MATHICGB_ASSERT(task.polyB == 0);
+  MATHICGB_ASSERT(task.multiplyB.unsafeGetRepresentation() == 0);
+  mSPairTodo.push_back(task);
 }
 
 void F4MatrixBuilder::addPolynomialToMatrix
@@ -65,16 +82,16 @@ void F4MatrixBuilder::buildMatrixAndClear(QuadMatrix& matrix) {
       itB = it->polyB->begin();
       endB = it->polyB->end();
       MATHICGB_ASSERT(itB != endB);
+
+      // skip leading terms since they cancel
+      ++itA;
+      ++itB;
     } else {
       // set polyB to an empty range if null
       itB = endA;
       endB = endA;
       MATHICGB_ASSERT(itB == endB);
     }
-
-    // skip leading terms since they cancel
-    //++itA;
-    //++itB;
 
     monomial monoA = ring().allocMonomial();
     monomial monoB = ring().allocMonomial();

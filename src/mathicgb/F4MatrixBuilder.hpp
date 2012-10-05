@@ -38,6 +38,10 @@ public:
     remain valid. */
   void addPolynomialToMatrix(const_monomial multiple, const Poly& poly);
 
+  /// as the overload with a multiple, just letting multiple be the
+  /// identity.
+  void addPolynomialToMatrix(const Poly& poly);
+
   /** Builds an F4 matrix to the specifications given. Also clears the
     information in this object.
 

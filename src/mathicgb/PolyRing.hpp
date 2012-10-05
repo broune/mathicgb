@@ -853,7 +853,82 @@ inline bool PolyRing::monomialRelativelyPrime(const_monomial a, const_monomial b
       return false;
   return true;
 }
+
 #endif
+
+inline bool PolyRing::monomialIsLeastCommonMultiple(
+  ConstMonomial a,
+  ConstMonomial b,
+  ConstMonomial l) const
+{
+  return monomialIsLeastCommonMultipleNoWeights(a, b, l) && weightsCorrect(l);
+}
+
+inline void PolyRing::coefficientReciprocalTo(coefficient& result) const
+{
+  MATHICGB_ASSERT(result != 0);
+  mStats.n_recip++;
+  result = modularInverse(result, mCharac);
+}
+
+inline void PolyRing::coefficientDivide(coefficient a, coefficient b, coefficient &result) const
+ // result = a/b
+{
+  mStats.n_divide++;
+  result = (a * modularInverse(b, mCharac)) % mCharac;
+  MATHICGB_ASSERT((result * b) % mCharac == a);
+  MATHICGB_ASSERT(result >= 0);
+  MATHICGB_ASSERT(result < mCharac);
+}
+
+inline void PolyRing::coefficientFromInt(coefficient &result, int a) const
+{
+  result = a % mCharac;
+  if (result < 0) result += mCharac;
+}
+
+inline void PolyRing::coefficientAddOneTo(coefficient &result) const
+{
+  result++;
+  if (result == mCharac) result = 0;
+}
+
+inline void PolyRing::coefficientNegateTo(coefficient &result) const
+ // result = -result
+{
+  result = mCharac - result;
+}
+
+inline void PolyRing::coefficientAddTo(coefficient &result, coefficient a, coefficient b) const
+// result += a*b
+{
+  mStats.n_addmult++;
+  long c = a * b + result;
+  result = c % mCharac;
+}
+
+inline void PolyRing::coefficientAddTo(coefficient &result, coefficient a) const
+ // result += a
+{
+  mStats.n_add++;
+  result += a;
+  if (result >= mCharac) result -= mCharac;
+}
+
+inline void PolyRing::coefficientMultTo(coefficient &result, coefficient a) const
+  // result *= a
+{
+  mStats.n_mult++;
+  long b = result * a;
+  result = b % mCharac;
+}
+
+inline void PolyRing::coefficientMult(coefficient a, coefficient b, coefficient &result) const
+{
+  mStats.n_mult++;
+  long c = b * a;
+  result = c % mCharac;
+}
 
 #endif
 
