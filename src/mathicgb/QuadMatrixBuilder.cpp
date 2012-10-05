@@ -6,6 +6,15 @@
 #include <mathic.h>
 #include <sstream>
 
+QuadMatrixBuilder::QuadMatrixBuilder(const PolyRing& ring):
+#ifndef MATHICGB_USE_QUADMATRIX_STD_HASH
+  mMonomialToCol(ArbitraryOrdering(ring)) {}
+#else
+mMonomialToCol(100, Hash(ring), Equal(ring)) {
+  mMonomialToCol.max_load_factor(0.3);
+}
+#endif
+
 namespace {
   /// Creates a column and updates the associated data structures that
   /// are passed in. Copies mono - ownership is not taken over. The

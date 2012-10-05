@@ -261,35 +261,6 @@ void reformMatrix(const Matrix& matA, const Matrix& matB, SparseMatrix& matAB) {
   MATHICGB_ASSERT(matAB.colCount() == matA.coldim() + matB.coldim());
 }
 
-void sortRowsByIncreasingPivots(SparseMatrix& in, SparseMatrix& out) {
-  MATHICGB_ASSERT(&in != &out);
-
-  // compute pairs (pivot column index, row)
-  std::vector<std::pair<SparseMatrix::ColIndex, SparseMatrix::RowIndex> > order;
-  const SparseMatrix::RowIndex rowCount = in.rowCount();
-  const SparseMatrix::ColIndex colCount = in.colCount();
-  for (SparseMatrix::RowIndex row = 0; row < rowCount; ++row) {
-    if (in.entryCountInRow(row) == 0)
-      order.push_back(std::make_pair(colCount, row));
-    else
-      order.push_back(std::make_pair(in.rowBegin(row).index(), row));
-  }
-
-  // sort pairs by pivot column index
-  std::sort(order.begin(), order.end());
-
-  // construct out with pivot columns in increaing order
-  out.clear(colCount);
-  for (size_t i = 0; i < rowCount; ++i) {
-    const SparseMatrix::RowIndex row = order[i].second;
-    SparseMatrix::RowIterator it = in.rowBegin(row);
-    SparseMatrix::RowIterator end = in.rowEnd(row);
-    for (; it != end; ++it)
-      out.appendEntry(it.index(), it.scalar());
-    out.rowDone();
-  }
-}
-
 void myReduce
 (SparseMatrix const& toReduce,
  SparseMatrix const& reduceBy,
@@ -299,11 +270,24 @@ void myReduce
   // assuming that the left part of reduceBy is upper triangular.
   MATHICGB_ASSERT(reduceBy.colCount() >= reduceBy.rowCount());
   MATHICGB_ASSERT(reduceBy.colCount() == toReduce.colCount());
-  size_t const pivotCount = reduceBy.rowCount();
-  size_t const colCount = toReduce.colCount();
+  const auto pivotCount = reduceBy.rowCount();
+  const auto colCount = toReduce.colCount();
+  const auto rowCount = toReduce.rowCount();
 
   reduced.clear(toReduce.colCount());
-  size_t rowCount = toReduce.rowCount();
+
+  // pre-calculate what rows are pivots for what columns
+  std::vector<SparseMatrix::RowIndex> rowThatReducesCol(pivotCount);
+#ifdef MATHICGB_DEBUG
+  // fill in an invalid value that can be recognized by asserts to be invalid.
+  std::fill(rowThatReducesCol.begin(), rowThatReducesCol.end(), pivotCount);
+#endif
+  for (SparseMatrix::RowIndex pivot = 0; pivot < pivotCount; ++pivot) {
+    MATHICGB_ASSERT(!reduceBy.emptyRow(pivot));
+    SparseMatrix::ColIndex col = reduceBy.leadCol(pivot);
+    MATHICGB_ASSERT(rowThatReducesCol[col] == pivotCount);
+    rowThatReducesCol[col] = pivot;
+  }
 
 #ifdef _OPENMP
   std::vector<DenseRow<uint64> > denseRowPerThread(threadCount);
@@ -323,7 +307,7 @@ void myReduce
     for (size_t pivot = 0; pivot < pivotCount; ++pivot) {
       if (denseRow[pivot] == 0)
         continue;
-      denseRow.rowReduceByUnitary(pivot, reduceBy, modulus);
+      denseRow.rowReduceByUnitary(rowThatReducesCol[pivot], reduceBy, modulus);
     }
     if (denseRow.takeModulus(modulus, pivotCount)) {
 #pragma omp critical
@@ -782,25 +766,19 @@ void F4MatrixReducer::reduce
 
   SparseMatrix::Scalar modulus = ring.charac();
 
-  SparseMatrix reducedD;
   {
     const SparseMatrix::ColIndex pivotColCount = matrix.topLeft.colCount();
 
     SparseMatrix matrixAB;
-    {
-      SparseMatrix tmp;
-      concatenateMatricesHorizontal(matrix.topLeft, matrix.topRight, tmp);
-      sortRowsByIncreasingPivots(tmp, matrixAB);
-    }
+    concatenateMatricesHorizontal(matrix.topLeft, matrix.topRight, matrixAB);
 
     SparseMatrix matrixCD;
     concatenateMatricesHorizontal
       (matrix.bottomLeft, matrix.bottomRight, matrixCD);
 
-    myReduce(matrixCD, matrixAB, modulus, reducedD, mThreadCount);
-    reducedD.trimLeadingZeroColumns(pivotColCount);
+    myReduce(matrixCD, matrixAB, modulus, newPivots, mThreadCount);
+    newPivots.trimLeadingZeroColumns(pivotColCount);
   }
 
-  myReduceToEchelonForm5(reducedD, modulus, mThreadCount);
-  sortRowsByIncreasingPivots(reducedD, newPivots);
+  myReduceToEchelonForm5(newPivots, modulus, mThreadCount);
 }
