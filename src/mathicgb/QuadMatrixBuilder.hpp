@@ -25,12 +25,7 @@ class QuadMatrixBuilder {
   typedef SparseMatrix::ColIndex ColIndex;
   typedef SparseMatrix::Scalar Scalar;
 
-  QuadMatrixBuilder(const PolyRing& ring):
-#ifndef MATHICGB_USE_QUADMATRIX_STD_HASH
-    mMonomialToCol(ArbitraryOrdering(ring)) {}
-#else
-  mMonomialToCol(100, Hash(ring), Equal(ring)) {}
-#endif
+  QuadMatrixBuilder(const PolyRing& ring);
 
   /// The index of a column that can be either on the left or the
   /// right side. The largest representable ColIndex is an invalid

@@ -354,6 +354,10 @@ class SparseMatrix {
   void rowToPolynomial
   (RowIndex row, std::vector<monomial> colMonomials, Poly& poly);
 
+  /// Reorders the rows so that the index of the leading column in
+  /// each row is weakly increasing going from top to bottom. Quite
+  /// slow and it makes a copy internally.
+  void sortRowsByIncreasingPivots();
 
 private:
   friend class RowIterator;

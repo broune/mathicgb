@@ -123,5 +123,6 @@ TEST(F4MatrixReducer, Reduce) {
   const char* redStr =
     "0: 0#1 2#4 3#22 4#11\n"
     "1: 1#1 3#66 4#34\n";
+  reduced.sortRowsByIncreasingPivots();
   ASSERT_EQ(redStr, reduced.toString()) << "Printed reduced:\n" << reduced;
 }
