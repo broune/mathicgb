@@ -4,7 +4,8 @@
 F4MatrixBuilder::F4MatrixBuilder(const PolyBasis& basis):
   mBasis(basis), mBuilder(basis.ring()) {}
 
-void F4MatrixBuilder::addTwoRowsForSPairToMatrix(const Poly& polyA, const Poly& polyB) {
+void F4MatrixBuilder::addSPolynomialToMatrix
+(const Poly& polyA, const Poly& polyB) {
   MATHICGB_ASSERT(!polyA.isZero());
   MATHICGB_ASSERT(!polyB.isZero());
 
@@ -12,28 +13,35 @@ void F4MatrixBuilder::addTwoRowsForSPairToMatrix(const Poly& polyA, const Poly& 
   ring().monomialLeastCommonMultiple
     (polyA.getLeadMonomial(), polyB.getLeadMonomial(), lcm);
 
-  monomial multiple = ring().allocMonomial();
+  SPairTask task = {};
 
-  ring().monomialDivide(lcm, polyA.getLeadMonomial(), multiple);
-  addRowToMatrix(multiple, polyA);
+  task.polyA = &polyA;
+  task.multiplyA = ring().allocMonomial();
+  ring().monomialDivide(lcm, polyA.getLeadMonomial(), task.multiplyA);
 
-  ring().monomialDivide(lcm, polyB.getLeadMonomial(), multiple);
-  addRowToMatrix(multiple, polyB);
+  task.polyB = &polyB;
+  task.multiplyB = ring().allocMonomial();
+  ring().monomialDivide(lcm, polyB.getLeadMonomial(), task.multiplyB);
 
+  mSPairTodo.push_back(task);
   ring().freeMonomial(lcm);
-  ring().freeMonomial(multiple);
 }
 
-void F4MatrixBuilder::addRowToMatrix
+void F4MatrixBuilder::addPolynomialToMatrix
 (const_monomial multiple, const Poly& poly) {
-  RowTask task;
-  task.useAsReducer = false; // to be updated later
-  task.poly = &poly;
+  MATHICGB_ASSERT(ring().hashValid(multiple));
+  if (poly.isZero())
+    return;
 
-  task.multiple = ring().allocMonomial();
-  ring().monomialCopy(multiple, task.multiple);
-  MATHICGB_ASSERT(ring().hashValid(task.multiple));
-  mTodo.push_back(task);
+  SPairTask task = {};
+
+  task.polyA = &poly;
+  task.multiplyA = ring().allocMonomial();
+  ring().monomialCopy(multiple, task.multiplyA);
+
+  MATHICGB_ASSERT(task.polyB == 0);
+  MATHICGB_ASSERT(task.multiplyB.unsafeGetRepresentation() == 0);
+  mSPairTodo.push_back(task);
 }
 
 void F4MatrixBuilder::buildMatrixAndClear(QuadMatrix& matrix) {
@@ -41,21 +49,83 @@ void F4MatrixBuilder::buildMatrixAndClear(QuadMatrix& matrix) {
   // todo: prefer sparse/old reducers among the inputs.
   monomial mono = ring().allocMonomial();
 
-  // Decide which input rows are going to be used as reducers and
-  // create pivot columns ahead of time for those reducers so that
-  // we do not add a reducer for those columns later on.
-  typedef std::vector<RowTask>::iterator TaskIter;
-  TaskIter end = mTodo.end();
-  for (TaskIter it = mTodo.begin(); it != end; ++it) {
-    MATHICGB_ASSERT(ring().hashValid(it->multiple));
-    ring().monomialMult(it->multiple, it->poly->getLeadMonomial(), mono);
-    LeftRightColIndex leadCol = mBuilder.findColumn(mono);
-    it->useAsReducer = !leadCol.valid();
-    if (it->useAsReducer) {
-      // create column so we know later on that we already have a
-      // reducer for this column.
-      mBuilder.createColumnLeft(mono);
+  for (auto it = mSPairTodo.begin(); it != mSPairTodo.end(); ++it) {
+    Poly::const_iterator itA = it->polyA->begin();
+    Poly::const_iterator endA = it->polyA->end();
+    MATHICGB_ASSERT(itA != endA);
+    MATHICGB_ASSERT(it->multiplyA.unsafeGetRepresentation() != 0);
+    MATHICGB_ASSERT(ring().hashValid(it->multiplyA));
+
+    // make itB==endB if there is no polyB
+    Poly::const_iterator itB;
+    Poly::const_iterator endB;
+    if (it->polyB != 0) {
+      MATHICGB_ASSERT(it->multiplyB.unsafeGetRepresentation() != 0);
+      MATHICGB_ASSERT(ring().hashValid(it->multiplyB));
+      itB = it->polyB->begin();
+      endB = it->polyB->end();
+      MATHICGB_ASSERT(itB != endB);
+    } else {
+      // set polyB to an empty range if null
+      itB = endA;
+      endB = endA;
+      MATHICGB_ASSERT(itB == endB);
     }
+
+    // skip leading terms since they cancel
+    //++itA;
+    //++itB;
+
+    monomial monoA = ring().allocMonomial();
+    monomial monoB = ring().allocMonomial();
+    monomial mono = ring().allocMonomial();
+
+    if (itA != endA)
+      ring().monomialMult(itA.getMonomial(), it->multiplyA, monoA);
+    if (itB != endB)
+      ring().monomialMult(itB.getMonomial(), it->multiplyB, monoB);
+
+    while (true) {
+      bool popA = false;
+      bool popB = false;
+      if (itA == endA) {
+        if (itB == endB)
+          break;
+        popB = true;
+      } else if (itB == endB)
+        popA = true;
+      else {
+        int cmp = ring().monomialCompare(monoA, monoB);
+        if (cmp != GT)
+          popB = true;
+        if (cmp != LT)
+          popA = true;
+      }
+
+      MATHICGB_ASSERT(popA || popB);
+      coefficient c = 0;
+      if (popA) {
+        std::swap(mono, monoA);
+        ring().coefficientAddTo(c, itA.getCoefficient());
+        ++itA;
+        if (itA != endA)
+          ring().monomialMult(itA.getMonomial(), it->multiplyA, monoA);
+      }
+      if (popB) {
+        std::swap(mono, monoB);
+        coefficient cB = itB.getCoefficient();
+        ring().coefficientNegateTo(cB);
+        ring().coefficientAddTo(c, cB);
+        ++itB;
+        if (itB != endB)
+          ring().monomialMult(itB.getMonomial(), it->multiplyB, monoB);
+      }
+      if (c != 0)
+        mBuilder.appendEntryBottom(createOrFindColumnOf(mono), c);
+    }
+    ring().freeMonomial(monoA);
+    ring().freeMonomial(monoB);
+    mBuilder.rowDoneBottomLeftAndRight();
   }
 
   // Process pending rows until we are done. Note that the methods
@@ -77,6 +147,7 @@ void F4MatrixBuilder::buildMatrixAndClear(QuadMatrix& matrix) {
 
 F4MatrixBuilder::LeftRightColIndex
 F4MatrixBuilder::createOrFindColumnOf(const_monomial mono) {
+  MATHICGB_ASSERT(ring().hashValid(mono));
   LeftRightColIndex colIndex = mBuilder.findColumn(mono);
   if (colIndex.valid())
     return colIndex;
