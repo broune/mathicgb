@@ -1,3 +1,14 @@
+# MathicGB generated files
+*.gb
+*.stats
+
+# configure directories created by setup Makefile
+pro/
+rel/
+relass/
+deb/
+
+
 # Compiled Object files
 *.slo
 *.lo
