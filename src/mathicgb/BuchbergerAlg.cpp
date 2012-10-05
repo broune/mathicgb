@@ -32,8 +32,10 @@ BuchbergerAlg::BuchbergerAlg(
 {
   // Reduce and insert the generators of the ideal into the starting basis
   size_t const idealSize = ideal.size();
+  std::vector<std::unique_ptr<Poly> > polys;
   for (size_t gen = 0; gen != idealSize; ++gen)
-    insertReducedPoly(mReducer->classicReduce(*ideal.getPoly(gen), mBasis));
+    polys.push_back(make_unique<Poly>(*ideal.getPoly(gen)));
+  insertPolys(polys);
 }
 
 void BuchbergerAlg::insertPolys

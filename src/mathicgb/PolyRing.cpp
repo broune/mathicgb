@@ -60,7 +60,7 @@ void PolyRing::setWeightsAndHash(Monomial& a1) const
   setHashOnly(a1);
 }
 
-inline bool PolyRing::weightsCorrect(ConstMonomial a1) const
+bool PolyRing::weightsCorrect(ConstMonomial a1) const
 {
   exponent const *a = a1.mValue;
   ++a;
@@ -182,14 +182,6 @@ void PolyRing::monomialGreatestCommonDivisor(ConstMonomial a,
   for (size_t i = 1; i <= mNumVars; ++i)
     g[i] = std::min(a[i], b[i]);
   setWeightsOnly(g);
-}
-
-bool PolyRing::monomialIsLeastCommonMultiple(
-  ConstMonomial a,
-  ConstMonomial b,
-  ConstMonomial l) const
-{
-  return monomialIsLeastCommonMultipleNoWeights(a, b, l) && weightsCorrect(l);
 }
 
 bool PolyRing::monomialIsLeastCommonMultipleNoWeights(
@@ -336,7 +328,7 @@ bool PolyRing::monomialIsLeastCommonMultiple(
   return monomialIsLeastCommonMultipleNoWeights(a, b, l) && weightsCorrect(l);
 }
 
-inline bool PolyRing::weightsCorrect(const_monomial a) const
+bool PolyRing::weightsCorrect(const_monomial a) const
 {
   ++a;
   const int *wts = &mWeights[0];
@@ -665,49 +657,6 @@ void PolyRing::write(std::ostream &o) const
     }
 }
 
-void PolyRing::coefficientFromInt(coefficient &result, int a) const
-{
-  result = a % mCharac;
-  if (result < 0) result += mCharac;
-}
-
-void PolyRing::coefficientAddOneTo(coefficient &result) const
-{
-  result++;
-  if (result == mCharac) result = 0;
-}
-void PolyRing::coefficientNegateTo(coefficient &result) const
- // result = -result
-{
-  result = mCharac - result;
-}
-void PolyRing::coefficientAddTo(coefficient &result, coefficient a, coefficient b) const
-// result += a*b
-{
-  mStats.n_addmult++;
-  long c = a * b + result;
-  result = c % mCharac;
-}
-void PolyRing::coefficientAddTo(coefficient &result, coefficient a) const
- // result += a
-{
-  mStats.n_add++;
-  result += a;
-  if (result >= mCharac) result -= mCharac;
-}
-void PolyRing::coefficientMultTo(coefficient &result, coefficient a) const
-  // result *= a
-{
-  mStats.n_mult++;
-  long b = result * a;
-  result = b % mCharac;
-}
-void PolyRing::coefficientMult(coefficient a, coefficient b, coefficient &result) const
-{
-  mStats.n_mult++;
-  long c = b * a;
-  result = c % mCharac;
-}
 
 void gcd_extended(long a, long b, long &u, long &v, long &g)
 {
@@ -726,23 +675,6 @@ void gcd_extended(long a, long b, long &u, long &v, long &g)
        g = g1;             u = u1;                 v = v1 ;
       g1 = gtemp;         u1 = utemp;             v1 = vtemp;
     }
-}
-
-void PolyRing::coefficientReciprocalTo(coefficient& result) const
-{
-  MATHICGB_ASSERT(result != 0);
-  mStats.n_recip++;
-  result = modularInverse(result, mCharac);
-}
-
-void PolyRing::coefficientDivide(coefficient a, coefficient b, coefficient &result) const
- // result = a/b
-{
-  mStats.n_divide++;
-  result = (a * modularInverse(b, mCharac)) % mCharac;
-  MATHICGB_ASSERT((result * b) % mCharac == a);
-  MATHICGB_ASSERT(result >= 0);
-  MATHICGB_ASSERT(result < mCharac);
 }
 
 // Local Variables:

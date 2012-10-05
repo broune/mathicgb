@@ -73,15 +73,6 @@ const coefficient Poly::coefficientAt(size_t index) const {
   return coeffs[index];
 }
 
-void Poly::appendTerm(coefficient a, const_monomial m)
-{
-  // the monomial will be copied on.
-  coeffs.push_back(a);
-  size_t len = R->monomialSize(m);
-  exponent const * e = m.unsafeGetRepresentation();
-  monoms.insert(monoms.end(), e, e + len);
-}
-
 void Poly::append(iterator &first, iterator &last)
 {
   for ( ; first != last; ++first)
@@ -104,8 +95,11 @@ void Poly::multByCoefficient(coefficient c)
     R->coefficientMultTo(*i, c);
 }
 
-void Poly::makeMonic()
-{
+bool Poly::isMonic() const {
+  return !isZero() && R->coefficientIsOne(getLeadCoefficient());
+}
+
+void Poly::makeMonic() {
   if (isZero())
     return;
   coefficient c = getLeadCoefficient();

@@ -75,12 +75,20 @@ void F4Reducer::classicReduceSPolySet
  const PolyBasis& basis,
  std::vector<std::unique_ptr<Poly> >& reducedOut)
 {
+  if (spairs.size() <= 1) {
+    if (tracingLevel >= 2)
+      std::cerr << "F4Reducer: Using fall-back reducer for "
+                << spairs.size() << " S-pairs.\n";
+    mFallback->classicReduceSPolySet(spairs, basis, reducedOut);
+    return;
+  }
+
   reducedOut.clear();
   if (spairs.empty())
     return;
 
   if (tracingLevel >= 2)
-    std::cerr << "F4Reducer: Reducing " << spairs.size() << " S-pair.\n";
+    std::cerr << "F4Reducer: Reducing " << spairs.size() << " S-polynomials.\n";
 
   SparseMatrix reduced;
   std::vector<monomial> monomials;
@@ -108,7 +116,6 @@ void F4Reducer::classicReduceSPolySet
   for (SparseMatrix::RowIndex row = 0; row < reduced.rowCount(); ++row) {
     auto p = make_unique<Poly>(&basis.ring());
     reduced.rowToPolynomial(row, monomials, *p);
-    
     reducedOut.push_back(std::move(p));
   }
 }
@@ -118,10 +125,46 @@ void F4Reducer::classicReducePolySet
  const PolyBasis& basis,
  std::vector<std::unique_ptr<Poly> >& reducedOut)
 {
-  for (auto it = polys.begin(); it != polys.end(); ++it) {
-    auto reducedPoly = classicReduce(**it, basis);
-    if (!reducedPoly->isZero())
-      reducedOut.push_back(std::move(reducedPoly));
+  if (polys.size() <= 1) {
+    if (tracingLevel >= 2)
+      std::cerr << "F4Reducer: Using fall-back reducer for "
+                << polys.size() << " polynomials.\n";
+    mFallback->classicReducePolySet(polys, basis, reducedOut);
+    return;
+  }
+    
+  reducedOut.clear();
+  if (polys.empty())
+    return;
+
+  if (tracingLevel >= 2)
+    std::cerr << "F4Reducer: Reducing " << polys.size() << " polynomials.\n";
+
+  SparseMatrix reduced;
+  std::vector<monomial> monomials;
+  {
+    QuadMatrix qm;
+    {
+      F4MatrixBuilder builder(basis);
+      for (auto it = polys.begin(); it != polys.end(); ++it)
+        builder.addPolynomialToMatrix(**it);
+      builder.buildMatrixAndClear(qm);
+
+      // there has to be something to reduce
+      MATHICGB_ASSERT(qm.bottomLeft.rowCount() > 0);
+    }
+    F4MatrixReducer(mThreadCount).reduce(basis.ring(), qm, reduced);
+    monomials = std::move(qm.rightColumnMonomials);
+  }
+
+  if (tracingLevel >= 2)
+    std::cerr << "F4Reducer: Extracted " << reduced.rowCount()
+              << " non-zero rows\n";
+
+  for (SparseMatrix::RowIndex row = 0; row < reduced.rowCount(); ++row) {
+    auto p = make_unique<Poly>(&basis.ring());
+    reduced.rowToPolynomial(row, monomials, *p);
+    reducedOut.push_back(std::move(p));
   }
 }
 

@@ -30,7 +30,7 @@ namespace {
     if (colCount == std::numeric_limits<QuadMatrixBuilder::ColIndex>::max())
       throw std::overflow_error("Too many columns in QuadMatrixBuilder");
 
-    toMonomial.reserve(toMonomial.size() + 1);
+    toMonomial.push_back(0); // allocate memory ahead of time to avoid bad_alloc
     monomial copied = ring.allocMonomial();
     ring.monomialCopy(mono, copied);
     try {
@@ -38,10 +38,11 @@ namespace {
                    (copied,
                     QuadMatrixBuilder::LeftRightColIndex(colCount, left)));
     } catch (...) {
+      toMonomial.pop_back();
       ring.freeMonomial(copied);
       throw;
     }
-    toMonomial.push_back(copied); // no throw due to reserve
+    toMonomial.back() = copied;
 
     top.ensureAtLeastThisManyColumns(colCount + 1);
     bottom.ensureAtLeastThisManyColumns(colCount + 1);
