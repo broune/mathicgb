@@ -23,35 +23,35 @@ private:
 public:
   F4MatrixBuilder(const PolyBasis& basis);
 
-  /** Schedules two rows to be added to the matrix whose linear span
-    includes the S-polynomial between polyA and polyB. More precisely,
-    the two rows represent (B:A)*polyA and (A:B)*polyB where
-    A=lead(polyA) and B=lead(polyB). */
-  void addTwoRowsForSPairToMatrix(const Poly& polyA, const Poly& polyB);
+  /** Schedules a row representing the S-polynomial between polyA and
+    polyB to be added to the matrix. No ownership is taken, but polyA
+    and polyB must remain valid until the matrix is constructed.
+
+    Currently, the two monomials must be monic, though this is just
+    because they always happen to be monic so there was no reason to
+    support the non-monic case. */
+  void addSPolynomialToMatrix(const Poly& polyA, const Poly& polyB);
 
   /** Schedules a row representing multiple*poly to be added to the
-      matrix. No ownership is taken, but poly must remain valid until
-      the matrix is constructed. multiple is copied so there is no
-      requirement there. */
-  void addRowToMatrix(const_monomial multiple, const Poly& poly);
+    matrix. No ownership is taken, but poly must remain valid until
+    the matrix is constructed. multiple is copied so it need not
+    remain valid. */
+  void addPolynomialToMatrix(const_monomial multiple, const Poly& poly);
 
   /** Builds an F4 matrix to the specifications given. Also clears the
     information in this object.
 
     The right columns are ordered by decreasing monomial of that
     column according to the order from the basis. The left columns are
-    order in some way so that the first entry in each row (the pivot)
-    has a lower index than any other entries in that row.
+    ordered in some way so that the first entry in each top row (the
+    pivot) has a lower index than any other entries in that row.
 
     The matrix contains a reducer/pivot for every monomial that can be
-    reduced by the basis and that is present in the matrix. Note that
-    the client-added rows also count as reducers so their lead terms
-    will not get another reducer added automatically -- specifically,
-    adding an S-polynomial will not do what you want because its lead
-    term may have no reducer in the matrix other than itself. Instead,
-    add the two polynomials that you would have subtracted from each
-    other to form the S-polynomial - or even better call the method
-    that adds an S-pair for you. */
+    reduced by the basis and that is present in the matrix. There is
+    no guarantee that the bottom part of the matrix contains rows that
+    exactly correspond to the polynomials that have been scheduled to
+    be added to the matrix. It is only guaranteed that the matrix has
+    the same row-space as though that had been the case. */
   void buildMatrixAndClear(QuadMatrix& matrix);
 
   const PolyRing& ring() const {return mBuilder.ring();}
@@ -64,12 +64,24 @@ private:
   void appendRowTop(const_monomial multiple, const Poly& poly);
   void appendRowBottom(const_monomial multiple, const Poly& poly);
 
+  /// Represents an S-pair that was added to the matrix for reduction
+  /// or, if polyB is null, a polynomial that was added to the matrix
+  /// for reduction.
+  struct SPairTask {
+    const Poly* polyA;
+    monomial multiplyA;
+    const Poly* polyB;
+    monomial multiplyB;
+  };
+
   /// Represents the task of adding a row representing poly*multiple.
   struct RowTask {
     bool useAsReducer; // if true: put in top part of matrix
     const Poly* poly;
     monomial multiple;
   };
+
+  std::vector<SPairTask> mSPairTodo;
   std::vector<RowTask> mTodo;
   const PolyBasis& mBasis;
   QuadMatrixBuilder mBuilder;

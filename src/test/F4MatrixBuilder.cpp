@@ -64,26 +64,45 @@ TEST(F4MatrixBuilder, Empty) {
   ASSERT_EQ(0, matrix.rightColumnMonomials.size());
 }
 
+TEST(F4MatrixBuilder, SPair) {
+  BuilderMaker maker;
+  const Poly& p1 = maker.addBasisElement("a4c2-d");
+  const Poly& p2 = maker.addBasisElement("a4b+d");
+  // S-pair of p1 and p2 is -c2d-bd
+  const Poly& p3 = maker.addBasisElement("c2d+3");
+  F4MatrixBuilder& builder = maker.create();
+  builder.addSPolynomialToMatrix(p1, p2);
+  QuadMatrix qm;
+  builder.buildMatrixAndClear(qm);
+  const char* str = 
+    "Left columns: c2d\n"
+    "Right columns: bd 1\n"
+    "0: 0#1   | 0: 1#3  \n"
+    "         |         \n"
+    "0: 0#100 | 0: 0#100\n";
+  ASSERT_EQ(str, qm.toString());
+}
+
 TEST(F4MatrixBuilder, OneByOne) {
   BuilderMaker maker;
   const Poly& p = maker.addBasisElement("a");
   F4MatrixBuilder& builder = maker.create();
-  builder.addRowToMatrix(p.getLeadMonomial(), p);
+  builder.addPolynomialToMatrix(p.getLeadMonomial(), p);
   QuadMatrix qm;
   builder.buildMatrixAndClear(qm);
   const char* str = 
     "Left columns: a2\n"
     "Right columns:\n"
-    "0: 0#1              | 0:                 \n"
-    "                    |                    \n"
-    "matrix with no rows | matrix with no rows\n";
-  ASSERT_EQ(str, qm.toString());
+    "0: 0#1 | 0:\n"
+    "       |   \n"
+    "0: 0#1 | 0:\n";
+  ASSERT_EQ(str, qm.toString()) << "** qm:\n" << qm;
 }
 
 TEST(F4MatrixBuilder, DirectReducers) {
   BuilderMaker maker;
-  maker.addBasisElement("a6<0>"); // reducer ==, but won't be used as not added
-  maker.addBasisElement("a3b2<0>+a3c"); // reducer ==
+  maker.addBasisElement("a6<0>"); // reducer == to lead term
+  maker.addBasisElement("a3b2<0>+a3c"); // reducer == to lower order term
   maker.addBasisElement("c<0>"); // reducer divides
   maker.addBasisElement("d2<0>"); // does not divide
   F4MatrixBuilder& builder = maker.create();
@@ -92,14 +111,14 @@ TEST(F4MatrixBuilder, DirectReducers) {
   { 
     std::istringstream in("a3<0>+b2+c+d");
     p1.parse(in);
-    builder.addRowToMatrix(p1.getLeadMonomial(), p1);
+    builder.addPolynomialToMatrix(p1.getLeadMonomial(), p1);
   }
 
   Poly p2(&builder.ring());
   {
     std::istringstream in("a3<0>+2b2+3c+4d");
     p2.parse(in);
-    builder.addRowToMatrix(p2.getLeadMonomial(), p2);
+    builder.addPolynomialToMatrix(p2.getLeadMonomial(), p2);
   }
 
   QuadMatrix qm;
@@ -110,12 +129,13 @@ TEST(F4MatrixBuilder, DirectReducers) {
     "Right columns: a3d\n"
     "0: 2#1         | 0:    \n"
     "1: 1#1 2#1     | 1:    \n"
-    "2: 0#1 1#1 2#1 | 2: 0#1\n"
+    "2: 0#1         | 2:    \n"
     "               |       \n"
-    "0: 0#1 1#2 2#3 | 0: 0#4\n";
+    "0: 0#1 1#1 2#1 | 0: 0#1\n"
+    "1: 0#1 1#2 2#3 | 1: 0#4\n";
   // This quest is currently fragile because of the possibility of
   // reordering of the rows.
-  ASSERT_EQ(str, qm.toString());
+  ASSERT_EQ(str, qm.toString()) << "** qm:\n" << qm;
 }
 
 TEST(F4MatrixBuilder, IteratedReducer) {
@@ -123,18 +143,18 @@ TEST(F4MatrixBuilder, IteratedReducer) {
   const Poly& p1 = maker.addBasisElement("a4-a3");
   const Poly& p2 = maker.addBasisElement("a-1");
   F4MatrixBuilder& builder = maker.create();
-  builder.addRowToMatrix(p1.getLeadMonomial(), p2);
+  builder.addPolynomialToMatrix(p1.getLeadMonomial(), p2);
   QuadMatrix qm;
   builder.buildMatrixAndClear(qm);
   const char* str = 
     "Left columns: a5 a4 a3 a2 a\n"
     "Right columns: 1\n"
-    "0: 0#1 1#100        | 0:                 \n"
-    "1: 1#1 2#100        | 1:                 \n"
-    "2: 2#1 3#100        | 2:                 \n"
-    "3: 3#1 4#100        | 3:                 \n"
-    "4: 4#1              | 4: 0#100           \n"
-    "                    |                    \n"
-    "matrix with no rows | matrix with no rows\n";
-  ASSERT_EQ(str, qm.toString());
+    "0: 1#1 2#100 | 0:      \n"
+    "1: 2#1 3#100 | 1:      \n"
+    "2: 3#1 4#100 | 2:      \n"
+    "3: 4#1       | 3: 0#100\n"
+    "4: 0#1 1#100 | 4:      \n"
+    "             |         \n"
+    "0: 0#1 1#100 | 0:      \n";
+  ASSERT_EQ(str, qm.toString()) << "** qm:\n" << qm;
 }
