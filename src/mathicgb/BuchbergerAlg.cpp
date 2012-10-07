@@ -248,8 +248,10 @@ void BuchbergerAlg::step() {
     }
   } else {
     std::vector<std::pair<size_t, size_t> > spairGroup;
+    exponent w = 0;
     for (unsigned int i = 0; i < mSPairGroupSize; ++i) {
-      std::pair<size_t, size_t> p = mSPairs.pop();
+      std::pair<size_t, size_t> p;
+      p = mSPairs.pop(w);
       if (p.first == static_cast<size_t>(-1)) {
         ASSERT(p.second == static_cast<size_t>(-1));
         break; // no more S-pairs

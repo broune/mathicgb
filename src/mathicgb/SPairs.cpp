@@ -36,6 +36,37 @@ std::pair<size_t, size_t> SPairs::pop() {
   return std::make_pair(static_cast<size_t>(-1), static_cast<size_t>(-1));
 }
 
+std::pair<size_t, size_t> SPairs::pop(exponent& w) {
+  // Must call addPairs for new elements before popping.
+  ASSERT(mEliminated.columnCount() == mBasis.size());
+
+  while (!mTri.empty()) {
+    std::pair<size_t, size_t> p;
+    p = mTri.topPair();
+    if (mBasis.retired(p.first) || mBasis.retired(p.second)) {
+      mTri.pop();
+      continue;
+    }
+    const_monomial lcm = mTri.topOrderBy();
+    ASSERT(mRing.monomialIsLeastCommonMultiple
+      (mBasis.leadMonomial(p.first),
+      mBasis.leadMonomial(p.second), lcm));
+    // Can't pop before done with lcm as popping overwrites lcm.
+    if (advancedBuchbergerLcmCriterion(p.first, p.second, lcm)) {
+      mTri.pop();
+      continue;
+    }
+    if (w == 0)
+      w = mRing.weight(lcm);
+    else if (w != mRing.weight(lcm))
+      break;
+    mTri.pop();
+    mEliminated.setBit(p.first, p.second, true);
+    return p;
+  }
+  return std::make_pair(static_cast<size_t>(-1), static_cast<size_t>(-1));
+}
+
 namespace {
   // Records multiples of a basis element.
   // Used in addPairs().

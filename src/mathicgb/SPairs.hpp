@@ -31,6 +31,11 @@ public:
   // the queue may have been found to be useless.
   std::pair<size_t, size_t> pop();
 
+  // As pop(), but only pops S-pairs whose lcm have the passed-in
+  // weight. If deg is already 0, then instead set deg to the weight
+  // of the returned S-pair, if any.
+  std::pair<size_t, size_t> pop(exponent& w);
+
   // Add the pairs (index,a) to the data structure for those a such that
   // a < index. Some of those pairs may be eliminated if they can be proven
   // to be useless. index must be a valid index of a basis element
