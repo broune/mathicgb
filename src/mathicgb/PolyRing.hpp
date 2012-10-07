@@ -334,6 +334,10 @@ public:
                                       ConstMonomial baseDivLead,
                                       Monomial result) const;
 
+  // Returns the weight (degree) of a. Takes the first weight if
+  // working with several weight vectors.
+  exponent weight(ConstMonomial a) const;
+
   void setWeightsAndHash(Monomial& a) const;
 
   inline void setWeightsOnly(Monomial& a) const;
@@ -565,6 +569,11 @@ private:
 
   bool mTotalDegreeGradedOnly;
 };
+
+inline exponent PolyRing::weight(ConstMonomial a) const {
+  MATHICGB_ASSERT(weightsCorrect(a));
+  return a[mNumVars + 1];
+}
 
 ////////////////////////////////////////////////
 // New Monomial Routines ///////////////////////
