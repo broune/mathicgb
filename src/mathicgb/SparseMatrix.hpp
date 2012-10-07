@@ -174,6 +174,15 @@ class SparseMatrix {
     rowDone();
   }
 
+  void appendRow(const SparseMatrix& matrix, RowIndex row) {
+    MATHICGB_ASSERT(row < matrix.rowCount());
+    RowIterator it = matrix.rowBegin(row);
+    RowIterator end = matrix.rowEnd(row);
+    for (; it != end; ++it)
+      appendEntry(it.index(), it.scalar());
+    rowDone();
+  }
+
   void setToAndTakeMemory(std::vector<ColIndex>& indices,
                           std::vector<Scalar>& entries,
                           std::vector<ColIndex>& sizes,
