@@ -184,8 +184,8 @@ namespace {
 
     typedef SigPTConfiguration<Cmp> PC;
     mathic::PairQueue<PC> mPairQueue;
-    friend class mathic::PairQueueNamespace::ConstructPairDataFunction<PC>;
-    friend class mathic::PairQueueNamespace::DestructPairDataFunction<PC>;
+    friend struct mathic::PairQueueNamespace::ConstructPairDataFunction<PC>;
+    friend struct mathic::PairQueueNamespace::DestructPairDataFunction<PC>;
   };
 }
 

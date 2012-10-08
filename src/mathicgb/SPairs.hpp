@@ -4,6 +4,7 @@
 #include "PairTriangle.hpp"
 #include <utility>
 #include <mathic.h>
+#include <memory>
 
 class PolyBasis;
 
@@ -14,7 +15,7 @@ public:
   SPairs(const PolyBasis& basis, size_t queueType);
 
   // Returns the number of S-pairs in the data structure.
-  size_t pairCount() const {mTri.pairCount();}
+  size_t pairCount() const {return mTri.pairCount();}
 
   // Returns true if there all S-pairs have been eliminated or popped.
   bool empty() const {return mTri.empty();}

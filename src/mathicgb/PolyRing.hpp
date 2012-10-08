@@ -68,8 +68,9 @@ template<> struct ModularProdType<int16> {typedef int32 type;};
 template<> struct ModularProdType<int32> {typedef int64 type;};
 
 /** Returns a*b mod modulus.  It is required that 0 <= a, b < modulus. */
-template<class T, class BigT = typename ModularProdType<T>::type>
+template<class T>
 T modularProduct(T a, T b, T modulus) {
+  typedef typename ModularProdType<T>::type BigT;
   MATHICGB_ASSERT(0 <= a);
   MATHICGB_ASSERT(a < modulus);
   MATHICGB_ASSERT(0 <= b);
@@ -314,7 +315,7 @@ public:
 
   void displayHashValues() const;
 
-  exponent monomialHashIndex() const { return mHashIndex; }
+  size_t monomialHashIndex() const { return mHashIndex; }
 
   ///////////////////////////////////////////
   // Monomial Routines //////////////////////

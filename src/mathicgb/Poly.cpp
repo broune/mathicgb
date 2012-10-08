@@ -339,6 +339,7 @@ void Poly::see(bool print_comp) const
 
 std::ostream& operator<<(std::ostream& out, const Poly& p) {
   p.see(false);
+  return out;
 }
 
 bool Poly::termsAreInDescendingOrder() const {

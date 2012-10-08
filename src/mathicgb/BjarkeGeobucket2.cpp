@@ -21,7 +21,6 @@ void BjarkeGeobucket2::insert(Poly::const_iterator first,
   for (Poly::const_iterator i = first; i != last; ++i)
     {
       monomial monomspace = mRing.allocMonomial(mArena);
-      node *p;
       mRing.monomialCopy(i.getMonomial(), monomspace);
       std::pair<bool, node*> found = mHashTable.insert(monomspace, i.getCoefficient());
       if (found.first)
