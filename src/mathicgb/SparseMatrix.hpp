@@ -173,7 +173,7 @@ class SparseMatrix {
     }
     rowDone();
   }
-
+  
   void appendRow(const SparseMatrix& matrix, RowIndex row) {
     MATHICGB_ASSERT(row < matrix.rowCount());
     RowIterator it = matrix.rowBegin(row);
@@ -213,7 +213,7 @@ class SparseMatrix {
 
     std::vector<ColIndex>().swap(sizes); // deallocate old memory
   }
-
+  
   void swap(SparseMatrix& matrix) {
     mColIndices.swap(matrix.mColIndices);
     mEntries.swap(matrix.mEntries);
@@ -228,8 +228,9 @@ class SparseMatrix {
     mRowOffsets.push_back(0);
     mColCount = newColCount;
   }
-
-  struct RowIterator {
+  
+  class RowIterator {
+  public:
     RowIterator& operator++() {
       ++mOffset;
       return *this;
@@ -246,7 +247,7 @@ class SparseMatrix {
     const SparseMatrix& mMatrix;
     size_t mOffset;      
   };
-
+  
   RowIndex rowCount() const {
     MATHICGB_ASSERT(!mRowOffsets.empty());
     return mRowOffsets.size() - 1;
@@ -255,7 +256,7 @@ class SparseMatrix {
   ColIndex colCount() const {
     return mColCount;
   }
-
+  
   RowIterator rowBegin(RowIndex row) const {
     MATHICGB_ASSERT(row < rowCount());
     return RowIterator(*this, mRowOffsets[row]);
@@ -265,7 +266,7 @@ class SparseMatrix {
     MATHICGB_ASSERT(row < rowCount());
     return RowIterator(*this, mRowOffsets[row + 1]);
   }
-
+  
   void ensureAtLeastThisManyColumns(ColIndex count) {
     if (count > colCount())
       mColCount = count;
@@ -281,8 +282,8 @@ class SparseMatrix {
     }
     rowDone();
   }
-
-  void appendRow(std::vector<uint64> const& v, size_t leadCol = 0) {
+  
+  void appendRow(std::vector<uint64> const& v, ColIndex leadCol = 0) {
     MATHICGB_ASSERT(v.size() == colCount());
 #ifdef MATHICGB_DEBUG
     for (ColIndex col = leadCol; col < leadCol; ++col) {
@@ -291,12 +292,14 @@ class SparseMatrix {
 #endif
 
     ColIndex count = colCount();
-    for (ColIndex col = leadCol; col < count; ++col)
+    for (ColIndex col = leadCol; col < count; ++col) {
+	  MATHICGB_ASSERT(v[col] < std::numeric_limits<Scalar>::max());
       if (v[col] != 0)
-        appendEntry(col, v[col]);
+        appendEntry(col, static_cast<Scalar>(v[col]));
+	}
     rowDone();
   }
-  
+
   void appendRowWithModulusNormalized(std::vector<uint64> const& v, Scalar modulus) {
     MATHICGB_ASSERT(v.size() == colCount());
     ColIndex count = colCount();
@@ -354,7 +357,7 @@ class SparseMatrix {
   const std::vector<ColIndex>& colIndices() const {
     return mColIndices;
   }
-
+  
   typedef std::vector<ColIndex>::iterator AllColIndicesIterator;
   AllColIndicesIterator allColIndicesBegin() {return mColIndices.begin();}
   AllColIndicesIterator allColIndicesEnd() {return mColIndices.end();}
@@ -367,7 +370,7 @@ class SparseMatrix {
   /// each row is weakly increasing going from top to bottom. Quite
   /// slow and it makes a copy internally.
   void sortRowsByIncreasingPivots();
-
+  
 private:
   friend class RowIterator;
 

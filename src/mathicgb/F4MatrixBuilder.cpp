@@ -137,8 +137,10 @@ void F4MatrixBuilder::buildMatrixAndClear(QuadMatrix& matrix) {
         if (itB != endB)
           ring().monomialMult(itB.getMonomial(), it->multiplyB, monoB);
       }
-      if (c != 0)
-        mBuilder.appendEntryBottom(createOrFindColumnOf(mono), c);
+      if (c != 0) {
+	    MATHICGB_ASSERT(c < std::numeric_limits<QuadMatrixBuilder::Scalar>::max());
+        mBuilder.appendEntryBottom(createOrFindColumnOf(mono), static_cast<QuadMatrixBuilder::Scalar>(c));
+	  }
     }
     ring().freeMonomial(monoA);
     ring().freeMonomial(monoB);
@@ -192,7 +194,8 @@ void F4MatrixBuilder::appendRowTop(const_monomial multiple, const Poly& poly) {
   Poly::const_iterator end = poly.end();
   for (Poly::const_iterator it = poly.begin(); it != end; ++it) {
     ring().monomialMult(it.getMonomial(), multiple, mono);
-    mBuilder.appendEntryTop(createOrFindColumnOf(mono), it.getCoefficient());
+	MATHICGB_ASSERT(it.getCoefficient() < std::numeric_limits<QuadMatrixBuilder::Scalar>::max());
+    mBuilder.appendEntryTop(createOrFindColumnOf(mono), static_cast<QuadMatrixBuilder::Scalar>(it.getCoefficient()));
   }
   mBuilder.rowDoneTopLeftAndRight();
   ring().freeMonomial(mono);
@@ -204,8 +207,9 @@ void F4MatrixBuilder::appendRowBottom
   Poly::const_iterator end = poly.end();
   for (Poly::const_iterator it = poly.begin(); it != end; ++it) {
     ring().monomialMult(it.getMonomial(), multiple, mono);
+	MATHICGB_ASSERT(it.getCoefficient() < std::numeric_limits<QuadMatrixBuilder::Scalar>::max());
     mBuilder.appendEntryBottom
-      (createOrFindColumnOf(mono), it.getCoefficient());
+      (createOrFindColumnOf(mono), static_cast<QuadMatrixBuilder::Scalar>(it.getCoefficient()));
   }
   mBuilder.rowDoneBottomLeftAndRight();
   ring().freeMonomial(mono);

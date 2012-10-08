@@ -464,14 +464,17 @@ void myReduce
       MATHICGB_ASSERT(row < pivotCount);
       MATHICGB_ASSERT(!reduceByLeft.emptyRow(row));
       MATHICGB_ASSERT(reduceByLeft.leadCol(row) == pivot);
-      denseRow.addRowMultiple(entry, ++reduceByLeft.rowBegin(row), reduceByLeft.rowEnd(row));
+      MATHICGB_ASSERT(entry < std::numeric_limits<SparseMatrix::Scalar>::max());
+      denseRow.addRowMultiple(static_cast<SparseMatrix::Scalar>(entry), ++reduceByLeft.rowBegin(row), reduceByLeft.rowEnd(row));
       denseRow[pivot] = entry;
     }
 #pragma omp critical
     {
-      for (size_t pivot = 0; pivot < pivotCount; ++pivot)
+      for (size_t pivot = 0; pivot < pivotCount; ++pivot) {
+		MATHICGB_ASSERT(denseRow[pivot] < std::numeric_limits<Scalar>::max());
         if (denseRow[pivot] != 0)
-          tmp.appendEntry(rowThatReducesCol[pivot], denseRow[pivot]);
+          tmp.appendEntry(rowThatReducesCol[pivot], static_cast<SparseMatrix::Scalar>(denseRow[pivot]));
+	  }
       tmp.rowDone();
       rowOrder[tmp.rowCount() - 1] = row;
     }
@@ -496,7 +499,7 @@ void myReduce
 #pragma omp critical
     {
       bool zero = true;
-      for (size_t col = 0; col < colCountRight; ++col) {
+	  for (SparseMatrix::ColIndex col = 0; col < colCountRight; ++col) {
         SparseMatrix::Scalar entry = static_cast<SparseMatrix::Scalar>(denseRowX[col] % modulus);
         if (entry != 0)
           reduced.appendEntry(col, entry), zero = false;
@@ -691,9 +694,13 @@ void readMany(FILE* file, size_t count, std::vector<T>& v) {
 // Writes an SparseMatrix
 void writeSparseMatrix
 (const SparseMatrix& matrix, SparseMatrix::Scalar modulus, const std::string& fileName) {
-  const uint32 rowCount = matrix.rowCount();
-  const uint32 colCount = matrix.colCount();
-  const uint64 entryCount = matrix.entryCount();
+  MATHICGB_ASSERT(rowCount <= std::numeric_limits<uint32>::max());
+  MATHICGB_ASSERT(colCount <= std::numeric_limits<uint32>::max());
+  MATHICGB_ASSERT(entryCount <= std::numeric_limits<uint64>::max());
+
+  const uint32 rowCount = static_cast<uint32>(matrix.rowCount());
+  const uint32 colCount = static_cast<uint32>(matrix.colCount());
+  const uint64 entryCount = static_cast<uint32>(matrix.entryCount());
 
   FILE* file = fopen(fileName.c_str(), "w");
   if (file == NULL)
@@ -709,7 +716,7 @@ void writeSparseMatrix
 
   std::vector<uint32> sizes;
   for (size_t row = 0; row < rowCount; ++row)
-    sizes.push_back(matrix.entryCountInRow(row));
+    sizes.push_back(static_cast<uint32>(matrix.entryCountInRow(row)));
   writeMany<uint32>(sizes, file);
 
   // todo: don't leak file on exception.
@@ -729,10 +736,10 @@ SparseMatrix::Scalar readSparseMatrix(const std::string& fileName, SparseMatrix&
   uint64 const entryCount = readOne<uint64>(file);
 
   std::vector<uint16> entries;
-  readMany(file, entryCount, entries);
+  readMany(file, static_cast<size_t>(entryCount), entries);
 
   std::vector<uint32> indices;
-  readMany(file, entryCount, indices);
+  readMany(file, static_cast<size_t>(entryCount), indices);
 
   std::vector<uint32> sizes;
   readMany(file, rowCount, sizes);
@@ -981,7 +988,8 @@ void F4MatrixReducer::reduce
   if (ring.charac() > std::numeric_limits<SparseMatrix::Scalar>::max())
     throw std::overflow_error("Too large modulus in F4 matrix computation.");
 
-  SparseMatrix::Scalar modulus = ring.charac();
+  MATHICGB_ASSERT(ring.charac() <= std::numeric_limits<SparseMatrix::Scalar>::max());
+  SparseMatrix::Scalar modulus = static_cast<SparseMatrix::Scalar>(ring.charac());
 
   {
 

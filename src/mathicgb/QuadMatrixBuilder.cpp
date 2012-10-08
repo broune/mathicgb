@@ -11,7 +11,7 @@ QuadMatrixBuilder::QuadMatrixBuilder(const PolyRing& ring):
   mMonomialToCol(ArbitraryOrdering(ring)) {}
 #else
 mMonomialToCol(100, Hash(ring), Equal(ring)) {
-  mMonomialToCol.max_load_factor(0.3);
+  mMonomialToCol.max_load_factor(0.3f);
 }
 #endif
 
