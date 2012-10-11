@@ -20,7 +20,7 @@ namespace {
   {
     const PolyRing& ring = b.ring();
     {
-      Poly p(&b.ring());
+      Poly p(b.ring());
       std::istringstream in(left);
       p.parseDoNotOrder(in);
       size_t colCount = 0;
@@ -37,7 +37,7 @@ namespace {
       ASSERT_EQ(colCount, b.leftColCount());
     }
     {
-      Poly p(&b.ring());
+      Poly p(b.ring());
       std::istringstream in(right);
       p.parseDoNotOrder(in);
       size_t colCount = 0;
@@ -110,7 +110,7 @@ TEST(QuadMatrixBuilder, ColumnQuery) {
   QuadMatrixBuilder b(*ring);
   createColumns("a<1>+<0>", "b<0>+c<0>+bc<0>", b);
 
-  Poly p(&b.ring());
+  Poly p(b.ring());
   // coefficient 1X=left, 2X=right, 30=not there, % 10 = column index
   std::istringstream in
     ("10a<1>+11<0>+20b<0>+21c<0>+22bc<0>+30ab<0>+30e<0>+10a<1>");

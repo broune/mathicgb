@@ -13,8 +13,6 @@
 #include <istream>
 #include <cctype>
 
-extern int tracingLevel;
-
 class CliActionSignature : public mic::Action {
 public:
   CliActionSignature():
@@ -181,8 +179,8 @@ public:
       std::string const inputIdealFile = mProjectName.value() + ".ideal";
       std::ifstream inputFile(inputIdealFile.c_str());
       if (inputFile.fail())
-        mic::reportError("Could not read input file " + inputIdealFile);
-      ideal.reset(Ideal::parse(inputFile));
+        mic::reportError("Could not read input file \"" + inputIdealFile + '\n');
+      ideal = Ideal::parse(inputFile);
     }
     std::unique_ptr<PolyRing const> ring(&(ideal->ring()));
       

@@ -14,8 +14,6 @@
 /* As such, it has entries that both will expect */
 /* It also contains enough for the Naive monomial table use */
 
-extern int tracingLevel;
-
 template<bool AllowRemovals, bool UseDivMask>
 class DivLookupConfiguration;
 

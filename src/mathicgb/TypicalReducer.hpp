@@ -43,7 +43,7 @@ public:
    const PolyBasis& basis,
    std::vector<std::unique_ptr<Poly> >& reducedOut);
 
-  virtual void setThreadCount(size_t threadCount);
+  virtual void setThreadCount(int threadCount);
 
 protected:
   // These are the methods that sub-classes define in order to carry

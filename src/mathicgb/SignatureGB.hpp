@@ -43,9 +43,9 @@ public:
   // How many reductions were singular
   unsigned long long getSingularReductionCount() const;
 
-  GroebnerBasis* getGB() { return GB; }
-  MonomialTableArray* getSyzTable() { return Hsyz; }
-  SigSPairs* getSigSPairs() { return SP; }
+  GroebnerBasis* getGB() { return GB.get(); }
+  MonomialTableArray* getSyzTable() { return Hsyz.get(); }
+  SigSPairs* getSigSPairs() { return SP.get(); }
 
   size_t getMemoryUse() const;
   void displayStats(std::ostream& out) const;
@@ -65,18 +65,17 @@ private:
   unsigned int mBreakAfter;
   unsigned int mPrintInterval;
 
+
+
+
   bool processSPair(monomial sig, const SigSPairs::PairContainer& pairs);
   bool step();
 
   const PolyRing *R;
-  FreeModuleOrder *F;
+  std::unique_ptr<FreeModuleOrder> F;
 
-  SigSPairs *SP;
-  MonomialTableArray *Hsyz;
-  GroebnerBasis *GB;
-  KoszulQueue *mKoszuls;
+  
 
-  Reducer* reducer;
 
   bool const mPostponeKoszul;
 
@@ -98,6 +97,12 @@ private:
 
   mic::Timer mTimer;
   double stats_nsecs;
+
+  std::unique_ptr<GroebnerBasis> GB;
+  std::unique_ptr<KoszulQueue> mKoszuls;
+  std::unique_ptr<MonomialTableArray> Hsyz;
+  std::unique_ptr<Reducer> reducer;
+  std::unique_ptr<SigSPairs> SP;
 };
 
 #endif

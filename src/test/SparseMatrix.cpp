@@ -9,7 +9,7 @@
 
 namespace {
   std::unique_ptr<Poly> parsePoly(const PolyRing& ring, std::string str) {
-    auto p = make_unique<Poly>(&ring);
+    auto p = make_unique<Poly>(ring);
     std::istringstream in(str);
     p->parse(in);
     return p;
@@ -75,7 +75,7 @@ TEST(SparseMatrix, toRow) {
   mat.appendEntry(4,40);
   mat.rowDone();
 
-  Poly p(ring.get());
+  Poly p(*ring);
   mat.rowToPolynomial(0, monomials, p);
   ASSERT_EQ(*parsePoly(*ring, "0"), p);
   mat.rowToPolynomial(1, monomials, p);

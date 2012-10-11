@@ -71,8 +71,6 @@ private:
   memt::BufferPool mPool;
 };
 
-extern int tracingLevel;
-
 template<template<typename> class Q>
 ReducerPack<Q>::ReducerPack(const PolyRing& ring):
   mRing(ring),

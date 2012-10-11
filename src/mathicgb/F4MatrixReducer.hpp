@@ -9,13 +9,16 @@ class PolyRing;
   answer you get is the submatrix that contains new pivots. */
 class F4MatrixReducer {
 public:
-  F4MatrixReducer(size_t threadCount);
+  F4MatrixReducer(int threadCount);
 
   void reduce
   (const PolyRing& ring, QuadMatrix& matrix, SparseMatrix& newPivots);
 
 private:
-  size_t mThreadCount;
+  /// this is forced to be signed to avoid warnings about signed/unsigned
+  /// conversion because, perversely, MSVC 2012 does not allow unsigned
+  /// for-loop indices in OpenMP.
+  int mThreadCount;
 };
 
 #endif

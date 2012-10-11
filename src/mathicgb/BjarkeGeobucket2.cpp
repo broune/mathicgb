@@ -4,9 +4,6 @@
 
 #include <iostream>
 
-
-extern int tracingLevel;
-
 BjarkeGeobucket2::BjarkeGeobucket2(const PolyRing *R0):
   mRing(*R0),
   mHashTableOLD(R0, 10),

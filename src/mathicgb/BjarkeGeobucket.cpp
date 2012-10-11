@@ -1,10 +1,7 @@
 // Copyright 2011 Michael E. Stillman
 
-#include <iostream>
 #include "stdinc.h"
 #include "BjarkeGeobucket.hpp"
-
-extern int tracingLevel;
 
 BjarkeGeobucket::BjarkeGeobucket(const PolyRing *R0)
   : Reducer(),

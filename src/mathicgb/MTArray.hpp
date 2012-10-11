@@ -80,7 +80,8 @@ public:
 
   // Choosing one
   static int displayMTTypes(std::ostream &o); // returns n s.t. 0..n-1 are valid types
-  static MonomialTableArray* make(const PolyRing *R, int typ, size_t components, bool allowRemovals);
+  static std::unique_ptr<MonomialTableArray>
+    make(const PolyRing *R, int typ, size_t components, bool allowRemovals);
 
 protected:
   class MonomialCompare {

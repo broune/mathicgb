@@ -20,8 +20,6 @@
 #include <iostream>
 #include <algorithm>
 
-extern int tracingLevel;
-
 Reducer::Reducer():
   stats_maxsize(0),
   stats_maxsize_live(0),

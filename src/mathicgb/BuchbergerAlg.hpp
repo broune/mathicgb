@@ -50,7 +50,7 @@ public:
     mSPairGroupSize = groupSize;
   }
 
-  void setThreadCount(size_t threadCount) {
+  void setThreadCount(int threadCount) {
     mThreadCount = threadCount;
   }
 
@@ -66,7 +66,7 @@ private:
   unsigned int mBreakAfter;
   unsigned int mPrintInterval;
   unsigned int mSPairGroupSize;
-  size_t mThreadCount;
+  int mThreadCount;
   bool mUseAutoTopReduction;
   bool mUseAutoTailReduction;
 

@@ -43,10 +43,8 @@ public:
   virtual std::unique_ptr<SigSPairQueue>
   createSigSPairQueue(GroebnerBasis const& basis) const = 0;
 
-  /// @todo: We need at least an enum to make this clearer and the return type
-  /// should be a smart pointer since the client needs to deallocate
-  /// that memory.
-  static FreeModuleOrder* makeOrder(FreeModuleOrderType type, const Ideal* I);
+  /// @todo: We need at least an enum to make this clearer
+  static std::unique_ptr<FreeModuleOrder> makeOrder(FreeModuleOrderType type, const Ideal* I);
 
   static void displayOrderTypes(std::ostream &o);
 

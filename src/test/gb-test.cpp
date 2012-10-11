@@ -20,8 +20,6 @@
 #include <memory>
 #include <gtest/gtest.h>
 
-extern int tracingLevel;
-
 TEST(IO, ideal) {
   const char* idealA_fromStr_format = 
 "32003 6 \
@@ -315,7 +313,6 @@ spairQueue	reducerType	divLookup	monTable	buchberger	postponeKoszul	useBaseDivis
   }
 }
 
-extern int tracingLevel;
 TEST(GB, small) {
   testGB(0, idealSmall, idealSmallBasis, idealSmallSyzygies, idealSmallInitial, 7);
 }

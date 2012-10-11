@@ -279,7 +279,6 @@ private:
 //   rule: a[i] < b[i] then a > b
 //
 // also applies to component, which is considered last.
-extern int tracingLevel;
 class OrderA {
 public:
   OrderA(const PolyRing* ring): mRing(ring) {}
@@ -698,37 +697,35 @@ void FreeModuleOrder::displayOrderTypes(std::ostream &o)
   o << "  7   IndexDown SchreyerGrevLex" << std::endl;
 }
 
-FreeModuleOrder* FreeModuleOrder::makeOrder(FreeModuleOrderType type, const Ideal* I)
+std::unique_ptr<FreeModuleOrder> FreeModuleOrder::makeOrder(FreeModuleOrderType type, const Ideal* I)
 {
-  int i;
   if (type == 0)
     type = 1;  // Set the default
 
   switch (type) {
   case 1:
-    return new ConcreteOrder<OrderA>(OrderA(I->getPolyRing()));
+    return make_unique<ConcreteOrder<OrderA>>(OrderA(I->getPolyRing()));
   case 2:
-   return new ConcreteOrder<OrderB>(OrderB(I));
+   return make_unique<ConcreteOrder<OrderB>>(OrderB(I));
   case 3:
-   return new ConcreteOrder<OrderC>(OrderC(I));
+   return make_unique<ConcreteOrder<OrderC>>(OrderC(I));
   case 4:
-    return new ConcreteOrder<OrderD>(OrderD(I, true));
+    return make_unique<ConcreteOrder<OrderD>>(OrderD(I, true));
   case 5:
-    return new ConcreteOrder<OrderD>(OrderD(I, false));
+    return make_unique<ConcreteOrder<OrderD>>(OrderD(I, false));
   case 6:
-    return new ConcreteOrder<OrderE>(OrderE(I, true));
+    return make_unique<ConcreteOrder<OrderE>>(OrderE(I, true));
   case 7:
-    return new ConcreteOrder<OrderE>(OrderE(I, false));
+    return make_unique<ConcreteOrder<OrderE>>(OrderE(I, false));
   default: break;
   }
 
   std::cerr << "unknown free module order type" << std::endl;
   std::cerr << "possible orders are: " << std::endl;
-  for (i=1; i<=5; i++)
-    {
-      FreeModuleOrder* F = makeOrder(i,I);
-      std::cerr << "  " << i << ": " << F->description() << std::endl;
-    }
+  for (size_t i = 1; i <= 7; ++i) {
+    auto order = makeOrder(static_cast<FreeModuleOrderType>(i), I);
+    std::cerr << "  " << i << ": " << order->description() << std::endl;
+  }
   exit(1);
 }
 

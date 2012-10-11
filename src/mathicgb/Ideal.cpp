@@ -42,14 +42,14 @@ void Ideal::sort(FreeModuleOrder& order) {
   std::sort(mGenerators.begin(), mGenerators.end(), cmp);
 }
 
-Ideal *Ideal::parse(std::istream& in)
+std::unique_ptr<Ideal> Ideal::parse(std::istream& in)
 {
-  PolyRing *R = PolyRing::read(in);
+  PolyRing *R = PolyRing::read(in); // todo: fix this leak
   size_t npolys;
   in >> npolys;
-  Ideal *result = new Ideal(*R);
-  for (size_t j= 0; j < npolys; j++) {
-    auto g = make_unique<Poly>(R);
+  auto result = make_unique<Ideal>(*R);
+  for (size_t j = 0; j < npolys; ++j) {
+    auto g = make_unique<Poly>(*R);
     while (std::isspace(in.peek()))
       in.get();
     g->parse(in);

@@ -1,5 +1,4 @@
 // Copyright 2011 Michael E. Stillman
-
 #include "stdinc.h"
 #include "SigSPairs.hpp"
 
@@ -10,8 +9,6 @@
 #include <limits>
 #include <stdexcept>
 #include <iostream>
-
-extern int tracingLevel;
 
 SigSPairs::SigSPairs(
   const PolyRing *R0,

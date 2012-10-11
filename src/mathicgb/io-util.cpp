@@ -20,7 +20,7 @@
 
 std::unique_ptr<Poly> polyParseFromString(const PolyRing *R, const std::string &s)
 {
-  std::unique_ptr<Poly> f(new Poly(R));
+  std::unique_ptr<Poly> f(new Poly(*R));
   std::istringstream in(s);
   f->parse(in);
   return f;
