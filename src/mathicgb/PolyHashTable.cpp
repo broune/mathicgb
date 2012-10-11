@@ -1,12 +1,11 @@
 // Copyright 2011 Michael E. Stillman
+#include "stdinc.h"
+#include "PolyHashTable.hpp"
 
+#include <mathic.h>
 #include <iostream>
 #include <cmath>
 
-#include "stdinc.h"
-#include <mathic.h>
-
-#include "PolyHashTable.hpp"
 
 const double PolyHashTable::threshold = 0.1;
 const bool AlwaysInsertAtEnd = true;
@@ -451,7 +450,7 @@ void PolyHashTable::dump(int level) const
     {
       if (mHashTable[i] == 0) continue;
       std::cout << "bin " << i << ": ";
-      Poly f(&mRing);
+      Poly f(mRing);
       for (node *p = mHashTable[i]; p != 0; p = p->next)
         f.appendTerm(p->coeff, p->monom);
       f.display(std::cout);

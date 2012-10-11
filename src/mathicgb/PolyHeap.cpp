@@ -1,12 +1,9 @@
 // Copyright 2011 Michael E. Stillman
-
 #include "stdinc.h"
 #include "PolyHeap.hpp"
 
 #include <iostream>
 #include <algorithm>
-
-extern int tracingLevel;
 
 size_t PolyHeap::stats_static_n_compares = 0;
 

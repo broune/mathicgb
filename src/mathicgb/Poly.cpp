@@ -45,7 +45,7 @@ void Poly::sortTermsDescending() {
 
   std::sort(ordered.begin(), ordered.end(), Cmp(*this));
 
-  Poly poly(R);
+  Poly poly(*R);
   for (size_t i = 0; i < count; ++i)
     poly.appendTerm(coefficientAt(ordered[i]), monomialAt(ordered[i]));
   *this = std::move(poly);
@@ -82,7 +82,7 @@ void Poly::append(iterator &first, iterator &last)
 Poly *Poly::copy() const
 {
   Poly *const_this = const_cast<Poly *>(this);
-  Poly *result = new Poly(R);
+  Poly *result = new Poly(*R);
   iterator a = const_this->begin();
   iterator b = const_this->end();
   result->append(a,b);
@@ -139,7 +139,7 @@ Poly * Poly::add(const PolyRing *R,
 {
   coefficient c;
   n_compares = 0;
-  Poly *result = new Poly(R);
+  Poly *result = new Poly(*R);
 
   if (i == iend)
     result->append(j, jend);

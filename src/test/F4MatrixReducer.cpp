@@ -14,7 +14,7 @@ TEST(F4MatrixReducer, Reduce) {
   QuadMatrix m;
   m.ring = ring.get();
 
-  Poly p(ring.get());
+  Poly p(*ring);
   std::istringstream in("a4+a3+a2+a1+b5+b4+b3+b2+b1");
   p.parse(in);
   size_t count = 0;

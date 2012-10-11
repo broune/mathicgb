@@ -10,7 +10,7 @@
 
 class Poly {
 public:
-  Poly(const PolyRing *R0) : R(R0) {MATHICGB_ASSERT(R != 0);}
+  Poly(const PolyRing& ring) : R(&ring) {MATHICGB_ASSERT(R != 0);}
 
   void parse(std::istream &i); // reads into this, sorts terms
   void parseDoNotOrder(std::istream &i); // reads into this, does not sort terms

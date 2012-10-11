@@ -64,7 +64,7 @@ public:
 
   /** Sets how many parallel threads to use for reduction - if the
     reducer supports it. */
-  virtual void setThreadCount(size_t threadCount) = 0;
+  virtual void setThreadCount(int threadCount) = 0;
 
   // ***** Kinds of reducers and creating a Reducer 
 

@@ -1,12 +1,11 @@
 // Copyright 2011 Michael E. Stillman
-
 #include "stdinc.h"
 #include "PolyReducer.hpp"
 
 PolyReducer::PolyReducer(const PolyRing *R0):
   R(R0), mMemUsage(0)
 {
-  f = new Poly(R);
+  f = new Poly(*R);
   f_iter = f->begin();
 }
 
@@ -90,14 +89,14 @@ void PolyReducer::value(Poly &result)
   Poly::iterator fend = f->end();
   result.append(f_iter, fend);
   delete f;
-  f = new Poly(R);
+  f = new Poly(*R);
   f_iter = f->begin();
 }
 
 void PolyReducer::resetReducer()
 {
   delete f;
-  f = new Poly(R);
+  f = new Poly(*R);
   f_iter = f->begin();
 }
 

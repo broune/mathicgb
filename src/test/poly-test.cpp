@@ -55,7 +55,7 @@ TEST(PolyRing, read) {
 TEST(Poly,readwrite) {
   std::string f1 = "14ce2<72>+13adf<16>";
   std::unique_ptr<PolyRing> R(ringFromString("32003 6 1\n1 1 1 1 1 1"));
-  Poly f(R.get());
+  Poly f(*R);
   std::stringstream ifil(f1);
   f.parseDoNotOrder(ifil);
   std::ostringstream o;
@@ -66,7 +66,7 @@ TEST(Poly,readwrite) {
 bool testPolyParse(PolyRing* R, std::string s)
 {
   // parse poly, then see if it matches the orig string
-  Poly f(R);
+  Poly f(*R);
   std::istringstream i(s);
   f.parseDoNotOrder(i);
   std::ostringstream o;
@@ -78,7 +78,7 @@ bool testPolyParse(PolyRing* R, std::string s)
 bool testPolyParse2(PolyRing* R, std::string s, std::string answer)
 {
   // parse poly, then see if it matches the orig string
-  Poly f(R);
+  Poly f(*R);
   std::istringstream i(s);
   f.parseDoNotOrder(i);
   std::ostringstream o;
@@ -546,7 +546,7 @@ TEST(MTArray,DivList1) {
   // We create a table here
   size_t not_used = 0;
   std::unique_ptr<PolyRing> R(ringFromString("32003 6 1\n1 1 1 1 1 1"));
-  MonomialTableArray* M(MonomialTableArray::make(R.get(), 1, 6, false));
+  auto M = MonomialTableArray::make(R.get(), 1, 6, false);
   std::string mons[2] = {
     "abc<1>",
     "a2d<1>"
@@ -663,7 +663,7 @@ TEST(Ideal,readwrite) {
       const Poly *f = I->getPoly(i);
       std::ostringstream o;
       f->display(o,false);
-      Poly g(f->getRing());
+      Poly g(f->ring());
       std::stringstream ifil(o.str());
       g.parse(ifil);
       EXPECT_TRUE(g == *f);
@@ -688,7 +688,7 @@ TEST(Poly,lead) {
 std::unique_ptr<Poly> multIdealByPolyReducer(int typ, const Ideal& ideal, const Poly& g)
 {
   const PolyRing& R = ideal.ring();
-  std::unique_ptr<Poly> poly(new Poly(&R));
+  auto poly = make_unique<Poly>(R);
   std::unique_ptr<Reducer> H = Reducer::makeReducer(static_cast<Reducer::ReducerType>(typ), R);
   for (Poly::const_iterator i = g.begin(); i != g.end(); ++i) {
     monomial mon = R.allocMonomial();
@@ -777,7 +777,7 @@ TEST(PolyHashTable,test1) {
   H.fromPoly(*f1, M1);
   H.fromPoly(*f1, M2);
   EXPECT_TRUE(M2.empty());
-  Poly g(R.get());
+  Poly g(*R);
   H.toPoly(M1,g);
   //  f1->display(std::cout);
   //  std::cout << std::endl;
@@ -790,7 +790,7 @@ TEST(PolyHashTable,test1) {
   //  H.dump();
   M1.clear();
   H.fromPoly(*f1, M1);
-  Poly g2(R.get());
+  Poly g2(*R);
   H.toPoly(M1,g2);
   EXPECT_TRUE(g == g2);
 }

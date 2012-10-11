@@ -5,8 +5,6 @@
 
 #include <utility>
 
-extern int tracingLevel;
-
 HashTourReducer::HashTourReducer(const PolyRing& ring):
   mRing(ring),
   mLeadTerm(0, mRing.allocMonomial()),

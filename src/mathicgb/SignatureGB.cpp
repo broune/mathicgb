@@ -1,15 +1,14 @@
 // Copyright 2011 Michael E. Stillman
-
 #include "stdinc.h"
-
-#include <mathic.h>
 #include "SignatureGB.hpp"
+
 #include "FreeModuleOrder.hpp"
 #include "Ideal.hpp"
 #include "DivisorLookup.hpp"
 #include "SigSPairs.hpp"
 #include "PolyHeap.hpp"
 #include "MTArray.hpp"
+#include <mathic.h>
 
 int tracingLevel = 0;
 
@@ -91,20 +90,16 @@ SignatureGB::SignatureGB(
   stats_SignatureCriterionLate(0),
   stats_relativelyPrimeEliminated(0),
   stats_pairsReduced(0),
-  stats_nsecs(0.0)
+  stats_nsecs(0.0),
+  GB(make_unique<GroebnerBasis>(R, F.get(), divlookup_type, montable_type, preferSparseReducers)),
+  mKoszuls(make_unique<KoszulQueue>(F.get(), R->getMonomialPool())),
+  Hsyz(MonomialTableArray::make(R, montable_type, ideal.size(), !mPostponeKoszul)),
+  reducer(Reducer::makeReducer(reductiontyp, *R)),
+  SP(make_unique<SigSPairs>(R, F.get(), GB.get(), Hsyz.get(), reducer.get(), mPostponeKoszul, mUseBaseDivisors, useSingularCriterionEarly, queueType))
 {
-  GB = new GroebnerBasis(R, F, divlookup_type, montable_type, preferSparseReducers);
-  mKoszuls = new KoszulQueue(F, R->getMonomialPool());
-
-  const bool allowRemovals = !mPostponeKoszul;
-  Hsyz = MonomialTableArray::make(R, montable_type, ideal.size(), allowRemovals);
-
-  reducer = Reducer::makeReducer(reductiontyp, *R).release();
-  SP = new SigSPairs(R, F, GB, Hsyz, reducer, mPostponeKoszul, mUseBaseDivisors, useSingularCriterionEarly, queueType);
-
   // Populate GB
   for (size_t i = 0; i < ideal.size(); i++) {
-    Poly *g = new Poly(R);
+    Poly *g = new Poly(*R);
     ideal.getPoly(i)->copy(*g);
     g->makeMonic();
 
@@ -127,15 +122,7 @@ SignatureGB::SignatureGB(
   }
 }
 
-SignatureGB::~SignatureGB()
-{
-  delete reducer;
-  delete SP;
-  delete Hsyz;
-  delete mKoszuls;
-  delete GB;
-  delete F;
-}
+SignatureGB::~SignatureGB() {}
 
 bool SignatureGB::processSPair
   (monomial sig, const SigSPairs::PairContainer& pairs)
@@ -296,7 +283,7 @@ size_t SignatureGB::getMemoryUse() const {
     mSpairTmp.capacity() * sizeof(mSpairTmp.front());
   sum += SP->getMemoryUse();
 
-  if (mKoszuls != 0)
+  if (mKoszuls.get() != 0)
     mKoszuls->getMemoryUse();
   return sum;
 }

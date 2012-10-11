@@ -206,42 +206,42 @@ int MonomialTableArray::displayMTTypes(std::ostream &o)
   return 5;
 }
 
-MonomialTableArray * MonomialTableArray::make(const PolyRing *R, int typ, size_t components, bool allowRemovals)
+std::unique_ptr<MonomialTableArray> MonomialTableArray::make(const PolyRing *R, int typ, size_t components, bool allowRemovals)
 {
   switch (typ) {
     case 0:
-      return new MTArrayT<MonTableNaive>(components, R);
+      return make_unique<MTArrayT<MonTableNaive>>(components, R);
 
     case 1: {
       typedef MonTableDivList<false,true> MT;
-      return new MTArrayT<MT>(components, MT::Configuration
+      return make_unique<MTArrayT<MT>>(components, MT::Configuration
         (R, true, false, true, .5, 500));
     }
     case 2: {
       if (allowRemovals) {
         typedef MonTableKDTree<true,true,1,true> MT;
-        return new MTArrayT<MT>(components, MT::Configuration
+        return make_unique<MTArrayT<MT>>(components, MT::Configuration
           (R, true, false, true, .5, 50));
       } else {
         typedef MonTableKDTree<true,true,1,false> MT;
-        return new MTArrayT<MT>(components, MT::Configuration
+        return make_unique<MTArrayT<MT>>(components, MT::Configuration
           (R, true, false, true, .5, 50));
       }
     }
     case 3: {
       typedef MonTableDivList<false,false> MT;
-      return new MTArrayT<MT>(components, MT::Configuration
+      return make_unique<MTArrayT<MT>>(components, MT::Configuration
         (R, true, false, true, .5, 500));
     }
     case 4: // fall through
     default: {
       if (allowRemovals) {
         typedef MonTableKDTree<false,false,1,true> MT;
-        return new MTArrayT<MT>(components, MT::Configuration
+        return make_unique<MTArrayT<MT>>(components, MT::Configuration
           (R, true, false, true, .5, 50));
       } else {
         typedef MonTableKDTree<false,false,1,false> MT;
-        return new MTArrayT<MT>(components, MT::Configuration
+        return make_unique<MTArrayT<MT>>(components, MT::Configuration
           (R, true, false, true, .5, 50));
       }
     }

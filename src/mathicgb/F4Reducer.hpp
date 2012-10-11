@@ -34,7 +34,7 @@ public:
     size_t basisElement,
     const GroebnerBasis& basis);
 
-  virtual void setThreadCount(size_t threadCount);
+  virtual void setThreadCount(int threadCount);
 
   virtual std::string description() const;
   virtual size_t getMemoryUse() const;
@@ -42,7 +42,7 @@ public:
 private:
   std::unique_ptr<Reducer> mFallback;
   const PolyRing& mRing;
-  size_t mThreadCount;
+  int mThreadCount;
 };
 
 #endif

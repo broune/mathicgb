@@ -5,8 +5,6 @@
 #include "F4MatrixReducer.hpp"
 #include <iostream>
 
-extern int tracingLevel;
-
 F4Reducer::F4Reducer(
   const PolyRing& ring,
   std::unique_ptr<Reducer> fallback
@@ -63,7 +61,7 @@ std::unique_ptr<Poly> F4Reducer::classicReduceSPoly
     red.reduce(basis.ring(), qm, reduced);
   }
 
-  auto p = make_unique<Poly>(&basis.ring());
+  auto p = make_unique<Poly>(basis.ring());
   if (reduced.rowCount() > 0) {
     MATHICGB_ASSERT(reduced.rowCount() == 1);
     reduced.rowToPolynomial(0, qm.rightColumnMonomials, *p);
@@ -115,7 +113,7 @@ void F4Reducer::classicReduceSPolySet
               << " non-zero rows\n";
 
   for (SparseMatrix::RowIndex row = 0; row < reduced.rowCount(); ++row) {
-    auto p = make_unique<Poly>(&basis.ring());
+    auto p = make_unique<Poly>(basis.ring());
     reduced.rowToPolynomial(row, monomials, *p);
     reducedOut.push_back(std::move(p));
   }
@@ -163,7 +161,7 @@ void F4Reducer::classicReducePolySet
               << " non-zero rows\n";
 
   for (SparseMatrix::RowIndex row = 0; row < reduced.rowCount(); ++row) {
-    auto p = make_unique<Poly>(&basis.ring());
+    auto p = make_unique<Poly>(basis.ring());
     reduced.rowToPolynomial(row, monomials, *p);
     reducedOut.push_back(std::move(p));
   }
@@ -180,7 +178,7 @@ Poly* F4Reducer::regularReduce
   return p;
 }
 
-void F4Reducer::setThreadCount(size_t threadCount) {
+void F4Reducer::setThreadCount(int threadCount) {
   mThreadCount = threadCount;
 }
 

@@ -1,7 +1,5 @@
 // Copyright 2011 Michael E. Stillman
 
-#include <iostream>
-
 #include "stdinc.h"
 #include "PolyHashReducer.hpp"
 
@@ -34,12 +32,11 @@ void PolyHashReducer::merge(const HashPoly::const_iterator &fbegin, const HashPo
     result.insert(result.end(), f, fend);
   else {
     bool done = false;
-    while (!done)
-    {
+    while (!done) {
       int cmp = R_->monomialCompare((*f)->monom, (*g)->monom);
       n_compares++;
-      switch (cmp) {
-      case LT:
+      MATHICGB_ASSERT(cmp != EQ);
+      if (cmp == LT) {
         result.push_back(*g);
         ++g;
         if (g == gend)
@@ -47,19 +44,14 @@ void PolyHashReducer::merge(const HashPoly::const_iterator &fbegin, const HashPo
             result.insert(result.end(), f, fend);
             done = true;
           }
-        break;
-      case GT:
+      } else {
+        MATHICGB_ASSERT(cmp == GT);
         result.push_back(*f);
         ++f;
-        if (f == fend)
-          {
-            result.insert(result.end(), g, gend);
-            done = true;
-          }
-        break;
-      case EQ:
-        std::cout << "Error: found equal monomials in PolyHashReducer::merge!" << std::endl;
-        break;
+        if (f == fend) {
+          result.insert(result.end(), g, gend);
+          done = true;
+        }
       }
     }
   }

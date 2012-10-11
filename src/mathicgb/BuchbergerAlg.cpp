@@ -4,8 +4,6 @@
 
 #include <iostream>
 
-extern int tracingLevel;
-
 BuchbergerAlg::BuchbergerAlg(
   const Ideal& ideal,
   FreeModuleOrderType orderType,

@@ -26,7 +26,7 @@ namespace {
     }
 
     const Poly& addBasisElement(const std::string& str) {
-      std::unique_ptr<Poly> p(new Poly(mRing.get()));
+      std::unique_ptr<Poly> p(new Poly(*mRing));
       std::istringstream in(str);
       p->parse(in);
       mBasis.insert(std::move(p));
@@ -107,14 +107,14 @@ TEST(F4MatrixBuilder, DirectReducers) {
   maker.addBasisElement("d2<0>"); // does not divide
   F4MatrixBuilder& builder = maker.create();
 
-  Poly p1(&builder.ring());
+  Poly p1(builder.ring());
   { 
     std::istringstream in("a3<0>+b2+c+d");
     p1.parse(in);
     builder.addPolynomialToMatrix(p1.getLeadMonomial(), p1);
   }
 
-  Poly p2(&builder.ring());
+  Poly p2(builder.ring());
   {
     std::istringstream in("a3<0>+2b2+3c+4d");
     p2.parse(in);

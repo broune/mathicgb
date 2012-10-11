@@ -5,8 +5,6 @@
 #include "PolyBasis.hpp"
 #include <iostream>
 
-extern int tracingLevel;
-
 void TypicalReducer::reset()
 {
   mArena.freeAllAllocs();
@@ -48,7 +46,7 @@ Poly* TypicalReducer::regularReduce(
   insertTail(const_term(coef, u), &basis.poly(reducer));
   basis.basis().usedAsReducer(reducer);
 
-  Poly* result = new Poly(&ring);
+  Poly* result = new Poly(ring);
 
   unsigned long long steps = 2; // number of steps in this reduction
   for (const_term v; leadTerm(v); ++steps) {
@@ -95,7 +93,7 @@ std::unique_ptr<Poly> TypicalReducer::classicTailReduce(const Poly& poly, const 
   basis.ring().coefficientSetOne(identity.coeff);
   insertTail(identity, &poly);
 
-  std::unique_ptr<Poly> result(new Poly(&basis.ring()));
+  std::unique_ptr<Poly> result(new Poly(basis.ring()));
   result->appendTerm(poly.getLeadCoefficient(), poly.getLeadMonomial());
 
   return classicReduce(std::move(result), basis);
@@ -157,7 +155,7 @@ void TypicalReducer::classicReducePolySet
   }  
 }
 
-void TypicalReducer::setThreadCount(size_t threadCount) {
+void TypicalReducer::setThreadCount(int threadCount) {
   // multithreading not supported here (yet!)
 }
 
@@ -219,6 +217,5 @@ std::unique_ptr<Poly> TypicalReducer::classicReduce
 }
 
 std::unique_ptr<Poly> TypicalReducer::classicReduce(const PolyBasis& basis) {
-  std::unique_ptr<Poly> result(new Poly(&basis.ring()));
-  return classicReduce(std::move(result), basis);
+  return classicReduce(make_unique<Poly>(basis.ring()), basis);
 }

@@ -16,8 +16,6 @@
 #include <omp.h>
 #endif
 
-extern int tracingLevel;
-
 template<class T>
 class DenseRow {
 public:
@@ -264,7 +262,7 @@ void myReduce
  SparseMatrix const& reduceByRight,
  SparseMatrix::Scalar modulus,
  SparseMatrix& reduced,
- size_t threadCount) {
+ int threadCount) {
   MATHICGB_ASSERT(reduceByLeft.colCount() == reduceByLeft.rowCount());
   const auto pivotCount = reduceByLeft.colCount();
   const auto rowCount = toReduceLeft.rowCount();
@@ -397,7 +395,7 @@ void myReduce
 }
 
 void myReduceToEchelonForm5
-(SparseMatrix& toReduce, SparseMatrix::Scalar modulus, size_t threadCount) {
+(SparseMatrix& toReduce, SparseMatrix::Scalar modulus, int threadCount) {
   // making no assumptions on toReduce except no zero rows
 
   SparseMatrix::RowIndex const rowCount = toReduce.rowCount();
@@ -863,5 +861,5 @@ void F4MatrixReducer::reduce
   myReduceToEchelonForm5(newPivots, modulus, mThreadCount);
 }
 
-F4MatrixReducer::F4MatrixReducer(size_t threadCount): 
-  mThreadCount(std::max(threadCount, static_cast<size_t>(1))) {}
+F4MatrixReducer::F4MatrixReducer(int threadCount): 
+  mThreadCount(std::max(threadCount, 1)) {}

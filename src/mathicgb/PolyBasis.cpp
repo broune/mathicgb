@@ -32,7 +32,7 @@ std::unique_ptr<Ideal> PolyBasis::initialIdeal() const {
   size_t const idealSize = size();
   for (size_t gen = 0; gen != idealSize; ++gen) {
     if (!retired(gen) && leadMinimal(gen)) {
-      std::unique_ptr<Poly> p(new Poly(&mRing));
+      std::unique_ptr<Poly> p(new Poly(mRing));
       p->appendTerm(1, leadMonomial(gen));
       ideal->insert(std::move(p));
     }
