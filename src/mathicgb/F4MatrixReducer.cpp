@@ -74,7 +74,7 @@ public:
     matrix.appendRowWithModulus(mEntries, modulus);
   }
 
-  void appendTo(SparseMatrix& matrix, size_t leadCol = 0) {
+  void appendTo(SparseMatrix& matrix, SparseMatrix::ColIndex leadCol = 0) {
     matrix.appendRow(mEntries, leadCol);
   }
 
@@ -257,151 +257,6 @@ public:
   std::vector<T> mEntries;
 };
 
-template<typename Matrix>
-void reformMatrix(const Matrix& matA, const Matrix& matB, SparseMatrix& matAB) {
-  MATHICGB_ASSERT(matA.rowdim() == matB.rowdim());
-
-  matAB.clear(matA.coldim() + matB.coldim());
-  MATHICGB_ASSERT(matAB.colCount() == matA.coldim() + matB.coldim());
-  size_t const colCountA = matA.coldim();
-  size_t const rowCount = matA.rowdim();
-
-  typedef typename Matrix::Row::const_iterator CIter;
-  for (size_t row = 0; row < rowCount; ++row) {
-    {
-      CIter const endA = matA[row].end();
-      for (CIter it = matA[row].begin(); it != endA; ++it) {
-        MATHICGB_ASSERT(it->first < colCountA);
-        matAB.appendEntry(it->first, it->second);
-      }
-    }
-    {
-      CIter const endB = matB[row].end();
-      for (CIter it = matB[row].begin(); it != endB; ++it) {
-        MATHICGB_ASSERT(it->first < matB.coldim());
-        MATHICGB_ASSERT(it->first + colCountA < matAB.colCount());
-        matAB.appendEntry(it->first + colCountA, it->second);
-      }
-    }
-    matAB.rowDone();
-  }
-  MATHICGB_ASSERT(matAB.rowCount() == matA.rowdim());
-  MATHICGB_ASSERT(matAB.colCount() == matA.coldim() + matB.coldim());
-}
-
-void myReduce
-(SparseMatrix const& toReduce,
- SparseMatrix const& reduceBy,
- SparseMatrix::Scalar modulus,
- SparseMatrix& reduced,
- int threadCount) {
-  MATHICGB_ASSERT(reduceBy.colCount() >= reduceBy.rowCount());
-  MATHICGB_ASSERT(reduceBy.colCount() == toReduce.colCount());
-  const auto pivotCount = reduceBy.rowCount();
-  const auto colCount = toReduce.colCount();
-  const auto rowCount = toReduce.rowCount();
-
-  reduced.clear(toReduce.colCount());
-
-  // pre-calculate what rows are pivots for what columns
-  std::vector<SparseMatrix::RowIndex> rowThatReducesCol(pivotCount);
-#ifdef MATHICGB_DEBUG
-  // fill in an invalid value that can be recognized by asserts to be invalid.
-  std::fill(rowThatReducesCol.begin(), rowThatReducesCol.end(), pivotCount);
-#endif
-  for (SparseMatrix::RowIndex pivot = 0; pivot < pivotCount; ++pivot) {
-    MATHICGB_ASSERT(!reduceBy.emptyRow(pivot));
-    SparseMatrix::ColIndex col = reduceBy.leadCol(pivot);
-    MATHICGB_ASSERT(rowThatReducesCol[col] == pivotCount);
-    rowThatReducesCol[col] = pivot;
-  }
-
-#ifdef _OPENMP
-  std::vector<DenseRow<uint64> > denseRowPerThread(threadCount);
-#else
-  DenseRow<uint64> denseRow;
-#endif
-
-#pragma omp parallel for num_threads(threadCount) schedule(dynamic)
-  for (size_t row = 0; row < rowCount; ++row) {
-    if (toReduce.emptyRow(row))
-      continue;
-#ifdef _OPENMP
-    DenseRow<uint64>& denseRow = denseRowPerThread[omp_get_thread_num()];
-#endif
-    denseRow.reset(colCount);
-    denseRow.addRow(toReduce, row);
-    for (size_t pivot = 0; pivot < pivotCount; ++pivot) {
-      if (denseRow[pivot] == 0)
-        continue;
-      denseRow.rowReduceByUnitary(rowThatReducesCol[pivot], reduceBy, modulus);
-    }
-    if (denseRow.takeModulus(modulus, pivotCount)) {
-#pragma omp critical
-      {
-        denseRow.appendTo(reduced, pivotCount);
-      }
-    }
-  }
-}
-
-void myReduce
-(SparseMatrix const& toReduce,
- SparseMatrix const& reduceByLeft,
- SparseMatrix const& reduceByRight,
- SparseMatrix::Scalar modulus,
- SparseMatrix& reduced,
- int threadCount) {
-  MATHICGB_ASSERT(reduceByLeft.colCount() == reduceByLeft.rowCount());
-  MATHICGB_ASSERT(reduceByLeft.colCount() + reduceByRight.colCount() == toReduce.colCount());
-  const auto pivotCount = reduceByLeft.rowCount();
-  const auto colCount = toReduce.colCount();
-  const auto rowCount = toReduce.rowCount();
-
-  reduced.clear(toReduce.colCount());
-
-  // pre-calculate what rows are pivots for what columns
-  std::vector<SparseMatrix::RowIndex> rowThatReducesCol(pivotCount);
-#ifdef MATHICGB_DEBUG
-  // fill in an invalid value that can be recognized by asserts to be invalid.
-  std::fill(rowThatReducesCol.begin(), rowThatReducesCol.end(), pivotCount);
-#endif
-  for (SparseMatrix::RowIndex pivot = 0; pivot < pivotCount; ++pivot) {
-    MATHICGB_ASSERT(!reduceByLeft.emptyRow(pivot));
-    SparseMatrix::ColIndex col = reduceByLeft.leadCol(pivot);
-    MATHICGB_ASSERT(rowThatReducesCol[col] == pivotCount);
-    rowThatReducesCol[col] = pivot;
-  }
-
-#ifdef _OPENMP
-  std::vector<DenseRow<uint64> > denseRowPerThread(threadCount);
-#else
-  DenseRow<uint64> denseRow;
-#endif
-
-#pragma omp parallel for num_threads(threadCount) schedule(dynamic)
-  for (size_t row = 0; row < rowCount; ++row) {
-    if (toReduce.emptyRow(row))
-      continue;
-#ifdef _OPENMP
-    DenseRow<uint64>& denseRow = denseRowPerThread[omp_get_thread_num()];
-#endif
-    denseRow.reset(colCount);
-    denseRow.addRow(toReduce, row);
-    for (size_t pivot = 0; pivot < pivotCount; ++pivot) {
-      if (denseRow[pivot] == 0)
-        continue;
-      denseRow.rowReduceByUnitary(rowThatReducesCol[pivot], reduceByLeft, reduceByRight, modulus);
-    }
-    if (denseRow.takeModulus(modulus, pivotCount)) {
-#pragma omp critical
-      {
-        denseRow.appendTo(reduced, pivotCount);
-      }
-    }
-  }
-}
-
 void myReduce
 (SparseMatrix const& toReduceLeft,
  SparseMatrix const& toReduceRight,
@@ -409,20 +264,23 @@ void myReduce
  SparseMatrix const& reduceByRight,
  SparseMatrix::Scalar modulus,
  SparseMatrix& reduced,
- int threadCount) {
+ size_t threadCount) {
   MATHICGB_ASSERT(reduceByLeft.colCount() == reduceByLeft.rowCount());
-  const auto pivotCount = reduceByLeft.rowCount();
+  const auto pivotCount = reduceByLeft.colCount();
   const auto rowCount = toReduceLeft.rowCount();
   const auto colCountLeft = toReduceLeft.colCount();
   const auto colCountRight = toReduceRight.colCount();
 
-  // pre-calculate what rows are pivots for what columns
-  std::vector<SparseMatrix::RowIndex> rowThatReducesCol(pivotCount);
+  // ** pre-calculate what rows are pivots for what columns.
+
+  // Store column indexes as the matrix is square anyway (so all indices
+  // fit) and we are going to store this as a column index later on.
+  std::vector<SparseMatrix::ColIndex> rowThatReducesCol(pivotCount);
 #ifdef MATHICGB_DEBUG
   // fill in an invalid value that can be recognized by asserts to be invalid.
   std::fill(rowThatReducesCol.begin(), rowThatReducesCol.end(), pivotCount);
 #endif
-  for (SparseMatrix::RowIndex pivot = 0; pivot < pivotCount; ++pivot) {
+  for (SparseMatrix::ColIndex pivot = 0; pivot < pivotCount; ++pivot) {
     MATHICGB_ASSERT(!reduceByLeft.emptyRow(pivot));
     SparseMatrix::ColIndex col = reduceByLeft.leadCol(pivot);
     MATHICGB_ASSERT(rowThatReducesCol[col] == pivotCount);
@@ -442,7 +300,7 @@ void myReduce
   std::vector<SparseMatrix::RowIndex> rowOrder(rowCount);
 
 #pragma omp parallel for num_threads(threadCount) schedule(dynamic)
-  for (size_t row = 0; row < rowCount; ++row) {
+  for (long row = 0; row < rowCount; ++row) {
 #ifdef _OPENMP
     auto& denseRow = denseRowPerThread[omp_get_thread_num()];
 #endif
@@ -471,7 +329,7 @@ void myReduce
 #pragma omp critical
     {
       for (size_t pivot = 0; pivot < pivotCount; ++pivot) {
-		MATHICGB_ASSERT(denseRow[pivot] < std::numeric_limits<Scalar>::max());
+		MATHICGB_ASSERT(denseRow[pivot] < std::numeric_limits<SparseMatrix::Scalar>::max());
         if (denseRow[pivot] != 0)
           tmp.appendEntry(rowThatReducesCol[pivot], static_cast<SparseMatrix::Scalar>(denseRow[pivot]));
 	  }
@@ -482,7 +340,7 @@ void myReduce
 
 
 #pragma omp parallel for num_threads(threadCount) schedule(dynamic)
-  for (size_t i = 0; i < rowCount; ++i) {
+  for (long i = 0; i < rowCount; ++i) {
 #ifdef _OPENMP
     auto& denseRow = denseRowPerThread[omp_get_thread_num()];
 #endif
@@ -548,14 +406,14 @@ void myReduceToEchelonForm5
   // dense representation 
   std::vector<DenseRow<uint64> > dense(rowCount);
 #pragma omp parallel for num_threads(threadCount) schedule(dynamic)
-  for (SparseMatrix::RowIndex row = 0; row < rowCount; ++row) {
+  for (long row = 0; row < rowCount; ++row) {
     MATHICGB_ASSERT(!toReduce.emptyRow(row));
     dense[row].reset(colCount);
     dense[row].addRow(toReduce, row);
   }
 
   // invariant: all columns in row to the left of leadCols[row] are zero.
-  std::vector<size_t> leadCols(rowCount);
+  std::vector<SparseMatrix::ColIndex> leadCols(rowCount);
 
   // pivot rows get copied here before being used to reduce the matrix.
   SparseMatrix reduced;
@@ -579,7 +437,7 @@ void myReduceToEchelonForm5
 
     //std::cout << "reducing " << reduced.rowCount() << " out of " << toReduce.rowCount() << std::endl;
 #pragma omp parallel for num_threads(threadCount) schedule(dynamic)
-    for (size_t row = 0; row < rowCount; ++row) {
+    for (long row = 0; row < rowCount; ++row) {
       MATHICGB_ASSERT(leadCols[row] <= colCount);
       DenseRow<uint64>& denseRow = dense[row];
       if (denseRow.empty())
@@ -594,7 +452,7 @@ void myReduceToEchelonForm5
       }
 
       // update leadCols[row]
-      size_t col;
+      SparseMatrix::ColIndex col;
       MATHICGB_ASSERT(leadCols[row] <= colCount);
       for (col = leadCols[row]; col < colCount; ++col) {
         denseRow[col] %= modulus;
@@ -640,14 +498,14 @@ void myReduceToEchelonForm5
       MATHICGB_ASSERT(reduced.rowCount() == i);
       MATHICGB_ASSERT(!isPivotRow[row]);
 
-      dense[row].appendTo(reduced); // already nornamlized
+      dense[row].appendTo(reduced); // already normalized
       isPivotRow[row] = true;
     }
     nextReducers.clear();
   }
 
 #pragma omp parallel for num_threads(threadCount) schedule(dynamic)
-  for (size_t row = 0; row < rowCount; ++row)
+  for (long row = 0; row < rowCount; ++row)
     dense[row].takeModulus(modulus);
 
   toReduce.clear(colCount);
@@ -694,9 +552,9 @@ void readMany(FILE* file, size_t count, std::vector<T>& v) {
 // Writes an SparseMatrix
 void writeSparseMatrix
 (const SparseMatrix& matrix, SparseMatrix::Scalar modulus, const std::string& fileName) {
-  MATHICGB_ASSERT(rowCount <= std::numeric_limits<uint32>::max());
-  MATHICGB_ASSERT(colCount <= std::numeric_limits<uint32>::max());
-  MATHICGB_ASSERT(entryCount <= std::numeric_limits<uint64>::max());
+  MATHICGB_ASSERT(matrix.rowCount() <= std::numeric_limits<uint32>::max());
+  MATHICGB_ASSERT(matrix.colCount() <= std::numeric_limits<uint32>::max());
+  MATHICGB_ASSERT(matrix.entryCount() <= std::numeric_limits<uint64>::max());
 
   const uint32 rowCount = static_cast<uint32>(matrix.rowCount());
   const uint32 colCount = static_cast<uint32>(matrix.colCount());
@@ -749,7 +607,7 @@ SparseMatrix::Scalar readSparseMatrix(const std::string& fileName, SparseMatrix&
 }
 
 // doesn't need to be fast.
-int integerLog10(unsigned int val) {
+int integerLog10(size_t val) {
   int ret = -1;
   while (val != 0) {
     val /= 10;
@@ -865,7 +723,7 @@ void spliceMatrix(const SparseMatrix& matrix, SparseMatrix& pivots, SparseMatrix
   // permutation of columns to put pivots left without reordering
   // columns in any other way.
   std::vector<SparseMatrix::ColIndex> colPerm(colCount);
-  SparseMatrix::RowIndex columnsDecided = 0;
+  SparseMatrix::ColIndex columnsDecided = 0;
 
   // choice of rows to make left of pivots matrix upper triangular
   std::vector<SparseMatrix::RowIndex> pivotRows;
@@ -878,7 +736,7 @@ void spliceMatrix(const SparseMatrix& matrix, SparseMatrix& pivots, SparseMatrix
       pivotRows.push_back(pivotRowOfCol[col]);
     }
   }
-  SparseMatrix::RowIndex minNonPivotCol = columnsDecided;
+  SparseMatrix::ColIndex minNonPivotCol = columnsDecided;
 
   for (size_t col = 0; col < colCount; ++col) {
     if (pivotRowOfCol[col] == noPivot) {
@@ -973,6 +831,7 @@ void concatenateMatricesHorizontal
 
 void F4MatrixReducer::reduce
 (const PolyRing& ring, QuadMatrix& matrix, SparseMatrix& newPivots) {
+  MATHICGB_ASSERT(mThreadCount >= 1);
   if (tracingLevel >= 3)
     std::cerr << "Row reducing (" << matrix.topLeft.rowCount()
               << " + " << matrix.bottomLeft.rowCount()
@@ -1003,3 +862,6 @@ void F4MatrixReducer::reduce
 
   myReduceToEchelonForm5(newPivots, modulus, mThreadCount);
 }
+
+F4MatrixReducer::F4MatrixReducer(size_t threadCount): 
+  mThreadCount(std::max(threadCount, static_cast<size_t>(1))) {}

@@ -7,8 +7,10 @@
 #include "PolyRing.hpp"
 #include <vector>
 #include <map>
+#include <limits>
 #include <string>
 #include <ostream>
+#include <memtailor.h>
 #ifdef MATHICGB_USE_QUADMATRIX_STD_HASH
 #include <unordered_map>
 #endif
@@ -271,8 +273,49 @@ private:
     const PolyRing& mRing;
   };
 
-  typedef std::unordered_map<const_monomial, LeftRightColIndex, Hash, Equal> 
-    MonomialToColType;
+  template<class T>
+  class HashAllocator {
+  public:
+    HashAllocator(memt::Arena& arena): mArena(arena) {}
+
+    typedef T value_type;
+    typedef T* pointer;
+    typedef T& reference;
+    typedef const T* const_pointer;
+    typedef const T& const_reference;
+    typedef ::size_t size_type;
+    typedef ::ptrdiff_t difference_type;
+
+    template<class T2>
+    struct rebind {
+      typedef HashAllocator<T2> other;
+    };
+
+    HashAllocator() {}
+    template<class X>
+    HashAllocator(const HashAllocator<X>& a): mArena(a.arena()) {}
+    HashAllocator(const HashAllocator<T>& a): mArena(a.arena()) {}
+
+    pointer address(reference x) {return &x;}
+    const_pointer address(const_reference x) const {return &x;}
+    pointer allocate(size_type n, void* hint = 0) {
+      return static_cast<pointer>(mArena.alloc(sizeof(T) * n));
+    }
+    void deallocate(pointer p, size_t n) {}
+    size_type max_size() const {return std::numeric_limits<size_type>::max();}
+    void construct(pointer p, const_reference val) {new (p) T(val);}
+    void destroy(pointer p) {p->~T();}
+    memt::Arena& arena() const {return mArena;}
+
+  private:
+    mutable memt::Arena& mArena;
+  };
+  typedef HashAllocator<std::pair<const const_monomial, LeftRightColIndex> >
+    SpecificHashAllocator;
+
+  typedef std::unordered_map<const_monomial, LeftRightColIndex, Hash, Equal,
+                             SpecificHashAllocator> MonomialToColType;
+  memt::Arena mMonomialToColArena;
   MonomialToColType mMonomialToCol;
 #endif
 

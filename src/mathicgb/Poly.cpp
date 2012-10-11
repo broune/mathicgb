@@ -215,6 +215,7 @@ void Poly::multByTerm(coefficient a, const_monomial m)
       R->monomialMultTo(nmon, m); // changes the monomial pointed to by n.
     }
 }
+
 void Poly::multByMonomial(const_monomial m)
 {
   size_t p = 0;
@@ -340,6 +341,10 @@ void Poly::see(bool print_comp) const
 std::ostream& operator<<(std::ostream& out, const Poly& p) {
   p.see(false);
   return out;
+}
+
+void Poly::reserve(size_t spaceForThisManyTerms) {
+  monoms.reserve(spaceForThisManyTerms * R->maxMonomialSize());
 }
 
 bool Poly::termsAreInDescendingOrder() const {

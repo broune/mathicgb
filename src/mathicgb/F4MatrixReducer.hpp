@@ -9,7 +9,7 @@ class PolyRing;
   answer you get is the submatrix that contains new pivots. */
 class F4MatrixReducer {
 public:
-  F4MatrixReducer(size_t threadCount = 1): mThreadCount(threadCount) {}
+  F4MatrixReducer(size_t threadCount);
 
   void reduce
   (const PolyRing& ring, QuadMatrix& matrix, SparseMatrix& newPivots);

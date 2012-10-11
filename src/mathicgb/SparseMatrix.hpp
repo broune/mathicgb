@@ -97,9 +97,9 @@ class SparseMatrix {
   }
 
   /** Returns the number of entries in the given row. */
-  size_t entryCountInRow(RowIndex row) const {
+  ColIndex entryCountInRow(RowIndex row) const {
     MATHICGB_ASSERT(row < rowCount());
-    return mRowOffsets[row + 1] - mRowOffsets[row];
+    return static_cast<ColIndex>(mRowOffsets[row + 1] - mRowOffsets[row]);
   }
 
   /** Returns the number of entries in the whole matrix. */

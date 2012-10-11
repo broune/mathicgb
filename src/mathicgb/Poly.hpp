@@ -76,8 +76,12 @@ public:
   coefficient& coefficientAt(size_t index);
   const coefficient coefficientAt(size_t index) const;
 
+  /// all iterators are invalid after this
   void appendTerm(coefficient a, const_monomial m);
-  // all iterators are invalid after this
+
+  /// Hint that space for termCount terms is going to be needed so the internal
+  /// storage should be expanded to fit that many terms.
+  void reserve(size_t spaceForThisManyTerms);
 
   const_iterator begin() const { return const_iterator(*this); }
   const_iterator end() const { return const_iterator(*this,1); }

@@ -12,7 +12,8 @@ F4Reducer::F4Reducer(
   std::unique_ptr<Reducer> fallback
 ):
   mFallback(std::move(fallback)),
-  mRing(ring) {
+  mRing(ring),
+  mThreadCount(1) {
 }
 
 std::unique_ptr<Poly> F4Reducer::classicReduce
@@ -132,7 +133,7 @@ void F4Reducer::classicReducePolySet
     mFallback->classicReducePolySet(polys, basis, reducedOut);
     return;
   }
-    
+
   reducedOut.clear();
   if (polys.empty())
     return;
