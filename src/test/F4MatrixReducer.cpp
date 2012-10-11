@@ -117,7 +117,7 @@ TEST(F4MatrixReducer, Reduce) {
   ASSERT_EQ(origStr, m.toString()) << "Printed m:\n" << m;
 
   SparseMatrix reduced;
-  F4MatrixReducer red;
+  F4MatrixReducer red(1);
   red.reduce(*ring, m, reduced);
 
   const char* redStr =

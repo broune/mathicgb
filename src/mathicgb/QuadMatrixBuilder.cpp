@@ -10,7 +10,9 @@ QuadMatrixBuilder::QuadMatrixBuilder(const PolyRing& ring):
 #ifndef MATHICGB_USE_QUADMATRIX_STD_HASH
   mMonomialToCol(ArbitraryOrdering(ring)) {}
 #else
-mMonomialToCol(100, Hash(ring), Equal(ring)) {
+mMonomialToColArena(),
+  mMonomialToCol(100, Hash(ring), Equal(ring),
+                 SpecificHashAllocator(mMonomialToColArena)) {
   mMonomialToCol.max_load_factor(0.3f);
 }
 #endif
@@ -18,7 +20,7 @@ mMonomialToCol(100, Hash(ring), Equal(ring)) {
 namespace {
   /// Creates a column and updates the associated data structures that
   /// are passed in. Copies mono - ownership is not taken over. The
-  /// purpose of this function is to avoid code duplication. It is a
+  /// purpose of this function is to avoid code duplication. It is a            
   /// template in order to avoid referring to private types of
   /// QuadMatrixBuilder.
   template<class ToMono, class ToCol>
@@ -120,7 +122,7 @@ namespace {
     // monomials back into the vector of monomials which is not const.
     std::vector<std::pair<monomial, ColIndex> > columns;
     columns.reserve(colCount);
-    for (size_t col = 0; col < colCount; ++col)
+    for (ColIndex col = 0; col < colCount; ++col)
       columns.push_back(std::make_pair(monomials[col], col));
     std::sort(columns.begin(), columns.end(), ColumnComparer(order));
 
@@ -135,7 +137,7 @@ namespace {
 
     // Construct permutation of indices to match permutation of monomials
     std::vector<ColIndex> permutation(colCount);
-    for (size_t col = 0; col < colCount; ++col) {
+    for (ColIndex col = 0; col < colCount; ++col) {
       // The monomial for column columns[col].second is now the
       // monomial for col, so we need the inverse map for indices.
       permutation[columns[col].second] = col;

@@ -43,15 +43,16 @@ namespace {
   template<class PairIterator>
   class IndexIterator {
   public:
+
 	typedef typename PairIterator::iterator_category iterator_category;
-	typedef typename PairIterator::value_type value_type;
+    typedef decltype(reinterpret_cast<typename PairIterator::value_type*>(0)->i) value_type;
 	typedef typename PairIterator::difference_type difference_type;
-	typedef typename PairIterator::pointer pointer;
-	typedef typename PairIterator::reference reference;
+	typedef value_type* pointer;
+	typedef value_type& reference;
 
 	IndexIterator(PairIterator pairIterator): mIterator(pairIterator) {}
 	IndexIterator& operator++() {++mIterator; return *this;}
-	size_t operator*() const {return mIterator->i;}
+    const value_type operator*() const {return mIterator->i;}
 	difference_type operator-(const IndexIterator<PairIterator>& it) const {
 	  return mIterator - it.mIterator;
 	}

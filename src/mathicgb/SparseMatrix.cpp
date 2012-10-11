@@ -14,6 +14,7 @@ void SparseMatrix::rowToPolynomial
   MATHICGB_ASSERT(colMonomials.size() == colCount());
   poly.setToZero();
   auto end = rowEnd(row);
+  poly.reserve(entryCountInRow(row));
   for (auto it = rowBegin(row); it != end; ++it) {
     MATHICGB_ASSERT(it.index() < colMonomials.size());
     if (it.scalar() != 0)
