@@ -163,7 +163,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
     <OutDir>$(SolutionDir)\output\$(Platform)\$(Configuration)\</OutDir>
-    <IntDir>$(SolutionDir)\intermediate\$(Platform)\$(Configuration)\</IntDir>
+    <IntDir>$(SolutionDir)\output\$(Platform)\$(Configuration)\intermediate\$(MSBuildProjectName)\</IntDir>
     <TargetName>mgb</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -175,7 +175,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='WarningAsError|Win32'">
     <LinkIncremental>true</LinkIncremental>
     <OutDir>$(SolutionDir)\output\$(Platform)\$(Configuration)\</OutDir>
-    <IntDir>$(SolutionDir)\intermediate\$(Platform)\$(Configuration)\</IntDir>
+    <IntDir>$(SolutionDir)\output\$(Platform)\$(Configuration)\intermediate\$(MSBuildProjectName)\</IntDir>
     <TargetName>mgb</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='WarningAsError|x64'">
@@ -187,7 +187,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug-NoAssert|Win32'">
     <LinkIncremental>true</LinkIncremental>
     <OutDir>$(SolutionDir)\output\$(Platform)\$(Configuration)\</OutDir>
-    <IntDir>$(SolutionDir)\intermediate\$(Platform)\$(Configuration)\</IntDir>
+    <IntDir>$(SolutionDir)\output\$(Platform)\$(Configuration)\intermediate\$(MSBuildProjectName)\</IntDir>
     <TargetName>mgb</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug-NoAssert|x64'">
@@ -199,7 +199,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(SolutionDir)\output\$(Platform)\$(Configuration)\</OutDir>
-    <IntDir>$(SolutionDir)\intermediate\$(Platform)\$(Configuration)\</IntDir>
+    <IntDir>$(SolutionDir)\output\$(Platform)\$(Configuration)\intermediate\$(MSBuildProjectName)\</IntDir>
     <TargetName>mgb</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -211,7 +211,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release-Assert|Win32'">
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(SolutionDir)\output\$(Platform)\$(Configuration)\</OutDir>
-    <IntDir>$(SolutionDir)\intermediate\$(Platform)\$(Configuration)\</IntDir>
+    <IntDir>$(SolutionDir)\output\$(Platform)\$(Configuration)\intermediate\$(MSBuildProjectName)\</IntDir>
     <TargetName>mgb</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release-Assert|x64'">
