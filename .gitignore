@@ -2,13 +2,6 @@
 *.gb
 *.stats
 
-# configure directories created by setup Makefile
-pro/
-rel/
-relass/
-deb/
-
-
 # Compiled Object files
 *.slo
 *.lo
@@ -21,9 +14,6 @@ deb/
 *.lai
 *.la
 *.a
-
-# Executables (in Cygwin)
-*.exe
 
 # Emacs backup files
 \#*\#
@@ -41,3 +31,18 @@ Makefile.in
 Makefile
 configure
 .libs/
+
+# Visual studio generated files
+*.suo
+*.sdf
+*.opensdf
+*.vcxproj.user
+output/
+
+# Configure build targets
+deb/
+debnoass/
+pro/
+rel/
+relass/
+

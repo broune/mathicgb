@@ -1,0 +1,490 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug-NoAssert|Win32">
+      <Configuration>Debug-NoAssert</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug-NoAssert|x64">
+      <Configuration>Debug-NoAssert</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release-Assert|Win32">
+      <Configuration>Release-Assert</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release-Assert|x64">
+      <Configuration>Release-Assert</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="WarningAsError|Win32">
+      <Configuration>WarningAsError</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="WarningAsError|x64">
+      <Configuration>WarningAsError</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{0928155F-AEE7-4B28-AD10-FF7D6488D232}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>mathicgblib</RootNamespace>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v110</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v110</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='WarningAsError|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v110</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='WarningAsError|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v110</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug-NoAssert|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v110</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug-NoAssert|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v110</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v110</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v110</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release-Assert|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v110</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release-Assert|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v110</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='WarningAsError|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='WarningAsError|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug-NoAssert|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug-NoAssert|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release-Assert|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release-Assert|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+    <OutDir>$(SolutionDir)\output\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)\intermediate\$(Platform)\$(Configuration)\</IntDir>
+    <TargetName>mathicgb</TargetName>
+    <TargetExt>.lib</TargetExt>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <LinkIncremental>true</LinkIncremental>
+    <OutDir>$(SolutionDir)\output\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)\output\$(Platform)\$(Configuration)\intermediate\$(MSBuildProjectName)\</IntDir>
+    <TargetName>mathicgb</TargetName>
+    <TargetExt>.lib</TargetExt>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='WarningAsError|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+    <OutDir>$(SolutionDir)\output\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)\intermediate\$(Platform)\$(Configuration)\</IntDir>
+    <TargetName>mathicgb</TargetName>
+    <TargetExt>.lib</TargetExt>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='WarningAsError|x64'">
+    <LinkIncremental>true</LinkIncremental>
+    <OutDir>$(SolutionDir)\output\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)\output\$(Platform)\$(Configuration)\intermediate\$(MSBuildProjectName)\</IntDir>
+    <TargetName>mathicgb</TargetName>
+    <TargetExt>.lib</TargetExt>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug-NoAssert|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+    <OutDir>$(SolutionDir)\output\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)\intermediate\$(Platform)\$(Configuration)\</IntDir>
+    <TargetName>mathicgb</TargetName>
+    <TargetExt>.lib</TargetExt>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug-NoAssert|x64'">
+    <LinkIncremental>true</LinkIncremental>
+    <OutDir>$(SolutionDir)\output\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)\output\$(Platform)\$(Configuration)\intermediate\$(MSBuildProjectName)\</IntDir>
+    <TargetName>mathicgb</TargetName>
+    <TargetExt>.lib</TargetExt>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <LinkIncremental>false</LinkIncremental>
+    <OutDir>$(SolutionDir)\output\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)\intermediate\$(Platform)\$(Configuration)\</IntDir>
+    <TargetName>mathicgb</TargetName>
+    <TargetExt>.lib</TargetExt>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <LinkIncremental>false</LinkIncremental>
+    <OutDir>$(SolutionDir)\output\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)\output\$(Platform)\$(Configuration)\intermediate\$(MSBuildProjectName)\</IntDir>
+    <TargetName>mathicgb</TargetName>
+    <TargetExt>.lib</TargetExt>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release-Assert|Win32'">
+    <LinkIncremental>false</LinkIncremental>
+    <OutDir>$(SolutionDir)\output\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)\intermediate\$(Platform)\$(Configuration)\</IntDir>
+    <TargetName>mathicgb</TargetName>
+    <TargetExt>.lib</TargetExt>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release-Assert|x64'">
+    <LinkIncremental>false</LinkIncremental>
+    <OutDir>$(SolutionDir)\output\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)\output\$(Platform)\$(Configuration)\intermediate\$(MSBuildProjectName)\</IntDir>
+    <TargetName>mathicgb</TargetName>
+    <TargetExt>.lib</TargetExt>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32;MATHICGB_DEBUG;MATHIC_DEBUG;MEMTAILOR_DEBUG;_DEBUG;_WINDOWS;_USRDLL;MATHICGBLIB_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:\projs\mathic\mathicgb\src;C:\projs\mathic\mathic\src;C:\projs\mathic\memtailor\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <MinimalRebuild>false</MinimalRebuild>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN64;MATHICGB_DEBUG;MATHIC_DEBUG;MEMTAILOR_DEBUG;_DEBUG;_WINDOWS;_USRDLL;MATHICGBLIB_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:\projs\mathic\mathicgb\src;C:\projs\mathic\mathic\src;C:\projs\mathic\memtailor\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <MinimalRebuild>false</MinimalRebuild>
+      <OpenMPSupport>true</OpenMPSupport>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='WarningAsError|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32;MATHICGB_DEBUG;MATHIC_DEBUG;MEMTAILOR_DEBUG;_DEBUG;_WINDOWS;_USRDLL;MATHICGBLIB_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:\projs\mathic\mathicgb\src;C:\projs\mathic\mathic\src;C:\projs\mathic\memtailor\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <TreatWarningAsError>true</TreatWarningAsError>
+      <MinimalRebuild>false</MinimalRebuild>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='WarningAsError|x64'">
+    <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN64;MATHICGB_DEBUG;MATHIC_DEBUG;MEMTAILOR_DEBUG;_DEBUG;_WINDOWS;_USRDLL;MATHICGBLIB_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:\projs\mathic\mathicgb\src;C:\projs\mathic\mathic\src;C:\projs\mathic\memtailor\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <TreatWarningAsError>true</TreatWarningAsError>
+      <MinimalRebuild>false</MinimalRebuild>
+      <OpenMPSupport>true</OpenMPSupport>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug-NoAssert|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:\projs\mathic\mathicgb\src;C:\projs\mathic\mathic\src;C:\projs\mathic\memtailor\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <MinimalRebuild>false</MinimalRebuild>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug-NoAssert|x64'">
+    <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN64;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:\projs\mathic\mathicgb\src;C:\projs\mathic\mathic\src;C:\projs\mathic\memtailor\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <MinimalRebuild>false</MinimalRebuild>
+      <OpenMPSupport>true</OpenMPSupport>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;MATHICGBLIB_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:\projs\mathic\mathicgb\src;C:\projs\mathic\mathic\src;C:\projs\mathic\memtailor\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <OpenMPSupport>true</OpenMPSupport>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN64;NDEBUG;_WINDOWS;_USRDLL;MATHICGBLIB_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:\projs\mathic\mathicgb\src;C:\projs\mathic\mathic\src;C:\projs\mathic\memtailor\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <OpenMPSupport>true</OpenMPSupport>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release-Assert|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32;MATHICGB_DEBUG;MATHIC_DEBUG;MEMTAILOR_DEBUG;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:\projs\mathic\mathicgb\src;C:\projs\mathic\mathic\src;C:\projs\mathic\memtailor\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <OpenMPSupport>true</OpenMPSupport>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release-Assert|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN64;MATHICGB_DEBUG;MATHIC_DEBUG;MEMTAILOR_DEBUG;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:\projs\mathic\mathicgb\src;C:\projs\mathic\mathic\src;C:\projs\mathic\memtailor\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <OpenMPSupport>true</OpenMPSupport>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\src\mathicgb\BjarkeGeobucket.cpp" />
+    <ClCompile Include="..\..\..\src\mathicgb\BjarkeGeobucket2.cpp" />
+    <ClCompile Include="..\..\..\src\mathicgb\BuchbergerAlg.cpp" />
+    <ClCompile Include="..\..\..\src\mathicgb\ChainedHashTable.cpp" />
+    <ClCompile Include="..\..\..\src\mathicgb\DivisorLookup.cpp" />
+    <ClCompile Include="..\..\..\src\mathicgb\DivLookup.cpp" />
+    <ClCompile Include="..\..\..\src\mathicgb\F4MatrixBuilder.cpp" />
+    <ClCompile Include="..\..\..\src\mathicgb\F4MatrixReducer.cpp" />
+    <ClCompile Include="..\..\..\src\mathicgb\F4Reducer.cpp" />
+    <ClCompile Include="..\..\..\src\mathicgb\FreeModuleOrder.cpp" />
+    <ClCompile Include="..\..\..\src\mathicgb\GroebnerBasis.cpp" />
+    <ClCompile Include="..\..\..\src\mathicgb\HashTourReducer.cpp" />
+    <ClCompile Include="..\..\..\src\mathicgb\Ideal.cpp" />
+    <ClCompile Include="..\..\..\src\mathicgb\io-util.cpp" />
+    <ClCompile Include="..\..\..\src\mathicgb\KoszulQueue.cpp" />
+    <ClCompile Include="..\..\..\src\mathicgb\MonomialHashTable.cpp" />
+    <ClCompile Include="..\..\..\src\mathicgb\MonTableDivList.cpp" />
+    <ClCompile Include="..\..\..\src\mathicgb\MonTableKDTree.cpp" />
+    <ClCompile Include="..\..\..\src\mathicgb\MonTableNaive.cpp" />
+    <ClCompile Include="..\..\..\src\mathicgb\MTArray.cpp" />
+    <ClCompile Include="..\..\..\src\mathicgb\PairTriangle.cpp" />
+    <ClCompile Include="..\..\..\src\mathicgb\Poly.cpp" />
+    <ClCompile Include="..\..\..\src\mathicgb\PolyBasis.cpp" />
+    <ClCompile Include="..\..\..\src\mathicgb\PolyGeoBucket.cpp" />
+    <ClCompile Include="..\..\..\src\mathicgb\PolyHashReducer.cpp" />
+    <ClCompile Include="..\..\..\src\mathicgb\PolyHashTable.cpp" />
+    <ClCompile Include="..\..\..\src\mathicgb\PolyHeap.cpp" />
+    <ClCompile Include="..\..\..\src\mathicgb\PolyReducer.cpp" />
+    <ClCompile Include="..\..\..\src\mathicgb\PolyRing.cpp" />
+    <ClCompile Include="..\..\..\src\mathicgb\QuadMatrix.cpp" />
+    <ClCompile Include="..\..\..\src\mathicgb\QuadMatrixBuilder.cpp" />
+    <ClCompile Include="..\..\..\src\mathicgb\Reducer.cpp" />
+    <ClCompile Include="..\..\..\src\mathicgb\SignatureGB.cpp" />
+    <ClCompile Include="..\..\..\src\mathicgb\SigSPairQueue.cpp" />
+    <ClCompile Include="..\..\..\src\mathicgb\SigSPairs.cpp" />
+    <ClCompile Include="..\..\..\src\mathicgb\SPairs.cpp" />
+    <ClCompile Include="..\..\..\src\mathicgb\SparseMatrix.cpp" />
+    <ClCompile Include="..\..\..\src\mathicgb\TournamentReducer.cpp" />
+    <ClCompile Include="..\..\..\src\mathicgb\TypicalReducer.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\src\mathicgb\BjarkeGeobucket.hpp" />
+    <ClInclude Include="..\..\..\src\mathicgb\BjarkeGeobucket2.hpp" />
+    <ClInclude Include="..\..\..\src\mathicgb\BuchbergerAlg.hpp" />
+    <ClInclude Include="..\..\..\src\mathicgb\ChainedHashTable.hpp" />
+    <ClInclude Include="..\..\..\src\mathicgb\DivisorLookup.hpp" />
+    <ClInclude Include="..\..\..\src\mathicgb\DivLookup.hpp" />
+    <ClInclude Include="..\..\..\src\mathicgb\F4MatrixBuilder.hpp" />
+    <ClInclude Include="..\..\..\src\mathicgb\F4MatrixReducer.hpp" />
+    <ClInclude Include="..\..\..\src\mathicgb\F4Reducer.hpp" />
+    <ClInclude Include="..\..\..\src\mathicgb\FreeModuleOrder.hpp" />
+    <ClInclude Include="..\..\..\src\mathicgb\GroebnerBasis.hpp" />
+    <ClInclude Include="..\..\..\src\mathicgb\HashTourReducer.hpp" />
+    <ClInclude Include="..\..\..\src\mathicgb\Ideal.hpp" />
+    <ClInclude Include="..\..\..\src\mathicgb\io-util.hpp" />
+    <ClInclude Include="..\..\..\src\mathicgb\KoszulQueue.hpp" />
+    <ClInclude Include="..\..\..\src\mathicgb\MonomialHashTable.hpp" />
+    <ClInclude Include="..\..\..\src\mathicgb\MonTableDivList.hpp" />
+    <ClInclude Include="..\..\..\src\mathicgb\MonTableKDTree.hpp" />
+    <ClInclude Include="..\..\..\src\mathicgb\MonTableNaive.hpp" />
+    <ClInclude Include="..\..\..\src\mathicgb\MTArray.hpp" />
+    <ClInclude Include="..\..\..\src\mathicgb\PairTriangle.hpp" />
+    <ClInclude Include="..\..\..\src\mathicgb\Poly.hpp" />
+    <ClInclude Include="..\..\..\src\mathicgb\PolyBasis.hpp" />
+    <ClInclude Include="..\..\..\src\mathicgb\PolyGeoBucket.hpp" />
+    <ClInclude Include="..\..\..\src\mathicgb\PolyHashReducer.hpp" />
+    <ClInclude Include="..\..\..\src\mathicgb\PolyHashTable.hpp" />
+    <ClInclude Include="..\..\..\src\mathicgb\PolyHeap.hpp" />
+    <ClInclude Include="..\..\..\src\mathicgb\PolyReducer.hpp" />
+    <ClInclude Include="..\..\..\src\mathicgb\PolyRing.hpp" />
+    <ClInclude Include="..\..\..\src\mathicgb\QuadMatrix.hpp" />
+    <ClInclude Include="..\..\..\src\mathicgb\QuadMatrixBuilder.hpp" />
+    <ClInclude Include="..\..\..\src\mathicgb\Reducer.hpp" />
+    <ClInclude Include="..\..\..\src\mathicgb\ReducerDedup.hpp" />
+    <ClInclude Include="..\..\..\src\mathicgb\ReducerHash.hpp" />
+    <ClInclude Include="..\..\..\src\mathicgb\ReducerHashPack.hpp" />
+    <ClInclude Include="..\..\..\src\mathicgb\ReducerHelper.hpp" />
+    <ClInclude Include="..\..\..\src\mathicgb\ReducerNoDedup.hpp" />
+    <ClInclude Include="..\..\..\src\mathicgb\ReducerPack.hpp" />
+    <ClInclude Include="..\..\..\src\mathicgb\ReducerPackDedup.hpp" />
+    <ClInclude Include="..\..\..\src\mathicgb\SignatureGB.hpp" />
+    <ClInclude Include="..\..\..\src\mathicgb\SigSPairQueue.hpp" />
+    <ClInclude Include="..\..\..\src\mathicgb\SigSPairs.hpp" />
+    <ClInclude Include="..\..\..\src\mathicgb\SPairs.hpp" />
+    <ClInclude Include="..\..\..\src\mathicgb\SparseMatrix.hpp" />
+    <ClInclude Include="..\..\..\src\mathicgb\stdinc.h" />
+    <ClInclude Include="..\..\..\src\mathicgb\TournamentReducer.hpp" />
+    <ClInclude Include="..\..\..\src\mathicgb\TypicalReducer.hpp" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
