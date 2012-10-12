@@ -275,5 +275,8 @@
     <ClInclude Include="..\..\..\src\mathicgb\TypicalReducer.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\src\mathicgb\MonomialMap.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

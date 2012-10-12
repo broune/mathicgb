@@ -25,7 +25,12 @@ namespace {
       p.parseDoNotOrder(in);
       size_t colCount = 0;
       for (Poly::iterator it = p.begin(); it != p.end(); ++it) {
-        QuadMatrixBuilder::ColIndex col = b.createColumnLeft(it.getMonomial());
+        QuadMatrixBuilder::LeftRightColIndex lrCol =
+          b.createColumnLeft(it.getMonomial());
+        ASSERT_TRUE(lrCol.left());
+        ASSERT_FALSE(lrCol.right());
+        auto col = lrCol.leftIndex();
+        ASSERT_EQ(col, lrCol.index());
         ASSERT_EQ(colCount, col);
         ++colCount;
         // not equal as pointers
@@ -42,7 +47,12 @@ namespace {
       p.parseDoNotOrder(in);
       size_t colCount = 0;
       for (Poly::iterator it = p.begin(); it != p.end(); ++it) {
-        QuadMatrixBuilder::ColIndex col = b.createColumnRight(it.getMonomial());
+        QuadMatrixBuilder::LeftRightColIndex lrCol =
+          b.createColumnRight(it.getMonomial());
+        ASSERT_TRUE(lrCol.right());
+        ASSERT_FALSE(lrCol.left());
+        auto col = lrCol.rightIndex();
+        ASSERT_EQ(col, lrCol.index());
         ASSERT_EQ(colCount, col);
         ++colCount;
         // not equal as pointers

@@ -174,7 +174,7 @@ F4MatrixBuilder::createOrFindColumnOf(const_monomial mono) {
   // mono did not already have a column so look for a reducer
   size_t reducerIndex = mBasis.divisor(mono);
   if (reducerIndex == static_cast<size_t>(-1))
-    return LeftRightColIndex(mBuilder.createColumnRight(mono), false);
+    return mBuilder.createColumnRight(mono);
 
   // schedule the reducer to be added as a row
   RowTask task;
@@ -186,7 +186,7 @@ F4MatrixBuilder::createOrFindColumnOf(const_monomial mono) {
   MATHICGB_ASSERT(ring().hashValid(task.multiple));
   mTodo.push_back(task);
 
-  return LeftRightColIndex(mBuilder.createColumnLeft(mono), true);
+  return mBuilder.createColumnLeft(mono);
 }
 
 void F4MatrixBuilder::appendRowTop(const_monomial multiple, const Poly& poly) {
