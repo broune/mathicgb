@@ -7,15 +7,7 @@
 #include <sstream>
 
 QuadMatrixBuilder::QuadMatrixBuilder(const PolyRing& ring):
-#ifndef MATHICGB_USE_QUADMATRIX_STD_HASH
-  mMonomialToCol(ArbitraryOrdering(ring)) {}
-#else
-mMonomialToColArena(),
-  mMonomialToCol(100, Hash(ring), Equal(ring),
-                 SpecificHashAllocator(mMonomialToColArena)) {
-  mMonomialToCol.max_load_factor(0.3f);
-}
-#endif
+  mMonomialToCol(ring) {}
 
 namespace {
   /// Creates a column and updates the associated data structures that
@@ -24,7 +16,7 @@ namespace {
   /// template in order to avoid referring to private types of
   /// QuadMatrixBuilder.
   template<class ToMono, class ToCol>
-  QuadMatrixBuilder::ColIndex createCol
+  QuadMatrixBuilder::LeftRightColIndex createCol
   (const_monomial mono,
    SparseMatrix& top,
    SparseMatrix& bottom,
@@ -41,7 +33,7 @@ namespace {
     if (colCount == std::numeric_limits<QuadMatrixBuilder::ColIndex>::max())
       throw std::overflow_error("Too many columns in QuadMatrixBuilder");
 
-    toMonomial.push_back(0); // allocate memory ahead of time to avoid bad_alloc
+    toMonomial.push_back(0); // allocate memory now to avoid bad_alloc later
     monomial copied = ring.allocMonomial();
     ring.monomialCopy(mono, copied);
     try {
@@ -57,11 +49,11 @@ namespace {
 
     top.ensureAtLeastThisManyColumns(colCount + 1);
     bottom.ensureAtLeastThisManyColumns(colCount + 1);
-    return colCount;
+    return QuadMatrixBuilder::LeftRightColIndex(colCount, left);
   }
 }
 
-QuadMatrixBuilder::ColIndex QuadMatrixBuilder::createColumnLeft
+QuadMatrixBuilder::LeftRightColIndex QuadMatrixBuilder::createColumnLeft
 (const_monomial monomialToBeCopied) {
   return createCol
     (monomialToBeCopied,
@@ -76,7 +68,7 @@ QuadMatrixBuilder::ColIndex QuadMatrixBuilder::createColumnLeft
     (findColumn(monomialToBeCopied).leftIndex() == leftColCount() - 1);
 }
 
-QuadMatrixBuilder::ColIndex QuadMatrixBuilder::createColumnRight
+QuadMatrixBuilder::LeftRightColIndex QuadMatrixBuilder::createColumnRight
 (const_monomial monomialToBeCopied) {
   return createCol
     (monomialToBeCopied,

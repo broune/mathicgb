@@ -452,6 +452,7 @@
     <ClInclude Include="..\..\..\src\mathicgb\io-util.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\KoszulQueue.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\MonomialHashTable.hpp" />
+    <ClInclude Include="..\..\..\src\mathicgb\MonomialMap.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\MonTableDivList.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\MonTableKDTree.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\MonTableNaive.hpp" />

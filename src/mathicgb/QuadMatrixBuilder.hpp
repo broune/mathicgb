@@ -3,6 +3,8 @@
 
 #define MATHICGB_USE_QUADMATRIX_STD_HASH
 
+#include "MonomialMap.hpp"
+
 #include "SparseMatrix.hpp"
 #include "PolyRing.hpp"
 #include <vector>
@@ -52,7 +54,7 @@ class QuadMatrixBuilder {
     }
 
     /// Use leftIndex() or rightIndex() instead if you know what side
-    /// you are expecting, as check the side in assert mode.
+    /// you are expecting, as this does an assert on your expectation.
     ColIndex index() const {
       MATHICGB_ASSERT(valid());
       return mRawIndex;
@@ -132,20 +134,22 @@ class QuadMatrixBuilder {
   }
 
   // *** Creating and reordering columns
-  // Unlike the interface for SparseMatrix, here you have to create
-  // columns before you can append entries in those columns. All
-  // passed in monomials are copied so that ownership of the memory is
-  // not taken over.
+  // You have to create columns before you can append entries in those columns.
+  // All passed in monomials are copied so that ownership of the memory is
+  // not taken over. The creation methods return a LeftRightColIndex instead
+  // of just a ColIndex to allow more of a chance for asserts to catch errors
+  // and to avoid the need for the client to immediately construct a
+  // LeftRightColIndex based on the return value.
 
   /** Creates a new column associated to the monomial
     monomialToBeCopied to the left matrices. There must not already
     exist a column for this monomial on the left or on the right. */
-  ColIndex createColumnLeft(const_monomial monomialToBeCopied);
+  LeftRightColIndex createColumnLeft(const_monomial monomialToBeCopied);
 
   /** Creates a new column associated to the monomial monomialToBeCopied
     to the right matrices. There must not already exist a column for
     this monomial on the left or on the right. */
-  ColIndex createColumnRight(const_monomial monomialToBeCopied);
+  LeftRightColIndex createColumnRight(const_monomial monomialToBeCopied);
 
   /** Sorts the left columns to be decreasing with respect to
     order. Also updates the column indices already in the matrix to
@@ -164,7 +168,7 @@ class QuadMatrixBuilder {
   // left and right side. Returns an invalid index if no such column
   // exists.
   LeftRightColIndex findColumn(const_monomial findThis) const {
-    MonomialToColType::const_iterator it = mMonomialToCol.find(findThis);
+    auto it = mMonomialToCol.find(findThis);
     if (it != mMonomialToCol.end())
       return it->second;
     else
@@ -200,16 +204,7 @@ class QuadMatrixBuilder {
   // String representation intended for debugging.
   std::string toString() const;
 
-  const PolyRing& ring() const {
-    // The key comparer object already has a ring reference - we might
-    // as well use that one instead of adding another reference to
-    // this object.
-#ifndef MATHICGB_USE_QUADMATRIX_STD_HASH
-    return mMonomialToCol.key_comp().ring();
-#else
-    return mMonomialToCol.key_eq().ring();
-#endif
-  }
+  const PolyRing& ring() const {return mMonomialToCol.ring();}
 
   ColIndex leftColCount() const {
     MATHICGB_ASSERT(topLeft().colCount() == bottomLeft().colCount());
@@ -226,98 +221,12 @@ class QuadMatrixBuilder {
   void buildMatrixAndClear(QuadMatrix& out);
 
 private:
-  // Store the monomials for each left and right column respectivewy.
   typedef std::vector<monomial> MonomialsType;
-  MonomialsType mMonomialsLeft;
-  MonomialsType mMonomialsRight;
+  MonomialsType mMonomialsLeft; /// stores one monomial per left column
+  MonomialsType mMonomialsRight; /// stores one monomial per right column
 
-#ifndef MATHICGB_USE_QUADMATRIX_STD_HASH
-  /// We need SOME ordering to make std::map work.
-  class ArbitraryOrdering {
-  public:
-    ArbitraryOrdering(const PolyRing& ring): mRing(ring) {}
-    bool operator()(const_monomial a, const_monomial b) const {
-      return mRing.monomialLT(a, b);
-    }
-    const PolyRing& ring() const {return mRing;}
-
-  private:
-    const PolyRing& mRing;
-  };
-  /// Allows fast determination of which column has a given monomial.
-  typedef std::map<const_monomial, LeftRightColIndex, ArbitraryOrdering>
-    MonomialToColType;
-  MonomialToColType mMonomialToCol;
-#else
-  struct Hash {
-  public:
-    Hash(const PolyRing& ring): mRing(ring) {}
-    size_t operator()(const_monomial m) const {
-      MATHICGB_ASSERT(mRing.hashValid(m));
-      return mRing.monomialHashValue(m);
-    }
-    const PolyRing& ring() const {return mRing;}
-
-  private:
-    const PolyRing& mRing;
-  };
-  struct Equal {
-  public:
-    Equal(const PolyRing& ring): mRing(ring) {}
-    size_t operator()(const_monomial a, const_monomial b) const {
-      return mRing.monomialEQ(a, b);
-    }
-    const PolyRing& ring() const {return mRing;}
-
-  private:
-    const PolyRing& mRing;
-  };
-
-  template<class T>
-  class HashAllocator {
-  public:
-    HashAllocator(memt::Arena& arena): mArena(arena) {}
-
-    typedef T value_type;
-    typedef T* pointer;
-    typedef T& reference;
-    typedef const T* const_pointer;
-    typedef const T& const_reference;
-    typedef ::size_t size_type;
-    typedef ::ptrdiff_t difference_type;
-
-    template<class T2>
-    struct rebind {
-      typedef HashAllocator<T2> other;
-    };
-
-    HashAllocator() {}
-    template<class X>
-    HashAllocator(const HashAllocator<X>& a): mArena(a.arena()) {}
-    HashAllocator(const HashAllocator<T>& a): mArena(a.arena()) {}
-
-    pointer address(reference x) {return &x;}
-    const_pointer address(const_reference x) const {return &x;}
-    pointer allocate(size_type n, void* hint = 0) {
-      return static_cast<pointer>(mArena.alloc(sizeof(T) * n));
-    }
-    void deallocate(pointer p, size_t n) {}
-    size_type max_size() const {return std::numeric_limits<size_type>::max();}
-    void construct(pointer p, const_reference val) {new (p) T(val);}
-    void destroy(pointer p) {p->~T();}
-    memt::Arena& arena() const {return mArena;}
-
-  private:
-    mutable memt::Arena& mArena;
-  };
-  typedef HashAllocator<std::pair<const const_monomial, LeftRightColIndex> >
-    SpecificHashAllocator;
-
-  typedef std::unordered_map<const_monomial, LeftRightColIndex, Hash, Equal,
-                             SpecificHashAllocator> MonomialToColType;
-  memt::Arena mMonomialToColArena;
-  MonomialToColType mMonomialToCol;
-#endif
+  /// Used for fast determination of which column has a given monomial.
+  MonomialMap<LeftRightColIndex> mMonomialToCol;
 
   SparseMatrix mTopLeft;
   SparseMatrix mTopRight;
