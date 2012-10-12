@@ -98,7 +98,7 @@ private:
 template <typename HashControl>
 ChainedHashTable<HashControl>::ChainedHashTable(HashControl M, int nbits)
   : M_(M),
-    table_size_(1 << nbits)
+    table_size_(static_cast<size_t>(1) << nbits)
 {
   hashtable_.resize(table_size_);
 
