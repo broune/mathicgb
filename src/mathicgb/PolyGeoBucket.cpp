@@ -2,6 +2,7 @@
 
 #include "stdinc.h"
 #include "PolyGeoBucket.hpp"
+#include <mathic.h>
 
 const size_t heap_size[GEOHEAP_SIZE] = {4, 16, 64, 256, 1024, 4096,
                                16384, 65536, 262144, 1048576, 4194304,
@@ -101,8 +102,11 @@ void PolyGeoBucket::insert(heap_record &a)
           len = heap[i].last - heap[i].first;
         }
     }
-  if (i > top_of_heap)
+  if (i > top_of_heap) {
     top_of_heap = i;
+    if (i >= GEOHEAP_SIZE)
+      mic::reportInternalError("Too many levels in PolyGeoBucket.");
+  }
 
   stats_n_inserts++;
   update_size_stats();

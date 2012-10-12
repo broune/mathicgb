@@ -12,8 +12,8 @@ const bool AlwaysInsertAtEnd = true;
 
 PolyHashTable::PolyHashTable(const PolyRing *R, int nbits)
   : mRing(*R),
-    mHashMask((1 << nbits)-1),
-    mTableSize(1 << nbits),
+    mHashMask((static_cast<size_t>(1) << nbits)-1),
+    mTableSize(static_cast<size_t>(1) << nbits),
     mLogTableSize(nbits),
     mNodeCount(0),
     mBinCount(0),
