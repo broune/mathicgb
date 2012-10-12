@@ -116,14 +116,45 @@ public:
     }
   }
 
+
   template<class Iter>
-  void addRowMultiple(SparseMatrix::Scalar multiple, Iter begin, Iter end) {
+  void addRowMultiple(SparseMatrix::Scalar multiple, const Iter& begin, const Iter& end) {
+    // Now, you may be wondering why begin and end are passed by reference
+    // instead of by value, and that would be a good question. As it turns
+    // out, this method does not work otherwise when run in parallel using
+    // OpenMP on MS Visual Studio 2012 when being called from myReduce().
+    // Strange but true.
+    //
+    // Why is that? To the best of my ability
+    // to determine what was going on, it appears that, sometimes,
+    // two threads would be running on the same stack when calling this method,
+    // overwriting each other's local variables causing all kinds of havoc.
+    // My evidence for this is that I could find no other explanation after
+    // hours of investigation and that I could consistently get two threads
+    // with different return values of omp_get_thread_num() to print out the
+    // same address for a local variable - and this would happen just before
+    // things went wrong. So at this point I'm concluding that it is a compiler
+    // bug. All the writes and reads outside critical sections are to local
+    // variables, memory allocated by the same thread or to data structures
+    // that do not change within the scope of the parallel code in myReduce(),
+    // so I don't know what the issue would otherwise be. I thought perhaps
+    // not building all the code with OpenMP enabled could be the issue,
+    // but changing that did not fix the issue.
+    // 
+    // Now you may be wondering what that has to do with passing iterators by
+    // reference. As it happens, the issue does not happen this way. "But that
+    // doesn't make any sense", you say, and you would be right. Feel free
+    // to come up with a better explanation of this issue.
+    //
+    // If you want to take a look at this issue, the issue only turns up for 64
+    // bit debug builds. This was on Visual Studio version
+    // "11.0.50727.1 RTMREL" - Bjarke Hammersholt Roune
     T mult = static_cast<T>(multiple);
-    for (; begin != end; ++begin) {
-      MATHICGB_ASSERT(begin.index() < colCount());
+    for (Iter it = begin; it != end; ++it) {
+      MATHICGB_ASSERT(it.index() < colCount());
       // Watch out for overflow here! This is only OK because
       // T is promoting the multiplication to type T.
-      mEntries[begin.index()] += begin.scalar() * mult;
+      mEntries[it.index()] += it.scalar() * mult;
     }
   }
 
