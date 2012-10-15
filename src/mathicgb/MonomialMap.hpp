@@ -57,7 +57,6 @@ namespace MonomialMapInternal {
   public:
     Hash(const PolyRing& ring): mRing(ring) {}
     size_t operator()(const_monomial m) const {
-      MATHICGB_ASSERT(mRing.hashValid(m));
       return mRing.monomialHashValue(m);
     }
     const PolyRing& ring() const {return mRing;}
@@ -124,21 +123,59 @@ namespace MonomialMapInternal {
       HashAllocator;
     typedef std::unordered_map<const_monomial, MTT, Hash, Equal, HashAllocator>
       Map;
+    typedef typename Map::iterator iterator;
+    typedef typename Map::const_iterator const_iterator;
 
     MapClass(const PolyRing& ring):
       mArena(),
-      mMap(100, Hash(ring), Equal(ring), HashAllocator(mArena))
+      mMap(100, Hash(ring), Equal(ring), HashAllocator(mArena)),
+      mTmp(ring.allocMonomial())
     {
       mMap.max_load_factor(0.3f);
+    }
+
+    ~MapClass() {
+      ring().freeMonomial(mTmp);
     }
 
     Map& map() {return mMap;}
     const Map& map() const {return mMap;}
     const PolyRing& ring() const {return mMap.key_eq().ring();}
 
+    iterator findProduct(const_monomial a, const_monomial b) {
+      ring().setGivenHash(mTmp, ring().monomialHashOfProduct(a, b));
+      size_t bucket = mMap.bucket(mTmp);
+      auto stop = mMap.end(bucket);
+      for (auto it = mMap.begin(bucket); it != stop; ++it)
+        if (ring().monomialIsProductOf(a, b, it->first))
+          return it;
+      return mMap.end();
+    }
+
+    const_iterator findProduct(const_monomial a, const_monomial b) const {
+      iterator it = const_cast<MapClass<MTT>*>(this)->findProduct(a, b);
+      return const_iterator(it);
+    }
+
+/*
+    size_t bucket = mMonomialToCol.
+	iterator lower_bound(const key_type& _Keyval)
+		{	// find leftmost not less than _Keyval in mutable hash table
+		size_type _Bucket = _Hashval(_Keyval);
+		for (_Unchecked_iterator _Where = _Begin(_Bucket);
+			_Where != _End(_Bucket); ++_Where)
+			if (!((_Traits&)*this)(this->_Kfn(*_Where), _Keyval))
+				return (((_Traits&)*this)(_Keyval,
+					this->_Kfn(*_Where)) ? end() : _Make_iter(_Where));
+		return (end());
+		}
+
+        */
+
   private:
     memt::Arena mArena;
     Map mMap;
+    monomial mTmp;
   };
 #endif
 }
@@ -161,6 +198,12 @@ public:
   const_iterator end() const {return map().end();}
   iterator find(const_monomial m) {return map().find(m);}
   const_iterator find(const_monomial m) const {return map().find(m);}
+  iterator findProduct(const_monomial a, const_monomial b) {
+    return mMap.findProduct(a, b);
+  }
+  const_iterator findProduct(const_monomial a, const_monomial b) const {
+    return mMap.findProduct(a, b);
+  }
 
   size_t size() const {return map().size();}
   void clear() {map().clear();}

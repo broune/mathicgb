@@ -2,7 +2,7 @@
 #include "F4MatrixBuilder.hpp"
 
 F4MatrixBuilder::F4MatrixBuilder(const PolyBasis& basis):
-  mBasis(basis), mBuilder(basis.ring()) {}
+  mBasis(basis), mBuilder(basis.ring()), tmp(basis.ring().allocMonomial()) {}
 
 void F4MatrixBuilder::addSPolynomialToMatrix
 (const Poly& polyA, const Poly& polyB) {
@@ -139,7 +139,11 @@ void F4MatrixBuilder::buildMatrixAndClear(QuadMatrix& matrix) {
       }
       if (c != 0) {
 	    MATHICGB_ASSERT(c < std::numeric_limits<QuadMatrixBuilder::Scalar>::max());
-        mBuilder.appendEntryBottom(createOrFindColumnOf(mono), static_cast<QuadMatrixBuilder::Scalar>(c));
+        auto col = mBuilder.findColumn(mono);
+        if (!col.valid())
+          col = this->createColumn(mono);
+        mBuilder.appendEntryBottom(col,
+          static_cast<QuadMatrixBuilder::Scalar>(c));
 	  }
     }
     ring().freeMonomial(monoA);
@@ -153,10 +157,7 @@ void F4MatrixBuilder::buildMatrixAndClear(QuadMatrix& matrix) {
     RowTask task = mTodo.back();
     MATHICGB_ASSERT(ring().hashValid(task.multiple));
     mTodo.pop_back();
-    if (task.useAsReducer)
-      appendRowTop(task.multiple, *task.poly);
-    else
-      appendRowBottom(task.multiple, *task.poly);
+    appendRowTop(task.multiple, *task.poly);
   }
 
   mBuilder.sortColumnsLeft(mBasis.order());
@@ -165,13 +166,11 @@ void F4MatrixBuilder::buildMatrixAndClear(QuadMatrix& matrix) {
 }
 
 F4MatrixBuilder::LeftRightColIndex
-F4MatrixBuilder::createOrFindColumnOf(const_monomial mono) {
+F4MatrixBuilder::createColumn(const_monomial mono) {
   MATHICGB_ASSERT(ring().hashValid(mono));
-  LeftRightColIndex colIndex = mBuilder.findColumn(mono);
-  if (colIndex.valid())
-    return colIndex;
+  MATHICGB_ASSERT(!mBuilder.findColumn(mono).valid());
 
-  // mono did not already have a column so look for a reducer
+  // look for a reducer of mono
   size_t reducerIndex = mBasis.divisor(mono);
   if (reducerIndex == static_cast<size_t>(-1))
     return mBuilder.createColumnRight(mono);
@@ -179,7 +178,6 @@ F4MatrixBuilder::createOrFindColumnOf(const_monomial mono) {
   // schedule the reducer to be added as a row
   RowTask task;
   task.poly = &mBasis.poly(reducerIndex);
-  task.useAsReducer = true;
   task.multiple = ring().allocMonomial();
   ring().monomialDivideToNegative
     (mono, task.poly->getLeadMonomial(), task.multiple);
@@ -190,27 +188,18 @@ F4MatrixBuilder::createOrFindColumnOf(const_monomial mono) {
 }
 
 void F4MatrixBuilder::appendRowTop(const_monomial multiple, const Poly& poly) {
-  monomial mono = ring().allocMonomial();
   Poly::const_iterator end = poly.end();
   for (Poly::const_iterator it = poly.begin(); it != end; ++it) {
-    ring().monomialMult(it.getMonomial(), multiple, mono);
-	MATHICGB_ASSERT(it.getCoefficient() < std::numeric_limits<QuadMatrixBuilder::Scalar>::max());
-    mBuilder.appendEntryTop(createOrFindColumnOf(mono), static_cast<QuadMatrixBuilder::Scalar>(it.getCoefficient()));
+	MATHICGB_ASSERT(it.getCoefficient() <
+      std::numeric_limits<QuadMatrixBuilder::Scalar>::max());
+    auto col = mBuilder.findColumnProduct(it.getMonomial(), multiple);
+    if (!col.valid()) {
+      ring().monomialMult(it.getMonomial(), multiple, tmp);
+      col = createColumn(tmp);
+    }
+    const auto scalar =
+      static_cast<QuadMatrixBuilder::Scalar>(it.getCoefficient());
+    mBuilder.appendEntryTop(col, scalar);
   }
   mBuilder.rowDoneTopLeftAndRight();
-  ring().freeMonomial(mono);
-}
-
-void F4MatrixBuilder::appendRowBottom
-(const_monomial multiple, const Poly& poly) {
-  monomial mono = ring().allocMonomial();
-  Poly::const_iterator end = poly.end();
-  for (Poly::const_iterator it = poly.begin(); it != end; ++it) {
-    ring().monomialMult(it.getMonomial(), multiple, mono);
-	MATHICGB_ASSERT(it.getCoefficient() < std::numeric_limits<QuadMatrixBuilder::Scalar>::max());
-    mBuilder.appendEntryBottom
-      (createOrFindColumnOf(mono), static_cast<QuadMatrixBuilder::Scalar>(it.getCoefficient()));
-  }
-  mBuilder.rowDoneBottomLeftAndRight();
-  ring().freeMonomial(mono);
 }
