@@ -164,11 +164,21 @@ class QuadMatrixBuilder {
 
   // *** Querying columns
 
-  // Returns a column for the findThis monomial. Searches on both the
-  // left and right side. Returns an invalid index if no such column
-  // exists.
+  /** Returns a column for the findThis monomial. Searches on both the
+    left and right side. Returns an invalid index if no such column
+    exists. */
   LeftRightColIndex findColumn(const_monomial findThis) const {
     auto it = mMonomialToCol.find(findThis);
+    if (it != mMonomialToCol.end())
+      return it->second;
+    else
+      return LeftRightColIndex();
+  }
+
+  /// As findColumn, but looks for the monomial that is the product of a and b.
+  LeftRightColIndex findColumnProduct(const_monomial a, const_monomial b) const
+  {
+    auto it = mMonomialToCol.findProduct(a, b);
     if (it != mMonomialToCol.end())
       return it->second;
     else

@@ -61,12 +61,11 @@ public:
   const PolyRing& ring() const {return mBuilder.ring();}
 
 private:
-  /** Returns a left or right column that represents mono. Creates a
-      new column and schedules a new row to reduce that column if necessary. */
-  LeftRightColIndex createOrFindColumnOf(const_monomial mono);
+  /** Creates a column with monomial label mono and schedules a new row to
+    reduce that column if possible. */
+  LeftRightColIndex createColumn(const_monomial mono);
 
   void appendRowTop(const_monomial multiple, const Poly& poly);
-  void appendRowBottom(const_monomial multiple, const Poly& poly);
 
   /// Represents an S-pair that was added to the matrix for reduction
   /// or, if polyB is null, a polynomial that was added to the matrix
@@ -80,11 +79,11 @@ private:
 
   /// Represents the task of adding a row representing poly*multiple.
   struct RowTask {
-    bool useAsReducer; // if true: put in top part of matrix
     const Poly* poly;
     monomial multiple;
   };
 
+  monomial tmp;
   std::vector<SPairTask> mSPairTodo;
   std::vector<RowTask> mTodo;
   const PolyBasis& mBasis;

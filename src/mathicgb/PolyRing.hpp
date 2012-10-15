@@ -321,7 +321,7 @@ public:
   // Monomial Routines //////////////////////
   ///////////////////////////////////////////
 
-  size_t monomialHashValue(ConstMonomial m) const { return static_cast<size_t>(m[mHashIndex]); }
+  exponent monomialHashValue(ConstMonomial m) const {return m[mHashIndex];}
 
   exponent monomialExponent(ConstMonomial m, size_t var) const {
     return m[var+1];
@@ -344,6 +344,8 @@ public:
   inline void setWeightsOnly(Monomial& a) const;
 
   inline void setHashOnly(Monomial& a) const;
+
+  void setGivenHash(Monomial& a, exponent hash) const {a[mHashIndex] = hash;}
 
   bool hashValid(const_monomial m) const;
 
@@ -389,15 +391,23 @@ public:
 
   void monomialMultTo(Monomial &a, ConstMonomial b) const; // a *= b
 
+  /// returns true if b divides a, in this case, result is set to b//a.
   bool monomialDivide(ConstMonomial a, ConstMonomial b, Monomial &result) const;
-  // returns true if b divides a, in this case, result is set to b//a.
 
+  /// sets result to a/b, even if that produces negative exponents.
   void monomialDivideToNegative(ConstMonomial a, ConstMonomial b, Monomial &result) const;
-  // sets result to a/b, even if that produces negative exponents.
 
+  /// returns true if b divides a.  Components are ignored.
   bool monomialIsDivisibleBy(ConstMonomial a, ConstMonomial b) const;
-  // returns true if b divides a.  Components are ignored.
 
+  /// Returns true if ab is the product of a and b.
+  bool monomialIsProductOf
+    (ConstMonomial a, ConstMonomial b, ConstMonomial ab) const;
+
+  /// Returns the hash of the product of a and b.
+  exponent monomialHashOfProduct(ConstMonomial a, ConstMonomial b) const {
+    return a[mHashIndex] + b[mHashIndex];
+  }
 
   void monomialCopy(ConstMonomial  a, Monomial &result) const;
 
@@ -584,6 +594,20 @@ inline bool PolyRing::monomialEQ(ConstMonomial a, ConstMonomial b) const
 {
   for (size_t i = 0; i <= mNumVars; ++i)
     if (a[i] != b[i]) return false;
+  return true;
+}
+
+inline bool PolyRing::monomialIsProductOf(
+  ConstMonomial a, 
+  ConstMonomial b, 
+  ConstMonomial ab
+) const {
+  MATHICGB_ASSERT(hashValid(a));
+  MATHICGB_ASSERT(hashValid(b));
+  MATHICGB_ASSERT(hashValid(ab));
+  for (size_t i = mHashIndex; i != static_cast<size_t>(-1); --i)
+    if (ab[i] != a[i] + b[i])
+      return false;
   return true;
 }
 
