@@ -138,16 +138,8 @@ namespace {
     }
 
     // Change indices to match the permutation done on the columns
-    typedef SparseMatrix::AllColIndicesIterator Iter;
-    for (int doTop = 0; doTop < 2; ++doTop) {
-      SparseMatrix& matrix = doTop ? topMatrix : bottomMatrix;
-      Iter it = matrix.allColIndicesBegin();
-      Iter end = matrix.allColIndicesEnd();
-      for (; it != end; ++it) {
-        MATHICGB_ASSERT(*it < colCount);
-        *it = permutation[*it];
-      }
-    }
+    topMatrix.applyColumnMap(permutation);
+    bottomMatrix.applyColumnMap(permutation);
   }  
 }
 

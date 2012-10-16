@@ -578,63 +578,6 @@ void readMany(FILE* file, size_t count, std::vector<T>& v) {
     throw IOException();
 }
 
-// Writes an SparseMatrix
-void writeSparseMatrix
-(const SparseMatrix& matrix, SparseMatrix::Scalar modulus, const std::string& fileName) {
-  MATHICGB_ASSERT(matrix.rowCount() <= std::numeric_limits<uint32>::max());
-  MATHICGB_ASSERT(matrix.colCount() <= std::numeric_limits<uint32>::max());
-  MATHICGB_ASSERT(matrix.entryCount() <= std::numeric_limits<uint64>::max());
-
-  const uint32 rowCount = static_cast<uint32>(matrix.rowCount());
-  const uint32 colCount = static_cast<uint32>(matrix.colCount());
-  const uint64 entryCount = static_cast<uint32>(matrix.entryCount());
-
-  FILE* file = fopen(fileName.c_str(), "w");
-  if (file == NULL)
-    throw IOException();
-
-  writeOne<uint32>(rowCount, file);
-  writeOne<uint32>(colCount, file);
-  writeOne<uint32>(modulus, file);
-  writeOne<uint64>(entryCount, file);
-
-  writeMany<uint16>(matrix.entries(), file);
-  writeMany<uint32>(matrix.colIndices(), file);
-
-  std::vector<uint32> sizes;
-  for (size_t row = 0; row < rowCount; ++row)
-    sizes.push_back(static_cast<uint32>(matrix.entryCountInRow(row)));
-  writeMany<uint32>(sizes, file);
-
-  // todo: don't leak file on exception.
-  fclose(file);
-}
-
-// Reads an SparseMatrix without any fseeks and returns the modulus.
-SparseMatrix::Scalar readSparseMatrix(const std::string& fileName, SparseMatrix& matrix)
-{
-  FILE* file = fopen(fileName.c_str(), "r");
-  if (file == NULL)
-    throw IOException();
-
-  uint32 const rowCount = readOne<uint32>(file);
-  uint32 const colCount = readOne<uint32>(file);
-  uint32 const modulus = readOne<uint32>(file);
-  uint64 const entryCount = readOne<uint64>(file);
-
-  std::vector<uint16> entries;
-  readMany(file, static_cast<size_t>(entryCount), entries);
-
-  std::vector<uint32> indices;
-  readMany(file, static_cast<size_t>(entryCount), indices);
-
-  std::vector<uint32> sizes;
-  readMany(file, rowCount, sizes);
-
-  matrix.setToAndTakeMemory(indices, entries, sizes, colCount);
-  return modulus;
-}
-
 // doesn't need to be fast.
 int integerLog10(size_t val) {
   int ret = -1;

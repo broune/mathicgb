@@ -104,32 +104,14 @@ class SparseMatrix {
   }
 
   /** Prints the matrix in a human readable format to out. */
-  void print(std::ostream& out) const {
-    if (rowCount() == 0)
-      out << "matrix with no rows\n";
-    for (RowIndex row = 0; row < rowCount(); ++row) {
-      out << row << ':';
-      RowIterator end = rowEnd(row);
-      for (RowIterator it = rowBegin(row); it != end; ++it) {
-        MATHICGB_ASSERT(it.index() < colCount());
-        out << ' ' << it.index() << '#' << it.scalar();
-      }
-      out << '\n';
-    }
-  }
+  void print(std::ostream& out) const;
 
-  std::string toString() const {
-    std::ostringstream out;
-    print(out);
-    return out.str();
-  }
-
+  std::string toString() const;
 
   /** Adds a new row that contains all terms that have been appended
     since the last time a row was added or the matrix was created. */
   void rowDone() {
     MATHICGB_ASSERT(mColIndices.size() == mEntries.size());
-
     mRowOffsets.push_back(mColIndices.size());
   }
 
@@ -146,82 +128,11 @@ class SparseMatrix {
     MATHICGB_ASSERT(mColIndices.size() == mEntries.size());
   }
 
+  void appendRowAndNormalize(const SparseMatrix& matrix, RowIndex row, Scalar modulus);
   
-  void appendRowAndNormalize(const SparseMatrix& matrix, RowIndex row, Scalar modulus) {
-    MATHICGB_ASSERT(row < matrix.rowCount());
-    RowIterator it = matrix.rowBegin(row);
-    RowIterator end = matrix.rowEnd(row);
-    if (it != end) {
-      appendEntry(it.index(), 1);
-      Scalar lead = it.scalar();
-      ++it;
-      if (it != end) {
-        Scalar inverse = modularInverse(lead, modulus);
-        do {
-          uint32 prod = static_cast<uint32>(inverse) * it.scalar();
-          uint16 prodMod = static_cast<uint16>(prod % modulus);
-          appendEntry(it.index(), prodMod);
-          ++it;
-        } while (it != end);
-      }
-    }
-    rowDone();
-  }
-  
-  void appendRow(const SparseMatrix& matrix, RowIndex row) {
-    MATHICGB_ASSERT(row < matrix.rowCount());
-    RowIterator it = matrix.rowBegin(row);
-    RowIterator end = matrix.rowEnd(row);
-    for (; it != end; ++it)
-      appendEntry(it.index(), it.scalar());
-    rowDone();
-  }
-
-  void setToAndTakeMemory(std::vector<ColIndex>& indices,
-                          std::vector<Scalar>& entries,
-                          std::vector<ColIndex>& sizes,
-                          ColIndex colCount) {
-    MATHICGB_ASSERT(indices.size() == entries.size());
-
-    mColCount = colCount;
-
-    // deallocate old memory
-    std::vector<ColIndex>().swap(mColIndices);
-    std::vector<Scalar>().swap(mEntries);
-    std::vector<size_t>().swap(mRowOffsets);
-
-    // take new memory
-    mColIndices.swap(indices);
-    mEntries.swap(entries);
-
-    // compute row offsets
-    const size_t newRowCount = sizes.size();
-    mRowOffsets.reserve(newRowCount + 1);
-    mRowOffsets.push_back(0);
-    for (size_t row = 0; row < newRowCount; ++row)
-      mRowOffsets.push_back(mRowOffsets.back() + sizes[row]);
-
-    MATHICGB_ASSERT(mRowOffsets.size() == sizes.size() + 1);
-    MATHICGB_ASSERT(mRowOffsets.front() == 0);
-    MATHICGB_ASSERT(mRowOffsets.back() == mColIndices.size());
-
-    std::vector<ColIndex>().swap(sizes); // deallocate old memory
-  }
-  
-  void swap(SparseMatrix& matrix) {
-    std::swap(mColIndices, matrix.mColIndices);
-    std::swap(mEntries, matrix.mEntries);
-    std::swap(mRowOffsets, matrix.mRowOffsets);
-    std::swap(mColCount, matrix.mColCount);
-  }
-
-  void clear(ColIndex newColCount = 0) {
-    mColIndices.clear();
-    mEntries.clear();
-    mRowOffsets.clear();
-    mRowOffsets.push_back(0);
-    mColCount = newColCount;
-  }
+  void appendRow(const SparseMatrix& matrix, RowIndex row);
+  void swap(SparseMatrix& matrix);
+  void clear(ColIndex newColCount = 0);
   
   class RowIterator {
   public:
@@ -247,9 +158,7 @@ class SparseMatrix {
     return mRowOffsets.size() - 1;
   }
 
-  ColIndex colCount() const {
-    return mColCount;
-  }
+  ColIndex colCount() const {return mColCount;}
   
   RowIterator rowBegin(RowIndex row) const {
     MATHICGB_ASSERT(row < rowCount());
@@ -275,95 +184,21 @@ class SparseMatrix {
     return mColCount - 1;
   }
 
-  void appendRowWithModulus(std::vector<uint64> const& v, Scalar modulus) {
-    MATHICGB_ASSERT(v.size() == colCount());
-    ColIndex count = colCount();
-    for (ColIndex col = 0; col < count; ++col) {
-      Scalar scalar = static_cast<Scalar>(v[col] % modulus);
-      if (scalar != 0)
-        appendEntry(col, scalar);
-    }
-    rowDone();
-  }
+  void appendRowWithModulus(std::vector<uint64> const& v, Scalar modulus);
   
-  void appendRow(std::vector<uint64> const& v, ColIndex leadCol = 0) {
-    MATHICGB_ASSERT(v.size() == colCount());
-#ifdef MATHICGB_DEBUG
-    for (ColIndex col = leadCol; col < leadCol; ++col) {
-      MATHICGB_ASSERT(v[col] == 0);
-    }
-#endif
+  void appendRow(std::vector<uint64> const& v, ColIndex leadCol = 0);
 
-    ColIndex count = colCount();
-    for (ColIndex col = leadCol; col < count; ++col) {
-	  MATHICGB_ASSERT(v[col] < std::numeric_limits<Scalar>::max());
-      if (v[col] != 0)
-        appendEntry(col, static_cast<Scalar>(v[col]));
-	}
-    rowDone();
-  }
-
-  void appendRowWithModulusNormalized(std::vector<uint64> const& v, Scalar modulus) {
-    MATHICGB_ASSERT(v.size() == colCount());
-    ColIndex count = colCount();
-    uint16 multiply = 1;
-   
-    bool first = true;
-    for (ColIndex col = 0; col < count; ++col) {
-      Scalar scalar = static_cast<Scalar>(v[col] % modulus);
-      if (scalar == 0)
-        continue;
-      if (first) {
-        multiply = modularInverse(scalar, modulus);
-        scalar = 1;
-        first = false;
-      } else {
-        uint32 prod = static_cast<uint32>(multiply) * scalar;
-        scalar = prod % modulus;
-      }
-      appendEntry(col, scalar);
-    }
-    rowDone();
-  }
+  void appendRowWithModulusNormalized(std::vector<uint64> const& v, Scalar modulus);
 
   // Returns true if the row was non-zero. Otherwise the row was not
   // appended.
-  bool appendRowWithModulusIfNonZero(std::vector<uint64> const& v, Scalar modulus) {
-    appendRowWithModulus(v, modulus);
-    MATHICGB_ASSERT(mRowOffsets.size() >= 2);
-    std::vector<size_t>::const_iterator it = mRowOffsets.end();
-    --it;
-    size_t last = *it;
-    --it;
-    if (last == *it) {
-      mRowOffsets.pop_back();
-      return false;
-    } else
-      return true;
-  }
+  bool appendRowWithModulusIfNonZero(std::vector<uint64> const& v, Scalar modulus);
 
-  bool operator==(const SparseMatrix& mat) const {
-    return mColCount == mat.mColCount &&
-      mColIndices == mat.mColIndices &&
-      mEntries == mat.mEntries &&
-      mRowOffsets == mat.mRowOffsets;
-  }
+  bool operator==(const SparseMatrix& mat) const;
+  bool operator!=(const SparseMatrix& mat) const {return !(*this == mat);}
 
-  bool operator!=(const SparseMatrix& mat) const {
-    return !(*this == mat);
-  }
-
-  const std::vector<Scalar>& entries() const {
-    return mEntries;
-  }
-
-  const std::vector<ColIndex>& colIndices() const {
-    return mColIndices;
-  }
-  
-  typedef std::vector<ColIndex>::iterator AllColIndicesIterator;
-  AllColIndicesIterator allColIndicesBegin() {return mColIndices.begin();}
-  AllColIndicesIterator allColIndicesEnd() {return mColIndices.end();}
+  /// Replaces all column indices i with colMap[i].
+  void applyColumnMap(std::vector<ColIndex> colMap);
 
   /// Let poly be the dot product of colMonomials and the given row.
   void rowToPolynomial
