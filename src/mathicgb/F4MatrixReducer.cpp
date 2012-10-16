@@ -324,7 +324,7 @@ void myReduce
   DenseRow<uint64> denseRow;
 #endif
 
-  SparseMatrix tmp;
+  SparseMatrix tmp(pivotCount);
 
   std::vector<SparseMatrix::RowIndex> rowOrder(rowCount);
 

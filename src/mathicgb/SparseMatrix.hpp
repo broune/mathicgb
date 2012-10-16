@@ -2,6 +2,7 @@
 #define MATHICGB_SPARSE_MATRIX_GUARD
 
 #include "PolyRing.hpp"
+#include <mathic.h>
 #include <vector>
 #include <ostream>
 #include <limits>
@@ -36,11 +37,6 @@ Currently this is not a template class so you can get by without
 using the typedefs offered, for example using uint16 instead of
 SparseMatrix::Scalar. Please use the typedefs to make it easier to
 support a wider range of types of matrices in future.
-
-There is no need to specify the number of columns ahead of time. Any
-column index within the range of the ColIndex type can be used. The
-SparseMatrix automatically keeps track of the number of columns in the
-matrix.
 */
 class SparseMatrix {
  public:
@@ -91,8 +87,8 @@ class SparseMatrix {
     mColCount -= trimThisMany;
   }
 
-  /** Construct a new zero by zero sparse matrix. */
-  SparseMatrix(): mColCount(0) {
+  /** Construct a matrix with no rows and colCount columns. */
+  SparseMatrix(ColIndex colCount = 0): mColCount(colCount) {
     mRowOffsets.push_back(0);
   }
 
@@ -142,12 +138,10 @@ class SparseMatrix {
     after calling this method until rowDone has been called. */
   void appendEntry(ColIndex colIndex, Scalar scalar) {
     MATHICGB_ASSERT(mColIndices.size() == mEntries.size());
-    MATHICGB_ASSERT(colIndex < std::numeric_limits<ColIndex>::max());
+    MATHICGB_ASSERT(colIndex < colCount());
 
     mColIndices.push_back(colIndex);
     mEntries.push_back(scalar);
-    if (colIndex + 1 > mColCount)
-      mColCount = colIndex + 1;
 
     MATHICGB_ASSERT(mColIndices.size() == mEntries.size());
   }
@@ -215,9 +209,9 @@ class SparseMatrix {
   }
   
   void swap(SparseMatrix& matrix) {
-    mColIndices.swap(matrix.mColIndices);
-    mEntries.swap(matrix.mEntries);
-    mRowOffsets.swap(matrix.mRowOffsets);
+    std::swap(mColIndices, matrix.mColIndices);
+    std::swap(mEntries, matrix.mEntries);
+    std::swap(mRowOffsets, matrix.mRowOffsets);
     std::swap(mColCount, matrix.mColCount);
   }
 
@@ -270,6 +264,15 @@ class SparseMatrix {
   void ensureAtLeastThisManyColumns(ColIndex count) {
     if (count > colCount())
       mColCount = count;
+  }
+
+  /** Adds one more column to the matrix and returns the index of the new
+    column. */
+  ColIndex appendColumn() {
+    if (colCount() == std::numeric_limits<ColIndex>::max())
+      mathic::reportError("Too many columns in SparseMatrix.");
+    ++mColCount;
+    return mColCount - 1;
   }
 
   void appendRowWithModulus(std::vector<uint64> const& v, Scalar modulus) {
