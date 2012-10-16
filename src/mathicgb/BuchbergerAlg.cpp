@@ -208,11 +208,12 @@ void BuchbergerAlg::computeGrobnerBasis() {
   }
   //printStats(std::cerr);
   //mReducer->dump();
-
+  /*
   for (size_t i = 0; i < mBasis.size(); ++i)
     if (!mBasis.retired(i))
       mBasis.replaceSameLeadTerm
         (i, mReducer->classicTailReduce(mBasis.poly(i), mBasis));
+        */
 }
 
 void BuchbergerAlg::step() {

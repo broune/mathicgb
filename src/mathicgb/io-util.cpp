@@ -146,6 +146,18 @@ void output(std::ostream &o, const PolyBasis &I)
     }
 }
 
+void output(FILE* file, const PolyBasis &I)
+{
+  for (size_t i = 0; i < I.size(); i++)
+    {
+      if (!I.retired(i))
+        {
+          I.poly(i).display(file, false);
+          fputc('\n', file);
+        }
+    }
+}
+
 // Local Variables:
 // compile-command: "make -C .. "
 // indent-tabs-mode: nil

@@ -54,7 +54,7 @@ void SparseMatrix::sortRowsByIncreasingPivots() {
 }
 
 void SparseMatrix::applyColumnMap(std::vector<ColIndex> colMap) {
-  MATHICGB_ASSERT(colMap.size() < colCount());
+  MATHICGB_ASSERT(colMap.size() >= colCount());
   auto end = mColIndices.end();
   for (auto it = mColIndices.begin(); it != end; ++it) {
     MATHICGB_ASSERT(*it < colCount());

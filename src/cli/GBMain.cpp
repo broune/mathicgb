@@ -202,10 +202,15 @@ public:
       alg.computeGrobnerBasis();
       alg.printStats(std::cerr);
 
+      /*
       std::ofstream statsOut((mProjectName.value() + ".stats").c_str());
       alg.printStats(statsOut);
-      std::ofstream gbOut((mProjectName.value() + ".gb").c_str());
-      output(gbOut, alg.basis());
+      {
+        std::string basisFileName = mProjectName.value() + ".gb";
+        FILE* basisOut = std::fopen(basisFileName.c_str(), "w");
+        output(basisOut, alg.basis());
+      }
+      */
     } else {
       SignatureGB alg(
         *ideal,
