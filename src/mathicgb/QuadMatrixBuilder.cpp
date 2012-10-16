@@ -47,8 +47,10 @@ namespace {
     }
     toMonomial.back() = copied;
 
-    top.ensureAtLeastThisManyColumns(colCount + 1);
-    bottom.ensureAtLeastThisManyColumns(colCount + 1);
+    top.appendColumn();
+    MATHICGB_ASSERT(top.colCount() == colCount + 1);
+    bottom.appendColumn();
+    MATHICGB_ASSERT(bottom.colCount() == colCount + 1);
     return QuadMatrixBuilder::LeftRightColIndex(colCount, left);
   }
 }
