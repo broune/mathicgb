@@ -14,7 +14,8 @@ public:
 
   void parse(std::istream &i); // reads into this, sorts terms
   void parseDoNotOrder(std::istream &i); // reads into this, does not sort terms
-  void display(std::ostream &o, bool print_comp=true) const;
+  void display(FILE* file, bool printComponent = true) const;
+  void display(std::ostream &o, bool print_comp = true) const;
   void see(bool print_comp) const;
 
   class iterator {

@@ -289,6 +289,34 @@ void PolyRing::monomialDisplay(std::ostream &o,
     o << "1";
 }
 
+void PolyRing::monomialDisplay(FILE* file, 
+                               ConstMonomial mono, 
+                               bool printComponent, 
+                               bool printOne) const
+{
+  const unsigned int letterCount = 26;
+  MATHICGB_ASSERT(getNumVars() <= 2 * letterCount);
+  bool printedAny = false;
+  for (size_t var = 0; var < mNumVars; ++var) {
+    exponent e = monomialExponent(mono, var);
+    if (e == 0)
+      continue;
+    printedAny = true;
+    char varChar;
+    if (var < letterCount)
+      varChar = static_cast<char>('a' + var);
+    else
+      varChar = static_cast<char>('A' + (var - letterCount));
+    fputc(varChar, file);
+    if (e != 1)
+      fprintf(file, "%i", e);
+  }
+  if (printComponent)
+    fprintf(file, "<%i>", mono.component());
+  else if (!printedAny && printOne)
+    fputc('1', file);
+}
+
 void PolyRing::printMonomialFrobbyM2Format(std::ostream& out, ConstMonomial m) const {
   out << "  ";
   bool isOne = true;

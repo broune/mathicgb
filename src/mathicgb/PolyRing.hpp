@@ -462,6 +462,10 @@ public:
                        ConstMonomial a, 
                        bool print_comp=true, 
                        bool print_one=true) const;
+  void monomialDisplay(FILE* file,
+                       ConstMonomial a, 
+                       bool printComponent = true, 
+                       bool printOne = true) const;
 
   void printMonomialFrobbyM2Format(std::ostream& out, ConstMonomial m) const;
 

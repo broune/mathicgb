@@ -318,6 +318,33 @@ void Poly::display(std::ostream &o, bool print_comp) const
     }
 }
 
+void Poly::display(FILE* file, bool printComponent) const
+{
+  if (isZero()) {
+    fputs("0", file);
+    return;
+  }
+
+  const auto characteristic = R->charac();
+  const exponent maxPositiveExponent = (characteristic + 1) / 2;
+  bool firstTerm = true;
+  for (auto it = begin(); it != end(); ++it) {
+      coefficient coef = it.getCoefficient();
+      if (coef > maxPositiveExponent) {
+        coef = characteristic - coef;
+        fputc('-', file);
+      } else if (!firstTerm)
+        fputc('+', file);
+      bool printOne = true;
+      if (coef != 1) {
+        printOne = false;
+        fprintf(file, "%i", coef);
+      }
+      R->monomialDisplay(file, it.getMonomial(), printComponent, printOne);
+      firstTerm = false;
+    }
+}
+
 size_t Poly::getMemoryUse() const
 {
   size_t total = sizeof(const PolyRing *);
