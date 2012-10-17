@@ -7,6 +7,7 @@
 #include <vector>
 #include <ostream>
 #include <utility>
+#include <cstdio>
 
 class Poly {
 public:

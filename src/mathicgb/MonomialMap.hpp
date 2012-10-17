@@ -125,6 +125,7 @@ namespace MonomialMapInternal {
       Map;
     typedef typename Map::iterator iterator;
     typedef typename Map::const_iterator const_iterator;
+    typedef typename Map::value_type value_type;
 
     MapClass(const PolyRing& ring):
       mArena(),
@@ -142,20 +143,16 @@ namespace MonomialMapInternal {
     const Map& map() const {return mMap;}
     const PolyRing& ring() const {return mMap.key_eq().ring();}
 
-    iterator findProduct(const_monomial a, const_monomial b) {
+    value_type* findProduct(const_monomial a, const_monomial b) {
       ring().setGivenHash(mTmp, ring().monomialHashOfProduct(a, b));
       size_t bucket = mMap.bucket(mTmp);
       auto stop = mMap.end(bucket);
       for (auto it = mMap.begin(bucket); it != stop; ++it)
         if (ring().monomialIsProductOf(a, b, it->first))
-          return it;
-      return mMap.end();
+          return &*it;
+      return 0;
     }
 
-    const_iterator findProduct(const_monomial a, const_monomial b) const {
-      iterator it = const_cast<MapClass<MTT>*>(this)->findProduct(a, b);
-      return const_iterator(it);
-    }
 
 /*
     size_t bucket = mMonomialToCol.
@@ -196,13 +193,25 @@ public:
   const_iterator begin() const {return map().begin();}
   iterator end() {return map().end();}
   const_iterator end() const {return map().end();}
-  iterator find(const_monomial m) {return map().find(m);}
-  const_iterator find(const_monomial m) const {return map().find(m);}
-  iterator findProduct(const_monomial a, const_monomial b) {
+
+  value_type* find(const_monomial m) {
+    auto it = map().find(m);
+    if (it == map().end())
+      return 0;
+    else
+      return &*it;
+  }
+
+  value_type* findProduct(const_monomial a, const_monomial b) {
     return mMap.findProduct(a, b);
   }
-  const_iterator findProduct(const_monomial a, const_monomial b) const {
-    return mMap.findProduct(a, b);
+
+  const value_type* find(const_monomial m) const {
+    return const_cast<MonomialMap&>(*this).find(m);
+  }
+
+  const value_type* findProduct(const_monomial a, const_monomial b) const {
+    return const_cast<MonomialMap&>(*this).findProduct(a, b);
   }
 
   size_t size() const {return map().size();}
