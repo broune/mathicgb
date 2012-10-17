@@ -27,7 +27,7 @@ namespace {
   {
     MATHICGB_ASSERT(top.colCount() == bottom.colCount());
     MATHICGB_ASSERT(toMonomial.size() == bottom.colCount());
-    MATHICGB_ASSERT(toCol.find(mono) == toCol.end());
+    MATHICGB_ASSERT(toCol.find(mono) == 0);
 
     const QuadMatrixBuilder::ColIndex colCount = top.colCount();
     if (colCount == std::numeric_limits<QuadMatrixBuilder::ColIndex>::max())

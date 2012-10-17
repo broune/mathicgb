@@ -9,6 +9,7 @@
 #include <string>
 #include <vector>
 #include <memtailor.h>
+#include <cstdio>
 
 #define LT (-1)
 #define EQ 0

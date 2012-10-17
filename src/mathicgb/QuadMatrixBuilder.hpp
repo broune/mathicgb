@@ -169,7 +169,7 @@ class QuadMatrixBuilder {
     exists. */
   LeftRightColIndex findColumn(const_monomial findThis) const {
     auto it = mMonomialToCol.find(findThis);
-    if (it != mMonomialToCol.end())
+    if (it != 0)
       return it->second;
     else
       return LeftRightColIndex();
@@ -179,7 +179,7 @@ class QuadMatrixBuilder {
   LeftRightColIndex findColumnProduct(const_monomial a, const_monomial b) const
   {
     auto it = mMonomialToCol.findProduct(a, b);
-    if (it != mMonomialToCol.end())
+    if (it != 0)
       return it->second;
     else
       return LeftRightColIndex();
