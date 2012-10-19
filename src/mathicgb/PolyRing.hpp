@@ -374,6 +374,9 @@ public:
 
   bool monomialEQ(ConstMonomial a, ConstMonomial b) const;
 
+  /// as monomialEQ, but optimized for the case that the answer is true.
+  bool monomialEqualHintTrue(ConstMonomial a, ConstMonomial b) const;
+
   size_t monomialSize(ConstMonomial) const { return mMaxMonomialSize; }
 
   int monomialGetComponent(ConstMonomial a) const { return *a.mValue; }
@@ -403,6 +406,11 @@ public:
 
   /// Returns true if ab is the product of a and b.
   bool monomialIsProductOf
+    (ConstMonomial a, ConstMonomial b, ConstMonomial ab) const;
+
+  /**As monomialIsProductOf but optimized for the case that the result
+    is true. */
+  bool monomialIsProductOfHintTrue
     (ConstMonomial a, ConstMonomial b, ConstMonomial ab) const;
 
   /// Returns the hash of the product of a and b.
@@ -598,8 +606,39 @@ inline exponent PolyRing::weight(ConstMonomial a) const {
 inline bool PolyRing::monomialEQ(ConstMonomial a, ConstMonomial b) const
 {
   for (size_t i = 0; i <= mNumVars; ++i)
-    if (a[i] != b[i]) return false;
+    if (a[i] != b[i])
+      return false;
   return true;
+}
+
+inline bool PolyRing::monomialEqualHintTrue(
+  const ConstMonomial a,
+  const ConstMonomial b
+) const {
+  // if a[i] != b[i] then a[i] ^ b[i] != 0, so the or of all xors is zero
+  // if and only if a equals b. This way we avoid having a branch to check
+  // equality for every iteration of the loop, which is a win in the case
+  // that none of the early-exit branches are taken - that is, when a equals b.
+  exponent orOfXor = 0;
+  for (size_t i = mNumVars; i != 0; --i)
+    orOfXor |= a[i] ^ b[i];
+  const bool areEqual = (orOfXor == 0);
+  MATHICGB_ASSERT(areEqual == monomialEQ(a, b));
+  return areEqual;
+}
+
+inline bool PolyRing::monomialIsProductOfHintTrue(
+  const ConstMonomial a, 
+  const ConstMonomial b, 
+  const ConstMonomial ab
+) const {
+  // same idea as monomialEqualHintTrue, just applied to the sum of a and b.
+  exponent orOfXor = 0;
+  for (size_t i = mNumVars; i != 0; --i)
+    orOfXor |= ab[i] ^ (a[i] + b[i]);
+  const bool isProduct = (orOfXor == 0);
+  MATHICGB_ASSERT(isProduct == monomialIsProductOf(a, b, ab));
+  return isProduct;
 }
 
 inline bool PolyRing::monomialIsProductOf(
@@ -607,10 +646,7 @@ inline bool PolyRing::monomialIsProductOf(
   ConstMonomial b, 
   ConstMonomial ab
 ) const {
-  MATHICGB_ASSERT(hashValid(a));
-  MATHICGB_ASSERT(hashValid(b));
-  MATHICGB_ASSERT(hashValid(ab));
-  for (size_t i = mHashIndex; i != static_cast<size_t>(-1); --i)
+  for (size_t i = 0; i <= mNumVars; ++i)
     if (ab[i] != a[i] + b[i])
       return false;
   return true;

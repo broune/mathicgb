@@ -4,9 +4,20 @@
 #include "PolyRing.hpp"
 #include <limits>
 
-#define MATHICGB_USE_STD_HASH
+#if defined(MATHICGB_USE_STD_HASH) && defined(MATHICGB_USE_CUSTOM_HASH)
+#error Only select one kind of hash table
+#endif
 
-#ifdef MATHICGB_USE_STD_HASH
+// set default hash table type if nothing has been specified
+#if !defined(MATHICGB_USE_STD_HASH) && !defined(MATHICGB_USE_CUSTOM_HASH)
+#define MATHICGB_USE_CUSTOM_HASH
+#endif
+
+#ifdef MATHICGB_USE_CUSTOM_HASH
+#include <memtailor.h>
+#include <vector>
+#include <algorithm>
+#elif defined(MATHICGB_USE_STD_HASH)
 #include <unordered_map>
 #else
 #include <map>
@@ -24,35 +35,156 @@ namespace MonomialMapInternal {
   // this namespace to avoid cluttering the class definition with
   // a lot of ifdef's.
 
-#ifndef MATHICGB_USE_STD_HASH
-  /// We need SOME ordering to make std::map work.
-  class ArbitraryOrdering {
-  public:
-    ArbitraryOrdering(const PolyRing& ring): mRing(ring) {}
-    bool operator()(const_monomial a, const_monomial b) const {
-      return mRing.monomialLT(a, b);
-    }
-    const PolyRing& ring() const {return mRing;}
+#ifdef MATHICGB_USE_CUSTOM_HASH
+class HashControlExample
+{
+public:
+  typedef int * KeyType;
+  typedef int ValueType;
 
-  private:
-    const PolyRing& mRing;
-  };
+  size_t hash_value(KeyType k) const { return static_cast<size_t>(k - static_cast<int *>(0)); }
+  bool is_equal(KeyType k1, KeyType k2) const { return k1 == k2; }
+  void combine(ValueType &v, ValueType w) const { v += w; }
+  void show(std::ostream &o, KeyType k, ValueType v) const { o << "[" << k << " " << v << "]"; }
+};
 
   template<class MTT>
   class MapClass {
   public:
-    typedef std::map<const_monomial, MTT, ArbitraryOrdering> Map;
-
-    MapClass(const PolyRing& ring): mMap(ArbitraryOrdering(ring)) {}
-    Map& map() {return mMap;}
-    const Map& map() const {return mMap;}
-    const PolyRing& ring() const {return mMap.key_cmp().ring();}
+    typedef MapClass Map;
+    typedef std::pair<const_monomial, MTT> value_type;
 
   private:
-    Map mMap;
+    typedef exponent HashValue;
+    struct Node {
+      Node* next;
+      value_type value;
+    };
+
+  public:
+    MapClass(const PolyRing& ring):
+      mRing(ring),
+      mTable(),
+      mNodeAlloc(sizeof(Node))
+    {
+      mGrowWhenThisManyEntries = 0;
+      mTableSize = mTable.size();
+      mEntryCount = 0;
+      growTable();
+    }
+
+    Map& map() {return *this;}
+    const Map& map() const {return *this;}
+    const PolyRing& ring() const {return mRing;}
+
+    value_type* find(const_monomial mono) {
+      const HashValue monoHash = mRing.monomialHashValue(mono);
+      Node* node = entry(hashToIndex(monoHash));
+      for (; node != 0; node = node->next) {
+        if (monoHash == mRing.monomialHashValue(node->value.first) &&
+          mRing.monomialEqualHintTrue(mono, node->value.first)
+        ) {
+          return &node->value;
+        }
+      }
+      return 0;
+    }
+
+    value_type* findProduct(const_monomial a, const_monomial b) {
+      const HashValue abHash = mRing.monomialHashOfProduct(a, b);
+      Node* node = entry(hashToIndex(abHash));
+      for (; node != 0; node = node->next) {
+        if (abHash == mRing.monomialHashValue(node->value.first) &&
+          mRing.monomialIsProductOfHintTrue(a, b, node->value.first)
+        ) {
+          return &node->value;
+        }
+      }
+      return 0;
+    }
+
+    void insert(const value_type& value) {
+      Node* node = static_cast<Node*>(mNodeAlloc.alloc());
+      const size_t index = hashToIndex(mRing.monomialHashValue(value.first));
+      node->value = value;
+      node->next = entry(index);
+      mTable[index] = node;
+      ++mEntryCount;
+      MATHICGB_ASSERT(mEntryCount <= mGrowWhenThisManyEntries);
+      if (mEntryCount == mGrowWhenThisManyEntries)
+        growTable();
+    }
+
+    void clear() {
+      std::fill(mTable.begin(), mTable.end(), static_cast<Node*>(0));
+      mNodeAlloc.freeAllBuffers();
+      mEntryCount = 0;
+    }
+
+    size_t size() const {return mEntryCount;}
+
+  private:
+    size_t hashToIndex(HashValue hash) const {
+      const auto index = hash & mHashToIndexMask;
+      MATHICGB_ASSERT(index == hash % mTable.size());
+      return index;
+    }
+
+    Node* entry(size_t index) {
+      MATHICGB_ASSERT(index < mTable.size());
+      return mTable[index];
+    }
+
+    void growTable() {
+      // Determine parameters for larger hash table
+      const size_t initialTableSize = 1 << 16; // must be a power of two!!!
+      const float maxLoadFactor = 0.33f; // max value of size() / mTable.size()
+      const float growthFactor = 2.0f; // multiply table size by this on growth
+
+      const size_t newTableSize = mTable.empty() ?
+        initialTableSize :
+        static_cast<size_t>(mTable.size() * growthFactor + 0.5f); // round up
+      const auto newGrowWhenThisManyEntries =
+        static_cast<size_t>(newTableSize / maxLoadFactor); // round down
+
+      MATHICGB_ASSERT((newTableSize & (newTableSize - 1)) == 0); // power of two
+
+      // Move nodes from current table into new table
+      decltype(mTable) newTable(newTableSize);
+      HashValue newHashToIndexMask = static_cast<HashValue>(newTableSize - 1);
+      const auto tableEnd = mTable.end();
+      for (auto tableIt = mTable.begin(); tableIt != tableEnd; ++tableIt) {
+        Node* node = *tableIt;
+        while (node != 0) {
+          const size_t index =
+            mRing.monomialHashValue(node->value.first) & newHashToIndexMask;
+          MATHICGB_ASSERT(index < newTable.size());
+          Node* const next = node->next;
+          node->next = newTable[index];
+          newTable[index] = node;
+          node = next;
+        }
+      }
+
+      // Move newly calculated table into place
+      mTableSize = newTableSize;      
+      mTable = std::move(newTable);
+      mHashToIndexMask = newHashToIndexMask;
+      mGrowWhenThisManyEntries = newGrowWhenThisManyEntries;
+
+      MATHICGB_ASSERT(mTableSize < mGrowWhenThisManyEntries);
+    }
+
+    size_t mGrowWhenThisManyEntries;
+    size_t mTableSize;
+    HashValue mHashToIndexMask;
+    size_t mEntryCount;
+    const PolyRing& mRing;
+    std::vector<Node*> mTable;
+    memt::BufferPool mNodeAlloc; // nodes are allocated from here.
   };
 
-#else
+#elif defined(MATHICGB_USE_STD_HASH)
   class Hash {
   public:
     Hash(const PolyRing& ring): mRing(ring) {}
@@ -116,6 +248,7 @@ namespace MonomialMapInternal {
   private:
     mutable memt::Arena& mArena;
   };
+
   template<class MTT>
   class MapClass {
   public:
@@ -153,26 +286,38 @@ namespace MonomialMapInternal {
       return 0;
     }
 
-
-/*
-    size_t bucket = mMonomialToCol.
-	iterator lower_bound(const key_type& _Keyval)
-		{	// find leftmost not less than _Keyval in mutable hash table
-		size_type _Bucket = _Hashval(_Keyval);
-		for (_Unchecked_iterator _Where = _Begin(_Bucket);
-			_Where != _End(_Bucket); ++_Where)
-			if (!((_Traits&)*this)(this->_Kfn(*_Where), _Keyval))
-				return (((_Traits&)*this)(_Keyval,
-					this->_Kfn(*_Where)) ? end() : _Make_iter(_Where));
-		return (end());
-		}
-
-        */
-
   private:
     memt::Arena mArena;
     Map mMap;
     monomial mTmp;
+  };
+#elif defined(MATHICGB_USE_CUSTOM_HASH)
+#else
+  /// We need SOME ordering to make std::map work.
+  class ArbitraryOrdering {
+  public:
+    ArbitraryOrdering(const PolyRing& ring): mRing(ring) {}
+    bool operator()(const_monomial a, const_monomial b) const {
+      return mRing.monomialLT(a, b);
+    }
+    const PolyRing& ring() const {return mRing;}
+
+  private:
+    const PolyRing& mRing;
+  };
+
+  template<class MTT>
+  class MapClass {
+  public:
+    typedef std::map<const_monomial, MTT, ArbitraryOrdering> Map;
+
+    MapClass(const PolyRing& ring): mMap(ArbitraryOrdering(ring)) {}
+    Map& map() {return mMap;}
+    const Map& map() const {return mMap;}
+    const PolyRing& ring() const {return mMap.key_cmp().ring();}
+
+  private:
+    Map mMap;
   };
 #endif
 }
@@ -183,24 +328,18 @@ public:
   typedef MTT mapped_type;
   typedef MonomialMapInternal::MapClass<MTT> MapType;
 
-  typedef typename MapType::Map::iterator iterator;
-  typedef typename MapType::Map::const_iterator const_iterator;
+  //typedef typename MapType::Map::iterator iterator;
+  //typedef typename MapType::Map::const_iterator const_iterator;
   typedef typename MapType::Map::value_type value_type;
 
   MonomialMap(const PolyRing& ring): mMap(ring) {}
 
-  iterator begin() {return map().begin();}
+/*  iterator begin() {return map().begin();}
   const_iterator begin() const {return map().begin();}
   iterator end() {return map().end();}
-  const_iterator end() const {return map().end();}
+  const_iterator end() const {return map().end();}*/
 
-  value_type* find(const_monomial m) {
-    auto it = map().find(m);
-    if (it == map().end())
-      return 0;
-    else
-      return &*it;
-  }
+  value_type* find(const_monomial m) {return mMap.find(m);}
 
   value_type* findProduct(const_monomial a, const_monomial b) {
     return mMap.findProduct(a, b);
@@ -216,8 +355,8 @@ public:
 
   size_t size() const {return map().size();}
   void clear() {map().clear();}
-  std::pair<iterator, bool> insert(const value_type& val) {
-    return map().insert(val);
+  void insert(const value_type& val) {
+    map().insert(val);
   }
 
   inline const PolyRing& ring() const {return mMap.ring();}
@@ -228,7 +367,5 @@ private:
 
   MapType mMap;
 };
-
-
 
 #endif
