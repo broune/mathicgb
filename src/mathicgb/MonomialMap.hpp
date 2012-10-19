@@ -36,36 +36,26 @@ namespace MonomialMapInternal {
   // a lot of ifdef's.
 
 #ifdef MATHICGB_USE_CUSTOM_HASH
-class HashControlExample
-{
-public:
-  typedef int * KeyType;
-  typedef int ValueType;
-
-  size_t hash_value(KeyType k) const { return static_cast<size_t>(k - static_cast<int *>(0)); }
-  bool is_equal(KeyType k1, KeyType k2) const { return k1 == k2; }
-  void combine(ValueType &v, ValueType w) const { v += w; }
-  void show(std::ostream &o, KeyType k, ValueType v) const { o << "[" << k << " " << v << "]"; }
-};
-
   template<class MTT>
   class MapClass {
   public:
     typedef MapClass Map;
     typedef std::pair<const_monomial, MTT> value_type;
+    typedef MTT mapped_type;
 
   private:
     typedef exponent HashValue;
     struct Node {
       Node* next;
-      value_type value;
+      mapped_type value;
+      exponent mono[1];
     };
 
   public:
     MapClass(const PolyRing& ring):
       mRing(ring),
       mTable(),
-      mNodeAlloc(sizeof(Node))
+      mNodeAlloc(sizeof(Node) - sizeof(exponent) + ring.maxMonomialByteSize())
     {
       mGrowWhenThisManyEntries = 0;
       mTableSize = mTable.size();
@@ -77,12 +67,12 @@ public:
     const Map& map() const {return *this;}
     const PolyRing& ring() const {return mRing;}
 
-    value_type* find(const_monomial mono) {
+    mapped_type* find(const_monomial mono) {
       const HashValue monoHash = mRing.monomialHashValue(mono);
       Node* node = entry(hashToIndex(monoHash));
       for (; node != 0; node = node->next) {
-        if (monoHash == mRing.monomialHashValue(node->value.first) &&
-          mRing.monomialEqualHintTrue(mono, node->value.first)
+        if (monoHash == mRing.monomialHashValue(node->mono) &&
+          mRing.monomialEqualHintTrue(mono, node->mono)
         ) {
           return &node->value;
         }
@@ -90,12 +80,12 @@ public:
       return 0;
     }
 
-    value_type* findProduct(const_monomial a, const_monomial b) {
+    mapped_type* findProduct(const_monomial a, const_monomial b) {
       const HashValue abHash = mRing.monomialHashOfProduct(a, b);
       Node* node = entry(hashToIndex(abHash));
       for (; node != 0; node = node->next) {
-        if (abHash == mRing.monomialHashValue(node->value.first) &&
-          mRing.monomialIsProductOfHintTrue(a, b, node->value.first)
+        if (abHash == mRing.monomialHashValue(node->mono) &&
+          mRing.monomialIsProductOfHintTrue(a, b, node->mono)
         ) {
           return &node->value;
         }
@@ -106,7 +96,8 @@ public:
     void insert(const value_type& value) {
       Node* node = static_cast<Node*>(mNodeAlloc.alloc());
       const size_t index = hashToIndex(mRing.monomialHashValue(value.first));
-      node->value = value;
+      ring().monomialCopy(value.first, Monomial(node->mono));
+      new (&node->value) mapped_type(value.second);
       node->next = entry(index);
       mTable[index] = node;
       ++mEntryCount;
@@ -157,7 +148,7 @@ public:
         Node* node = *tableIt;
         while (node != 0) {
           const size_t index =
-            mRing.monomialHashValue(node->value.first) & newHashToIndexMask;
+            mRing.monomialHashValue(node->mono) & newHashToIndexMask;
           MATHICGB_ASSERT(index < newTable.size());
           Node* const next = node->next;
           node->next = newTable[index];
@@ -339,17 +330,17 @@ public:
   iterator end() {return map().end();}
   const_iterator end() const {return map().end();}*/
 
-  value_type* find(const_monomial m) {return mMap.find(m);}
+  mapped_type* find(const_monomial m) {return mMap.find(m);}
 
-  value_type* findProduct(const_monomial a, const_monomial b) {
+  mapped_type* findProduct(const_monomial a, const_monomial b) {
     return mMap.findProduct(a, b);
   }
 
-  const value_type* find(const_monomial m) const {
+  const mapped_type* find(const_monomial m) const {
     return const_cast<MonomialMap&>(*this).find(m);
   }
 
-  const value_type* findProduct(const_monomial a, const_monomial b) const {
+  const mapped_type* findProduct(const_monomial a, const_monomial b) const {
     return const_cast<MonomialMap&>(*this).findProduct(a, b);
   }
 
