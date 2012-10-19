@@ -62,7 +62,7 @@ std::string QuadMatrix::toString() const {
   return out.str();
 }
 
-std::ostream& operator<<(std::ostream& out, const QuadMatrix qm) {
+std::ostream& operator<<(std::ostream& out, const QuadMatrix& qm) {
   qm.print(out);
   return out;
 }

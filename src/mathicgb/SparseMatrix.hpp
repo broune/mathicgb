@@ -1,6 +1,7 @@
 #ifndef MATHICGB_SPARSE_MATRIX_GUARD
 #define MATHICGB_SPARSE_MATRIX_GUARD
 
+#include "RawVector.hpp"
 #include "PolyRing.hpp"
 #include <mathic.h>
 #include <vector>
@@ -44,10 +45,39 @@ class SparseMatrix {
   typedef uint32 ColIndex;
   typedef uint16 Scalar;
 
+  SparseMatrix(SparseMatrix&& matrix):
+    mColIndices(std::move(matrix.mColIndices)),
+    mEntries(std::move(matrix.mEntries)),
+    mRowOffsets(std::move(matrix.mRowOffsets)),
+    mColCount(matrix.mColCount)
+  {
+  }
+
+  SparseMatrix& operator=(SparseMatrix&& matrix) {
+    this->~SparseMatrix();
+    new (this) SparseMatrix(std::move(matrix));
+    return *this;
+  }
+
+  ~SparseMatrix() {
+    delete[] mEntries.releaseMemory();
+  }
+
   /** Preallocate space for at least count entries. */
   void reserveEntries(size_t count) {
-    mEntries.reserve(count);
-    mColIndices.reserve(count);
+    if (count < mEntries.capacity())
+      return;
+
+    {
+      const auto begin = new Scalar[count];
+      const auto capacityEnd = begin + count;
+      delete[] mEntries.setMemoryAndCopy(begin, capacityEnd);
+    }
+    {
+      const auto begin = new ColIndex[count];
+      const auto capacityEnd = begin + count;
+      delete[] mColIndices.setMemoryAndCopy(begin, capacityEnd);
+    }
   }
 
   /** Preallocate space for at least count rows. */
@@ -77,10 +107,8 @@ class SparseMatrix {
     trimThisMany, even if the scalar of that entry is set to zero. */
   void trimLeadingZeroColumns(ColIndex trimThisMany) {
     MATHICGB_ASSERT(trimThisMany <= colCount());
-    typedef std::vector<ColIndex>::iterator Iter;
-    Iter end = mColIndices.end();
-    Iter it = mColIndices.begin();
-    for (; it != end; ++it) {
+    const auto end = mColIndices.end();
+    for (auto it = mColIndices.begin(); it != end; ++it) {
       MATHICGB_ASSERT(*it >= trimThisMany);
       *it -= trimThisMany;
     }
@@ -88,7 +116,9 @@ class SparseMatrix {
   }
 
   /** Construct a matrix with no rows and colCount columns. */
-  SparseMatrix(ColIndex colCount = 0): mColCount(colCount) {
+  SparseMatrix(ColIndex colCount = 0):
+    mColCount(colCount)
+  {
     mRowOffsets.push_back(0);
   }
 
@@ -99,9 +129,7 @@ class SparseMatrix {
   }
 
   /** Returns the number of entries in the whole matrix. */
-  size_t entryCount() const {
-    return mEntries.size();
-  }
+  size_t entryCount() const {return mEntries.size();}
 
   /** Prints the matrix in a human readable format to out. */
   void print(std::ostream& out) const;
@@ -111,7 +139,7 @@ class SparseMatrix {
   /** Adds a new row that contains all terms that have been appended
     since the last time a row was added or the matrix was created. */
   void rowDone() {
-    MATHICGB_ASSERT(mColIndices.size() == mEntries.size());
+    MATHICGB_ASSERT(mColIndices.size() == entryCount());
     mRowOffsets.push_back(mColIndices.size());
   }
 
@@ -119,13 +147,19 @@ class SparseMatrix {
     until rowDone is called. Do not call other methods that add rows
     after calling this method until rowDone has been called. */
   void appendEntry(ColIndex colIndex, Scalar scalar) {
-    MATHICGB_ASSERT(mColIndices.size() == mEntries.size());
+    MATHICGB_ASSERT(mColIndices.size() == entryCount());
     MATHICGB_ASSERT(colIndex < colCount());
 
-    mColIndices.push_back(colIndex);
-    mEntries.push_back(scalar);
+    MATHICGB_ASSERT(mEntries.atCapacity() == mColIndices.atCapacity());
+    if (mEntries.atCapacity())
+      growEntryCapacity();
+    MATHICGB_ASSERT(!mEntries.atCapacity());
+    MATHICGB_ASSERT(!mColIndices.atCapacity());
 
-    MATHICGB_ASSERT(mColIndices.size() == mEntries.size());
+    mColIndices.rawPushBack(colIndex);
+    mEntries.rawPushBack(scalar);
+
+    MATHICGB_ASSERT(mColIndices.size() == entryCount());
   }
 
   void appendRowAndNormalize(const SparseMatrix& matrix, RowIndex row, Scalar modulus);
@@ -212,18 +246,34 @@ class SparseMatrix {
 private:
   friend class RowIterator;
 
-  ColIndex indexAtOffset(size_t offset) const {
-    MATHICGB_ASSERT(offset < mColIndices.size());
-    return mColIndices[offset];
+  SparseMatrix(const SparseMatrix&); // not available
+  void operator=(const SparseMatrix&); // not available
+
+  ColIndex indexAtOffset(size_t offset) const {return mColIndices[offset];}
+  Scalar scalarAtOffset(size_t offset) const {return mEntries[offset];}
+
+  void growEntryCapacity() {
+    MATHICGB_ASSERT(mColIndices.size() == mEntries.size());
+    MATHICGB_ASSERT(mColIndices.capacity() == mEntries.capacity());
+
+    const size_t initialCapacity = 1 << 16;
+    const size_t growthFactor = 2;
+    const size_t newCapacity =
+      mEntries.empty() ? initialCapacity : mEntries.capacity() * growthFactor;
+    reserveEntries(newCapacity);
+
+    MATHICGB_ASSERT(mColIndices.size() == mEntries.size());
+    MATHICGB_ASSERT(mColIndices.capacity() == newCapacity);
+    MATHICGB_ASSERT(mEntries.capacity() == newCapacity);
   }
 
-  Scalar scalarAtOffset(size_t offset) const {
-    MATHICGB_ASSERT(offset < mEntries.size());
-    return mEntries[offset];
-  }
-
-  std::vector<ColIndex> mColIndices;
-  std::vector<Scalar> mEntries;
+  /// We need a RawVector here to tie the checks for the need to reallocate
+  /// together between mColIndices and mEntries. We only need to check
+  /// the capacity once, which, believe it or not, is a significant performance
+  /// win. Not least because it decreases the amount of code and therefore
+  /// causes different compiler inlining decisions.
+  RawVector<Scalar> mEntries;
+  RawVector<ColIndex> mColIndices;
   std::vector<size_t> mRowOffsets;  
   ColIndex mColCount;
 };

@@ -55,7 +55,7 @@ void SparseMatrix::sortRowsByIncreasingPivots() {
 
 void SparseMatrix::applyColumnMap(std::vector<ColIndex> colMap) {
   MATHICGB_ASSERT(colMap.size() >= colCount());
-  auto end = mColIndices.end();
+  const auto end = mColIndices.end();
   for (auto it = mColIndices.begin(); it != end; ++it) {
     MATHICGB_ASSERT(*it < colCount());
     *it = colMap[*it];
@@ -194,7 +194,7 @@ bool SparseMatrix::appendRowWithModulusIfNonZero(std::vector<uint64> const& v, S
 
 bool SparseMatrix::operator==(const SparseMatrix& mat) const {
   return mColCount == mat.mColCount &&
-    mColIndices == mat.mColIndices &&
-    mEntries == mat.mEntries &&
+    mColIndices.contentsEqual(mat.mColIndices) &&
+    mEntries.contentsEqual(mat.mEntries) &&
     mRowOffsets == mat.mRowOffsets;
 }

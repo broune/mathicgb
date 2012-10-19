@@ -278,5 +278,8 @@
     <ClInclude Include="..\..\..\src\mathicgb\MonomialMap.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\src\mathicgb\RawVector.hpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

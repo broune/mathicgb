@@ -17,6 +17,8 @@ class ostream;
   QuadMatrixBuilder or F4MatrixBuilder. */
 class QuadMatrix {
 public:
+  QuadMatrix() {}
+
   SparseMatrix topLeft; 
   SparseMatrix topRight;
   SparseMatrix bottomLeft;
@@ -35,8 +37,12 @@ public:
 #ifdef MATHICGB_DEBUG
   bool debugAssertValid() const;
 #endif
+
+private:
+  QuadMatrix(const QuadMatrix&); // not available
+  void operator=(const QuadMatrix&); // not available
 };
 
-std::ostream& operator<<(std::ostream& out, const QuadMatrix qm);
+std::ostream& operator<<(std::ostream& out, const QuadMatrix& qm);
 
 #endif

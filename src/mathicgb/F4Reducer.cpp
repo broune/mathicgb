@@ -45,6 +45,7 @@ std::unique_ptr<Poly> F4Reducer::classicReduceSPoly
   if (tracingLevel >= 2)
     std::cerr << "F4Reducer: Reducing single S-pair.\n";
 
+
   QuadMatrix qm;
   {
     F4MatrixBuilder builder(basis);
