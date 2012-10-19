@@ -468,6 +468,7 @@
     <ClInclude Include="..\..\..\src\mathicgb\PolyRing.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\QuadMatrix.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\QuadMatrixBuilder.hpp" />
+    <ClInclude Include="..\..\..\src\mathicgb\RawVector.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\Reducer.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\ReducerDedup.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\ReducerHash.hpp" />

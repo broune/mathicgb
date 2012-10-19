@@ -96,7 +96,10 @@ namespace MonomialMapInternal {
     void insert(const value_type& value) {
       Node* node = static_cast<Node*>(mNodeAlloc.alloc());
       const size_t index = hashToIndex(mRing.monomialHashValue(value.first));
-      ring().monomialCopy(value.first, Monomial(node->mono));
+      {
+        Monomial nodeTmp(node->mono);
+        ring().monomialCopy(value.first, nodeTmp);
+      }
       new (&node->value) mapped_type(value.second);
       node->next = entry(index);
       mTable[index] = node;
