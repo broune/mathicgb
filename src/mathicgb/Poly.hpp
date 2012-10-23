@@ -16,14 +16,14 @@ public:
   void parse(std::istream &i); // reads into this, sorts terms
   void parseDoNotOrder(std::istream &i); // reads into this, does not sort terms
   void display(FILE* file, bool printComponent = true) const;
-  void display(std::ostream &o, bool print_comp = true) const;
+  void display(std::ostream& out, bool printComponent = true) const;
   void see(bool print_comp) const;
 
   class iterator {
     // only for const objects...
     size_t monsize;
     std::vector<coefficient>::iterator ic;
-    std::vector<int>::iterator im;
+    std::vector<exponent>::iterator im;
     friend class Poly;
 
     iterator(Poly& f) : monsize(f.getRing()->maxMonomialSize()), ic(f.coeffs.begin()), im(f.monoms.begin()) {}
@@ -45,7 +45,7 @@ public:
     // only for const objects...
     size_t monsize;
     std::vector<coefficient>::const_iterator ic;
-    std::vector<int>::const_iterator im;
+    std::vector<exponent>::const_iterator im;
     friend class Poly;
 
     const_iterator(const Poly& f) : monsize(f.getRing()->maxMonomialSize()), ic(f.coeffs.begin()), im(f.monoms.begin()) {}
@@ -109,7 +109,7 @@ public:
 
   const_monomial getLeadMonomial() const { return &(monoms[0]); }
   const_coefficient getLeadCoefficient() const  { return coeffs[0]; }
-  long getLeadComponent() const  { return R->monomialGetComponent(&(monoms[0])); }
+  exponent getLeadComponent() const  { return R->monomialGetComponent(&(monoms[0])); }
   bool isZero() const { return coeffs.empty(); }
   size_t nTerms() const { return coeffs.size(); }
 
@@ -133,7 +133,7 @@ public:
 private:
   const PolyRing *R;
   std::vector<coefficient> coeffs;
-  std::vector<int> monoms;
+  std::vector<exponent> monoms;
 };
 
 std::ostream& operator<<(std::ostream& out, const Poly& p);

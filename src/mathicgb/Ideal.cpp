@@ -58,16 +58,14 @@ std::unique_ptr<Ideal> Ideal::parse(std::istream& in)
   return result;
 }
 
-void Ideal::display(std::ostream &o, bool print_comp) const
+void Ideal::display(std::ostream& out, bool printComponent) const
 {
-  mRing.write(o);
-  o << std::endl;
-  o << mGenerators.size() << std::endl;
-  for (size_t i = 0; i<mGenerators.size(); i++)
-    {
-      mGenerators[i]->display(o, print_comp);
-      o << std::endl;
-    }
+  mRing.write(out);
+  out << '\n' << mGenerators.size() << '\n';
+  for (size_t i = 0; i < mGenerators.size(); ++i) {
+    mGenerators[i]->display(out, printComponent);
+    out << '\n';
+  }
 }
 
 // Local Variables:

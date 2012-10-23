@@ -28,7 +28,7 @@ T modularInverse(T a, T modulus) {
 #ifdef MATHICGB_DEBUG
   T origA = a;
 #endif
-  T b = modulus; // note that we actually only need modulus for asserts
+  T b = modulus;
   T minusLastX = 0;
   T x = 1;
   while (true) {
@@ -97,9 +97,11 @@ T modularNegativeNonZero(T a, T modulus) {
   return modulus - a;
 }
 
-typedef int exponent ;
+typedef int32 exponent ;
+typedef uint32 HashValue;
 typedef long coefficient;
-typedef exponent *vecmonomial; // includes a component
+
+typedef exponent* vecmonomial; // includes a component
 typedef coefficient const_coefficient;
 
 class Monomial;
@@ -200,7 +202,7 @@ struct term {
 
 class PolyRing {
 public:
-  PolyRing(long charac,
+  PolyRing(coefficient charac,
            int nvars,
            int nweights
            );
@@ -208,7 +210,7 @@ public:
 
   memt::BufferPool &getMonomialPool() const { return mMonomialPool; }
 
-  long charac() const { return mCharac; }
+  coefficient charac() const { return mCharac; }
   size_t getNumVars() const { return mNumVars; }
   //       const std::vector<int> &degs,
   //       const std::string &monorder);
@@ -288,6 +290,9 @@ public:
 
 
 
+  coefficient toCoefficient(int64 a) const;
+  coefficient coefficientNegate(coefficient result) const;
+
   void coefficientFromInt(coefficient &result, int a) const;
   void coefficientSetOne(coefficient &result) const { result = 1; }
   void coefficientAddOneTo(coefficient &result) const;
@@ -322,7 +327,7 @@ public:
   // Monomial Routines //////////////////////
   ///////////////////////////////////////////
 
-  exponent monomialHashValue(ConstMonomial m) const {return m[mHashIndex];}
+  HashValue monomialHashValue(ConstMonomial m) const {return static_cast<HashValue>(m[mHashIndex]);}
 
   exponent monomialExponent(ConstMonomial m, size_t var) const {
     return m[var+1];
@@ -346,7 +351,7 @@ public:
 
   inline void setHashOnly(Monomial& a) const;
 
-  void setGivenHash(Monomial& a, exponent hash) const {a[mHashIndex] = hash;}
+  void setGivenHash(Monomial& a, HashValue hash) const {a[mHashIndex] = static_cast<exponent>(hash);}
 
   bool hashValid(const_monomial m) const;
 
@@ -364,7 +369,7 @@ public:
   bool monomialLT(ConstMonomial a, ConstMonomial b) const {
     for (size_t i = mTopIndex; i != static_cast<size_t>(-1); --i)
       {
-        int cmp = a[i] - b[i];
+        exponent cmp = a[i] - b[i];
         if (cmp == 0) continue;
         if (cmp < 0) return false;
         return true;
@@ -379,11 +384,11 @@ public:
 
   size_t monomialSize(ConstMonomial) const { return mMaxMonomialSize; }
 
-  int monomialGetComponent(ConstMonomial a) const { return *a.mValue; }
+  exponent monomialGetComponent(ConstMonomial a) const { return *a.mValue; }
 
   void monomialChangeComponent(Monomial a, int x) const {
-    a[mHashIndex] -= *a.mValue;
-    a[mHashIndex] += x;
+    a[mHashIndex] -= static_cast<HashValue>(*a.mValue);
+    a[mHashIndex] += static_cast<HashValue>(x);
     *a = x;
   }
 
@@ -414,8 +419,9 @@ public:
     (ConstMonomial a, ConstMonomial b, ConstMonomial ab) const;
 
   /// Returns the hash of the product of a and b.
-  exponent monomialHashOfProduct(ConstMonomial a, ConstMonomial b) const {
-    return a[mHashIndex] + b[mHashIndex];
+  HashValue monomialHashOfProduct(ConstMonomial a, ConstMonomial b) const {
+    return static_cast<HashValue>(a[mHashIndex]) +
+      static_cast<HashValue>(b[mHashIndex]);
   }
 
   void monomialCopy(ConstMonomial  a, Monomial &result) const;
@@ -488,7 +494,7 @@ public:
   bool monomialLT(const_monomial a, const_monomial b) const {
     for (size_t i = mTopIndex; i != static_cast<size_t>(-1); --i)
       {
-        int cmp = a[i] - b[i];
+        auto cmp = a[i] - b[i];
         if (cmp == 0) continue;
         if (cmp < 0) return false;
         return true;
@@ -574,18 +580,18 @@ public:
   void resetCoefficientStats() const;
 
 private:
-  inline exponent computeHashValue(const_monomial a1) const;
+  inline HashValue computeHashValue(const_monomial a1) const;
 
-  long mCharac; // p=mCharac: ring is ZZ/p
+  coefficient mCharac; // p=mCharac: ring is ZZ/p
   size_t mNumVars;
   int mNumWeights; // stored as negative of weight vectors
   size_t mTopIndex;
   size_t mHashIndex; // 1 more than mTopIndex.  Where the has value is stored.
   size_t mMaxMonomialSize;
   size_t mMaxMonomialByteSize;
-  std::vector<int> mWeights; // 0..mNumWeights * mNumVars - 1.
+  std::vector<exponent> mWeights; // 0..mNumWeights * mNumVars - 1.
 
-  std::vector<int> mHashVals; // one for each variable 0..mNumVars-1
+  std::vector<HashValue> mHashVals; // one for each variable 0..mNumVars-1
   // stored as weightvec1 weightvec2 ...
 
   mutable memt::BufferPool mMonomialPool;
@@ -679,22 +685,22 @@ inline void PolyRing::setWeightsOnly(Monomial& a1) const
 {
   exponent *a = a1.unsafeGetRepresentation();
   a++;
-  const int *wts = &mWeights[0];
-  for (int i=0; i<mNumWeights; i++)
+  auto wts = &mWeights[0];
+  for (size_t i = 0; i < mNumWeights; ++i)
     {
-      int result = 0;
-      for (size_t j=0; j<mNumVars; j++)
+      exponent result = 0;
+      for (size_t j = 0; j < mNumVars; ++j)
         result += *wts++ * a[j];
       a[mNumVars+i] = result;
     }
 }
 
-inline exponent PolyRing::computeHashValue(const_monomial a1) const {
+inline HashValue PolyRing::computeHashValue(const_monomial a1) const {
   const exponent* a = a1.unsafeGetRepresentation();
-  int hash = *a;
+  HashValue hash = static_cast<HashValue>(*a);
   a++;
   for (size_t i = 0; i < mNumVars; ++i)
-    hash += a[i] * mHashVals[i];
+    hash += static_cast<HashValue>(a[i]) * mHashVals[i];
   return hash;
 }
 
@@ -709,7 +715,7 @@ inline int PolyRing::monomialCompare(ConstMonomial a, ConstMonomial b) const
 {
   for (size_t i = mTopIndex; i != static_cast<size_t>(-1); --i)
     {
-      int cmp = a[i] - b[i];
+      auto cmp = a[i] - b[i];
       if (cmp < 0) return GT;
       if (cmp > 0) return LT;
     }
@@ -740,7 +746,7 @@ inline bool PolyRing::monomialDivide(ConstMonomial a,
   size_t i;
   for (i = 1; i <= mNumVars; i++)
     {
-      int c = a[i] - b[i];
+      exponent c = a[i] - b[i];
       if (c >= 0)
         result[i] = c;
       else
@@ -759,7 +765,7 @@ inline void PolyRing::monomialDivideToNegative(ConstMonomial a,
 {
   for (size_t i = 0; i <= mHashIndex; ++i)
     result[i] = a[i] - b[i];
-  MATHICGB_ASSERT(result[mHashIndex] == a[mHashIndex] - b[mHashIndex]);
+  MATHICGB_ASSERT(monomialHashValue(result) == monomialHashValue(a) - monomialHashValue(b));
   MATHICGB_ASSERT(!hashValid(a) || !hashValid(b) || hashValid(result));
   MATHICGB_ASSERT(computeHashValue(result) ==
                   computeHashValue(a) - computeHashValue(b));
@@ -850,7 +856,7 @@ inline bool PolyRing::monomialDivide(const_monomial a, const_monomial b, monomia
   size_t i;
   for (i = 1; i <= mNumVars; i++)
     {
-      int c = a[i] - b[i];
+      auto c = a[i] - b[i];
       if (c >= 0)
         result[i] = c;
       else
@@ -872,7 +878,7 @@ inline int PolyRing::monomialCompare(const_monomial a, const_monomial b) const
       //      if (a[i] < b[i]) return GT;
       //      return LT;
       //      if (a[i] > b[i]) return LT;
-            int cmp = a[i] - b[i];
+            auto cmp = a[i] - b[i];
             if (cmp < 0) return GT;
             if (cmp > 0) return LT;
     }
@@ -911,14 +917,13 @@ inline bool PolyRing::monomialHasStrictlyLargerExponent(
 inline void PolyRing::setWeightsOnly(monomial a) const
 {
   a++;
-  const int *wts = &mWeights[0];
-  for (int i=0; i<mNumWeights; i++)
-    {
-      int result = 0;
-      for (size_t j=0; j<mNumVars; j++)
-        result += *wts++ * a[j];
-      a[mNumVars+i] = result;
-    }
+  auto wts = &mWeights[0];
+  for (size i = 0; i < mNumWeights; ++i) {
+    exponent result = 0;
+    for (size_t j=0; j<mNumVars; ++j)
+      result += *wts++ * a[j];
+    a[mNumVars+i] = result;
+  }
 }
 
 inline bool PolyRing::monomialRelativelyPrime(const_monomial a, const_monomial b) const
@@ -956,29 +961,49 @@ inline void PolyRing::coefficientDivide(coefficient a, coefficient b, coefficien
   MATHICGB_ASSERT(result < mCharac);
 }
 
+inline coefficient PolyRing::toCoefficient(int64 a) const {
+  auto modLong = a % mCharac;
+  if (modLong < 0)
+    modLong += mCharac;
+  const coefficient mod = static_cast<coefficient>(modLong);
+  MATHICGB_ASSERT(0 <= mod);
+  MATHICGB_ASSERT(mod < mCharac);
+  return mod;
+}
+
 inline void PolyRing::coefficientFromInt(coefficient &result, int a) const
 {
-  result = a % mCharac;
-  if (result < 0) result += mCharac;
+  result = toCoefficient(a);
 }
 
 inline void PolyRing::coefficientAddOneTo(coefficient &result) const
 {
-  result++;
-  if (result == mCharac) result = 0;
+  ++result;
+  if (result == mCharac)
+    result = 0;
 }
 
 inline void PolyRing::coefficientNegateTo(coefficient &result) const
  // result = -result
 {
-  result = mCharac - result;
+  if (result != 0)
+    result = mCharac - result;
+}
+
+inline coefficient PolyRing::coefficientNegate(coefficient coef) const
+ // result = -result
+{
+  if (coef == 0)
+    return 0;
+  else
+    return mCharac - coef;
 }
 
 inline void PolyRing::coefficientAddTo(coefficient &result, coefficient a, coefficient b) const
 // result += a*b
 {
   mStats.n_addmult++;
-  long c = a * b + result;
+  auto c = a * b + result;
   result = c % mCharac;
 }
 
@@ -987,21 +1012,22 @@ inline void PolyRing::coefficientAddTo(coefficient &result, coefficient a) const
 {
   mStats.n_add++;
   result += a;
-  if (result >= mCharac) result -= mCharac;
+  if (result >= mCharac)
+    result -= mCharac;
 }
 
 inline void PolyRing::coefficientMultTo(coefficient &result, coefficient a) const
   // result *= a
 {
   mStats.n_mult++;
-  long b = result * a;
+  coefficient b = result * a;
   result = b % mCharac;
 }
 
 inline void PolyRing::coefficientMult(coefficient a, coefficient b, coefficient &result) const
 {
   mStats.n_mult++;
-  long c = b * a;
+  coefficient c = b * a;
   result = c % mCharac;
 }
 

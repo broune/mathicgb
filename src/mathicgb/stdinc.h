@@ -172,6 +172,12 @@ typedef signed int int32;
 typedef signed short int16;
 typedef signed char int8;
 
+/// Bizarrely, OpenMP 2 only supports signed loop
+/// variables. This defect is fixed in OpenMP 3. MSVC 2012 only supports
+/// OpenMP 2. So signed loop indices are forced for loops that are
+/// parallelized using OpenMP.
+typedef signed long OMPIndex;
+
 static const size_t BitsPerByte = 8;
 static const size_t MemoryAlignment = sizeof(void*);
 
