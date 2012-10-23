@@ -29,6 +29,7 @@ PolyRing::PolyRing(coefficient p0,
     mTotalDegreeGradedOnly(false)
 {
   resetCoefficientStats();
+  srand(0);
   for (size_t i=0; i<mNumVars; i++)
     mHashVals.push_back(static_cast<HashValue>(rand()));
 }

@@ -10,6 +10,7 @@
 #include <vector>
 #include <memtailor.h>
 #include <cstdio>
+#include <cstring>
 
 #define LT (-1)
 #define EQ 0
@@ -117,7 +118,7 @@ class ConstMonomial
 public:
   //* Wrap a raw pointer to create a monomial
   // Assumptions:
-  //  1. This is done in the presence of an PolyRing
+  //  1. This is done in the presence of a PolyRing
   //  2. Space for the monomial has been created
   ConstMonomial() : mValue(0) {}
   ConstMonomial(const exponent *val) : mValue(val) {}
@@ -132,9 +133,9 @@ public:
   exponent component() const { return *mValue; }
 
 private:
-  exponent operator[](size_t index) const { return mValue[index]; }
+  const exponent& operator[](size_t index) const { return mValue[index]; }
+  const exponent& operator*() const { return *mValue; }
 
-  exponent operator*() const { return *mValue; }
 protected:
   exponent const* mValue;
 };
@@ -150,7 +151,7 @@ class Monomial : public ConstMonomial
 public:
   //* Wrap a raw pointer to create a monomial
   // Assumptions:
-  //  1. This is done in the presence of an PolyRing
+  //  1. This is done in the presence of a PolyRing
   //  2. Space for the monomial has been created
   Monomial() : ConstMonomial() {}
   Monomial(exponent *val) : ConstMonomial(val) {}
@@ -163,10 +164,10 @@ public:
   exponent const * unsafeGetRepresentation() const { return mValue; }
 
 private:
-  exponent operator[](size_t index) const { return mValue[index]; }
+  const exponent& operator[](size_t index) const { return mValue[index]; }
   exponent& operator[](size_t index) { return unsafeGetRepresentation()[index]; }
 
-  exponent operator*() const { return *mValue; }
+  const exponent& operator*() const { return *mValue; }
   exponent& operator*() { return * const_cast<exponent *>(mValue); }
 };
 
@@ -638,13 +639,37 @@ inline bool PolyRing::monomialIsProductOfHintTrue(
   const ConstMonomial b, 
   const ConstMonomial ab
 ) const {
-  // same idea as monomialEqualHintTrue, just applied to the sum of a and b.
-  exponent orOfXor = 0;
-  for (size_t i = mNumVars; i != 0; --i)
-    orOfXor |= ab[i] ^ (a[i] + b[i]);
-  const bool isProduct = (orOfXor == 0);
-  MATHICGB_ASSERT(isProduct == monomialIsProductOf(a, b, ab));
-  return isProduct;
+  // We compare more than one exponent at a time using 64 bit integers. This 
+  // might go one 32 bit value at the end too far, but since that space is
+  // either a degree or a hash value that is fine --- those values will also
+  // match if the monomials are equal. This does not work for negative
+  // exponents since the overflowing bit will go into the next word.
+  // It is OK that the degree field can be negative (a field we might go
+  // into without caring about it because it shares a 64 bit field with
+  // the last exponent), because it is at the end so the overflowing
+  // bit will not interfere.
+
+  // todo: ensure 8 byte alignment. Though there seem to be no ill effects
+  // for unaligned access. Performance seems to be no worse than for using
+  // 32 bit integers directly.
+
+  uint64 orOfXor = 0;
+  for (size_t i = mNumVars / 2; i != static_cast<size_t>(-1); --i) {
+    uint64 A, B, AB;
+    // We have to use std::memcpy here because just casting to a int64 breaks
+    // the strict aliasing rule which implies undefined behavior. Both MSVC and
+    // gcc don't actually call memcpy here. MSVC is a tiny big slower for this
+    // code than for casting while GCC seems to be exactly the same speed.
+    std::memcpy(&A, &a[i], 8);
+    std::memcpy(&B, &b[i], 8);
+    std::memcpy(&AB, &ab[i], 8);
+    orOfXor |= AB ^ (A + B);
+  }
+  MATHICGB_ASSERT((orOfXor == 0) == monomialIsProductOf(a, b, ab))
+
+
+  return orOfXor == 0;
+  
 }
 
 inline bool PolyRing::monomialIsProductOf(
