@@ -400,7 +400,6 @@
     <ClCompile Include="..\..\..\src\mathicgb\BuchbergerAlg.cpp" />
     <ClCompile Include="..\..\..\src\mathicgb\ChainedHashTable.cpp" />
     <ClCompile Include="..\..\..\src\mathicgb\DivisorLookup.cpp" />
-    <ClCompile Include="..\..\..\src\mathicgb\DivLookup.cpp" />
     <ClCompile Include="..\..\..\src\mathicgb\F4MatrixBuilder.cpp" />
     <ClCompile Include="..\..\..\src\mathicgb\F4MatrixReducer.cpp" />
     <ClCompile Include="..\..\..\src\mathicgb\F4Reducer.cpp" />
@@ -410,9 +409,6 @@
     <ClCompile Include="..\..\..\src\mathicgb\Ideal.cpp" />
     <ClCompile Include="..\..\..\src\mathicgb\io-util.cpp" />
     <ClCompile Include="..\..\..\src\mathicgb\KoszulQueue.cpp" />
-    <ClCompile Include="..\..\..\src\mathicgb\MonomialHashTable.cpp" />
-    <ClCompile Include="..\..\..\src\mathicgb\MonTableDivList.cpp" />
-    <ClCompile Include="..\..\..\src\mathicgb\MonTableKDTree.cpp" />
     <ClCompile Include="..\..\..\src\mathicgb\MonTableNaive.cpp" />
     <ClCompile Include="..\..\..\src\mathicgb\MTArray.cpp" />
     <ClCompile Include="..\..\..\src\mathicgb\PairTriangle.cpp" />

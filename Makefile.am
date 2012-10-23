@@ -22,37 +22,35 @@ libmathicgb_la_SOURCES = src/mathicgb/BjarkeGeobucket2.cpp				\
   src/mathicgb/BjarkeGeobucket2.hpp src/mathicgb/BjarkeGeobucket.cpp	\
   src/mathicgb/BjarkeGeobucket.hpp src/mathicgb/BuchbergerAlg.cpp		\
   src/mathicgb/BuchbergerAlg.hpp src/mathicgb/ChainedHashTable.cpp		\
-  src/mathicgb/ChainedHashTable.hpp src/mathicgb/DivisorLookup.cpp		\
-  src/mathicgb/DivisorLookup.hpp src/mathicgb/DivLookup.cpp				\
+  src/mathicgb/ChainedHashTable.hpp src/mathicgb/DivisorLookup.hpp		\
   src/mathicgb/DivLookup.hpp src/mathicgb/FreeModuleOrder.cpp			\
   src/mathicgb/FreeModuleOrder.hpp src/mathicgb/GroebnerBasis.cpp		\
   src/mathicgb/GroebnerBasis.hpp src/mathicgb/HashTourReducer.cpp		\
   src/mathicgb/HashTourReducer.hpp src/mathicgb/Ideal.cpp				\
   src/mathicgb/Ideal.hpp src/mathicgb/io-util.cpp						\
   src/mathicgb/io-util.hpp src/mathicgb/KoszulQueue.cpp					\
-  src/mathicgb/KoszulQueue.hpp src/mathicgb/MonomialHashTable.cpp		\
-  src/mathicgb/MonomialHashTable.hpp src/mathicgb/MonTableDivList.cpp	\
-  src/mathicgb/MonTableDivList.hpp src/mathicgb/MonTableKDTree.cpp		\
-  src/mathicgb/MonTableKDTree.hpp src/mathicgb/MonTableNaive.cpp		\
-  src/mathicgb/MonTableNaive.hpp src/mathicgb/MTArray.cpp				\
-  src/mathicgb/MTArray.hpp src/mathicgb/PairTriangle.cpp				\
-  src/mathicgb/PairTriangle.hpp src/mathicgb/Poly.cpp					\
-  src/mathicgb/Poly.hpp src/mathicgb/PolyBasis.cpp						\
-  src/mathicgb/PolyBasis.hpp src/mathicgb/PolyGeoBucket.cpp				\
-  src/mathicgb/PolyGeoBucket.hpp src/mathicgb/PolyHashReducer.cpp		\
-  src/mathicgb/PolyHashReducer.hpp src/mathicgb/PolyHashTable.cpp		\
-  src/mathicgb/PolyHashTable.hpp src/mathicgb/PolyHeap.cpp				\
-  src/mathicgb/PolyHeap.hpp src/mathicgb/PolyReducer.cpp				\
-  src/mathicgb/PolyReducer.hpp src/mathicgb/PolyRing.cpp				\
-  src/mathicgb/PolyRing.hpp src/mathicgb/Reducer.cpp					\
-  src/mathicgb/Reducer.hpp src/mathicgb/ReducerDedup.hpp				\
-  src/mathicgb/ReducerHash.hpp src/mathicgb/ReducerHashPack.hpp			\
-  src/mathicgb/ReducerHelper.hpp src/mathicgb/ReducerNoDedup.hpp		\
-  src/mathicgb/ReducerPack.hpp src/mathicgb/ReducerPackDedup.hpp		\
-  src/mathicgb/SignatureGB.cpp src/mathicgb/SignatureGB.hpp				\
-  src/mathicgb/SigSPairs.cpp src/mathicgb/SigSPairs.hpp					\
-  src/mathicgb/SPairs.cpp src/mathicgb/SPairs.hpp						\
-  src/mathicgb/stdinc.h src/mathicgb/TournamentReducer.cpp				\
+  src/mathicgb/KoszulQueue.hpp src/mathicgb/MonomialHashTable.hpp		\
+  src/mathicgb/MonTableDivList.hpp src/mathicgb/MonTableKDTree.hpp		\
+  src/mathicgb/MonTableNaive.cpp src/mathicgb/MonTableNaive.hpp			\
+  src/mathicgb/MTArray.cpp src/mathicgb/MTArray.hpp						\
+  src/mathicgb/PairTriangle.cpp src/mathicgb/PairTriangle.hpp			\
+  src/mathicgb/Poly.cpp src/mathicgb/Poly.hpp							\
+  src/mathicgb/PolyBasis.cpp src/mathicgb/PolyBasis.hpp					\
+  src/mathicgb/PolyGeoBucket.cpp src/mathicgb/PolyGeoBucket.hpp			\
+  src/mathicgb/PolyHashReducer.cpp src/mathicgb/PolyHashReducer.hpp		\
+  src/mathicgb/PolyHashTable.cpp src/mathicgb/PolyHashTable.hpp			\
+  src/mathicgb/PolyHeap.cpp src/mathicgb/PolyHeap.hpp					\
+  src/mathicgb/PolyReducer.cpp src/mathicgb/PolyReducer.hpp				\
+  src/mathicgb/PolyRing.cpp src/mathicgb/PolyRing.hpp					\
+  src/mathicgb/Reducer.cpp src/mathicgb/Reducer.hpp						\
+  src/mathicgb/ReducerDedup.hpp src/mathicgb/ReducerHash.hpp			\
+  src/mathicgb/ReducerHashPack.hpp src/mathicgb/ReducerHelper.hpp		\
+  src/mathicgb/ReducerNoDedup.hpp src/mathicgb/ReducerPack.hpp			\
+  src/mathicgb/ReducerPackDedup.hpp src/mathicgb/SignatureGB.cpp		\
+  src/mathicgb/SignatureGB.hpp src/mathicgb/SigSPairs.cpp				\
+  src/mathicgb/SigSPairs.hpp src/mathicgb/SPairs.cpp					\
+  src/mathicgb/SPairs.hpp src/mathicgb/stdinc.h							\
+  src/mathicgb/TournamentReducer.cpp									\
   src/mathicgb/TournamentReducer.hpp src/mathicgb/SigSPairQueue.hpp		\
   src/mathicgb/SigSPairQueue.cpp src/mathicgb/SparseMatrix.hpp			\
   src/mathicgb/SparseMatrix.cpp src/mathicgb/QuadMatrixBuilder.hpp		\
