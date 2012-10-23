@@ -30,9 +30,6 @@
     <ClCompile Include="..\..\..\src\mathicgb\DivisorLookup.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\src\mathicgb\DivLookup.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\src\mathicgb\F4MatrixBuilder.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -58,15 +55,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\src\mathicgb\KoszulQueue.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\mathicgb\MonomialHashTable.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\mathicgb\MonTableDivList.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\mathicgb\MonTableKDTree.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\src\mathicgb\MonTableNaive.cpp">
