@@ -70,11 +70,12 @@ namespace MonomialMapInternal {
       const HashValue monoHash = mRing.monomialHashValue(mono);
       Node* node = entry(hashToIndex(monoHash));
       for (; node != 0; node = node->next) {
-        if (monoHash == mRing.monomialHashValue(node->mono) &&
-          mRing.monomialEqualHintTrue(mono, node->mono)
-        ) {
+        // To my surprise, it seems to be faster to comment out this branch.
+        // I guess the hash table has too few collisions to make it worth it.
+        //if (monoHash != mRing.monomialHashValue(node->mono))
+        //  continue;
+        if (mRing.monomialEqualHintTrue(mono, node->mono))
           return &node->value;
-        }
       }
       return 0;
     }
@@ -83,11 +84,12 @@ namespace MonomialMapInternal {
       const HashValue abHash = mRing.monomialHashOfProduct(a, b);
       Node* node = entry(hashToIndex(abHash));
       for (; node != 0; node = node->next) {
-        if (abHash == mRing.monomialHashValue(node->mono) &&
-          mRing.monomialIsProductOfHintTrue(a, b, node->mono)
-        ) {
+        // To my surprise, it seems to be faster to comment out this branch.
+        // I guess the hash table has too few collisions to make it worth it.
+        //if (abHash != mRing.monomialHashValue(node->mono))
+        //  continue;
+        if (mRing.monomialIsProductOfHintTrue(a, b, node->mono))
           return &node->value;
-        }
       }
       return 0;
     }
