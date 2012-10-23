@@ -44,7 +44,6 @@ namespace MonomialMapInternal {
     typedef MTT mapped_type;
 
   private:
-    typedef exponent HashValue;
     struct Node {
       Node* next;
       mapped_type value;

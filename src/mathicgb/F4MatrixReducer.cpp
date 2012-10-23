@@ -329,7 +329,9 @@ void myReduce
   std::vector<SparseMatrix::RowIndex> rowOrder(rowCount);
 
 #pragma omp parallel for num_threads(threadCount) schedule(dynamic)
-  for (long row = 0; row < rowCount; ++row) {
+  for (OMPIndex rowOMP = 0;
+    rowOMP < static_cast<OMPIndex>(rowCount); ++rowOMP) {
+    const size_t row = static_cast<size_t>(rowOMP);
 #ifdef _OPENMP
     auto& denseRow = denseRowPerThread[omp_get_thread_num()];
 #endif
@@ -367,9 +369,9 @@ void myReduce
     }
   }
 
-
 #pragma omp parallel for num_threads(threadCount) schedule(dynamic)
-  for (long i = 0; i < rowCount; ++i) {
+  for (OMPIndex iOMP = 0; iOMP < static_cast<OMPIndex>(rowCount); ++iOMP) {
+    const size_t i = static_cast<size_t>(iOMP);
 #ifdef _OPENMP
     auto& denseRow = denseRowPerThread[omp_get_thread_num()];
 #endif
@@ -435,7 +437,9 @@ void myReduceToEchelonForm5
   // dense representation 
   std::vector<DenseRow<uint64> > dense(rowCount);
 #pragma omp parallel for num_threads(threadCount) schedule(dynamic)
-  for (long row = 0; row < rowCount; ++row) {
+  for (OMPIndex rowOMP = 0;
+    rowOMP < static_cast<OMPIndex>(rowCount); ++rowOMP) {
+    const size_t row = static_cast<size_t>(rowOMP);
     MATHICGB_ASSERT(!toReduce.emptyRow(row));
     dense[row].reset(colCount);
     dense[row].addRow(toReduce, row);
@@ -466,7 +470,9 @@ void myReduceToEchelonForm5
 
     //std::cout << "reducing " << reduced.rowCount() << " out of " << toReduce.rowCount() << std::endl;
 #pragma omp parallel for num_threads(threadCount) schedule(dynamic)
-    for (long row = 0; row < rowCount; ++row) {
+    for (OMPIndex rowOMP = 0;
+      rowOMP < static_cast<OMPIndex>(rowCount); ++rowOMP) {
+      const size_t row = static_cast<size_t>(rowOMP);
       MATHICGB_ASSERT(leadCols[row] <= colCount);
       DenseRow<uint64>& denseRow = dense[row];
       if (denseRow.empty())
@@ -534,8 +540,11 @@ void myReduceToEchelonForm5
   }
 
 #pragma omp parallel for num_threads(threadCount) schedule(dynamic)
-  for (long row = 0; row < rowCount; ++row)
+  for (OMPIndex rowOMP = 0;
+    rowOMP < static_cast<OMPIndex>(rowCount); ++rowOMP) {
+    const size_t row = static_cast<size_t>(rowOMP);
     dense[row].takeModulus(modulus);
+  }
 
   toReduce.clear(colCount);
   for (size_t row = 0; row < rowCount; ++row)

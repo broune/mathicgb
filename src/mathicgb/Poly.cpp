@@ -243,47 +243,49 @@ void Poly::dump() const
 
 void Poly::parseDoNotOrder(std::istream& i)
 {
-  char next = i.peek();
-  if (next == '0') {
+  if (i.peek() == '0') {
     i.get();
     return;
   }
 
-  for (;;) {
-    bool is_neg = false;
-    next = i.peek();
+  while (true) {
+    bool preceededByMinus = false;
+    char next = i.peek();
     if (next == '+') {
       i.get();
       next = i.peek();
     } else if (next == '-') {
-        is_neg = true;
-        i.get();
-        next = i.peek();
-    } if (isdigit(next) || isalpha(next) || next == '<') {
-        int a = 1;
-        coefficient b;
-        if (isdigit(next))
-          {
-            i >> a;
-            next = i.peek();
-          }
-        if (is_neg) a = -a;
-        size_t firstloc = monoms.size();
-        monoms.resize(firstloc + R->maxMonomialSize());
-        monomial m = &monoms[firstloc];
-        R->coefficientFromInt(b,a);
-        coeffs.push_back(b);
-        if (isalpha(next) || next == '<')
-          R->monomialParse(i, m);
-        else
-          R->monomialSetIdentity(m); // have to do this to set hash value
-        MATHICGB_ASSERT(ring().hashValid(m));
-        next = i.peek();
-        if (next == '>')
-          i.get();
-      }
-    else
+      preceededByMinus = true;
+      i.get();
+      next = i.peek();
+    }
+
+    if (!isdigit(next) && !isalpha(next) && next != '<')
       break;
+    
+    { // read coefficient
+      int64 bigCoef = 1;
+      if (isdigit(next)) {
+        i >> bigCoef;
+        next = i.peek();
+      }
+      if (preceededByMinus)
+        bigCoef = -bigCoef;
+      coeffs.push_back(R->toCoefficient(bigCoef));
+    }
+
+    // read monic monomial
+    const size_t firstLocation = monoms.size();
+    monoms.resize(firstLocation + R->maxMonomialSize());
+    monomial m = &monoms[firstLocation];
+    if (isalpha(next) || next == '<')
+      R->monomialParse(i, m);
+    else
+      R->monomialSetIdentity(m); // have to do this to set hash value
+    MATHICGB_ASSERT(ring().hashValid(m));
+    next = i.peek();
+    if (next == '>')
+      i.get();
   }
 }
 
@@ -292,30 +294,26 @@ void Poly::parse(std::istream& in) {
   sortTermsDescending();
 }
 
-void Poly::display(std::ostream &o, bool print_comp) const
+void Poly::display(std::ostream& out, const bool printComponent) const
 {
-  long p = R->charac();
-  int maxpos = (p+1)/2;
-  if (nTerms() == 0)
-    {
-      o << "0";
-      return;
-    }
-  int nterms = 0;
-  for (const_iterator i = begin(); i != end(); ++i)
-    {
-      nterms++;
-      coefficient a = i.getCoefficient();
-      bool is_neg = (a > maxpos);
-      if (is_neg) a = p-a;
-      if (is_neg)
-        o << "-";
-      else if (nterms > 1)
-        o << "+";
-      bool print_one = (a == 1);
-      if (a != 1) o << a;
-      R->monomialDisplay(o, i.getMonomial(), print_comp, print_one);
-    }
+  const coefficient p = R->charac();
+  const coefficient maxPositive = (p + 1) / 2; // half rounded up
+  if (isZero()) {
+    out << "0";
+    return;
+  }
+  
+  for (const_iterator i = begin(); i != end(); ++i) {
+    coefficient coef = i.getCoefficient();
+    if (coef > maxPositive) {
+      out << "-";
+      R->coefficientNegateTo(coef);
+    } else if (i != begin())
+      out << '+';
+    if (coef != 1)
+      out << coef;
+    R->monomialDisplay(out, i.getMonomial(), printComponent, coef == 1);
+  }
 }
 
 void Poly::display(FILE* file, bool printComponent) const
@@ -326,11 +324,11 @@ void Poly::display(FILE* file, bool printComponent) const
   }
 
   const auto characteristic = R->charac();
-  const exponent maxPositiveExponent = (characteristic + 1) / 2;
+  const coefficient maxPositiveCoefficient = (characteristic + 1) / 2;
   bool firstTerm = true;
   for (auto it = begin(); it != end(); ++it) {
       coefficient coef = it.getCoefficient();
-      if (coef > maxPositiveExponent) {
+      if (coef > maxPositiveCoefficient) {
         coef = characteristic - coef;
         fputc('-', file);
       } else if (!firstTerm)

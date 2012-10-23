@@ -15,7 +15,7 @@ bool PolyRing::hashValid(const_monomial m) const {
   return monomialHashValue(m) == computeHashValue(m);
 }
 
-PolyRing::PolyRing(long p0,
+PolyRing::PolyRing(coefficient p0,
                    int nvars,
                    int nweights)
   : mCharac(p0),
@@ -29,9 +29,8 @@ PolyRing::PolyRing(long p0,
     mTotalDegreeGradedOnly(false)
 {
   resetCoefficientStats();
-  //  rand();
   for (size_t i=0; i<mNumVars; i++)
-    mHashVals.push_back(rand());
+    mHashVals.push_back(static_cast<HashValue>(rand()));
 }
 
 void PolyRing::displayHashValues() const
@@ -64,10 +63,10 @@ bool PolyRing::weightsCorrect(ConstMonomial a1) const
 {
   exponent const *a = a1.mValue;
   ++a;
-  const int *wts = &mWeights[0];
-  for (int i=0; i < mNumWeights; ++i) {
-    int result = 0;
-    for (size_t j=0; j < mNumVars; ++j)
+  auto wts = &mWeights[0];
+  for (size_t i = 0; i < mNumWeights; ++i) {
+    exponent result = 0;
+    for (size_t j = 0; j < mNumVars; ++j)
       result += *wts++ * a[j];
     if (a[mNumVars + i] != result)
       return false;
@@ -80,7 +79,7 @@ int PolyRing::monomialCompare(ConstMonomial sig, ConstMonomial m2, ConstMonomial
 {
   for (size_t i = mTopIndex; i != static_cast<size_t>(-1); --i)
     {
-      int cmp = sig[i] - m2[i] - sig2[i];
+      auto cmp = sig[i] - m2[i] - sig2[i];
       if (cmp < 0) return GT;
       if (cmp > 0) return LT;
     }
@@ -91,15 +90,15 @@ void PolyRing::monomialSetIdentity(Monomial& result) const
 {
   for (size_t i = 0; i <= mTopIndex; ++i)
     result[i] = 0;
-  result[mHashIndex] = 0;
+  result[mHashIndex] = static_cast<HashValue>(0);
 }
 
 void PolyRing::monomialEi(size_t i, Monomial &result) const
 {
   for (size_t j=mTopIndex; j != static_cast<size_t>(-1); --j)
     result[j] = 0;
-  *result  = static_cast<int>(i); // todo: handle overflow or change representation
-  result[mHashIndex] = static_cast<int>(i); // todo: handle overflow or change representation
+  *result  = static_cast<exponent>(i); // todo: handle overflow or change representation
+  result[mHashIndex] = static_cast<HashValue>(i); // todo: handle overflow or change representation
 }
 
 void PolyRing::monomialMultTo(Monomial &a, ConstMonomial b) const
@@ -126,7 +125,7 @@ void PolyRing::monomialQuotientAndMult(ConstMonomial a,
   for (size_t i = 0; i <= mNumVars; ++i)
     {
       result[i] = c[i];
-      int cmp = a[i] - b[i];
+      auto cmp = a[i] - b[i];
       if (cmp > 0) result[i] += cmp;
     }
   setWeightsAndHash(result);
@@ -225,7 +224,8 @@ void PolyRing::monomialParse(std::istream &i,
   // first initialize result:
   for (size_t j=0; j<mMaxMonomialSize; j++) result[j] = 0;
 
-  int v, e, x;
+  exponent e;
+  int v, x;
   // now look at the next char
   for (;;)
     {
@@ -321,7 +321,7 @@ void PolyRing::printMonomialFrobbyM2Format(std::ostream& out, ConstMonomial m) c
   out << "  ";
   bool isOne = true;
   for (size_t i = 0; i < mNumVars; ++i) {
-    int e = m[i + 1];
+    const auto e = m[i + 1];
     if (e == 0)
       continue;
     if (!isOne)
@@ -359,9 +359,9 @@ bool PolyRing::monomialIsLeastCommonMultiple(
 bool PolyRing::weightsCorrect(const_monomial a) const
 {
   ++a;
-  const int *wts = &mWeights[0];
+  auto wts = &mWeights[0];
   for (int i=0; i < mNumWeights; ++i) {
-    int result = 0;
+    exponent result = 0;
     for (size_t j=0; j < mNumVars; ++j)
       result += *wts++ * a[j];
     if (a[mNumVars + i] != result)
@@ -388,7 +388,7 @@ int PolyRing::monomialCompare(const_monomial sig, const_monomial m2, const_monom
 {
   for (size_t i = mTopIndex; i != static_cast<size_t>(-1); --i)
     {
-      int cmp = sig[i] - m2[i] - sig2[i];
+      auto cmp = sig[i] - m2[i] - sig2[i];
       if (cmp < 0) return GT;
       if (cmp > 0) return LT;
     }
@@ -411,8 +411,8 @@ void PolyRing::monomialSetIdentity(monomial& result) const {
 void PolyRing::monomialEi(size_t i, monomial &result) const
 {
   for (size_t j=mTopIndex; j != static_cast<size_t>(-1); --j) result[j] = 0;
-  *result = static_cast<int>(i); // todo: handle overflow or change representation
-  result[mHashIndex] = static_cast<int>(i); // todo: handle overflow or change representation
+  *result = static_cast<exponent>(i); // todo: handle overflow or change representation
+  result[mHashIndex] = static_cast<exponent>(i); // todo: handle overflow or change representation
 }
 
 void PolyRing::monomialMult(const_monomial a, const_monomial b, monomial &result) const
@@ -443,7 +443,7 @@ void PolyRing::monomialQuotientAndMult(const_monomial a,
   for (size_t i = 0; i <= mNumVars; ++i)
     {
       result[i] = c[i];
-      int cmp = a[i] - b[i];
+      auto cmp = a[i] - b[i];
       if (cmp > 0) result[i] += cmp;
     }
   setWeightsAndHash(result);
@@ -452,7 +452,7 @@ void PolyRing::monomialQuotientAndMult(const_monomial a,
 void PolyRing::setWeightsAndHash(monomial a) const
 {
   setWeightsOnly(a);
-  int hash = *a;
+  auto hash = *a;
   a++;
   for (size_t i = 0; i < mNumVars; ++i)
     hash += a[i] * mHashVals[i];
@@ -542,7 +542,8 @@ void PolyRing::monomialRead(std::istream &I, monomial &result) const
     result[i] = 0;
   for (int i=len; i>0; --i)
     {
-      int v,e;
+      int v;
+      exponent e;
       I >> v;
       I >> e;
       result[v+1] = e;
@@ -571,7 +572,8 @@ void PolyRing::monomialParse(std::istream &i, monomial &result) const
   // first initialize result:
   for (size_t j=0; j<mMaxMonomialSize; j++) result[j] = 0;
 
-  int v, e, x;
+  exponent e;
+  int v, x;
   // now look at the next char
   for (;;)
     {
@@ -636,7 +638,7 @@ void PolyRing::printMonomialFrobbyM2Format(std::ostream& out, const_monomial m) 
   out << "  ";
   bool isOne = true;
   for (size_t i = 0; i < mNumVars; ++i) {
-    int e = m[i + 1];
+    auto e = m[i + 1];
     if (e == 0)
       continue;
     if (!isOne)
@@ -652,7 +654,7 @@ void PolyRing::printMonomialFrobbyM2Format(std::ostream& out, const_monomial m) 
 
 PolyRing *PolyRing::read(std::istream &i)
 {
-  long charac;
+  coefficient charac;
   int mNumVars, mNumWeights;
 
   i >> charac;
@@ -664,7 +666,7 @@ PolyRing *PolyRing::read(std::istream &i)
   R->mTotalDegreeGradedOnly = (mNumWeights == 1);
   for (int j=0; j <mNumVars * mNumWeights; j++)
     {
-      int a;
+      exponent a;
       i >> a;
       R->mWeights[j] = -a;
       if (R->mWeights[j] != -1)
@@ -676,32 +678,12 @@ PolyRing *PolyRing::read(std::istream &i)
 void PolyRing::write(std::ostream &o) const
 {
   o << mCharac << " " << mNumVars << " " << mNumWeights << std::endl;
-  const int *wts = &mWeights[0];
+  auto wts = &mWeights[0];
   for (int i=0; i<mNumWeights; i++)
     {
       for (size_t j=0; j<mNumVars; j++)
         o << " " << - *wts++;
       o << std::endl;
-    }
-}
-
-
-void gcd_extended(long a, long b, long &u, long &v, long &g)
-{
-  long q ;
-  long u1, v1, g1;
-  long utemp, vtemp, gtemp;
-
-  g1 = b;     u1 = 0;         v1 = 1;
-   g = a;      u = 1;          v = 0;
-  while (g1 != 0)
-    {
-      q = g / g1 ;
-      gtemp= g - q * g1;
-      utemp= u - q * u1;
-      vtemp= v - q * v1;
-       g = g1;             u = u1;                 v = v1 ;
-      g1 = gtemp;         u1 = utemp;             v1 = vtemp;
     }
 }
 
