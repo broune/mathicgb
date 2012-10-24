@@ -18,6 +18,15 @@ class ostream;
 class QuadMatrix {
 public:
   QuadMatrix() {}
+  QuadMatrix(QuadMatrix&& matrix):
+    topLeft(matrix.topLeft),
+    topRight(matrix.topRight),
+    bottomLeft(matrix.bottomLeft),
+    bottomRight(matrix.bottomRight),
+    leftColumnMonomials(matrix.leftColumnMonomials),
+    rightColumnMonomials(matrix.rightColumnMonomials),
+    ring(matrix.ring)
+  {}
 
   SparseMatrix topLeft; 
   SparseMatrix topRight;
@@ -33,6 +42,10 @@ public:
 
   /// Shows whole matrix in a string. Useful for debugging.
   std::string toString() const;
+
+  /// Makes a copy of this matrix whose rows are sorted in some canonical way.
+  /// TODO: Actually only coarsely sorts the top rows right now.
+  QuadMatrix toCanonical() const;
 
 #ifdef MATHICGB_DEBUG
   bool debugAssertValid() const;

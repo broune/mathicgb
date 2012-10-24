@@ -63,10 +63,12 @@ public:
     return *this;
   }
 
+  SparseMatrix(const SparseMatrix& matrix) {*this = matrix;}
+
   ~SparseMatrix() {clear();}
 
+  SparseMatrix& operator=(const SparseMatrix&);
   void swap(SparseMatrix& matrix);
-
   void clear(ColIndex newColCount = 0);
 
   RowIndex rowCount() const {return mRows.size();}
@@ -267,10 +269,8 @@ public:
     const Scalar* mScalarIt;
   };
 
-private:
-  SparseMatrix(const SparseMatrix&); // not available
-  void operator=(const SparseMatrix&); // not available
 
+private:
   NO_INLINE void growEntryCapacity();
 
   /// Contains information about a row in the matrix.

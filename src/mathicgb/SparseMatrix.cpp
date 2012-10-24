@@ -116,6 +116,16 @@ void SparseMatrix::appendRow(const SparseMatrix& matrix, const RowIndex row) {
   rowDone();
 }
   
+SparseMatrix& SparseMatrix::operator=(const SparseMatrix& matrix) {
+  clear(matrix.colCount());
+  // A version that works on each block would be faster, but this is not
+  // used anywhere time-critical right now. Improve this if it turns
+  // up in profiling at some point.
+  for (size_t row = 0; row < matrix.rowCount(); ++row)
+    appendRow(matrix, row);
+  return *this;
+}
+
 void SparseMatrix::swap(SparseMatrix& matrix) {
   mBlock.swap(matrix.mBlock);
   using std::swap;

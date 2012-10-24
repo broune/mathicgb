@@ -1,8 +1,18 @@
 #include "stdinc.h"
 #include "F4MatrixBuilder.hpp"
 
-F4MatrixBuilder::F4MatrixBuilder(const PolyBasis& basis):
-  mBasis(basis), mBuilder(basis.ring()), tmp(basis.ring().allocMonomial()) {}
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
+F4MatrixBuilder::F4MatrixBuilder(const PolyBasis& basis, const int threadCount):
+  mThreadCount(threadCount),
+  mBasis(basis),
+  mBuilder(basis.ring()),
+  tmp(basis.ring().allocMonomial())
+{
+  MATHICGB_ASSERT(threadCount >= 1);
+}
 
 void F4MatrixBuilder::addSPolynomialToMatrix
 (const Poly& polyA, const Poly& polyB) {
@@ -141,7 +151,7 @@ void F4MatrixBuilder::buildMatrixAndClear(QuadMatrix& matrix) {
 	    MATHICGB_ASSERT(c < std::numeric_limits<QuadMatrixBuilder::Scalar>::max());
         auto col = mBuilder.findColumn(mono);
         if (!col.valid())
-          col = this->createColumn(mono);
+          col = this->createColumn(mono, mBuilder);
         mBuilder.appendEntryBottom(col,
           static_cast<QuadMatrixBuilder::Scalar>(c));
 	  }
@@ -153,11 +163,42 @@ void F4MatrixBuilder::buildMatrixAndClear(QuadMatrix& matrix) {
 
   // Process pending rows until we are done. Note that the methods
   // we are calling here can add more items to mTodo.
+
+#ifdef _OPENMP
+  struct ThreadData {
+    QuadMatrixBuilder* builder;
+  };
+  MATHICGB_ASSERT(mThreadCount >= 1);
+  std::vector<ThreadData> threadData(mThreadCount);
+  for (size_t i = 0; i < threadData.size(); ++i) {
+    // this will change once parallelism is properly implemented
+    threadData[i].builder = &mBuilder;
+    //threadData[i].builder = i == 0 ? &mBuilder : new QuadMatrixBuilder(ring());
+  }
+#endif
+
+  decltype(mTodo) currentTasks;
   while (!mTodo.empty()) {
-    RowTask task = mTodo.back();
-    MATHICGB_ASSERT(ring().hashValid(task.multiple));
-    mTodo.pop_back();
-    appendRowTop(task.multiple, *task.poly);
+    currentTasks.clear();
+    mTodo.swap(currentTasks);
+    const auto taskCountOMP = static_cast<OMPIndex>(currentTasks.size());
+#pragma omp parallel for num_threads(mThreadCount) schedule(dynamic)
+    for (OMPIndex taskOMP = 0; taskOMP < taskCountOMP; ++taskOMP) {
+      const size_t taskIndex = taskOMP;
+#ifdef _OPENMP
+      QuadMatrixBuilder& builder = *threadData[omp_get_thread_num()].builder;
+#else
+      QuadMatrixBuilder& builder = mBuilder;
+#endif
+      const RowTask task = currentTasks[taskIndex];
+      MATHICGB_ASSERT(ring().hashValid(task.multiple));
+
+      // this will change once parallelism is properly implemented
+#pragma omp critical
+      {
+        appendRowTop(task.multiple, *task.poly, builder);
+      }
+    }
   }
 
   mBuilder.sortColumnsLeft(mBasis.order());
@@ -166,9 +207,15 @@ void F4MatrixBuilder::buildMatrixAndClear(QuadMatrix& matrix) {
 }
 
 F4MatrixBuilder::LeftRightColIndex
-F4MatrixBuilder::createColumn(const_monomial mono) {
+F4MatrixBuilder::createColumn(const_monomial mono, QuadMatrixBuilder& builder) {
   MATHICGB_ASSERT(ring().hashValid(mono));
-  MATHICGB_ASSERT(!mBuilder.findColumn(mono).valid());
+  MATHICGB_ASSERT(!builder.findColumn(mono).valid());
+#ifdef _OPENMP
+  // this will change once parallelism is properly implemented
+  MATHICGB_ASSERT(&builder == &mBuilder);
+#else
+  MATHICGB_ASSERT(&builder == &mBuilder);
+#endif
 
   // look for a reducer of mono
   size_t reducerIndex = mBasis.divisor(mono);
@@ -187,19 +234,19 @@ F4MatrixBuilder::createColumn(const_monomial mono) {
   return mBuilder.createColumnLeft(mono);
 }
 
-void F4MatrixBuilder::appendRowTop(const_monomial multiple, const Poly& poly) {
+void F4MatrixBuilder::appendRowTop(const_monomial multiple, const Poly& poly, QuadMatrixBuilder& builder) {
   Poly::const_iterator end = poly.end();
   for (Poly::const_iterator it = poly.begin(); it != end; ++it) {
 	MATHICGB_ASSERT(it.getCoefficient() <
       std::numeric_limits<QuadMatrixBuilder::Scalar>::max());
-    auto col = mBuilder.findColumnProduct(it.getMonomial(), multiple);
+    auto col = builder.findColumnProduct(it.getMonomial(), multiple);
     if (!col.valid()) {
       ring().monomialMult(it.getMonomial(), multiple, tmp);
-      col = createColumn(tmp);
+      col = createColumn(tmp, builder);
     }
     const auto scalar =
       static_cast<QuadMatrixBuilder::Scalar>(it.getCoefficient());
-    mBuilder.appendEntryTop(col, scalar);
+    builder.appendEntryTop(col, scalar);
   }
-  mBuilder.rowDoneTopLeftAndRight();
+  builder.rowDoneTopLeftAndRight();
 }

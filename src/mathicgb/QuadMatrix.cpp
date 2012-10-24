@@ -62,6 +62,46 @@ std::string QuadMatrix::toString() const {
   return out.str();
 }
 
+QuadMatrix QuadMatrix::toCanonical() const {
+  std::vector<size_t> rows;
+  for (size_t row = 0; row < topLeft.rowCount(); ++row)
+    rows.push_back(row);
+  class RowComparer {
+  public:
+    RowComparer(const SparseMatrix& matrix): mMatrix(matrix) {}
+    bool operator()(size_t a, size_t b) const {
+      // if you need this to work for empty rows or identical leading columns
+      // then update this code.
+      MATHICGB_ASSERT(!mMatrix.emptyRow(a));
+      MATHICGB_ASSERT(!mMatrix.emptyRow(b));
+      return mMatrix.leadCol(a) > mMatrix.leadCol(b);
+    }
+
+  private:
+    const SparseMatrix& mMatrix;
+  };
+  {
+    RowComparer comparer(topLeft);
+    std::sort(rows.begin(), rows.end(), comparer);
+  }
+
+  QuadMatrix matrix;
+  matrix.topLeft.clear(topLeft.colCount());
+  matrix.topRight.clear(topRight.colCount());
+  for (size_t i = 0; i < rows.size(); ++i) {
+    matrix.topLeft.appendRow(topLeft, rows[i]);
+    matrix.topRight.appendRow(topRight, rows[i]);
+  }
+
+  matrix.bottomLeft = bottomLeft;
+  matrix.bottomRight = bottomRight;
+  matrix.leftColumnMonomials = leftColumnMonomials;
+  matrix.rightColumnMonomials = rightColumnMonomials;
+  matrix.ring = ring;
+  
+  return std::move(matrix);
+}
+
 std::ostream& operator<<(std::ostream& out, const QuadMatrix& qm) {
   qm.print(out);
   return out;
