@@ -186,3 +186,57 @@ bool SparseMatrix::appendRowWithModulusIfNonZero(std::vector<uint64> const& v, S
   } else
     return true;
 }
+
+void SparseMatrix::trimLeadingZeroColumns(ColIndex trimThisMany) {
+  MATHICGB_ASSERT(trimThisMany <= colCount());
+  const auto end = mColIndices.end();
+  for (auto it = mColIndices.begin(); it != end; ++it) {
+    MATHICGB_ASSERT(*it >= trimThisMany);
+    *it -= trimThisMany;
+  }
+  mColCount -= trimThisMany;
+}
+
+void SparseMatrix::reserveEntries(size_t count) {
+  if (count < mEntries.capacity())
+    return;
+
+  ptrdiff_t scalarPtrDelta;
+  {
+    const auto begin = new Scalar[count];
+    const auto capacityEnd = begin + count;
+    scalarPtrDelta = begin - mEntries.begin();
+    delete[] mEntries.setMemoryAndCopy(begin, capacityEnd);
+  }
+
+  ptrdiff_t entryPtrDelta;
+  {
+    const auto begin = new ColIndex[count];
+    const auto capacityEnd = begin + count;
+    entryPtrDelta = begin - mColIndices.begin();
+    delete[] mColIndices.setMemoryAndCopy(begin, capacityEnd);
+  }
+
+  const auto rowEnd = mRows.end();
+  for (auto it = mRows.begin(); it != rowEnd; ++it) {
+    it->mIndicesBegin += entryPtrDelta;
+    it->mIndicesEnd += entryPtrDelta;
+    it->mScalarsBegin += scalarPtrDelta;
+    it->mScalarsEnd += scalarPtrDelta;
+  }
+}
+
+void SparseMatrix::growEntryCapacity() {
+  MATHICGB_ASSERT(mColIndices.size() == mEntries.size());
+  MATHICGB_ASSERT(mColIndices.capacity() == mEntries.capacity());
+
+  const size_t initialCapacity = 1 << 16;
+  const size_t growthFactor = 2;
+  const size_t newCapacity =
+    mEntries.empty() ? initialCapacity : mEntries.capacity() * growthFactor;
+  reserveEntries(newCapacity);
+
+  MATHICGB_ASSERT(mColIndices.size() == mEntries.size());
+  MATHICGB_ASSERT(mColIndices.capacity() == newCapacity);
+  MATHICGB_ASSERT(mEntries.capacity() == newCapacity);
+}
