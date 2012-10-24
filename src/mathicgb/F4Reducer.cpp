@@ -48,7 +48,7 @@ std::unique_ptr<Poly> F4Reducer::classicReduceSPoly
 
   QuadMatrix qm;
   {
-    F4MatrixBuilder builder(basis);
+    F4MatrixBuilder builder(basis, mThreadCount);
     builder.addSPolynomialToMatrix(a, b);
     builder.buildMatrixAndClear(qm);
 
@@ -95,7 +95,7 @@ void F4Reducer::classicReduceSPolySet
   {
     QuadMatrix qm;
     {
-      F4MatrixBuilder builder(basis);
+      F4MatrixBuilder builder(basis, mThreadCount);
       for (auto it = spairs.begin(); it != spairs.end(); ++it) {
         builder.addSPolynomialToMatrix
           (basis.poly(it->first), basis.poly(it->second));
@@ -145,7 +145,7 @@ void F4Reducer::classicReducePolySet
   {
     QuadMatrix qm;
     {
-      F4MatrixBuilder builder(basis);
+      F4MatrixBuilder builder(basis, mThreadCount);
       for (auto it = polys.begin(); it != polys.end(); ++it)
         builder.addPolynomialToMatrix(**it);
       builder.buildMatrixAndClear(qm);

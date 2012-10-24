@@ -21,7 +21,7 @@ private:
   typedef QuadMatrixBuilder::LeftRightColIndex LeftRightColIndex;
 
 public:
-  F4MatrixBuilder(const PolyBasis& basis);
+  F4MatrixBuilder(const PolyBasis& basis, int threadCount);
 
   /** Schedules a row representing the S-polynomial between polyA and
     polyB to be added to the matrix. No ownership is taken, but polyA
@@ -63,9 +63,9 @@ public:
 private:
   /** Creates a column with monomial label mono and schedules a new row to
     reduce that column if possible. */
-  LeftRightColIndex createColumn(const_monomial mono);
+  LeftRightColIndex createColumn(const_monomial mono, QuadMatrixBuilder& builder);
 
-  void appendRowTop(const_monomial multiple, const Poly& poly);
+  void appendRowTop(const_monomial multiple, const Poly& poly, QuadMatrixBuilder& builder);
 
   /// Represents an S-pair that was added to the matrix for reduction
   /// or, if polyB is null, a polynomial that was added to the matrix
@@ -83,6 +83,7 @@ private:
     monomial multiple;
   };
 
+  const int mThreadCount;
   monomial tmp;
   std::vector<SPairTask> mSPairTodo;
   std::vector<RowTask> mTodo;
