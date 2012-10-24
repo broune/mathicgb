@@ -191,10 +191,6 @@ std::string QuadMatrixBuilder::toString() const {
 }
 
 void QuadMatrixBuilder::buildMatrixAndClear(QuadMatrix& out) {
-  // we cannot use std::move as the builder is supposed to remain in a
-  // valid state. @todo: consider using a QuadMatrix as the internal
-  // data representation.
-
   mTopLeft.swap(out.topLeft);
   mTopRight.swap(out.topRight);
   mBottomLeft.swap(out.bottomLeft);
