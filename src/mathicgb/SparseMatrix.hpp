@@ -9,6 +9,7 @@
 #include <limits>
 #include <sstream>
 #include <string>
+#include <iterator>
 class Poly;
 
 /** A class that implements a sparse matrix.
@@ -40,7 +41,7 @@ SparseMatrix::Scalar. Please use the typedefs to make it easier to
 support a wider range of types of matrices in future.
 */
 class SparseMatrix {
- public:
+public:
   typedef size_t RowIndex;
   typedef uint32 ColIndex;
   typedef uint16 Scalar;
@@ -48,7 +49,7 @@ class SparseMatrix {
   SparseMatrix(SparseMatrix&& matrix):
     mColIndices(std::move(matrix.mColIndices)),
     mEntries(std::move(matrix.mEntries)),
-    mRowOffsets(std::move(matrix.mRowOffsets)),
+    mRows(std::move(matrix.mRows)),
     mColCount(matrix.mColCount)
   {
   }
@@ -60,6 +61,12 @@ class SparseMatrix {
   }
 
   ~SparseMatrix() {
+#ifdef MATHICGB_DEBUG
+    for (auto it = mRows.begin(); it != mRows.end(); ++it) {
+      MATHICGB_ASSERT(it->debugValid());
+    }
+#endif
+
     delete[] mEntries.releaseMemory();
   }
 
@@ -68,21 +75,35 @@ class SparseMatrix {
     if (count < mEntries.capacity())
       return;
 
+    ptrdiff_t scalarPtrDelta;
     {
       const auto begin = new Scalar[count];
       const auto capacityEnd = begin + count;
+      scalarPtrDelta = begin - mEntries.begin();
       delete[] mEntries.setMemoryAndCopy(begin, capacityEnd);
     }
+
+    ptrdiff_t entryPtrDelta;
     {
       const auto begin = new ColIndex[count];
       const auto capacityEnd = begin + count;
+      entryPtrDelta = begin - mColIndices.begin();
       delete[] mColIndices.setMemoryAndCopy(begin, capacityEnd);
+    }
+
+    const auto rowEnd = mRows.end();
+    for (auto it = mRows.begin(); it != rowEnd; ++it) {
+      it->mIndicesBegin += entryPtrDelta;
+      it->mIndicesEnd += entryPtrDelta;
+      it->mScalarsBegin += scalarPtrDelta;
+      it->mScalarsEnd += scalarPtrDelta;
+      MATHICGB_ASSERT(it->debugValid());
     }
   }
 
   /** Preallocate space for at least count rows. */
   void reserveRows(size_t count) {
-    mRowOffsets.reserve(count + 1);
+    mRows.reserve(count);
   }
 
   /** Returns the index of the first entry in the given row. This is
@@ -92,13 +113,13 @@ class SparseMatrix {
   ColIndex leadCol(RowIndex row) const {
     MATHICGB_ASSERT(row < rowCount());
     MATHICGB_ASSERT(!emptyRow(row));
-    return mColIndices[mRowOffsets[row]];
+    return *mRows[row].mIndicesBegin;
   }
 
   /** Returns true if the given row has no entries. */
   bool emptyRow(RowIndex row) const {
     MATHICGB_ASSERT(row < rowCount());
-    return mRowOffsets[row] == mRowOffsets[row + 1];
+    return mRows[row].empty();
   }
 
   /** Removes the leading trimThisMany columns. The columns are
@@ -119,13 +140,12 @@ class SparseMatrix {
   SparseMatrix(ColIndex colCount = 0):
     mColCount(colCount)
   {
-    mRowOffsets.push_back(0);
   }
 
   /** Returns the number of entries in the given row. */
   ColIndex entryCountInRow(RowIndex row) const {
     MATHICGB_ASSERT(row < rowCount());
-    return static_cast<ColIndex>(mRowOffsets[row + 1] - mRowOffsets[row]);
+    return mRows[row].size();
   }
 
   /** Returns the number of entries in the whole matrix. */
@@ -140,7 +160,17 @@ class SparseMatrix {
     since the last time a row was added or the matrix was created. */
   void rowDone() {
     MATHICGB_ASSERT(mColIndices.size() == entryCount());
-    mRowOffsets.push_back(mColIndices.size());
+    Row row;
+    row.mIndicesEnd = mColIndices.end();
+    row.mScalarsEnd = mEntries.end();
+    if (mRows.empty()) {
+      row.mIndicesBegin = mColIndices.begin();
+      row.mScalarsBegin = mEntries.begin();
+    } else {
+      row.mIndicesBegin = mRows.back().mIndicesEnd;
+      row.mScalarsBegin = mRows.back().mScalarsEnd;
+    }
+    mRows.push_back(row);
   }
 
   /** Appends an entry to the matrix. Will not appear in the matrix
@@ -168,40 +198,96 @@ class SparseMatrix {
   void swap(SparseMatrix& matrix);
   void clear(ColIndex newColCount = 0);
   
-  class RowIterator {
+  private:
+      struct Row {
+    Row(): mScalarsBegin(0), mScalarsEnd(0), mIndicesBegin(0), mIndicesEnd(0) {}
+
+    bool debugValid() {
+      const size_t scalarCount = std::distance(mScalarsBegin, mScalarsEnd);
+      const size_t indexCount = std::distance(mIndicesBegin, mIndicesEnd);
+      MATHICGB_ASSERT(scalarCount == indexCount);
+      return true;
+    }
+
+    Scalar* mScalarsBegin;
+    Scalar* mScalarsEnd;
+    ColIndex* mIndicesBegin;
+    ColIndex* mIndicesEnd;
+
+    bool empty() const {return mIndicesBegin == mIndicesEnd;}
+    ColIndex size() const {
+      return static_cast<ColIndex>(std::distance(mIndicesBegin, mIndicesEnd));
+    }
+
+  private:
+    void operator==(const Row&) const; // not available
+  };
+public:
+
+  class ConstRowIterator {
   public:
-    RowIterator& operator++() {
-      ++mOffset;
+    typedef const std::pair<ColIndex, Scalar> value_type;
+	typedef ptrdiff_t difference_type;
+    typedef size_t distance_type;
+    typedef value_type* pointer;
+    typedef value_type& reference;
+    typedef std::random_access_iterator_tag iterator_category;
+
+    ConstRowIterator& operator++() {
+      ++mScalarIt;
+      ++mColIndexIt;
       return *this;
     }
-    bool operator==(const RowIterator& it) const {return mOffset == it.mOffset;}
-    bool operator!=(const RowIterator& it) const {return !(*this == it);}
-    Scalar scalar() {return mMatrix.scalarAtOffset(mOffset);}
-    ColIndex index() {return mMatrix.indexAtOffset(mOffset);}
-    
+
+    value_type operator*() const {return value_type(index(), scalar());}
+
+    bool operator<(const ConstRowIterator& it) const {
+      return mColIndexIt < it.mColIndexIt;
+    }
+
+    difference_type operator-(const ConstRowIterator& it) const {
+      return mColIndexIt - it.mColIndexIt;
+    }
+
+    bool operator==(const ConstRowIterator& it) const {
+      return mColIndexIt == it.mColIndexIt;
+    }
+
+    bool operator!=(const ConstRowIterator& it) const {return !(*this == it);}
+    const Scalar& scalar() const {return *mScalarIt;}
+    const ColIndex& index() const {return *mColIndexIt;}
+
   private:
     friend class SparseMatrix;
-    RowIterator(const SparseMatrix& matrix, size_t offset): mMatrix(matrix), mOffset(offset) {}
- 
-    const SparseMatrix& mMatrix;
-    size_t mOffset;      
+    ConstRowIterator(
+      const ColIndex* const indicesIt,
+      const Scalar* const scalarIt
+    ):
+      mColIndexIt(indicesIt),
+      mScalarIt(scalarIt)
+    {
+    }
+
+    const ColIndex* mColIndexIt;
+    const Scalar* mScalarIt;
   };
-  
+
   RowIndex rowCount() const {
-    MATHICGB_ASSERT(!mRowOffsets.empty());
-    return mRowOffsets.size() - 1;
+    return mRows.size();
   }
 
   ColIndex colCount() const {return mColCount;}
   
-  RowIterator rowBegin(RowIndex row) const {
+  ConstRowIterator rowBegin(RowIndex row) const {
     MATHICGB_ASSERT(row < rowCount());
-    return RowIterator(*this, mRowOffsets[row]);
+    const Row& r = mRows[row];
+    return ConstRowIterator(r.mIndicesBegin, r.mScalarsBegin);
   }
 
-  RowIterator rowEnd(RowIndex row) const {
+  ConstRowIterator rowEnd(RowIndex row) const {
     MATHICGB_ASSERT(row < rowCount());
-    return RowIterator(*this, mRowOffsets[row + 1]);
+    const Row& r = mRows[row];
+    return ConstRowIterator(r.mIndicesEnd, r.mScalarsEnd);
   }
   
   void ensureAtLeastThisManyColumns(ColIndex count) {
@@ -228,8 +314,6 @@ class SparseMatrix {
   // appended.
   bool appendRowWithModulusIfNonZero(std::vector<uint64> const& v, Scalar modulus);
 
-  bool operator==(const SparseMatrix& mat) const;
-  bool operator!=(const SparseMatrix& mat) const {return !(*this == mat);}
 
   /// Replaces all column indices i with colMap[i].
   void applyColumnMap(std::vector<ColIndex> colMap);
@@ -244,7 +328,9 @@ class SparseMatrix {
   void sortRowsByIncreasingPivots();
   
 private:
-  friend class RowIterator;
+  void operator==(const SparseMatrix&); // not available
+  friend class ConstRowIterator;
+
 
   SparseMatrix(const SparseMatrix&); // not available
   void operator=(const SparseMatrix&); // not available
@@ -274,7 +360,9 @@ private:
   /// causes different compiler inlining decisions.
   RawVector<Scalar> mEntries;
   RawVector<ColIndex> mColIndices;
-  std::vector<size_t> mRowOffsets;  
+
+  std::vector<Row> mRows;
+
   ColIndex mColCount;
 };
 

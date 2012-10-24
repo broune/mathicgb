@@ -43,8 +43,8 @@ void SparseMatrix::sortRowsByIncreasingPivots() {
   ordered.clear(lColCount);
   for (size_t i = 0; i < lRowCount; ++i) {
     const SparseMatrix::RowIndex row = order[i].second;
-    SparseMatrix::RowIterator it = rowBegin(row);
-    SparseMatrix::RowIterator end = rowEnd(row);
+    auto it = rowBegin(row);
+    const auto end = rowEnd(row);
     for (; it != end; ++it)
       ordered.appendEntry(it.index(), it.scalar());
     ordered.rowDone();
@@ -67,8 +67,8 @@ void SparseMatrix::print(std::ostream& out) const {
     out << "matrix with no rows\n";
   for (RowIndex row = 0; row < rowCount(); ++row) {
     out << row << ':';
-    RowIterator end = rowEnd(row);
-    for (RowIterator it = rowBegin(row); it != end; ++it) {
+    const auto end = rowEnd(row);
+    for (auto it = rowBegin(row); it != end; ++it) {
       MATHICGB_ASSERT(it.index() < colCount());
       out << ' ' << it.index() << '#' << it.scalar();
     }
@@ -84,8 +84,8 @@ std::string SparseMatrix::toString() const {
 
 void SparseMatrix::appendRowAndNormalize(const SparseMatrix& matrix, RowIndex row, Scalar modulus) {
   MATHICGB_ASSERT(row < matrix.rowCount());
-  RowIterator it = matrix.rowBegin(row);
-  RowIterator end = matrix.rowEnd(row);
+  auto it = matrix.rowBegin(row);
+  const auto end = matrix.rowEnd(row);
   if (it != end) {
     appendEntry(it.index(), 1);
     Scalar lead = it.scalar();
@@ -105,8 +105,8 @@ void SparseMatrix::appendRowAndNormalize(const SparseMatrix& matrix, RowIndex ro
 
 void SparseMatrix::appendRow(const SparseMatrix& matrix, RowIndex row) {
   MATHICGB_ASSERT(row < matrix.rowCount());
-  RowIterator it = matrix.rowBegin(row);
-  RowIterator end = matrix.rowEnd(row);
+  auto it = matrix.rowBegin(row);
+  const auto end = matrix.rowEnd(row);
   for (; it != end; ++it)
     appendEntry(it.index(), it.scalar());
   rowDone();
@@ -115,15 +115,14 @@ void SparseMatrix::appendRow(const SparseMatrix& matrix, RowIndex row) {
 void SparseMatrix::swap(SparseMatrix& matrix) {
   std::swap(mColIndices, matrix.mColIndices);
   std::swap(mEntries, matrix.mEntries);
-  std::swap(mRowOffsets, matrix.mRowOffsets);
+  std::swap(mRows, matrix.mRows);
   std::swap(mColCount, matrix.mColCount);
 }
   
 void SparseMatrix::clear(ColIndex newColCount) {
   mColIndices.clear();
   mEntries.clear();
-  mRowOffsets.clear();
-  mRowOffsets.push_back(0);
+  mRows.clear();
   mColCount = newColCount;
 }
 
@@ -180,21 +179,10 @@ void SparseMatrix::appendRowWithModulusNormalized(std::vector<uint64> const& v, 
 
 bool SparseMatrix::appendRowWithModulusIfNonZero(std::vector<uint64> const& v, Scalar modulus) {
   appendRowWithModulus(v, modulus);
-  MATHICGB_ASSERT(mRowOffsets.size() >= 2);
-  std::vector<size_t>::const_iterator it = mRowOffsets.end();
-  --it;
-  size_t last = *it;
-  --it;
-  if (last == *it) {
-    mRowOffsets.pop_back();
+  MATHICGB_ASSERT(rowCount() > 0);
+  if (mRows.back().empty()) {
+    mRows.pop_back();
     return false;
   } else
     return true;
-}
-
-bool SparseMatrix::operator==(const SparseMatrix& mat) const {
-  return mColCount == mat.mColCount &&
-    mColIndices.contentsEqual(mat.mColIndices) &&
-    mEntries.contentsEqual(mat.mEntries) &&
-    mRowOffsets == mat.mRowOffsets;
 }

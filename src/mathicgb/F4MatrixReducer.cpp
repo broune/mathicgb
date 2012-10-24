@@ -97,8 +97,8 @@ public:
   void addRow(SparseMatrix const& matrix, SparseMatrix::RowIndex row) {
     MATHICGB_ASSERT(row < matrix.rowCount());
     MATHICGB_ASSERT(matrix.colCount() == colCount());
-    SparseMatrix::RowIterator end = matrix.rowEnd(row);
-    for (SparseMatrix::RowIterator it = matrix.rowBegin(row); it != end; ++it) {
+    const auto end = matrix.rowEnd(row);
+    for (auto it = matrix.rowBegin(row); it != end; ++it) {
       MATHICGB_ASSERT(it.index() < colCount());
       mEntries[it.index()] = it.scalar();
     }
@@ -107,8 +107,8 @@ public:
   void addRowPrefix(SparseMatrix const& matrix, SparseMatrix::RowIndex row, size_t stopAtCol) {
     MATHICGB_ASSERT(row < matrix.rowCount());
     MATHICGB_ASSERT(matrix.colCount() == colCount());
-    SparseMatrix::RowIterator end = matrix.rowEnd(row);
-    for (SparseMatrix::RowIterator it = matrix.rowBegin(row); it != end; ++it) {
+    const auto end = matrix.rowEnd(row);
+    for (auto it = matrix.rowBegin(row); it != end; ++it) {
       if (it.index() >= stopAtCol)
         break;
       MATHICGB_ASSERT(it.index() < colCount());
@@ -189,7 +189,7 @@ public:
     MATHICGB_ASSERT(matrix.rowBegin(pivotRow).scalar() == 1); // unitary
     MATHICGB_ASSERT(modulus > 1);
 
-    SparseMatrix::RowIterator begin = matrix.rowBegin(pivotRow);
+    auto begin = matrix.rowBegin(pivotRow);
     SparseMatrix::ColIndex col = begin.index();
     SparseMatrix::Scalar entry = mEntries[col] % modulus;
     mEntries[col] = 0;
@@ -206,7 +206,7 @@ public:
     MATHICGB_ASSERT(matrixLeft.rowBegin(pivotRow).scalar() == 1); // unitary
     MATHICGB_ASSERT(modulus > 1);
 
-    SparseMatrix::RowIterator begin = matrixLeft.rowBegin(pivotRow);
+    auto begin = matrixLeft.rowBegin(pivotRow);
     SparseMatrix::ColIndex col = begin.index();
     SparseMatrix::Scalar entry = mEntries[col] % modulus;
     mEntries[col] = 0;
@@ -233,7 +233,7 @@ public:
     MATHICGB_ASSERT(matrix.rowBegin(pivotRow).scalar() == 1); // unitary
     MATHICGB_ASSERT(modulus > 1);
 
-    SparseMatrix::RowIterator begin = matrix.rowBegin(pivotRow);
+    auto begin = matrix.rowBegin(pivotRow);
     SparseMatrix::ColIndex col = begin.index();
     if (col >= stopAtCol)
       return;
@@ -264,7 +264,7 @@ public:
     MATHICGB_ASSERT(matrix.rowBegin(pivotRow).scalar() != 0);
     MATHICGB_ASSERT(modulus > 1);
 
-    SparseMatrix::RowIterator begin = matrix.rowBegin(pivotRow);
+    auto begin = matrix.rowBegin(pivotRow);
     SparseMatrix::ColIndex col = begin.index();
     SparseMatrix::Scalar entry = mEntries[col] % modulus;
     mEntries[col] = 0;
@@ -272,7 +272,7 @@ public:
       return;
     SparseMatrix::Scalar reducerLead = begin.scalar();
     ++begin; // can skip first entry as we just set it to zero.
-    SparseMatrix::RowIterator end = matrix.rowEnd(pivotRow);
+    const auto end = matrix.rowEnd(pivotRow);
     if (begin == end)
       return;
 
@@ -635,8 +635,8 @@ void computeDensities
   size_t const rowCount = matrix.rowCount();
   for (size_t row = 0; row < rowCount; ++row) {
     MATHICGB_ASSERT(row < rowDensity.size());
-    SparseMatrix::RowIterator it = matrix.rowBegin(row);
-    SparseMatrix::RowIterator end = matrix.rowEnd(row);
+    auto it = matrix.rowBegin(row);
+    const auto end = matrix.rowEnd(row);
     for (; it != end; ++it) {
       MATHICGB_ASSERT(it.index() < colDensity.size());
       MATHICGB_ASSERT(it.scalar() != 0);
@@ -674,140 +674,6 @@ void printLogDensityHistograms
   printMap(colLogHis, out);
 
   out << "\\****************************************\n";
-}
-
-// Takes the pivot rows from matrix and copies them into pivots. The
-// remaining rows go into nonPivots. Also reorders columns so that the
-// left part of pivots is upper triangular.
-// Also sorts rows of nonPivots to be densest first.
-// Ignores zero rows.
-void spliceMatrix(const SparseMatrix& matrix, SparseMatrix& pivots, SparseMatrix& nonPivots) {
-  const SparseMatrix::RowIndex rowCount = matrix.rowCount();
-  const SparseMatrix::ColIndex colCount = matrix.colCount();
-
-  static const SparseMatrix::RowIndex noPivot =
-    std::numeric_limits<SparseMatrix::RowIndex>::max();
-  std::vector<SparseMatrix::RowIndex> pivotRowOfCol(colCount);
-  std::fill(pivotRowOfCol.begin(), pivotRowOfCol.end(), noPivot);
-
-  // determine pivot rows and columns
-  for (size_t row = 0; row < rowCount; ++row) {
-    const SparseMatrix::ColIndex entryCount = matrix.entryCountInRow(row);
-    if (entryCount == 0)
-      continue; // ignore zero rows
-    const SparseMatrix::ColIndex pivotCol = matrix.leadCol(row);
-    SparseMatrix::RowIndex& pivotRow = pivotRowOfCol[pivotCol];
-    if (pivotRow == noPivot || entryCount < matrix.entryCountInRow(pivotRow))
-      pivotRow = row; // prefer sparse pivots
-  }
-
-  // permutation of columns to put pivots left without reordering
-  // columns in any other way.
-  std::vector<SparseMatrix::ColIndex> colPerm(colCount);
-  SparseMatrix::ColIndex columnsDecided = 0;
-
-  // choice of rows to make left of pivots matrix upper triangular
-  std::vector<SparseMatrix::RowIndex> pivotRows;
-
-  // Go through pivot columns to compute perm and pivotRows
-  for (size_t col = 0; col < colCount; ++col) {
-    if (pivotRowOfCol[col] != noPivot) {
-      colPerm[col] = columnsDecided; // pivot columns first
-      ++columnsDecided;
-      pivotRows.push_back(pivotRowOfCol[col]);
-    }
-  }
-  SparseMatrix::ColIndex minNonPivotCol = columnsDecided;
-
-  for (size_t col = 0; col < colCount; ++col) {
-    if (pivotRowOfCol[col] == noPivot) {
-      colPerm[col] = columnsDecided; // non-pivot columns last
-      ++columnsDecided;
-    }
-  }
-  MATHICGB_ASSERT(columnsDecided == colCount);
-
-  // choice of rows to make pivots matrix sorted by decreasing density.
-  std::vector<SparseMatrix::RowIndex> nonPivotRows;
-
-  // put density first in a pair to make sorting easy.
-  // TODO: use sorting object instead of making pairs like this.
-  std::vector<std::pair<SparseMatrix::ColIndex, SparseMatrix::RowIndex> > nonPivotData;
-  for (size_t row = 0; row < rowCount; ++row) {
-    const SparseMatrix::ColIndex entryCount = matrix.entryCountInRow(row);
-    if (entryCount == 0)
-      continue; // ignore zero rows
-    if (row != pivotRowOfCol[matrix.leadCol(row)])
-      nonPivotData.push_back(std::make_pair(entryCount, row));
-  }
-  std::sort(nonPivotRows.rbegin(), nonPivotRows.rend());
-  for (size_t i = 0; i < nonPivotData.size(); ++i)
-    nonPivotRows.push_back(nonPivotData[i].second);
-
-  // create matrices
-  struct LocalFunction {
-    void makeMatrix(const SparseMatrix& matrix,
-                    const std::vector<SparseMatrix::RowIndex>& rowIndices,
-                    const std::vector<SparseMatrix::ColIndex>& colPerm,
-                    const SparseMatrix::ColIndex minNonPivotCol,
-                    SparseMatrix& out) {
-      typedef std::vector<SparseMatrix::RowIndex>::const_iterator Iter;
-      Iter end = rowIndices.end();
-
-      // reserve space
-      out.clear(matrix.colCount());
-      size_t entryCount = 0;
-      for (Iter it = rowIndices.begin(); it != end; ++it)
-        entryCount += matrix.entryCountInRow(*it);
-      out.reserveEntries(entryCount);
-      out.reserveRows(rowIndices.size());
-
-      for (Iter it = rowIndices.begin(); it != end; ++it) {
-        // Do two passes to avoid having to sort indices. They will
-        // be in increasing order in this way.
-        SparseMatrix::RowIterator begin = matrix.rowBegin(*it);
-        SparseMatrix::RowIterator end = matrix.rowEnd(*it);
-        for (SparseMatrix::RowIterator it = begin; it != end; ++it)
-          if (colPerm[it.index()] < minNonPivotCol) // pivot columns first
-            out.appendEntry(colPerm[it.index()], it.scalar());
-        for (SparseMatrix::RowIterator it = begin; it != end; ++it)
-          if (colPerm[it.index()] >= minNonPivotCol) // then non-pivot columns
-            out.appendEntry(colPerm[it.index()], it.scalar());
-        out.rowDone();
-      }      
-    }
-  } f; // static function on local structs not allowed :-(
-  f.makeMatrix(matrix, pivotRows, colPerm, minNonPivotCol, pivots);
-  f.makeMatrix(matrix, nonPivotRows, colPerm, minNonPivotCol, nonPivots);
-}
-
-void concatenateMatricesHorizontal
-(const SparseMatrix& a, const SparseMatrix& b, SparseMatrix& concatenation) {
-  MATHICGB_ASSERT(a.rowCount() == b.rowCount());
-  // todo: check overflow of colcount type
-  const SparseMatrix::ColIndex bOffset = a.colCount();
-  concatenation.clear(a.colCount() + b.colCount());
-  if (concatenation.colCount() < a.colCount()) {
-    MATHICGB_ASSERT(false);
-    throw std::overflow_error
-      ("Too many columns in matrices being concatenated.");
-  }
-  
-  const SparseMatrix::ColIndex colBOffset = a.colCount();
-  const SparseMatrix::RowIndex rowCount = a.rowCount();
-  for (SparseMatrix::RowIndex row = 0; row < rowCount; ++row) {
-    {
-      auto end = a.rowEnd(row);
-      for (auto it = a.rowBegin(row); it != end; ++it)
-        concatenation.appendEntry(it.index(), it.scalar());
-    }
-    {
-      auto end = b.rowEnd(row);
-      for (auto it = b.rowBegin(row); it != end; ++it)
-        concatenation.appendEntry(it.index() + colBOffset, it.scalar());
-    }
-    concatenation.rowDone();
-  }
 }
 
 void F4MatrixReducer::reduce
