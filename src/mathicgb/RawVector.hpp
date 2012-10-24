@@ -39,8 +39,8 @@ public:
 
   /// Copies the pointers from v. It is a shallow copy.
   RawVector(const RawVector& v):
-    mBegin(v.mBegin()),
-    mEnd(v.mEnd()),
+    mBegin(v.mBegin),
+    mEnd(v.mEnd),
     mCapacityEnd(v.mCapacityEnd) {}
 
   /// Copies the pointers from v. It is a shallow copy. Sets v to a null state.
@@ -104,15 +104,15 @@ public:
   size_type max_size() const {return std::numeric_limits<size_type>::max();}
 
   /// There must be enough capacity for the new size.
-  size_type resize(const size_type newSize) {
+  void resize(const size_type newSize) {
     MATHICGB_ASSERT(newSize <= capacity());
-    while (newSize < size()) {
-      new (end) T();
-      ++end;
-    }
     while (newSize > size()) {
-      --end;
-      end->~T();
+      new (mEnd) T();
+      ++mEnd;
+    }
+    while (newSize < size()) {
+      --mEnd;
+      mEnd->~T();
     }
     MATHICGB_ASSERT(newSize == size());
   }
@@ -166,7 +166,7 @@ public:
   /// There must be enough capacity for the new size.
   template<class Iter>
   void rawAssign(Iter begin, Iter end) {
-    const auto count = std::distance(begin, end);
+    const size_t count = std::distance(begin, end);
     MATHICGB_ASSERT(count <= capacity());
     if (count > size())
       resize(count);

@@ -51,9 +51,8 @@ public:
   SparseMatrix(ColIndex colCount = 0): mColCount(colCount) {}
 
   SparseMatrix(SparseMatrix&& matrix):
-    mColIndices(std::move(matrix.mColIndices)),
-    mEntries(std::move(matrix.mEntries)),
     mRows(std::move(matrix.mRows)),
+    mBlock(std::move(matrix.mBlock)),
     mColCount(matrix.mColCount)
   {
   }
@@ -64,10 +63,7 @@ public:
     return *this;
   }
 
-  ~SparseMatrix() {
-    delete[] mColIndices.releaseMemory();
-    delete[] mEntries.releaseMemory();
-  }
+  ~SparseMatrix() {clear();}
 
   void swap(SparseMatrix& matrix);
 
@@ -76,8 +72,15 @@ public:
   RowIndex rowCount() const {return mRows.size();}
   ColIndex colCount() const {return mColCount;}
 
-  /// Returns the number of entries in the whole matrix.
-  size_t entryCount() const {return mEntries.size();}
+  /// Returns the number of entries in the whole matrix. Is not constant time
+  /// so avoid calling too many times.
+  size_t entryCount() const {
+    size_t count = 0;
+    const Block* block = &mBlock;
+    for (; block != 0; block = block->mPreviousBlock)
+      count += block->mColIndices.size();
+    return count;
+  }
 
    /// Returns the number of entries in the given row.
   ColIndex entryCountInRow(RowIndex row) const {
@@ -126,8 +129,11 @@ public:
   /// trimThisMany, even if the scalar of that entry is set to zero.
   void trimLeadingZeroColumns(ColIndex trimThisMany);
 
-  /// Preallocate space for at least count entries.
-  void reserveEntries(size_t count);
+  /// Ensure that there is enough space for at least freeCount additional
+  /// entries without needing to allocate more memory for entries.
+  /// Pending entries that are not fixed into a row yet do not count as
+  /// free for this calculation.
+  void reserveFreeEntries(size_t freeCount);
 
   /// Preallocate space for at least count rows.
   void reserveRows(size_t count) {mRows.reserve(count);}
@@ -135,13 +141,14 @@ public:
   /// Adds a new row that contains all terms that have been appended
   /// since the last time a row was added or the matrix was created.
   void rowDone() {
-    MATHICGB_ASSERT(mColIndices.size() == entryCount());
+    MATHICGB_ASSERT(mBlock.mColIndices.size() == mBlock.mScalars.size());
     Row row;
-    row.mIndicesEnd = mColIndices.end();
-    row.mScalarsEnd = mEntries.end();
-    if (mRows.empty()) {
-      row.mIndicesBegin = mColIndices.begin();
-      row.mScalarsBegin = mEntries.begin();
+    row.mIndicesEnd = mBlock.mColIndices.end();
+    row.mScalarsEnd = mBlock.mScalars.end();
+    if (mBlock.mHasNoRows) {
+      row.mIndicesBegin = mBlock.mColIndices.begin();
+      row.mScalarsBegin = mBlock.mScalars.begin();
+      mBlock.mHasNoRows = false;
     } else {
       row.mIndicesBegin = mRows.back().mIndicesEnd;
       row.mScalarsBegin = mRows.back().mScalarsEnd;
@@ -152,20 +159,21 @@ public:
   /// Appends an entry to the matrix. Will not appear in the matrix
   /// until rowDone is called. Do not call other methods that add rows
   /// after calling this method until rowDone has been called.
-  void appendEntry(ColIndex colIndex, Scalar scalar) {
-    MATHICGB_ASSERT(mColIndices.size() == entryCount());
+  inline void appendEntry(ColIndex colIndex, Scalar scalar) {
+    MATHICGB_ASSERT(mBlock.mColIndices.size() == mBlock.mScalars.size());
     MATHICGB_ASSERT(colIndex < colCount());
 
-    MATHICGB_ASSERT(mEntries.atCapacity() == mColIndices.atCapacity());
-    if (mEntries.atCapacity())
+    MATHICGB_ASSERT(mBlock.mScalars.atCapacity() ==
+      mBlock.mColIndices.atCapacity());
+    if (mBlock.mScalars.atCapacity())
       growEntryCapacity();
-    MATHICGB_ASSERT(!mEntries.atCapacity());
-    MATHICGB_ASSERT(!mColIndices.atCapacity());
+    MATHICGB_ASSERT(!mBlock.mScalars.atCapacity());
+    MATHICGB_ASSERT(!mBlock.mColIndices.atCapacity());
 
-    mColIndices.rawPushBack(colIndex);
-    mEntries.rawPushBack(scalar);
+    mBlock.mColIndices.rawPushBack(colIndex);
+    mBlock.mScalars.rawPushBack(scalar);
 
-    MATHICGB_ASSERT(mColIndices.size() == entryCount());
+    MATHICGB_ASSERT(mBlock.mColIndices.size() == mBlock.mScalars.size());
   }
 
   void appendRowAndNormalize(const SparseMatrix& matrix, RowIndex row, Scalar modulus);
@@ -186,22 +194,24 @@ public:
     return mColCount - 1;
   }
 
-  void appendRowWithModulus(std::vector<uint64> const& v, Scalar modulus);
+  void appendRowWithModulus(const std::vector<uint64>& v, Scalar modulus);
   
-  void appendRow(std::vector<uint64> const& v, ColIndex leadCol = 0);
+  void appendRow(const std::vector<uint64>& v, ColIndex leadCol = 0);
 
-  void appendRowWithModulusNormalized(std::vector<uint64> const& v, Scalar modulus);
+  void appendRowWithModulusNormalized(const std::vector<uint64>& v, Scalar modulus);
 
   // Returns true if the row was non-zero. Otherwise the row was not
   // appended.
-  bool appendRowWithModulusIfNonZero(std::vector<uint64> const& v, Scalar modulus);
+  bool appendRowWithModulusIfNonZero(const std::vector<uint64>& v, Scalar modulus);
 
   /// Replaces all column indices i with colMap[i].
-  void applyColumnMap(std::vector<ColIndex> colMap);
+  void applyColumnMap(const std::vector<ColIndex>& colMap);
 
   /// Let poly be the dot product of colMonomials and the given row.
-  void rowToPolynomial
-  (RowIndex row, std::vector<monomial> colMonomials, Poly& poly);
+  void rowToPolynomial(
+    RowIndex row,
+    const std::vector<monomial>& colMonomials,
+    Poly& poly);
 
   /// Reorders the rows so that the index of the leading column in
   /// each row is weakly increasing going from top to bottom. Quite
@@ -261,7 +271,7 @@ private:
   SparseMatrix(const SparseMatrix&); // not available
   void operator=(const SparseMatrix&); // not available
 
-  void growEntryCapacity();
+  NO_INLINE void growEntryCapacity();
 
   /// Contains information about a row in the matrix.
   struct Row {
@@ -277,19 +287,51 @@ private:
       return static_cast<ColIndex>(std::distance(mIndicesBegin, mIndicesEnd));
     }
   };
-
-  /// We need a RawVector here to tie the checks for the need to reallocate
-  /// together between mColIndices and mEntries. We only need to check
-  /// the capacity once, which, believe it or not, is a significant performance
-  /// win. Not least because it decreases the amount of code and therefore
-  /// causes different compiler inlining decisions.
-  RawVector<Scalar> mEntries;
-  RawVector<ColIndex> mColIndices;
   std::vector<Row> mRows;
+
+  /// Memory is allocated a block at a time. This avoids the need for copying
+  /// that a std::vector normally does on reallocation. Believe it or not,
+  /// copying sparse matrix memory due to reallocation was accounting for 5%
+  /// of the running time before this change.
+  struct Block {
+    Block(): mPreviousBlock(0), mHasNoRows(true) {}
+    Block(Block&& block):
+      mColIndices(std::move(block.mColIndices)),
+      mScalars(std::move(block.mScalars)),
+      mPreviousBlock(block.mPreviousBlock),
+      mHasNoRows(block.mHasNoRows) 
+    {
+      block.mPreviousBlock = 0;
+      block.mHasNoRows = true;
+    }
+
+    void swap(Block& block) {
+      std::swap(mColIndices, block.mColIndices);
+      std::swap(mScalars, block.mScalars);
+      std::swap(mPreviousBlock, block.mPreviousBlock);
+      std::swap(mHasNoRows, block.mHasNoRows);
+    }
+
+    /// We need a RawVector here to tie the checks for the need to reallocate
+    /// together between mColIndices and mEntries. We only need to check
+    /// the capacity once, which, believe it or not, is a significant performance
+    /// win. Not least because it decreases the amount of code and therefore
+    /// causes better compiler inlining decisions.
+    RawVector<ColIndex> mColIndices;
+    RawVector<Scalar> mScalars;
+    Block* mPreviousBlock; /// is null if there are no previous blocks
+    bool mHasNoRows; /// true if no rows have been made from this block yet
+  };
+  Block mBlock;
 
   ColIndex mColCount;
 };
 
+inline void swap(SparseMatrix& a, SparseMatrix& b) {
+  a.swap(b);
+}
+
 std::ostream& operator<<(std::ostream& out, const SparseMatrix& matrix);
+
 
 #endif

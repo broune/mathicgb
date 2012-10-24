@@ -4,17 +4,15 @@
 #include "Poly.hpp"
 #include <algorithm>
 
-std::ostream& operator<<(std::ostream& out, const SparseMatrix& matrix) {
-  matrix.print(out);
-  return out;
-}
-
-void SparseMatrix::rowToPolynomial
-(RowIndex row, std::vector<monomial> colMonomials, Poly& poly) {
+void SparseMatrix::rowToPolynomial(
+  const RowIndex row,
+  const std::vector<monomial>& colMonomials,
+  Poly& poly
+) {
   MATHICGB_ASSERT(colMonomials.size() == colCount());
   poly.setToZero();
-  auto end = rowEnd(row);
   poly.reserve(entryCountInRow(row));
+  const auto end = rowEnd(row);
   for (auto it = rowBegin(row); it != end; ++it) {
     MATHICGB_ASSERT(it.index() < colMonomials.size());
     if (it.scalar() != 0)
@@ -42,10 +40,9 @@ void SparseMatrix::sortRowsByIncreasingPivots() {
   // construct ordered with pivot columns in increaing order
   ordered.clear(lColCount);
   for (size_t i = 0; i < lRowCount; ++i) {
-    const SparseMatrix::RowIndex row = order[i].second;
-    auto it = rowBegin(row);
+    const auto row = order[i].second;
     const auto end = rowEnd(row);
-    for (; it != end; ++it)
+    for (auto it = rowBegin(row); it != end; ++it)
       ordered.appendEntry(it.index(), it.scalar());
     ordered.rowDone();
   }
@@ -53,12 +50,15 @@ void SparseMatrix::sortRowsByIncreasingPivots() {
   *this = std::move(ordered);
 }
 
-void SparseMatrix::applyColumnMap(std::vector<ColIndex> colMap) {
+void SparseMatrix::applyColumnMap(const std::vector<ColIndex>& colMap) {
   MATHICGB_ASSERT(colMap.size() >= colCount());
-  const auto end = mColIndices.end();
-  for (auto it = mColIndices.begin(); it != end; ++it) {
-    MATHICGB_ASSERT(*it < colCount());
-    *it = colMap[*it];
+  Block* block = &mBlock;
+  for (; block != 0; block = block->mPreviousBlock) {
+    const auto end = block->mColIndices.end();
+    for (auto it = block->mColIndices.begin(); it != end; ++it) {
+      MATHICGB_ASSERT(*it < colCount());
+      *it = colMap[*it];
+    }
   }
 }
 
@@ -82,19 +82,23 @@ std::string SparseMatrix::toString() const {
   return out.str();
 }
 
-void SparseMatrix::appendRowAndNormalize(const SparseMatrix& matrix, RowIndex row, Scalar modulus) {
+void SparseMatrix::appendRowAndNormalize(
+  const SparseMatrix& matrix,
+  const RowIndex row,
+  const Scalar modulus
+) {
   MATHICGB_ASSERT(row < matrix.rowCount());
   auto it = matrix.rowBegin(row);
   const auto end = matrix.rowEnd(row);
   if (it != end) {
     appendEntry(it.index(), 1);
-    Scalar lead = it.scalar();
+    const Scalar lead = it.scalar();
     ++it;
     if (it != end) {
-      Scalar inverse = modularInverse(lead, modulus);
+      const Scalar inverse = modularInverse(lead, modulus);
       do {
-        uint32 prod = static_cast<uint32>(inverse) * it.scalar();
-        uint16 prodMod = static_cast<uint16>(prod % modulus);
+        const uint32 prod = static_cast<uint32>(inverse) * it.scalar();
+        const uint16 prodMod = static_cast<uint16>(prod % modulus);
         appendEntry(it.index(), prodMod);
         ++it;
       } while (it != end);
@@ -103,7 +107,7 @@ void SparseMatrix::appendRowAndNormalize(const SparseMatrix& matrix, RowIndex ro
   rowDone();
 }
 
-void SparseMatrix::appendRow(const SparseMatrix& matrix, RowIndex row) {
+void SparseMatrix::appendRow(const SparseMatrix& matrix, const RowIndex row) {
   MATHICGB_ASSERT(row < matrix.rowCount());
   auto it = matrix.rowBegin(row);
   const auto end = matrix.rowEnd(row);
@@ -113,31 +117,46 @@ void SparseMatrix::appendRow(const SparseMatrix& matrix, RowIndex row) {
 }
   
 void SparseMatrix::swap(SparseMatrix& matrix) {
-  std::swap(mColIndices, matrix.mColIndices);
-  std::swap(mEntries, matrix.mEntries);
-  std::swap(mRows, matrix.mRows);
-  std::swap(mColCount, matrix.mColCount);
+  mBlock.swap(matrix.mBlock);
+  using std::swap;
+  swap(mRows, matrix.mRows);
+  swap(mColCount, matrix.mColCount);
 }
-  
-void SparseMatrix::clear(ColIndex newColCount) {
-  mColIndices.clear();
-  mEntries.clear();
+
+void SparseMatrix::clear(const ColIndex newColCount) {
+  Block* block = &mBlock;
+  while (block != 0) {
+    delete[] block->mColIndices.releaseMemory();
+    delete[] block->mScalars.releaseMemory();
+    Block* const tmp = block->mPreviousBlock;
+    if (block != &mBlock)
+      delete block;
+    block = tmp;
+  }
+  mBlock.mPreviousBlock = 0;
+  mBlock.mHasNoRows = true;
   mRows.clear();
   mColCount = newColCount;
 }
 
-void SparseMatrix::appendRowWithModulus(std::vector<uint64> const& v, Scalar modulus) {
+void SparseMatrix::appendRowWithModulus(
+  std::vector<uint64> const& v,
+  const Scalar modulus
+) {
   MATHICGB_ASSERT(v.size() == colCount());
-  ColIndex count = colCount();
+  const ColIndex count = colCount();
   for (ColIndex col = 0; col < count; ++col) {
-    Scalar scalar = static_cast<Scalar>(v[col] % modulus);
+    const Scalar scalar = static_cast<Scalar>(v[col] % modulus);
     if (scalar != 0)
       appendEntry(col, scalar);
   }
   rowDone();
 }
 
-void SparseMatrix::appendRow(std::vector<uint64> const& v, ColIndex leadCol) {
+void SparseMatrix::appendRow(
+  std::vector<uint64> const& v,
+  const ColIndex leadCol
+) {
   MATHICGB_ASSERT(v.size() == colCount());
 #ifdef MATHICGB_DEBUG
   for (ColIndex col = leadCol; col < leadCol; ++col) {
@@ -145,7 +164,7 @@ void SparseMatrix::appendRow(std::vector<uint64> const& v, ColIndex leadCol) {
   }
 #endif
 
-  ColIndex count = colCount();
+  const ColIndex count = colCount();
   for (ColIndex col = leadCol; col < count; ++col) {
 	MATHICGB_ASSERT(v[col] < std::numeric_limits<Scalar>::max());
     if (v[col] != 0)
@@ -154,12 +173,14 @@ void SparseMatrix::appendRow(std::vector<uint64> const& v, ColIndex leadCol) {
   rowDone();
 }
 
-void SparseMatrix::appendRowWithModulusNormalized(std::vector<uint64> const& v, Scalar modulus) {
+void SparseMatrix::appendRowWithModulusNormalized(
+  std::vector<uint64> const& v,
+  const Scalar modulus
+) {
   MATHICGB_ASSERT(v.size() == colCount());
-  ColIndex count = colCount();
-  uint16 multiply = 1;
-   
+  uint16 multiply = 1; 
   bool first = true;
+  const ColIndex count = colCount();
   for (ColIndex col = 0; col < count; ++col) {
     Scalar scalar = static_cast<Scalar>(v[col] % modulus);
     if (scalar == 0)
@@ -177,7 +198,10 @@ void SparseMatrix::appendRowWithModulusNormalized(std::vector<uint64> const& v, 
   rowDone();
 }
 
-bool SparseMatrix::appendRowWithModulusIfNonZero(std::vector<uint64> const& v, Scalar modulus) {
+bool SparseMatrix::appendRowWithModulusIfNonZero(
+  std::vector<uint64> const& v,
+  const Scalar modulus
+) {
   appendRowWithModulus(v, modulus);
   MATHICGB_ASSERT(rowCount() > 0);
   if (mRows.back().empty()) {
@@ -187,56 +211,84 @@ bool SparseMatrix::appendRowWithModulusIfNonZero(std::vector<uint64> const& v, S
     return true;
 }
 
-void SparseMatrix::trimLeadingZeroColumns(ColIndex trimThisMany) {
+void SparseMatrix::trimLeadingZeroColumns(const ColIndex trimThisMany) {
   MATHICGB_ASSERT(trimThisMany <= colCount());
-  const auto end = mColIndices.end();
-  for (auto it = mColIndices.begin(); it != end; ++it) {
-    MATHICGB_ASSERT(*it >= trimThisMany);
-    *it -= trimThisMany;
+  Block* block = &mBlock;
+  for (; block != 0; block = block->mPreviousBlock) {
+    const auto end = block->mColIndices.end();
+    for (auto it = block->mColIndices.begin(); it != end; ++it) {
+      MATHICGB_ASSERT(*it >= trimThisMany);
+      *it -= trimThisMany;
+    }
   }
   mColCount -= trimThisMany;
 }
 
-void SparseMatrix::reserveEntries(size_t count) {
-  if (count < mEntries.capacity())
+void SparseMatrix::reserveFreeEntries(const size_t freeCount) {
+  if (freeCount <= mBlock.mColIndices.capacity() - mBlock.mColIndices.size())
     return;
+  // We need to copy over the pending entries, so we need space for those
+  // entries on top of freeCount.
+  const size_t count = freeCount + ( // todo: detect overflow for this addition
+    mBlock.mHasNoRows ?
+    mBlock.mColIndices.size() :
+    std::distance(mRows.back().mIndicesEnd, mBlock.mColIndices.end())
+  );
 
-  ptrdiff_t scalarPtrDelta;
-  {
-    const auto begin = new Scalar[count];
-    const auto capacityEnd = begin + count;
-    scalarPtrDelta = begin - mEntries.begin();
-    delete[] mEntries.setMemoryAndCopy(begin, capacityEnd);
-  }
+  auto oldBlock = new Block(std::move(mBlock));
+  MATHICGB_ASSERT(mBlock.mColIndices.begin() == 0);
+  MATHICGB_ASSERT(mBlock.mScalars.begin() == 0);
+  MATHICGB_ASSERT(mBlock.mHasNoRows);
+  MATHICGB_ASSERT(mBlock.mPreviousBlock == 0);
+  mBlock.mPreviousBlock = oldBlock;
 
-  ptrdiff_t entryPtrDelta;
   {
     const auto begin = new ColIndex[count];
     const auto capacityEnd = begin + count;
-    entryPtrDelta = begin - mColIndices.begin();
-    delete[] mColIndices.setMemoryAndCopy(begin, capacityEnd);
+    mBlock.mColIndices.releaseAndSetMemory(begin, begin, capacityEnd);
   }
 
-  const auto rowEnd = mRows.end();
-  for (auto it = mRows.begin(); it != rowEnd; ++it) {
-    it->mIndicesBegin += entryPtrDelta;
-    it->mIndicesEnd += entryPtrDelta;
-    it->mScalarsBegin += scalarPtrDelta;
-    it->mScalarsEnd += scalarPtrDelta;
+  {
+    const auto begin = new Scalar[count];
+    const auto capacityEnd = begin + count;
+    mBlock.mScalars.releaseAndSetMemory(begin, begin, capacityEnd);
+  }
+
+  // copy pending entries over
+  if (oldBlock->mHasNoRows) {
+    mBlock.mColIndices.rawAssign
+      (oldBlock->mColIndices.begin(), oldBlock->mColIndices.end());
+    mBlock.mScalars.rawAssign
+      (oldBlock->mScalars.begin(), oldBlock->mScalars.end());
+  } else {
+    mBlock.mColIndices.rawAssign
+      (mRows.back().mIndicesEnd, oldBlock->mColIndices.end());
+    mBlock.mScalars.rawAssign
+      (mRows.back().mScalarsEnd, oldBlock->mScalars.end());
   }
 }
 
 void SparseMatrix::growEntryCapacity() {
-  MATHICGB_ASSERT(mColIndices.size() == mEntries.size());
-  MATHICGB_ASSERT(mColIndices.capacity() == mEntries.capacity());
+  MATHICGB_ASSERT(mBlock.mColIndices.size() == mBlock.mScalars.size());
+  MATHICGB_ASSERT(mBlock.mColIndices.capacity() == mBlock.mScalars.capacity());
 
-  const size_t initialCapacity = 1 << 16;
-  const size_t growthFactor = 2;
-  const size_t newCapacity =
-    mEntries.empty() ? initialCapacity : mEntries.capacity() * growthFactor;
-  reserveEntries(newCapacity);
+  // TODO: handle overflow of multiplication below
+  const size_t minBlockSize = 1 << 20;
+  const size_t minMultipleOfPending = 2;
+  const size_t pendingCount = mBlock.mHasNoRows ?
+    mBlock.mColIndices.size() :
+    std::distance(mRows.back().mIndicesEnd, mBlock.mColIndices.end());
+  const size_t blockSize =
+    std::max(minBlockSize, pendingCount * minMultipleOfPending);
 
-  MATHICGB_ASSERT(mColIndices.size() == mEntries.size());
-  MATHICGB_ASSERT(mColIndices.capacity() == newCapacity);
-  MATHICGB_ASSERT(mEntries.capacity() == newCapacity);
+  reserveFreeEntries(blockSize);
+
+  MATHICGB_ASSERT(mBlock.mColIndices.size() == mBlock.mScalars.size());
+  MATHICGB_ASSERT(mBlock.mColIndices.capacity() == blockSize + pendingCount);
+  MATHICGB_ASSERT(mBlock.mScalars.capacity() == blockSize + pendingCount);
+}
+
+std::ostream& operator<<(std::ostream& out, const SparseMatrix& matrix) {
+  matrix.print(out);
+  return out;
 }
