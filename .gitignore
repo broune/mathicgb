@@ -37,6 +37,8 @@ configure
 *.sdf
 *.opensdf
 *.vcxproj.user
+*.psess
+*.vsp
 output/
 
 # Configure build targets
