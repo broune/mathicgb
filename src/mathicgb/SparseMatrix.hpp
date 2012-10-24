@@ -45,6 +45,10 @@ public:
   typedef size_t RowIndex;
   typedef uint32 ColIndex;
   typedef uint16 Scalar;
+  class ConstRowIterator;
+
+  /// Construct a matrix with no rows.
+  SparseMatrix(ColIndex colCount = 0): mColCount(colCount) {}
 
   SparseMatrix(SparseMatrix&& matrix):
     mColIndices(std::move(matrix.mColIndices)),
@@ -61,103 +65,75 @@ public:
   }
 
   ~SparseMatrix() {
-#ifdef MATHICGB_DEBUG
-    for (auto it = mRows.begin(); it != mRows.end(); ++it) {
-      MATHICGB_ASSERT(it->debugValid());
-    }
-#endif
-
+    delete[] mColIndices.releaseMemory();
     delete[] mEntries.releaseMemory();
   }
 
-  /** Preallocate space for at least count entries. */
-  void reserveEntries(size_t count) {
-    if (count < mEntries.capacity())
-      return;
+  void swap(SparseMatrix& matrix);
 
-    ptrdiff_t scalarPtrDelta;
-    {
-      const auto begin = new Scalar[count];
-      const auto capacityEnd = begin + count;
-      scalarPtrDelta = begin - mEntries.begin();
-      delete[] mEntries.setMemoryAndCopy(begin, capacityEnd);
-    }
+  void clear(ColIndex newColCount = 0);
 
-    ptrdiff_t entryPtrDelta;
-    {
-      const auto begin = new ColIndex[count];
-      const auto capacityEnd = begin + count;
-      entryPtrDelta = begin - mColIndices.begin();
-      delete[] mColIndices.setMemoryAndCopy(begin, capacityEnd);
-    }
+  RowIndex rowCount() const {return mRows.size();}
+  ColIndex colCount() const {return mColCount;}
 
-    const auto rowEnd = mRows.end();
-    for (auto it = mRows.begin(); it != rowEnd; ++it) {
-      it->mIndicesBegin += entryPtrDelta;
-      it->mIndicesEnd += entryPtrDelta;
-      it->mScalarsBegin += scalarPtrDelta;
-      it->mScalarsEnd += scalarPtrDelta;
-      MATHICGB_ASSERT(it->debugValid());
-    }
+  /// Returns the number of entries in the whole matrix.
+  size_t entryCount() const {return mEntries.size();}
+
+   /// Returns the number of entries in the given row.
+  ColIndex entryCountInRow(RowIndex row) const {
+    MATHICGB_ASSERT(row < rowCount());
+    return mRows[row].size();
   }
 
-  /** Preallocate space for at least count rows. */
-  void reserveRows(size_t count) {
-    mRows.reserve(count);
+  /// Returns true if the given row has no entries.
+  bool emptyRow(RowIndex row) const {
+    MATHICGB_ASSERT(row < rowCount());
+    return mRows[row].empty();
   }
 
-  /** Returns the index of the first entry in the given row. This is
-    the first entry that you added to the row - so not necessarily the
-    minimum column index in that row. The row in question must have at
-    least one entry. */
+  ConstRowIterator rowBegin(RowIndex row) const {
+    MATHICGB_ASSERT(row < rowCount());
+    const Row& r = mRows[row];
+    return ConstRowIterator(r.mIndicesBegin, r.mScalarsBegin);
+  }
+
+  ConstRowIterator rowEnd(RowIndex row) const {
+    MATHICGB_ASSERT(row < rowCount());
+    const Row& r = mRows[row];
+    return ConstRowIterator(r.mIndicesEnd, r.mScalarsEnd);
+  }
+
+  /// Returns the index of the first entry in the given row. This is
+  /// the first entry that you added to the row - so not necessarily the
+  /// minimum column index in that row. The row in question must have at
+  /// least one entry.
   ColIndex leadCol(RowIndex row) const {
     MATHICGB_ASSERT(row < rowCount());
     MATHICGB_ASSERT(!emptyRow(row));
     return *mRows[row].mIndicesBegin;
   }
 
-  /** Returns true if the given row has no entries. */
-  bool emptyRow(RowIndex row) const {
-    MATHICGB_ASSERT(row < rowCount());
-    return mRows[row].empty();
-  }
-
-  /** Removes the leading trimThisMany columns. The columns are
-    removed by replacing all column indices col by col -
-    trimThisMany. No entry can have a column index less than
-    trimThisMany, even if the scalar of that entry is set to zero. */
-  void trimLeadingZeroColumns(ColIndex trimThisMany) {
-    MATHICGB_ASSERT(trimThisMany <= colCount());
-    const auto end = mColIndices.end();
-    for (auto it = mColIndices.begin(); it != end; ++it) {
-      MATHICGB_ASSERT(*it >= trimThisMany);
-      *it -= trimThisMany;
-    }
-    mColCount -= trimThisMany;
-  }
-
-  /** Construct a matrix with no rows and colCount columns. */
-  SparseMatrix(ColIndex colCount = 0):
-    mColCount(colCount)
-  {
-  }
-
-  /** Returns the number of entries in the given row. */
-  ColIndex entryCountInRow(RowIndex row) const {
-    MATHICGB_ASSERT(row < rowCount());
-    return mRows[row].size();
-  }
-
-  /** Returns the number of entries in the whole matrix. */
-  size_t entryCount() const {return mEntries.size();}
-
-  /** Prints the matrix in a human readable format to out. */
+  /// Prints the matrix in a human readable format to out.
   void print(std::ostream& out) const;
 
   std::string toString() const;
 
-  /** Adds a new row that contains all terms that have been appended
-    since the last time a row was added or the matrix was created. */
+
+
+  /// Removes the leading trimThisMany columns. The columns are
+  /// removed by replacing all column indices col by col -
+  /// trimThisMany. No entry can have a column index less than
+  /// trimThisMany, even if the scalar of that entry is set to zero.
+  void trimLeadingZeroColumns(ColIndex trimThisMany);
+
+  /// Preallocate space for at least count entries.
+  void reserveEntries(size_t count);
+
+  /// Preallocate space for at least count rows.
+  void reserveRows(size_t count) {mRows.reserve(count);}
+
+  /// Adds a new row that contains all terms that have been appended
+  /// since the last time a row was added or the matrix was created.
   void rowDone() {
     MATHICGB_ASSERT(mColIndices.size() == entryCount());
     Row row;
@@ -173,9 +149,9 @@ public:
     mRows.push_back(row);
   }
 
-  /** Appends an entry to the matrix. Will not appear in the matrix
-    until rowDone is called. Do not call other methods that add rows
-    after calling this method until rowDone has been called. */
+  /// Appends an entry to the matrix. Will not appear in the matrix
+  /// until rowDone is called. Do not call other methods that add rows
+  /// after calling this method until rowDone has been called.
   void appendEntry(ColIndex colIndex, Scalar scalar) {
     MATHICGB_ASSERT(mColIndices.size() == entryCount());
     MATHICGB_ASSERT(colIndex < colCount());
@@ -195,35 +171,44 @@ public:
   void appendRowAndNormalize(const SparseMatrix& matrix, RowIndex row, Scalar modulus);
   
   void appendRow(const SparseMatrix& matrix, RowIndex row);
-  void swap(SparseMatrix& matrix);
-  void clear(ColIndex newColCount = 0);
+
+  void ensureAtLeastThisManyColumns(ColIndex count) {
+    if (count > colCount())
+      mColCount = count;
+  }
+
+  /// Adds one more column to the matrix and returns the index of the new
+  /// column.
+  ColIndex appendColumn() {
+    if (colCount() == std::numeric_limits<ColIndex>::max())
+      mathic::reportError("Too many columns in SparseMatrix.");
+    ++mColCount;
+    return mColCount - 1;
+  }
+
+  void appendRowWithModulus(std::vector<uint64> const& v, Scalar modulus);
   
-  private:
-      struct Row {
-    Row(): mScalarsBegin(0), mScalarsEnd(0), mIndicesBegin(0), mIndicesEnd(0) {}
+  void appendRow(std::vector<uint64> const& v, ColIndex leadCol = 0);
 
-    bool debugValid() {
-      const size_t scalarCount = std::distance(mScalarsBegin, mScalarsEnd);
-      const size_t indexCount = std::distance(mIndicesBegin, mIndicesEnd);
-      MATHICGB_ASSERT(scalarCount == indexCount);
-      return true;
-    }
+  void appendRowWithModulusNormalized(std::vector<uint64> const& v, Scalar modulus);
 
-    Scalar* mScalarsBegin;
-    Scalar* mScalarsEnd;
-    ColIndex* mIndicesBegin;
-    ColIndex* mIndicesEnd;
+  // Returns true if the row was non-zero. Otherwise the row was not
+  // appended.
+  bool appendRowWithModulusIfNonZero(std::vector<uint64> const& v, Scalar modulus);
 
-    bool empty() const {return mIndicesBegin == mIndicesEnd;}
-    ColIndex size() const {
-      return static_cast<ColIndex>(std::distance(mIndicesBegin, mIndicesEnd));
-    }
+  /// Replaces all column indices i with colMap[i].
+  void applyColumnMap(std::vector<ColIndex> colMap);
 
-  private:
-    void operator==(const Row&) const; // not available
-  };
-public:
+  /// Let poly be the dot product of colMonomials and the given row.
+  void rowToPolynomial
+  (RowIndex row, std::vector<monomial> colMonomials, Poly& poly);
 
+  /// Reorders the rows so that the index of the leading column in
+  /// each row is weakly increasing going from top to bottom. Quite
+  /// slow and it makes a copy internally.
+  void sortRowsByIncreasingPivots();
+
+  /// Iterates through the entries in a row.
   class ConstRowIterator {
   public:
     typedef const std::pair<ColIndex, Scalar> value_type;
@@ -272,86 +257,26 @@ public:
     const Scalar* mScalarIt;
   };
 
-  RowIndex rowCount() const {
-    return mRows.size();
-  }
-
-  ColIndex colCount() const {return mColCount;}
-  
-  ConstRowIterator rowBegin(RowIndex row) const {
-    MATHICGB_ASSERT(row < rowCount());
-    const Row& r = mRows[row];
-    return ConstRowIterator(r.mIndicesBegin, r.mScalarsBegin);
-  }
-
-  ConstRowIterator rowEnd(RowIndex row) const {
-    MATHICGB_ASSERT(row < rowCount());
-    const Row& r = mRows[row];
-    return ConstRowIterator(r.mIndicesEnd, r.mScalarsEnd);
-  }
-  
-  void ensureAtLeastThisManyColumns(ColIndex count) {
-    if (count > colCount())
-      mColCount = count;
-  }
-
-  /** Adds one more column to the matrix and returns the index of the new
-    column. */
-  ColIndex appendColumn() {
-    if (colCount() == std::numeric_limits<ColIndex>::max())
-      mathic::reportError("Too many columns in SparseMatrix.");
-    ++mColCount;
-    return mColCount - 1;
-  }
-
-  void appendRowWithModulus(std::vector<uint64> const& v, Scalar modulus);
-  
-  void appendRow(std::vector<uint64> const& v, ColIndex leadCol = 0);
-
-  void appendRowWithModulusNormalized(std::vector<uint64> const& v, Scalar modulus);
-
-  // Returns true if the row was non-zero. Otherwise the row was not
-  // appended.
-  bool appendRowWithModulusIfNonZero(std::vector<uint64> const& v, Scalar modulus);
-
-
-  /// Replaces all column indices i with colMap[i].
-  void applyColumnMap(std::vector<ColIndex> colMap);
-
-  /// Let poly be the dot product of colMonomials and the given row.
-  void rowToPolynomial
-  (RowIndex row, std::vector<monomial> colMonomials, Poly& poly);
-
-  /// Reorders the rows so that the index of the leading column in
-  /// each row is weakly increasing going from top to bottom. Quite
-  /// slow and it makes a copy internally.
-  void sortRowsByIncreasingPivots();
-  
 private:
-  void operator==(const SparseMatrix&); // not available
-  friend class ConstRowIterator;
-
-
   SparseMatrix(const SparseMatrix&); // not available
   void operator=(const SparseMatrix&); // not available
 
-  ColIndex indexAtOffset(size_t offset) const {return mColIndices[offset];}
-  Scalar scalarAtOffset(size_t offset) const {return mEntries[offset];}
+  void growEntryCapacity();
 
-  void growEntryCapacity() {
-    MATHICGB_ASSERT(mColIndices.size() == mEntries.size());
-    MATHICGB_ASSERT(mColIndices.capacity() == mEntries.capacity());
+  /// Contains information about a row in the matrix.
+  struct Row {
+    Row(): mScalarsBegin(0), mScalarsEnd(0), mIndicesBegin(0), mIndicesEnd(0) {}
 
-    const size_t initialCapacity = 1 << 16;
-    const size_t growthFactor = 2;
-    const size_t newCapacity =
-      mEntries.empty() ? initialCapacity : mEntries.capacity() * growthFactor;
-    reserveEntries(newCapacity);
+    Scalar* mScalarsBegin;
+    Scalar* mScalarsEnd;
+    ColIndex* mIndicesBegin;
+    ColIndex* mIndicesEnd;
 
-    MATHICGB_ASSERT(mColIndices.size() == mEntries.size());
-    MATHICGB_ASSERT(mColIndices.capacity() == newCapacity);
-    MATHICGB_ASSERT(mEntries.capacity() == newCapacity);
-  }
+    bool empty() const {return mIndicesBegin == mIndicesEnd;}
+    ColIndex size() const {
+      return static_cast<ColIndex>(std::distance(mIndicesBegin, mIndicesEnd));
+    }
+  };
 
   /// We need a RawVector here to tie the checks for the need to reallocate
   /// together between mColIndices and mEntries. We only need to check
@@ -360,7 +285,6 @@ private:
   /// causes different compiler inlining decisions.
   RawVector<Scalar> mEntries;
   RawVector<ColIndex> mColIndices;
-
   std::vector<Row> mRows;
 
   ColIndex mColCount;
