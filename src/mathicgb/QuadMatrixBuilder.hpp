@@ -31,6 +31,12 @@ class QuadMatrixBuilder {
 
   QuadMatrixBuilder(const PolyRing& ring);
 
+  /// Inserts the rows from builder. To avoid an assert either the matrix must
+  /// have no column monomials specified or the monomials that are specified
+  /// must match exactly to the column monomials for this object --- including
+  /// the ordering of the monomials.
+  void takeRowsFrom(QuadMatrix&& matrix);
+
   /// The index of a column that can be either on the left or the
   /// right side. The largest representable ColIndex is an invalid
   /// index. This is the default value. The only allowed method to
@@ -72,6 +78,14 @@ class QuadMatrixBuilder {
 
     bool valid() const {
       return mRawIndex != std::numeric_limits<ColIndex>::max();
+    }
+
+    bool operator==(const LeftRightColIndex& index) const {
+      return mRawIndex == index.mRawIndex && mLeft == index.mLeft;
+    }
+
+    bool operator!=(const LeftRightColIndex& index) const {
+      return !(*this == index);
     }
 
   private:

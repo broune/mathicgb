@@ -71,6 +71,11 @@ public:
   void swap(SparseMatrix& matrix);
   void clear(ColIndex newColCount = 0);
 
+  /// Appends the rows from matrix to this object. Avoids most of the copies
+  /// that would otherwise be required for a big matrix insert by taking
+  /// the memory out of matrix.
+  void takeRowsFrom(SparseMatrix&& matrix);
+
   RowIndex rowCount() const {return mRows.size();}
   ColIndex colCount() const {return mColCount;}
 
@@ -310,6 +315,12 @@ private:
       std::swap(mScalars, block.mScalars);
       std::swap(mPreviousBlock, block.mPreviousBlock);
       std::swap(mHasNoRows, block.mHasNoRows);
+    }
+
+    Block& operator=(Block&& block) {
+      this->~Block();
+      new (this) Block(std::move(block));
+      return *this;
     }
 
     /// We need a RawVector here to tie the checks for the need to reallocate

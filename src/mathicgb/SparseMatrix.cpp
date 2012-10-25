@@ -4,6 +4,33 @@
 #include "Poly.hpp"
 #include <algorithm>
 
+void SparseMatrix::takeRowsFrom(SparseMatrix&& matrix) {
+  MATHICGB_ASSERT(matrix.colCount() <= colCount());
+
+  if (matrix.mRows.empty())
+    return;
+
+  if (mRows.empty()) {
+    const auto savedColCount = colCount();
+    *this = std::move(matrix);
+    mColCount = savedColCount;
+    return;
+  }
+
+  Block* oldestBlock = &matrix.mBlock;
+  while (oldestBlock->mPreviousBlock != 0)
+    oldestBlock = oldestBlock->mPreviousBlock;
+
+  if (mBlock.mHasNoRows) // only put mBlock in chain of blocks if non-empty
+    oldestBlock->mPreviousBlock = mBlock.mPreviousBlock;
+  else
+    oldestBlock->mPreviousBlock = new Block(std::move(mBlock));
+  mBlock = std::move(matrix.mBlock);
+
+  mRows.insert(mRows.begin(), matrix.mRows.begin(), matrix.mRows.end());
+  matrix.clear();
+}
+
 void SparseMatrix::rowToPolynomial(
   const RowIndex row,
   const std::vector<monomial>& colMonomials,
