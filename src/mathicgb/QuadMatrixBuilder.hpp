@@ -165,6 +165,11 @@ class QuadMatrixBuilder {
     this monomial on the left or on the right. */
   LeftRightColIndex createColumnRight(const_monomial monomialToBeCopied);
 
+  /// As calling sortColumnsLeft() and sortColumnsRight(), but performs
+  /// the operations in parallel using up to threadCount threads.
+  void sortColumnsLeftRightParallel
+    (const FreeModuleOrder& order, int threadCount);
+
   /** Sorts the left columns to be decreasing with respect to
     order. Also updates the column indices already in the matrix to
     reflect the new ordering. */

@@ -36,12 +36,12 @@ void runTest(
     std::istringstream in(correctStr);
     for (size_t i = 0; i < answer.size(); ++i) {
       in >> answer[i];
-      ASSERT(in);
+      MATHICGB_ASSERT(!!in);
     }
   }
 
-  ASSERT(sigs.size() == pairs.size());
-  ASSERT(sigs.size() == pairs.size());
+  MATHICGB_ASSERT(sigs.size() == pairs.size());
+  MATHICGB_ASSERT(sigs.size() == pairs.size());
 
   std::unique_ptr<FreeModuleOrder> order
     (FreeModuleOrder::makeOrder(orderType, ideal.get()));

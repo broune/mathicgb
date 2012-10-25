@@ -225,8 +225,7 @@ void F4MatrixBuilder::buildMatrixAndClear(QuadMatrix& matrix) {
 #endif
 
 
-  mBuilder.sortColumnsLeft(mBasis.order());
-  mBuilder.sortColumnsRight(mBasis.order());
+  mBuilder.sortColumnsLeftRightParallel(mBasis.order(), mThreadCount);
   mBuilder.buildMatrixAndClear(matrix);
 }
 

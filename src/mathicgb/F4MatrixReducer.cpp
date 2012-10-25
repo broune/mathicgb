@@ -523,13 +523,10 @@ void myReduceToEchelonForm5
       MATHICGB_ASSERT(reduced.colCount() == colCount);
       size_t const row = nextReducers[i].second;
 
-#ifdef MATHICGB_DEBUG
-      size_t const col = nextReducers[i].first;
-#endif
-      MATHICGB_ASSERT(col == nextReducers[i].first);
-      MATHICGB_ASSERT(columnHasPivot[col]);
+      MATHICGB_ASSERT(static_cast<bool>
+        (columnHasPivot[nextReducers[i].first]));
       MATHICGB_ASSERT(dense[row].colCount() == colCount);
-      MATHICGB_ASSERT(dense[row][col] == 1); // already normalized
+      MATHICGB_ASSERT(dense[row][nextReducers[i].first] == 1); // already normalized
       MATHICGB_ASSERT(reduced.rowCount() == i);
       MATHICGB_ASSERT(!isPivotRow[row]);
 

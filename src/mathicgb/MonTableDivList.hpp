@@ -49,7 +49,7 @@ public:
 
   size_t getVarCount() const {return _varCount;}
 
-  NO_PINLINE Exponent getExponent(const Monomial& m, size_t var) const {
+  Exponent getExponent(const Monomial& m, size_t var) const {
     ++_expQueryCount;
     return R->monomialExponent(m, var);
   }
@@ -67,7 +67,7 @@ public:
         return true;
       if (getExponent(b, var) < getExponent(a, var))
         return false;
-        }
+    }
     return false;
   }
 
