@@ -9,6 +9,40 @@
 QuadMatrixBuilder::QuadMatrixBuilder(const PolyRing& ring):
   mMonomialToCol(ring) {}
 
+void QuadMatrixBuilder::takeRowsFrom(QuadMatrix&& matrix) {
+  MATHICGB_ASSERT(&ring() == matrix.ring);
+  MATHICGB_ASSERT(matrix.debugAssertValid());
+#ifdef MATHICGB_DEBUG
+  if (!matrix.leftColumnMonomials.empty() ||
+    !matrix.rightColumnMonomials.empty()
+  ) {
+    // check left column monomials are the same
+    MATHICGB_ASSERT(matrix.leftColumnMonomials.size() <= leftColCount());
+    for (ColIndex col = 0; col < matrix.leftColumnMonomials.size(); ++col) {
+      MATHICGB_ASSERT(ring().monomialEQ
+        (matrix.leftColumnMonomials[col], monomialOfLeftCol(col)));
+    }
+
+    // check right column monomials are the same
+    MATHICGB_ASSERT(matrix.rightColumnMonomials.size() <= rightColCount());
+    for (ColIndex col = 0; col < matrix.rightColumnMonomials.size(); ++col) {
+      MATHICGB_ASSERT(ring().monomialEQ
+        (matrix.rightColumnMonomials[col], monomialOfRightCol(col)));
+    }
+  }
+#endif
+
+  matrix.ring = 0;
+  matrix.leftColumnMonomials.clear();
+  matrix.rightColumnMonomials.clear();
+
+  mTopLeft.takeRowsFrom(std::move(matrix.topLeft));
+  mTopRight.takeRowsFrom(std::move(matrix.topRight));
+  mBottomLeft.takeRowsFrom(std::move(matrix.bottomLeft));
+  mBottomRight.takeRowsFrom(std::move(matrix.bottomRight));
+}
+
+
 namespace {
   /// Creates a column and updates the associated data structures that
   /// are passed in. Copies mono - ownership is not taken over. The

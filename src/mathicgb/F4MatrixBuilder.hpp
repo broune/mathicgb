@@ -65,7 +65,7 @@ private:
     reduce that column if possible. */
   LeftRightColIndex createColumn(const_monomial mono, QuadMatrixBuilder& builder);
 
-  void appendRowTop(const_monomial multiple, const Poly& poly, QuadMatrixBuilder& builder);
+  void appendRowTop(const_monomial multiple, const Poly& poly, QuadMatrixBuilder& builder, monomial tmp);
 
   /// Represents an S-pair that was added to the matrix for reduction
   /// or, if polyB is null, a polynomial that was added to the matrix
@@ -84,7 +84,7 @@ private:
   };
 
   const int mThreadCount;
-  monomial tmp;
+  monomial mTmp;
   std::vector<SPairTask> mSPairTodo;
   std::vector<RowTask> mTodo;
   const PolyBasis& mBasis;
