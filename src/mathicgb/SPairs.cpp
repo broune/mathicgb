@@ -529,7 +529,7 @@ bool SPairs::advancedBuchbergerLcmCriterionSlow(size_t a, size_t b) const {
       } else {
         // At this point we have found an edge between something a node to
         // a and a node connected to b. So a and b are connected.
-        ASSERT(graph[i].second != node.second)
+        ASSERT(graph[i].second != node.second);
         applies = true;
         break;
       }

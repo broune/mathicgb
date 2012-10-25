@@ -5,8 +5,10 @@
 #include <sstream>
 #include <mathic.h>
 
-#ifdef MATHICGB_DEBUG
 bool QuadMatrix::debugAssertValid() const {
+#ifndef MATHICGB_DEBUG
+  return true;
+#else
   MATHICGB_ASSERT(topLeft.colCount() == bottomLeft.colCount());
   MATHICGB_ASSERT(topLeft.rowCount() == topRight.rowCount());
   MATHICGB_ASSERT(topLeft.colCount() == leftColumnMonomials.size());
@@ -15,8 +17,8 @@ bool QuadMatrix::debugAssertValid() const {
   MATHICGB_ASSERT(bottomRight.rowCount() == bottomLeft.rowCount());
   MATHICGB_ASSERT(bottomRight.colCount() == rightColumnMonomials.size());   
   return true;
-}
 #endif
+}
 
 void QuadMatrix::print(std::ostream& out) const {
   MATHICGB_ASSERT(debugAssertValid());

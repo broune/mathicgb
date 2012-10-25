@@ -108,7 +108,7 @@ void Poly::makeMonic() {
   R->coefficientReciprocalTo(c);
   for (auto i = coeffs.begin(); i != coeffs.end(); i++)
     R->coefficientMultTo(*i, c);
-  MATHICGB_ASSERT(R->coefficientIsOne(getLeadCoefficient()))
+  MATHICGB_ASSERT(R->coefficientIsOne(getLeadCoefficient()));
 }
 
 bool operator==(const Poly &a, const Poly &b)

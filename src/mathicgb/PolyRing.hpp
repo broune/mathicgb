@@ -56,7 +56,7 @@ T modularInverse(T a, T modulus) {
   }
   MATHICGB_ASSERT(x >= 1);
   MATHICGB_ASSERT(x < modulus);
-  MATHICGB_ASSERT((static_cast<uint64>(origA) * x) % modulus == 1);
+  MATHICGB_ASSERT_NO_ASSUME((static_cast<uint64>(origA) * x) % modulus == 1);
   return x;
 }
 
@@ -665,11 +665,9 @@ inline bool PolyRing::monomialIsProductOfHintTrue(
     std::memcpy(&AB, &ab[i], 8);
     orOfXor |= AB ^ (A + B);
   }
-  MATHICGB_ASSERT((orOfXor == 0) == monomialIsProductOf(a, b, ab))
+  MATHICGB_ASSERT((orOfXor == 0) == monomialIsProductOf(a, b, ab));
 
-
-  return orOfXor == 0;
-  
+  return orOfXor == 0; 
 }
 
 inline bool PolyRing::monomialIsProductOf(

@@ -276,7 +276,7 @@ public:
 
 
 private:
-  NO_INLINE void growEntryCapacity();
+  MATHICGB_NO_INLINE void growEntryCapacity();
 
   /// Contains information about a row in the matrix.
   struct Row {

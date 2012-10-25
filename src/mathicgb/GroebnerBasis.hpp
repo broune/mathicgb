@@ -189,18 +189,18 @@ private:
 
 inline int GroebnerBasis::ratioCompare(size_t a, size_t b) const {
   if (mUseRatioRank) {
-#ifdef DEBUG
+#ifdef MATHICGB_DEBUG
     int const value =
       order().signatureCompare(getSigLeadRatio(a), getSigLeadRatio(b));
 #endif
     if (mRatioRanks[a] < mRatioRanks[b]) {
-      ASSERT(value == LT);
+      MATHICGB_ASSERT_NO_ASSUME(value == LT);
       return LT;
     } else if (mRatioRanks[a] > mRatioRanks[b]) {
-      ASSERT(value == GT);
+      MATHICGB_ASSERT_NO_ASSUME(value == GT);
       return GT;
     } else {
-      ASSERT(value == EQ);
+      MATHICGB_ASSERT_NO_ASSUME(value == EQ);
       return EQ;
     }
   } else {
@@ -208,7 +208,7 @@ inline int GroebnerBasis::ratioCompare(size_t a, size_t b) const {
     ring().monomialDivideToNegative(getSignature(b), getLeadMonomial(b), mTmp);
     ring().monomialMultTo(mTmp, getLeadMonomial(a));
     int value = order().signatureCompare(getSignature(a), mTmp);
-    ASSERT(value ==
+    MATHICGB_ASSERT(value ==
       order().signatureCompare(getSigLeadRatio(a), getSigLeadRatio(b)));
     return value;
   }
@@ -222,19 +222,19 @@ inline int GroebnerBasis::StoredRatioCmp::compare(size_t be) const {
 #endif
     GroebnerBasis::Rank otherRank = mBasis.ratioRank(be);
     if (mRatioRank < otherRank) {
-      ASSERT(value == LT);
+      MATHICGB_ASSERT_NO_ASSUME(value == LT);
       return LT;
     } else if (mRatioRank > otherRank) {
-      ASSERT(value == GT);
+      MATHICGB_ASSERT_NO_ASSUME(value == GT);
       return GT;
     } else {
-      ASSERT(value == EQ);
+      MATHICGB_ASSERT_NO_ASSUME(value == EQ);
       return EQ;
     }
   } else {
     mBasis.ring().monomialMult(mRatio, mBasis.getLeadMonomial(be), mTmp);
     int value = mBasis.order().signatureCompare(mTmp, mBasis.getSignature(be));
-    ASSERT(value ==
+    MATHICGB_ASSERT(value ==
       mBasis.order().signatureCompare(mRatio, mBasis.getSigLeadRatio(be)));
     return value;
   }

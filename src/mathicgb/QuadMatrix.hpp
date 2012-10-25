@@ -47,9 +47,8 @@ public:
   /// TODO: Actually only coarsely sorts the top rows right now.
   QuadMatrix toCanonical() const;
 
-#ifdef MATHICGB_DEBUG
+  /// Asserts internal invariants if asserts are turned on.
   bool debugAssertValid() const;
-#endif
 
 private:
   QuadMatrix(const QuadMatrix&); // not available
