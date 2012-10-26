@@ -660,11 +660,11 @@ inline bool PolyRing::monomialIsProductOfHintTrue(
     uint64 A, B, AB;
     // We have to use std::memcpy here because just casting to a int64 breaks
     // the strict aliasing rule which implies undefined behavior. Both MSVC and
-    // gcc don't actually call memcpy here. MSVC is a tiny big slower for this
+    // gcc don't actually call memcpy here. MSVC is a tiny bit slower for this
     // code than for casting while GCC seems to be exactly the same speed.
-    std::memcpy(&A, &a[i], 8);
-    std::memcpy(&B, &b[i], 8);
-    std::memcpy(&AB, &ab[i], 8);
+    std::memcpy(&A, &a[i*2], 8);
+    std::memcpy(&B, &b[i*2], 8);
+    std::memcpy(&AB, &ab[i*2], 8);
     orOfXor |= AB ^ (A + B);
   }
   MATHICGB_ASSERT((orOfXor == 0) == monomialIsProductOf(a, b, ab));
