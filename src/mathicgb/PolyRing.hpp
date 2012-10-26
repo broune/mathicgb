@@ -291,8 +291,10 @@ public:
 
 
 
-  coefficient toCoefficient(int64 a) const;
-  coefficient coefficientNegate(coefficient result) const;
+  coefficient toCoefficient(int64 value) const;
+  coefficient coefficientNegate(coefficient coeff) const;
+  coefficient coefficientNegateNonZero(coefficient coeff) const;
+  coefficient coefficientSubtract(coefficient a, coefficient b) const;
 
   void coefficientFromInt(coefficient &result, int a) const;
   void coefficientSetOne(coefficient &result) const { result = 1; }
@@ -984,16 +986,6 @@ inline void PolyRing::coefficientDivide(coefficient a, coefficient b, coefficien
   MATHICGB_ASSERT(result < mCharac);
 }
 
-inline coefficient PolyRing::toCoefficient(int64 a) const {
-  auto modLong = a % mCharac;
-  if (modLong < 0)
-    modLong += mCharac;
-  const coefficient mod = static_cast<coefficient>(modLong);
-  MATHICGB_ASSERT(0 <= mod);
-  MATHICGB_ASSERT(mod < mCharac);
-  return mod;
-}
-
 inline void PolyRing::coefficientFromInt(coefficient &result, int a) const
 {
   result = toCoefficient(a);
@@ -1006,20 +998,47 @@ inline void PolyRing::coefficientAddOneTo(coefficient &result) const
     result = 0;
 }
 
-inline void PolyRing::coefficientNegateTo(coefficient &result) const
- // result = -result
-{
+inline void PolyRing::coefficientNegateTo(coefficient& result) const {
+  MATHICGB_ASSERT(result < mCharac);
   if (result != 0)
-    result = mCharac - result;
+    result = coefficientNegateNonZero(result);
 }
 
-inline coefficient PolyRing::coefficientNegate(coefficient coef) const
- // result = -result
-{
-  if (coef == 0)
-    return 0;
-  else
-    return mCharac - coef;
+inline coefficient PolyRing::toCoefficient(const int64 value) const {
+  auto modLong = value % mCharac;
+  if (modLong < 0)
+    modLong += mCharac;
+  MATHICGB_ASSERT(0 <= modLong);
+  MATHICGB_ASSERT(modLong < mCharac);
+  const auto mod = static_cast<coefficient>(modLong);
+  MATHICGB_ASSERT(0 <= mod);
+  MATHICGB_ASSERT(mod < mCharac);
+  return mod;
+}
+
+inline coefficient PolyRing::coefficientNegate(const coefficient coeff) const {
+  MATHICGB_ASSERT(coeff < mCharac);
+  return coeff == 0 ? 0 : coefficientNegateNonZero(coeff);
+}
+
+inline coefficient PolyRing::coefficientNegateNonZero(
+  const coefficient coeff
+) const {
+  MATHICGB_ASSERT(coeff != 0);
+  MATHICGB_ASSERT(coeff < mCharac);
+  return mCharac - coeff;
+}
+
+inline coefficient PolyRing::coefficientSubtract(
+  const coefficient a,
+  const coefficient b
+) const {
+  MATHICGB_ASSERT(a < mCharac);
+  MATHICGB_ASSERT(b < mCharac);
+  const auto diff = a < b ? a + (mCharac - b) : a - b;
+  MATHICGB_ASSERT(diff < mCharac);
+  MATHICGB_ASSERT((diff + b) % mCharac == a);
+  return diff;
 }
 
 inline void PolyRing::coefficientAddTo(coefficient &result, coefficient a, coefficient b) const

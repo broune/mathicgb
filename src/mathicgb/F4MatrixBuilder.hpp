@@ -19,6 +19,7 @@ class F4MatrixBuilder {
 private:
   typedef QuadMatrixBuilder::ColIndex ColIndex;
   typedef QuadMatrixBuilder::LeftRightColIndex LeftRightColIndex;
+  typedef QuadMatrixBuilder::Scalar Scalar;
 
 public:
   F4MatrixBuilder(const PolyBasis& basis, int threadCount);
@@ -61,31 +62,43 @@ public:
   const PolyRing& ring() const {return mBuilder.ring();}
 
 private:
-  /** Creates a column with monomial label mono and schedules a new row to
-    reduce that column if possible. */
-  LeftRightColIndex createColumn(const_monomial mono, QuadMatrixBuilder& builder);
+  /** Creates a column with monomial label x and schedules a new row to
+    reduce that column if possible. Here x is monoA if monoB is
+    null and otherwise x is the product of monoA and monoB. */
+  MATHIC_NO_INLINE LeftRightColIndex createColumn
+    (QuadMatrixBuilder& builder, const_monomial monoA, const_monomial monoB);
 
-  void appendRowTop(const_monomial multiple, const Poly& poly, QuadMatrixBuilder& builder, monomial tmp);
-
-  /// Represents an S-pair that was added to the matrix for reduction
-  /// or, if polyB is null, a polynomial that was added to the matrix
-  /// for reduction.
-  struct SPairTask {
-    const Poly* polyA;
-    monomial multiplyA;
-    const Poly* polyB;
-    monomial multiplyB;
-  };
-
-  /// Represents the task of adding a row representing poly*multiple.
+  /// Represents the task of adding a row to the matrix. If sPairPoly is null
+  /// then the row to add is multiply * poly. Otherwise, the row to add is
+  ///   multiply * poly - sPairMultiply * sPairPoly
+  /// where sPairMultiply makes the lead terms cancel.
   struct RowTask {
+    bool addToTop; // add the row to the bottom if false
     const Poly* poly;
-    monomial multiple;
+    monomial multiply;
+    const Poly* sPairPoly;
+    monomial sPairMultiply;
   };
+
+  void appendRowTop(
+    const_monomial multiple,
+    const Poly& poly,
+    QuadMatrixBuilder& builder);
+  void appendRowBottom(const RowTask& task, QuadMatrixBuilder& builder);
+  void appendRowBottom(
+    const_monomial multiple,
+    bool negate,
+    Poly::const_iterator begin,
+    Poly::const_iterator end,
+    QuadMatrixBuilder& builder
+  );
+
+  MATHIC_INLINE LeftRightColIndex findOrCreateColumn
+    (const_monomial monoA, const_monomial monoB, QuadMatrixBuilder& builder);
+
 
   const int mThreadCount;
   monomial mTmp;
-  std::vector<SPairTask> mSPairTodo;
   std::vector<RowTask> mTodo;
   const PolyBasis& mBasis;
   QuadMatrixBuilder mBuilder;

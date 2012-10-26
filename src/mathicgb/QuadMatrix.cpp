@@ -65,9 +65,6 @@ std::string QuadMatrix::toString() const {
 }
 
 QuadMatrix QuadMatrix::toCanonical() const {
-  std::vector<size_t> rows;
-  for (size_t row = 0; row < topLeft.rowCount(); ++row)
-    rows.push_back(row);
   class RowComparer {
   public:
     RowComparer(const SparseMatrix& matrix): mMatrix(matrix) {}
@@ -76,27 +73,66 @@ QuadMatrix QuadMatrix::toCanonical() const {
       // then update this code.
       MATHICGB_ASSERT(!mMatrix.emptyRow(a));
       MATHICGB_ASSERT(!mMatrix.emptyRow(b));
-      return mMatrix.leadCol(a) > mMatrix.leadCol(b);
+      auto itA = mMatrix.rowBegin(a);
+      const auto endA = mMatrix.rowEnd(a);
+      auto itB = mMatrix.rowBegin(b);
+      const auto endB = mMatrix.rowEnd(b);
+      for (; itA != endA; ++itA, ++itB) {
+        if (itB == endB)
+          return true;
+
+        if (itA.index() > itB.index())
+          return true;
+        if (itA.index() < itB.index())
+          return false;
+
+        if (itA.scalar() > itB.scalar())
+          return false;
+        if (itA.scalar() < itB.scalar())
+          return true;
+      }
+      return false;
     }
 
   private:
     const SparseMatrix& mMatrix;
   };
-  {
-    RowComparer comparer(topLeft);
-    std::sort(rows.begin(), rows.end(), comparer);
-  }
 
+  // todo: eliminate left/right code duplication here
   QuadMatrix matrix;
-  matrix.topLeft.clear(topLeft.colCount());
-  matrix.topRight.clear(topRight.colCount());
-  for (size_t i = 0; i < rows.size(); ++i) {
-    matrix.topLeft.appendRow(topLeft, rows[i]);
-    matrix.topRight.appendRow(topRight, rows[i]);
+  { // left side
+    std::vector<size_t> rows;
+    for (size_t row = 0; row < topLeft.rowCount(); ++row)
+      rows.push_back(row);
+    {
+      RowComparer comparer(topLeft);
+      std::sort(rows.begin(), rows.end(), comparer);
+    }
+
+    matrix.topLeft.clear(topLeft.colCount());
+    matrix.topRight.clear(topRight.colCount());
+    for (size_t i = 0; i < rows.size(); ++i) {
+      matrix.topLeft.appendRow(topLeft, rows[i]);
+      matrix.topRight.appendRow(topRight, rows[i]);
+    }
+  }
+  { // right side
+    std::vector<size_t> rows;
+    for (size_t row = 0; row < bottomLeft.rowCount(); ++row)
+      rows.push_back(row);
+    {
+      RowComparer comparer(bottomLeft);
+      std::sort(rows.begin(), rows.end(), comparer);
+    }
+
+    matrix.bottomLeft.clear(bottomLeft.colCount());
+    matrix.bottomRight.clear(bottomRight.colCount());
+    for (size_t i = 0; i < rows.size(); ++i) {
+      matrix.bottomLeft.appendRow(bottomLeft, rows[i]);
+      matrix.bottomRight.appendRow(bottomRight, rows[i]);
+    }
   }
 
-  matrix.bottomLeft = bottomLeft;
-  matrix.bottomRight = bottomRight;
   matrix.leftColumnMonomials = leftColumnMonomials;
   matrix.rightColumnMonomials = rightColumnMonomials;
   matrix.ring = ring;

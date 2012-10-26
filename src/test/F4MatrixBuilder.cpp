@@ -142,7 +142,8 @@ TEST(F4MatrixBuilder, DirectReducers) {
       "               |       \n"
       "0: 0#1 1#1 2#1 | 0: 0#1\n"
       "1: 0#1 1#2 2#3 | 1: 0#4\n";
-    ASSERT_EQ(str, qm.toCanonical().toString()) << "** qm:\n" << qm;
+    qm = qm.toCanonical();
+    ASSERT_EQ(str, qm.toString()) << "** qm:\n" << qm;
   }
 }
 
