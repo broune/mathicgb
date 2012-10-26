@@ -45,6 +45,7 @@ void SparseMatrix::rowToPolynomial(
     if (it.scalar() != 0)
       poly.appendTerm(it.scalar(), colMonomials[it.index()]);
   }
+  MATHICGB_ASSERT(poly.termsAreInDescendingOrder());
 }
 
 void SparseMatrix::sortRowsByIncreasingPivots() {

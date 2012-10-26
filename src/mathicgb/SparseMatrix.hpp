@@ -63,7 +63,9 @@ public:
     return *this;
   }
 
-  SparseMatrix(const SparseMatrix& matrix) {*this = matrix;}
+  SparseMatrix(const SparseMatrix& matrix) {
+    *this = matrix;
+  }
 
   ~SparseMatrix() {clear();}
 

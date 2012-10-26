@@ -19,14 +19,19 @@ class QuadMatrix {
 public:
   QuadMatrix() {}
   QuadMatrix(QuadMatrix&& matrix):
-    topLeft(matrix.topLeft),
-    topRight(matrix.topRight),
-    bottomLeft(matrix.bottomLeft),
-    bottomRight(matrix.bottomRight),
-    leftColumnMonomials(matrix.leftColumnMonomials),
-    rightColumnMonomials(matrix.rightColumnMonomials),
+    topLeft(std::move(matrix.topLeft)),
+    topRight(std::move(matrix.topRight)),
+    bottomLeft(std::move(matrix.bottomLeft)),
+    bottomRight(std::move(matrix.bottomRight)),
+    leftColumnMonomials(std::move(matrix.leftColumnMonomials)),
+    rightColumnMonomials(std::move(matrix.rightColumnMonomials)),
     ring(matrix.ring)
   {}
+  QuadMatrix& operator=(QuadMatrix&& matrix) {
+    this->~QuadMatrix();
+    new (this) QuadMatrix(std::move(matrix));
+    return *this;
+  }
 
   SparseMatrix topLeft; 
   SparseMatrix topRight;

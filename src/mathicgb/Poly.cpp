@@ -336,7 +336,7 @@ void Poly::display(FILE* file, bool printComponent) const
       bool printOne = true;
       if (coef != 1) {
         printOne = false;
-        fprintf(file, "%i", coef);
+        fprintf(file, "%li", (long)coef);
       }
       R->monomialDisplay(file, it.getMonomial(), printComponent, printOne);
       firstTerm = false;
