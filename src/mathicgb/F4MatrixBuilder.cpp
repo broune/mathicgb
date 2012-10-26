@@ -214,8 +214,7 @@ void F4MatrixBuilder::buildMatrixAndClear(QuadMatrix& matrix) {
   if (mThreadCount > 1) {
     for (auto it = threadData.begin(); it != threadData.end(); ++it) {
       MATHICGB_ASSERT(&mBuilder != it->builder);
-      QuadMatrix qm;
-      it->builder->buildMatrixAndClear(qm);
+      QuadMatrix qm(it->builder->buildMatrixAndClear());
       mBuilder.takeRowsFrom(std::move(qm));
       delete it->builder;
       delete[] it->tmp.unsafeGetRepresentation();
@@ -224,9 +223,8 @@ void F4MatrixBuilder::buildMatrixAndClear(QuadMatrix& matrix) {
   threadData.clear();
 #endif
 
-
   mBuilder.sortColumnsLeftRightParallel(mBasis.order(), mThreadCount);
-  mBuilder.buildMatrixAndClear(matrix);
+  matrix = mBuilder.buildMatrixAndClear();
 }
 
 F4MatrixBuilder::LeftRightColIndex

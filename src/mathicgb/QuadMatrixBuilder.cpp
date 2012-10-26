@@ -295,7 +295,9 @@ std::string QuadMatrixBuilder::toString() const {
   return out.str();
 }
 
-void QuadMatrixBuilder::buildMatrixAndClear(QuadMatrix& out) {
+QuadMatrix QuadMatrixBuilder::buildMatrixAndClear() {
+  QuadMatrix out;
+
   mTopLeft.swap(out.topLeft);
   mTopRight.swap(out.topRight);
   mBottomLeft.swap(out.bottomLeft);
@@ -314,4 +316,5 @@ void QuadMatrixBuilder::buildMatrixAndClear(QuadMatrix& out) {
   mMonomialToCol.clear();
 
   MATHICGB_ASSERT(out.debugAssertValid());
+  return std::move(out);
 }

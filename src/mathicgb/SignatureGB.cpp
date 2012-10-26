@@ -20,10 +20,7 @@ void SignatureGB::computeGrobnerBasis()
   R->resetCoefficientStats();
   std::ostream& out = std::cout;
 
-  while (true) {
-    if (!step())
-      break;
-
+  while (step()) {
     if (mBreakAfter > 0 && GB->size() > mBreakAfter) {
       break;
       const size_t pairs = SP->pairCount();

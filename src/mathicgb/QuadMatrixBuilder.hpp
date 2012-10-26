@@ -245,9 +245,9 @@ class QuadMatrixBuilder {
     return topRight().colCount();
   }
 
-  /// Puts the built matrix into out and sets the builder to a state
+  /// Returns the built matrix and sets the builder to a state
   /// with no columns and no rows.
-  void buildMatrixAndClear(QuadMatrix& out);
+  QuadMatrix buildMatrixAndClear();
 
 private:
   typedef std::vector<monomial> MonomialsType;

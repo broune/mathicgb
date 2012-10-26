@@ -228,8 +228,7 @@ TEST(QuadMatrixBuilder, BuildAndClear) {
   b.appendEntryBottomRight(2, 4);
   b.rowDoneBottomLeftAndRight();
 
-  QuadMatrix qm;
-  b.buildMatrixAndClear(qm);
+  QuadMatrix qm(b.buildMatrixAndClear());
 
   // test that the matrix was really cleared
   ASSERT_EQ(ring.get(), &b.ring()); // still same ring though
