@@ -67,6 +67,13 @@ std::unique_ptr<Poly> F4Reducer::classicReduceSPoly
     MATHICGB_ASSERT(reduced.rowCount() == 1);
     reduced.rowToPolynomial(0, qm.rightColumnMonomials, *p);
   }
+
+  for (auto it = qm.leftColumnMonomials.begin();
+    it != qm.leftColumnMonomials.end(); ++it)
+    mRing.freeMonomial(*it);
+  for (auto it = qm.rightColumnMonomials.begin();
+    it != qm.rightColumnMonomials.end(); ++it)
+    mRing.freeMonomial(*it);
   return p;
 }
 
@@ -107,6 +114,9 @@ void F4Reducer::classicReduceSPolySet
     }
     F4MatrixReducer(mThreadCount).reduce(basis.ring(), qm, reduced);
     monomials = std::move(qm.rightColumnMonomials);
+    for (auto it = qm.leftColumnMonomials.begin();
+      it != qm.leftColumnMonomials.end(); ++it)
+      mRing.freeMonomial(*it);
   }
 
   if (tracingLevel >= 2)
@@ -118,6 +128,8 @@ void F4Reducer::classicReduceSPolySet
     reduced.rowToPolynomial(row, monomials, *p);
     reducedOut.push_back(std::move(p));
   }
+  for (auto it = monomials.begin(); it != monomials.end(); ++it)
+    mRing.freeMonomial(*it);
 }
 
 void F4Reducer::classicReducePolySet
@@ -155,6 +167,9 @@ void F4Reducer::classicReducePolySet
     }
     F4MatrixReducer(mThreadCount).reduce(basis.ring(), qm, reduced);
     monomials = std::move(qm.rightColumnMonomials);
+    for (auto it = qm.leftColumnMonomials.begin();
+      it != qm.leftColumnMonomials.end(); ++it)
+      mRing.freeMonomial(*it);
   }
 
   if (tracingLevel >= 2)
@@ -166,6 +181,8 @@ void F4Reducer::classicReducePolySet
     reduced.rowToPolynomial(row, monomials, *p);
     reducedOut.push_back(std::move(p));
   }
+  for (auto it = monomials.begin(); it != monomials.end(); ++it)
+    mRing.freeMonomial(*it);
 }
 
 Poly* F4Reducer::regularReduce
