@@ -58,8 +58,8 @@ std::unique_ptr<Poly> F4Reducer::classicReduceSPoly
 
   SparseMatrix reduced;
   {
-    F4MatrixReducer red(mThreadCount);
-    red.reduce(basis.ring(), qm, reduced);
+    F4MatrixReducer red(basis.ring(), mThreadCount);
+    reduced = red.reduce(qm);
   }
 
   auto p = make_unique<Poly>(basis.ring());
@@ -112,7 +112,7 @@ void F4Reducer::classicReduceSPolySet
       // there has to be something to reduce
       MATHICGB_ASSERT(qm.bottomLeft.rowCount() > 0);
     }
-    F4MatrixReducer(mThreadCount).reduce(basis.ring(), qm, reduced);
+    reduced = F4MatrixReducer(basis.ring(), mThreadCount).reduce(qm);
     monomials = std::move(qm.rightColumnMonomials);
     for (auto it = qm.leftColumnMonomials.begin();
       it != qm.leftColumnMonomials.end(); ++it)
@@ -165,7 +165,7 @@ void F4Reducer::classicReducePolySet
       // there has to be something to reduce
       MATHICGB_ASSERT(qm.bottomLeft.rowCount() > 0);
     }
-    F4MatrixReducer(mThreadCount).reduce(basis.ring(), qm, reduced);
+    reduced = F4MatrixReducer(basis.ring(), mThreadCount).reduce(qm);
     monomials = std::move(qm.rightColumnMonomials);
     for (auto it = qm.leftColumnMonomials.begin();
       it != qm.leftColumnMonomials.end(); ++it)
