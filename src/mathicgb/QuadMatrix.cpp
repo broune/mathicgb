@@ -1,9 +1,9 @@
 #include "stdinc.h"
 #include "QuadMatrix.hpp"
 
+#include <mathic.h>
 #include <ostream>
 #include <sstream>
-#include <mathic.h>
 
 bool QuadMatrix::debugAssertValid() const {
 #ifndef MATHICGB_DEBUG
@@ -62,6 +62,49 @@ std::string QuadMatrix::toString() const {
   std::ostringstream out;
   print(out);
   return out.str();
+}
+
+void QuadMatrix::printSizes(std::ostream& out) const {
+  typedef mathic::ColumnPrinter ColPr;
+
+  ColPr pr;
+  pr.addColumn(false, " ", "");
+  pr.addColumn(false, "", "");
+  pr.addColumn(false, "", "");
+  //pr.addColumn(false, " ", "");
+  const char* const line = "-------------------";
+
+  pr[0] << '\n';
+  pr[1] << ColPr::commafy(topLeft.colCount()) << "  \n";
+  pr[2] << ColPr::commafy(topRight.colCount()) << "   \n";
+  //pr[3] << '\n';
+
+  pr[0] << '\n';
+  pr[1] << "/"  << line << "|\n";
+  pr[2] << line << "\\ \n";
+  //pr[3] << '\n';
+
+  pr[0] << ColPr::commafy(topLeft.rowCount()) << " |\n";
+  pr[1] << ColPr::commafy(topLeft.entryCount()) << " |\n";
+  pr[2] << ColPr::commafy(topRight.entryCount()) << " |\n";
+  //pr[3] << "| " << ColPr::commafy(topRight.rowCount()) << '\n';
+
+  pr[0] << "|\n";
+  pr[1] << '-' << line << "|\n";
+  pr[2] << line << "-|\n";
+  //pr[3] << "|\n";
+
+  pr[0] << ColPr::commafy(bottomLeft.rowCount()) << " |\n";
+  pr[1] << ColPr::commafy(bottomLeft.entryCount()) << " |\n";
+  pr[2] << ColPr::commafy(bottomRight.entryCount()) << " |\n";
+  //pr[3] << "| " << ColPr::commafy(bottomRight.rowCount());
+
+  pr[0] << '\n';
+  pr[1] << "\\"  << line << "|\n";
+  pr[2] << line << "/ \n";
+  //pr[3] << '\n';
+
+  out << '\n' << pr;
 }
 
 QuadMatrix QuadMatrix::toCanonical() const {
