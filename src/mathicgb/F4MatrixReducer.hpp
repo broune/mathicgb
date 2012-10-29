@@ -11,12 +11,12 @@ class F4MatrixReducer {
 public:
   F4MatrixReducer(const PolyRing& ring, int threadCount);
 
-  SparseMatrix reduce(QuadMatrix& matrix);
+  /// Reduces the lower right part of the row echelon form of matrix. Assumes
+  /// that there is a permutation of the upper rows that makes the upper
+  /// the upper left part of matrix upper unitriangular.
+  SparseMatrix reduce(const QuadMatrix& matrix);
 
 private:
-  /// this is forced to be signed to avoid warnings about signed/unsigned
-  /// conversion because, perversely, MSVC 2012 does not allow unsigned
-  /// for-loop indices in OpenMP.
   const SparseMatrix::Scalar mModulus;
   const int mThreadCount;
 };

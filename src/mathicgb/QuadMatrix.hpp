@@ -45,6 +45,10 @@ public:
   /// debugging.
   void print(std::ostream& out) const;
 
+  /// Prints the sizes of the matrix out, in terms of number of rows and
+  /// columns and how many non-zero entries in each submatrix.
+  void printSizes(std::ostream& out) const;
+
   /// Shows whole matrix in a string. Useful for debugging.
   std::string toString() const;
 
