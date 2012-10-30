@@ -5,7 +5,7 @@
 #include <omp.h>
 #endif
 
-MATHIC_INLINE QuadMatrixBuilder::LeftRightColIndex
+MATHICGB_INLINE QuadMatrixBuilder::LeftRightColIndex
   F4MatrixBuilder::findOrCreateColumn
 (
   const const_monomial monoA,
