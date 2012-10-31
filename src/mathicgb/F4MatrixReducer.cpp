@@ -84,7 +84,11 @@ namespace {
     }
 
     template<class Iter>
-    void addRowMultiple(SparseMatrix::Scalar multiple, const Iter& begin, const Iter& end) {
+    void addRowMultiple(
+      const SparseMatrix::Scalar multiple,
+      const Iter& begin,
+      const Iter& end
+    ) {
       // Now, you may be wondering why begin and end are passed by reference
       // instead of by value, and that would be a good question. As it turns
       // out, this method does not work otherwise when run in parallel using
@@ -115,12 +119,21 @@ namespace {
       // If you want to take a look at this issue, the issue only turns up for 64
       // bit debug builds. This was on Visual Studio version
       // "11.0.50727.1 RTMREL" - Bjarke Hammersholt Roune
-      T mult = static_cast<T>(multiple);
+
+
+      // MATHICGB_RESTRICT on entries is important. It fixed a performance
+      // regression on MSVC 2012 which otherwise was not able to determine that
+      // entries is not an alias for anything else in this loop. I suspect that
+      // this is because MSVC 2012 does not make use of the strict aliasing
+      // rule. The regression occurred when reusing the DenseRow object instead
+      // of making a new one. I suspect that MSVC 2012 was then previously able
+      // to tell that entries is not an alias since new does not return
+      // aliases.
+      T* const MATHICGB_RESTRICT entries = mEntries.data();
       for (Iter it = begin; it != end; ++it) {
         MATHICGB_ASSERT(it.index() < colCount());
-        // Watch out for overflow here! This is only OK because
-        // T is promoting the multiplication to type T.
-        mEntries[it.index()] += it.scalar() * mult;
+        MATHICGB_ASSERT(entries + it.index() == &mEntries[it.index()]);
+        entries[it.index()] += it.scalar() * static_cast<T>(multiple);
       }
     }
 
@@ -244,15 +257,19 @@ namespace {
       denseRow.clear(colCountRight);
       denseRow.addRow(toReduceRight, row);
       auto it = tmp.rowBegin(i);
-      auto end = tmp.rowEnd(i);
-      for (; it != end; ++it)
-        denseRow.addRowMultiple(it.scalar(), reduceByRight.rowBegin(it.index()), reduceByRight.rowEnd(it.index()));
+      const auto end = tmp.rowEnd(i);
+      for (; it != end; ++it) {
+        const auto begin = reduceByRight.rowBegin(it.index());
+        const auto end = reduceByRight.rowEnd(it.index());
+        denseRow.addRowMultiple(it.scalar(), begin, end);
+      }
 
 #pragma omp critical
       {
         bool zero = true;
 	    for (SparseMatrix::ColIndex col = 0; col < colCountRight; ++col) {
-          SparseMatrix::Scalar entry = static_cast<SparseMatrix::Scalar>(denseRow[col] % modulus);
+          const auto entry =
+            static_cast<SparseMatrix::Scalar>(denseRow[col] % modulus);
           if (entry != 0) {
             reduced.appendEntry(col, entry);
             zero = false;
@@ -394,7 +411,7 @@ SparseMatrix F4MatrixReducer::reduce(const QuadMatrix& matrix) {
   if (tracingLevel >= 3)
     matrix.printSizes(std::cerr);
 
-  SparseMatrix newPivots = ::reduce(matrix, mModulus, mThreadCount);
+  SparseMatrix newPivots(::reduce(matrix, mModulus, mThreadCount));
   ::reduceToEchelonForm(newPivots, mModulus, mThreadCount);
   return std::move(newPivots);
 }
