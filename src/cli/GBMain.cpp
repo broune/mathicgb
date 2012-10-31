@@ -121,8 +121,12 @@ public:
 
     mThreadCount("threadCount",
       "Specifies how many threads to use to run the program in parallel.",
-     1)
-    
+     1),
+
+    mMemoryQuantum("memoryQuantumForReducer",
+      "Specifies how many items to allocate memory for at a time for the reducer.",
+      1024 * 1024)
+
   {
     {
       std::ostringstream orderOut;
@@ -196,6 +200,7 @@ public:
       alg.setPrintInterval(mPrintInterval.value());
       alg.setSPairGroupSize(mSPairGroupSize.value());
       alg.setThreadCount(mThreadCount.value());
+      alg.setReducerMemoryQuantum(mMemoryQuantum.value());
       alg.setUseAutoTopReduction(mAutoTopReduce.value());
       alg.setUseAutoTailReduction(mAutoTailReduce.value());
 
@@ -288,6 +293,7 @@ public:
     parameters.push_back(&mProjectName);
     parameters.push_back(&mSPairGroupSize);
     parameters.push_back(&mThreadCount);
+    parameters.push_back(&mMemoryQuantum);
 
     // we do not expose the strategy parameter - it is only here to
     // support the old format of using direct numeric parameters to
@@ -314,7 +320,8 @@ private:
   mic::StringParameter mProjectName;
   mic::IntegerParameter mStrategy;
   mic::IntegerParameter mSPairGroupSize;
-  mic::IntegerParameter mThreadCount;  
+  mic::IntegerParameter mThreadCount;
+  mic::IntegerParameter mMemoryQuantum;
 };
 
 int oldmain(int argc, char **argv);

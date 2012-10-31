@@ -45,6 +45,8 @@ public:
 
   virtual void setThreadCount(int threadCount);
 
+  virtual void setMemoryQuantum(size_t quantum);
+
 protected:
   // These are the methods that sub-classes define in order to carry
   // out sub-steps in the reduction.

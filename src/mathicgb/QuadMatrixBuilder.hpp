@@ -29,7 +29,7 @@ class QuadMatrixBuilder {
   typedef SparseMatrix::ColIndex ColIndex;
   typedef SparseMatrix::Scalar Scalar;
 
-  QuadMatrixBuilder(const PolyRing& ring);
+  QuadMatrixBuilder(const PolyRing& ring, size_t memoryQuantum = 0);
 
   /// Inserts the rows from builder. To avoid an assert either the matrix must
   /// have no column monomials specified or the monomials that are specified

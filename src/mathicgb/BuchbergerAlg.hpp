@@ -54,6 +54,10 @@ public:
     mThreadCount = threadCount;
   }
 
+  void setReducerMemoryQuantum(size_t memoryQuantum) {
+    mReducer->setMemoryQuantum(memoryQuantum);
+  }
+
   void setUseAutoTopReduction(bool value) {
     mUseAutoTopReduction = value;
   }

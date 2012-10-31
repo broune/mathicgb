@@ -159,6 +159,7 @@ void SparseMatrix::swap(SparseMatrix& matrix) {
   using std::swap;
   swap(mRows, matrix.mRows);
   swap(mColCount, matrix.mColCount);
+  swap(mMemoryQuantum, matrix.mMemoryQuantum);
 }
 
 void SparseMatrix::clear(const ColIndex newColCount) {
@@ -310,20 +311,20 @@ void SparseMatrix::growEntryCapacity() {
   MATHICGB_ASSERT(mBlock.mColIndices.size() == mBlock.mScalars.size());
   MATHICGB_ASSERT(mBlock.mColIndices.capacity() == mBlock.mScalars.capacity());
 
-  // TODO: handle overflow of multiplication below
-  const size_t minBlockSize = 1 << 20;
-  const size_t minMultipleOfPending = 2;
-  const size_t pendingCount = mBlock.mHasNoRows ?
-    mBlock.mColIndices.size() :
-    std::distance(mRows.back().mIndicesEnd, mBlock.mColIndices.end());
-  const size_t blockSize =
-    std::max(minBlockSize, pendingCount * minMultipleOfPending);
-
-  reserveFreeEntries(blockSize);
+  // TODO: handle overflow of arithmetic here
+  if (mMemoryQuantum != 0 &&
+    (!mBlock.mHasNoRows || mBlock.mPreviousBlock == 0)
+  )
+    reserveFreeEntries(mMemoryQuantum);
+  else if (mBlock.mColIndices.capacity() == 0)
+    reserveFreeEntries(1 << 14); // minimum block size
+  else {
+    // do this if the quantum is not set or if the quantum is too small
+    // to store a single row being built.
+    reserveFreeEntries(mBlock.mColIndices.capacity() * 2);
+  }
 
   MATHICGB_ASSERT(mBlock.mColIndices.size() == mBlock.mScalars.size());
-  MATHICGB_ASSERT(mBlock.mColIndices.capacity() == blockSize + pendingCount);
-  MATHICGB_ASSERT(mBlock.mScalars.capacity() == blockSize + pendingCount);
 }
 
 std::ostream& operator<<(std::ostream& out, const SparseMatrix& matrix) {

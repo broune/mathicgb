@@ -159,6 +159,9 @@ void TypicalReducer::setThreadCount(int threadCount) {
   // multithreading not supported here (yet!)
 }
 
+void TypicalReducer::setMemoryQuantum(size_t quantum) {
+}
+
 std::unique_ptr<Poly> TypicalReducer::classicReduce
     (std::unique_ptr<Poly> result, const PolyBasis& basis) {
   const PolyRing& ring = basis.ring();
