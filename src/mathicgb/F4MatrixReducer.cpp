@@ -73,7 +73,7 @@ namespace {
       }
     }
 
-    void addRow(SparseMatrix const& matrix, SparseMatrix::RowIndex row) {
+    void addRow(const SparseMatrix& matrix, SparseMatrix::RowIndex row) {
       MATHICGB_ASSERT(row < matrix.rowCount());
       MATHICGB_ASSERT(matrix.colCount() == colCount());
       const auto end = matrix.rowEnd(row);
@@ -165,10 +165,10 @@ namespace {
     SparseMatrix::Scalar modulus,
     const int threadCount
   ) {
-    SparseMatrix const& toReduceLeft = qm.bottomLeft;
-    SparseMatrix const& toReduceRight = qm.bottomRight;
-    SparseMatrix const& reduceByLeft = qm.topLeft;
-    SparseMatrix const& reduceByRight = qm.topRight;
+    const SparseMatrix& toReduceLeft = qm.bottomLeft;
+    const SparseMatrix& toReduceRight = qm.bottomRight;
+    const SparseMatrix& reduceByLeft = qm.topLeft;
+    const SparseMatrix& reduceByRight = qm.topRight;
 
     MATHICGB_ASSERT(reduceByLeft.colCount() == reduceByLeft.rowCount());
     const auto pivotCount = reduceByLeft.colCount();
@@ -193,7 +193,7 @@ namespace {
       rowThatReducesCol[col] = pivot;
     }
 
-    SparseMatrix reduced(colCountRight);
+    SparseMatrix reduced(colCountRight, qm.topRight.memoryQuantum());
 
 #ifdef _OPENMP
     std::vector<DenseRow<uint64> > denseRowPerThread(threadCount);
@@ -201,7 +201,7 @@ namespace {
     DenseRow<uint64> denseRow;
 #endif
 
-    SparseMatrix tmp(pivotCount);
+    SparseMatrix tmp(pivotCount, qm.topRight.memoryQuantum());
 
     std::vector<SparseMatrix::RowIndex> rowOrder(rowCount);
 
@@ -304,8 +304,7 @@ namespace {
     std::vector<SparseMatrix::ColIndex> leadCols(rowCount);
 
     // pivot rows get copied here before being used to reduce the matrix.
-    SparseMatrix reduced;
-    reduced.clear(colCount);
+    SparseMatrix reduced(colCount, toReduce.memoryQuantum());
 
     // (col,row) in nextReducers, then use row as a pivot in column col
     // for the next iteration.

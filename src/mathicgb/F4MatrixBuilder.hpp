@@ -22,7 +22,11 @@ private:
   typedef QuadMatrixBuilder::Scalar Scalar;
 
 public:
-  F4MatrixBuilder(const PolyBasis& basis, int threadCount);
+  /// memoryQuantum is how much to increase the memory size by each time the
+  /// current amount of memory is exhausted. A value of 0 indicates to start
+  /// small and double the quantum at each exhaustion.
+  F4MatrixBuilder
+    (const PolyBasis& basis, int threadCount, size_t memoryQuantum = 0);
 
   /** Schedules a row representing the S-polynomial between polyA and
     polyB to be added to the matrix. No ownership is taken, but polyA

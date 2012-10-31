@@ -48,12 +48,16 @@ public:
   class ConstRowIterator;
 
   /// Construct a matrix with no rows.
-  SparseMatrix(ColIndex colCount = 0): mColCount(colCount) {}
+  SparseMatrix(const ColIndex colCount = 0, const size_t memoryQuantum = 0):
+    mColCount(colCount),
+    mMemoryQuantum(memoryQuantum)
+  {}
 
   SparseMatrix(SparseMatrix&& matrix):
     mRows(std::move(matrix.mRows)),
     mBlock(std::move(matrix.mBlock)),
-    mColCount(matrix.mColCount)
+    mColCount(matrix.mColCount),
+    mMemoryQuantum(matrix.mMemoryQuantum)
   {
   }
 
@@ -80,6 +84,7 @@ public:
 
   RowIndex rowCount() const {return mRows.size();}
   ColIndex colCount() const {return mColCount;}
+  size_t memoryQuantum() const {return mMemoryQuantum;}
 
   /// Returns the number of entries in the whole matrix. Is not constant time
   /// so avoid calling too many times.
@@ -338,6 +343,7 @@ private:
   Block mBlock;
 
   ColIndex mColCount;
+  size_t mMemoryQuantum;
 };
 
 inline void swap(SparseMatrix& a, SparseMatrix& b) {
@@ -345,6 +351,5 @@ inline void swap(SparseMatrix& a, SparseMatrix& b) {
 }
 
 std::ostream& operator<<(std::ostream& out, const SparseMatrix& matrix);
-
 
 #endif

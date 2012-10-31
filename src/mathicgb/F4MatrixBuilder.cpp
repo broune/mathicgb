@@ -20,10 +20,14 @@ MATHIC_INLINE QuadMatrixBuilder::LeftRightColIndex
   return createColumn(builder, monoA, monoB);
 }
 
-F4MatrixBuilder::F4MatrixBuilder(const PolyBasis& basis, const int threadCount):
+F4MatrixBuilder::F4MatrixBuilder(
+  const PolyBasis& basis,
+  const int threadCount,
+  const size_t memoryQuantum
+):
   mThreadCount(threadCount),
   mBasis(basis),
-  mBuilder(basis.ring()),
+  mBuilder(basis.ring(), memoryQuantum),
   mTmp(basis.ring().allocMonomial())
 {
   MATHICGB_ASSERT(threadCount >= 1);
