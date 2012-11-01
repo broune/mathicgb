@@ -198,7 +198,7 @@ Poly * Poly::add(const PolyRing *R,
 }
 
 const_monomial Poly::backMonomial() const {
-  ASSERT(begin() != end());
+  MATHICGB_ASSERT(begin() != end());
   return &(monoms.front()) + R->maxMonomialSize() * (nTerms() - 1);
 }
 

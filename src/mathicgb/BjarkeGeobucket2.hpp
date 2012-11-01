@@ -30,8 +30,8 @@ public:
   bool cmpLessThan(CompareResult r) const {return r;}
 
   static const bool supportDeduplication = false;
-  bool cmpEqual(CompareResult r) const {ASSERT(false);return r;} // NOT USED IN OUR CASE HERRE!
-  Entry deduplicate(const Entry& a, const Entry& /* b */) const {ASSERT(false); return a;}
+  bool cmpEqual(CompareResult r) const {MATHICGB_ASSERT(false);return r;} // NOT USED IN OUR CASE HERRE!
+  Entry deduplicate(const Entry& a, const Entry& /* b */) const {MATHICGB_ASSERT(false); return a;}
 
   size_t getComparisons() const {return _comparisons;}
   void resetComparisons() const {_comparisons = 0;}

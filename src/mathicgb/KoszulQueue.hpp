@@ -17,22 +17,22 @@ public:
   }
 
   const_monomial top() const {
-    ASSERT(!empty());
+    MATHICGB_ASSERT(!empty());
     return mQueue.top();
   }
 
   monomial popRelease() {
-    ASSERT(!empty());
+    MATHICGB_ASSERT(!empty());
     return mQueue.pop();
   }
 
   void pop() {
-    ASSERT(!empty());
+    MATHICGB_ASSERT(!empty());
     mQueue.getConfiguration().getPool().free(popRelease().unsafeGetRepresentation());
   }
 
   void push(monomial sig) {
-    //TODO: ASSERT(mPool.member(sig));
+    //TODO: MATHICGB_ASSERT(mPool.member(sig));
     mQueue.push(sig);
   }
 
@@ -53,7 +53,7 @@ private:
       mOrder(order),
       mPool(pool)
     {
-      ASSERT(mOrder != 0);
+      MATHICGB_ASSERT(mOrder != 0);
     }
 
     memt::BufferPool &getPool() { return mPool; }

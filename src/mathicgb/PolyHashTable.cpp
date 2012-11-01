@@ -47,7 +47,7 @@ void PolyHashTable::reset()
   mStats.n_resets++;
 
 #if 0
-  ASSERT(mNodeCount != 0);
+  MATHICGB_ASSERT(mNodeCount != 0);
   for (size_t count = 0; count < mTableSize; ++count)
     {
       if ( mHashTable[count] != 0)
@@ -81,7 +81,7 @@ void PolyHashTable::resize(size_t new_nbits)
   // Loop through each one, reinserting the node into the proper bin.
 
   //  std::cout << "resizing PolyHashTable to " << new_nbits << " bits" << " count=" << mNodeCount << std::endl;
-  ASSERT(computeNodeCount() == mNodeCount);
+  MATHICGB_ASSERT(computeNodeCount() == mNodeCount);
   size_t const old_table_size = mTableSize;
   mTableSize = static_cast<size_t>(1) << new_nbits;
   mLogTableSize = new_nbits;
@@ -124,7 +124,7 @@ void PolyHashTable::resize(size_t new_nbits)
   mMaxCountBeforeRebuild =
     static_cast<size_t>(std::floor(mTableSize * threshold));
 
-  ASSERT(computeNodeCount() == mNodeCount);
+  MATHICGB_ASSERT(computeNodeCount() == mNodeCount);
 }
 
 PolyHashTable::node * PolyHashTable::makeNode(coefficient coeff, const_monomial monom)
@@ -149,7 +149,7 @@ bool PolyHashTable::lookup_and_insert(const_monomial m, coefficient val, node *&
   size_t fullHashVal = mRing.monomialHashValue(m);
   size_t hashval = fullHashVal & mHashMask;
 
-  ASSERT(hashval < mHashTable.size());
+  MATHICGB_ASSERT(hashval < mHashTable.size());
   node *tmpNode = mHashTable[hashval];
   if (tmpNode == 0)
     {
@@ -301,7 +301,7 @@ void PolyHashTable::unlink(node* p)
   // That probably means either that the node has been deleted twice
   // or that the value in the node changed so that its hash value
   // changed. That is not allowed.
-  ASSERT(false);
+  MATHICGB_ASSERT(false);
 }
 
 void PolyHashTable::remove(node* n) {

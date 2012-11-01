@@ -41,7 +41,7 @@ Poly* TypicalReducer::regularReduce(
   ring.coefficientSet(coef, 1);
   insertTail(const_term(coef, multiple), &basis.poly(basisElement));
 
-  ASSERT(ring.coefficientIsOne(basis.getLeadCoefficient(reducer)));
+  MATHICGB_ASSERT(ring.coefficientIsOne(basis.getLeadCoefficient(reducer)));
   ring.coefficientFromInt(coef, -1);
   insertTail(const_term(coef, u), &basis.poly(reducer));
   basis.basis().usedAsReducer(reducer);
@@ -50,7 +50,7 @@ Poly* TypicalReducer::regularReduce(
 
   unsigned long long steps = 2; // number of steps in this reduction
   for (const_term v; leadTerm(v); ++steps) {
-    ASSERT(v.coeff != 0);
+    MATHICGB_ASSERT(v.coeff != 0);
     reducer = basis.regularReducer(sig, v.monom);
     if (reducer == static_cast<size_t>(-1)) { // no reducer found
       result->appendTerm(v.coeff, v.monom);
@@ -85,8 +85,8 @@ std::unique_ptr<Poly> TypicalReducer::classicReduce(const Poly& poly, const Poly
 }
 
 std::unique_ptr<Poly> TypicalReducer::classicTailReduce(const Poly& poly, const PolyBasis& basis) {
-  ASSERT(&poly.ring() == &basis.ring());
-  ASSERT(!poly.isZero());
+  MATHICGB_ASSERT(&poly.ring() == &basis.ring());
+  MATHICGB_ASSERT(!poly.isZero());
   term identity;
   identity.monom = basis.ring().allocMonomial(mArena);
   basis.ring().monomialSetIdentity(identity.monom);
@@ -165,7 +165,7 @@ void TypicalReducer::setMemoryQuantum(size_t quantum) {
 std::unique_ptr<Poly> TypicalReducer::classicReduce
     (std::unique_ptr<Poly> result, const PolyBasis& basis) {
   const PolyRing& ring = basis.ring();
-  ASSERT(&result->ring() == &ring);
+  MATHICGB_ASSERT(&result->ring() == &ring);
   ++mClassicStats.reductions;
 
   if (tracingLevel > 100)
@@ -182,7 +182,7 @@ std::unique_ptr<Poly> TypicalReducer::classicReduce
 
     size_t reducer = basis.divisor(v.monom);
     if (reducer == static_cast<size_t>(-1)) { // no reducer found
-      ASSERT(result->isZero() ||
+      MATHICGB_ASSERT(result->isZero() ||
         basis.order().signatureCompare(v.monom, result->backMonomial()) == LT);
       result->appendTerm(v.coeff, v.monom);
       removeLeadTerm();

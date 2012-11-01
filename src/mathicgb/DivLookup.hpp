@@ -45,23 +45,23 @@ public:
     _type(type),
     _preferSparseReducers(preferSparseReducers)
   {
-    ASSERT(rebuildRatio >= 0);
+    MATHICGB_ASSERT(rebuildRatio >= 0);
   }
 
   void setBasis(const PolyBasis& basis) {
     if (mBasis == &basis)
       return;
-    ASSERT(mBasis == 0);
-    ASSERT(mRing == &basis.ring());
+    MATHICGB_ASSERT(mBasis == 0);
+    MATHICGB_ASSERT(mRing == &basis.ring());
     mBasis = &basis;
   }
 
   void setSigBasis(const GroebnerBasis& sigBasis) {
     if (mSigBasis == &sigBasis)
       return;
-    ASSERT(mSigBasis == 0);
-    ASSERT(mBasis == 0 || mBasis == &sigBasis.basis());
-    ASSERT(mRing == &sigBasis.basis().ring());
+    MATHICGB_ASSERT(mSigBasis == 0);
+    MATHICGB_ASSERT(mBasis == 0 || mBasis == &sigBasis.basis());
+    MATHICGB_ASSERT(mRing == &sigBasis.basis().ring());
     mSigBasis = &sigBasis;
     setBasis(sigBasis.basis());
   }
@@ -243,7 +243,7 @@ class DivLookup : public DivisorLookup {
   DivLookup(const Configuration &C) :
         _finder(C)
   {
-    ASSERT(!C.UseTreeDivMask || C.UseDivMask);
+    MATHICGB_ASSERT(!C.UseTreeDivMask || C.UseDivMask);
   }
 
   ~DivLookup() {}
@@ -268,14 +268,14 @@ class DivLookup : public DivisorLookup {
 
     const_monomial sigNew = GB->getSignature(newGenerator);
 
-    ASSERT(newGenerator < GB->size());
+    MATHICGB_ASSERT(newGenerator < GB->size());
     LowBaseDivisor searchObject(*GB, divisors, maxDivisors, newGenerator);
     _finder.findAllDivisors(sigNew, searchObject);
   }
 
   virtual size_t highBaseDivisor(size_t newGenerator) const {
     const GroebnerBasis* basis = _finder.getConfiguration().basis();
-    ASSERT(newGenerator < basis->size());
+    MATHICGB_ASSERT(newGenerator < basis->size());
 
     HighBaseDivisor searchObject(*basis, newGenerator);
     _finder.findAllDivisors
@@ -372,7 +372,7 @@ private:
       }
       if (mDivisors.size() > mMaxDivisors)
         mDivisors.pop_back();
-      ASSERT(mDivisors.size() <= mMaxDivisors);
+      MATHICGB_ASSERT(mDivisors.size() <= mMaxDivisors);
       return true;
     }
   private:
@@ -449,7 +449,7 @@ private:
             const const_monomial minSig = mSigBasis.getSignature(mMinLeadGen);
             const const_monomial genSig = mSigBasis.getSignature(entry.index);
             int sigCmp = mSigBasis.order().signatureCompare(minSig, genSig);
-            ASSERT(sigCmp != EQ); // no two generators have same signature
+            MATHICGB_ASSERT(sigCmp != EQ); // no two generators have same signature
             if (sigCmp == GT)
               return true;
           }
@@ -481,7 +481,7 @@ private:
         bool proceed(const Entry &e)
         {
           bool result = true;
-          // ASSERT(R->monomialDivide(_monom, e.monom, _multiplier));
+          // MATHICGB_ASSERT(R->monomialDivide(_monom, e.monom, _multiplier));
           //      stats_n_reducer_divides++;
           R->monomialDivide(_monom, e.monom, _multiplier);
           // stats_n_reducer_sig_compares++;

@@ -69,7 +69,7 @@ private:
   /** Creates a column with monomial label x and schedules a new row to
     reduce that column if possible. Here x is monoA if monoB is
     null and otherwise x is the product of monoA and monoB. */
-  MATHIC_NO_INLINE LeftRightColIndex createColumn
+  MATHICGB_NO_INLINE LeftRightColIndex createColumn
     (QuadMatrixBuilder& builder, const_monomial monoA, const_monomial monoB);
 
   /// Represents the task of adding a row to the matrix. If sPairPoly is null
@@ -97,10 +97,10 @@ private:
     QuadMatrixBuilder& builder
   );
 
-  MATHIC_INLINE LeftRightColIndex findOrCreateColumn
+  MATHICGB_INLINE LeftRightColIndex findOrCreateColumn
     (const_monomial monoA, const_monomial monoB, QuadMatrixBuilder& builder);
 
-  MATHIC_INLINE const std::pair<LeftRightColIndex, LeftRightColIndex>
+  MATHICGB_INLINE const std::pair<LeftRightColIndex, LeftRightColIndex>
   findOrCreateTwoColumns(
     const const_monomial monoA1,
     const const_monomial monoA2,
