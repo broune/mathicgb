@@ -8,6 +8,7 @@
 #include <ostream>
 #include <utility>
 #include <cstdio>
+#include <iterator>
 
 class Poly {
 public:
@@ -29,6 +30,12 @@ public:
     iterator(Poly& f) : monsize(f.getRing()->maxMonomialSize()), ic(f.coeffs.begin()), im(f.monoms.begin()) {}
     iterator(Poly& f,int) : ic(f.coeffs.end()), im() {}
   public:
+    typedef std::random_access_iterator_tag iterator_category;
+    typedef std::pair<coefficient, const const_monomial> value_type;
+    typedef ptrdiff_t difference_type;
+    typedef value_type* pointer; // todo: is this OK?
+    typedef std::pair<coefficient&, const const_monomial> reference;
+
     iterator() {}
     iterator operator++() { ++ic; im += monsize; return *this; }
     coefficient &getCoefficient() const { return *ic; }
@@ -36,7 +43,7 @@ public:
     size_t operator-(const iterator &b) const { return ic - b.ic; }
     friend bool operator==(const iterator &a, const iterator &b);
     friend bool operator!=(const iterator &a, const iterator &b);
-    std::pair<coefficient&, monomial> operator*() const {
+    reference operator*() const {
       return std::pair<coefficient&, monomial>(getCoefficient(), getMonomial());
     }
   };
@@ -51,6 +58,12 @@ public:
     const_iterator(const Poly& f) : monsize(f.getRing()->maxMonomialSize()), ic(f.coeffs.begin()), im(f.monoms.begin()) {}
     const_iterator(const Poly& f,int) : ic(f.coeffs.end()), im() {}
   public:
+    typedef std::random_access_iterator_tag iterator_category;
+    typedef std::pair<const coefficient, const const_monomial> value_type;
+    typedef ptrdiff_t difference_type;
+    typedef value_type* pointer; // todo: is this OK?
+    typedef std::pair<const coefficient&, const const_monomial> reference;
+
     const_iterator() {}
     const_iterator operator++() { ++ic; im += monsize; return *this; }
     coefficient getCoefficient() const { return *ic; }
@@ -58,7 +71,7 @@ public:
     size_t operator-(const const_iterator &b) const { return ic - b.ic; }
     friend bool operator==(const const_iterator &a, const const_iterator &b);
     friend bool operator!=(const const_iterator &a, const const_iterator &b);
-    std::pair<coefficient, const_monomial> operator*() const {
+    const value_type operator*() const {
       return std::pair<coefficient, const_monomial>
         (getCoefficient(), getMonomial());
     }

@@ -100,6 +100,14 @@ private:
   MATHIC_INLINE LeftRightColIndex findOrCreateColumn
     (const_monomial monoA, const_monomial monoB, QuadMatrixBuilder& builder);
 
+  MATHIC_INLINE const std::pair<LeftRightColIndex, LeftRightColIndex>
+  findOrCreateTwoColumns(
+    const const_monomial monoA1,
+    const const_monomial monoA2,
+    const const_monomial monoB,
+    QuadMatrixBuilder& builder
+  );
+
 
   const int mThreadCount;
   monomial mTmp;
