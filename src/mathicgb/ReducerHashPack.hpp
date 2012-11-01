@@ -109,8 +109,8 @@ ReducerHashPack<Q>::~ReducerHashPack()
 template<template<typename> class Q>
 void ReducerHashPack<Q>::insertTail(const_term multiple, const Poly* poly)
 {
-  ASSERT(poly != 0);
-  ASSERT(&poly->ring() == &mRing);
+  MATHICGB_ASSERT(poly != 0);
+  MATHICGB_ASSERT(&poly->ring() == &mRing);
   if (poly->nTerms() < 2)
     return;
   MultipleWithPos* entry =
@@ -122,8 +122,8 @@ void ReducerHashPack<Q>::insertTail(const_term multiple, const Poly* poly)
 template<template<typename> class Q>
 void ReducerHashPack<Q>::insert(monomial multiple, const Poly* poly)
 {
-  ASSERT(poly != 0);
-  ASSERT(&poly->ring() == &mRing);
+  MATHICGB_ASSERT(poly != 0);
+  MATHICGB_ASSERT(&poly->ring() == &mRing);
   if (poly->isZero())
     return;
   term termMultiple(1, multiple);
@@ -183,7 +183,7 @@ bool ReducerHashPack<Q>::leadTerm(const_term& result)
     if (mQueue.empty())
       return false;
     MultipleWithPos* entry = mQueue.top();
-    ASSERT(entry != 0);
+    MATHICGB_ASSERT(entry != 0);
 
     // remove node from hash table first since we are going to be changing
     // the monomial after this, and if we do that before the hash value will
@@ -196,7 +196,7 @@ bool ReducerHashPack<Q>::leadTerm(const_term& result)
     mLeadTerm.coeff = entry->node->coeff;
 
     // remove old monomial from hash table and insert next
-    ASSERT(entry->pos != entry->end);
+    MATHICGB_ASSERT(entry->pos != entry->end);
     while (true) {
       ++entry->pos;
       if (entry->pos == entry->end) {
@@ -236,7 +236,7 @@ void ReducerHashPack<Q>::removeLeadTerm()
 
 template<template<typename> class Q>
 void ReducerHashPack<Q>::insertEntry(MultipleWithPos* entry) {
-  ASSERT(entry != 0);
+  MATHICGB_ASSERT(entry != 0);
   for (; entry->pos != entry->end; ++entry->pos) {
     term t;
     t.monom = entry->current;

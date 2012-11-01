@@ -44,7 +44,7 @@ public:
   }
 
   const_monomial getSigLeadRatio(size_t i) const {
-    ASSERT(i < size());
+    MATHICGB_ASSERT(i < size());
     return sigLeadRatio[i];
   }
 
@@ -58,7 +58,7 @@ public:
   void insert(monomial sig, std::unique_ptr<Poly> f);
 
   const_monomial getSignature(size_t i) const {
-    ASSERT(i < size());
+    MATHICGB_ASSERT(i < size());
     return mSignatures[i];
   }
 
@@ -143,7 +143,7 @@ private:
 
   // may change at next insert!
   size_t ratioRank(size_t index) const {
-    ASSERT(index < size());
+    MATHICGB_ASSERT(index < size());
     return mRatioRanks[index];
   }
 

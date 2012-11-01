@@ -50,8 +50,15 @@ namespace ReducerHelper {
     // The dummy deduplicate function has to be a template since we do not
     // know what type Entry is.
     template<class Entry>
-    Entry deduplicate(Entry a, Entry b) const {ASSERT(false); return a;}
-    bool cmpEqual(bool) const {ASSERT(false); return false;}
+    Entry deduplicate(Entry a, Entry b) const {
+      MATHICGB_ASSERT(false);
+      return a;
+    }
+
+    bool cmpEqual(bool) const {
+      MATHICGB_ASSERT(false);
+      return false;
+    }
   };
 
   // Base class for a configuration with deduplication turned on.

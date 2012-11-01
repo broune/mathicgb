@@ -87,7 +87,7 @@ void ReducerHash<Q>::insertTail(const_term multiplier, const Poly *g1)
 {
   if (g1->nTerms() <= 1) return;
 
-  ASSERT(mNodeCount == mHashTable.getNodeCount());
+  MATHICGB_ASSERT(mNodeCount == mHashTable.getNodeCount());
   PolyHashTable::MonomialArray M;
   mHashTable.insert(multiplier, ++(g1->begin()), g1->end(), M);
 
@@ -100,7 +100,7 @@ void ReducerHash<Q>::insertTail(const_term multiplier, const Poly *g1)
   stats_n_compares += mQueue.getConfiguration().getComparisonCount();
   mQueue.getConfiguration().resetComparisonCount();
 
-  ASSERT(mNodeCount == mHashTable.getNodeCount());
+  MATHICGB_ASSERT(mNodeCount == mHashTable.getNodeCount());
 }
 
 template<template<typename> class Q>
@@ -108,7 +108,7 @@ void ReducerHash<Q>::insert(monomial multiplier, const Poly *g1)
 {
   PolyHashTable::MonomialArray M;
 
-  ASSERT(mNodeCount == mHashTable.getNodeCount());
+  MATHICGB_ASSERT(mNodeCount == mHashTable.getNodeCount());
 
   mHashTable.insert(multiplier, g1->begin(), g1->end(), M);
 
@@ -126,13 +126,13 @@ void ReducerHash<Q>::insert(monomial multiplier, const Poly *g1)
   stats_n_compares += mQueue.getConfiguration().getComparisonCount();
   mQueue.getConfiguration().resetComparisonCount();
 
-  ASSERT(mNodeCount == mHashTable.getNodeCount());
+  MATHICGB_ASSERT(mNodeCount == mHashTable.getNodeCount());
 }
 
 template<template<typename> class Q>
 bool ReducerHash<Q>::leadTerm(const_term &result)
 {
-  ASSERT(mNodeCount == mHashTable.getNodeCount());
+  MATHICGB_ASSERT(mNodeCount == mHashTable.getNodeCount());
   while (!mQueue.empty())
     {
       if (mHashTable.popTerm(mQueue.top(), result.coeff, result.monom))
@@ -151,22 +151,22 @@ void ReducerHash<Q>::removeLeadTerm()
   mQueue.pop();
   mNodeCount--;
 
-  ASSERT(mNodeCount == mHashTable.getNodeCount());
+  MATHICGB_ASSERT(mNodeCount == mHashTable.getNodeCount());
 }
 
 template<template<typename> class Q>
 void ReducerHash<Q>::resetReducer()
 {
-  ASSERT(mNodeCount == mHashTable.getNodeCount());
+  MATHICGB_ASSERT(mNodeCount == mHashTable.getNodeCount());
   const_term t;
   while (leadTerm(t))
     {
       mQueue.pop();
       mNodeCount--;
     }
-  ASSERT(mNodeCount == mHashTable.getNodeCount());
+  MATHICGB_ASSERT(mNodeCount == mHashTable.getNodeCount());
   mHashTable.reset();
-  ASSERT(mNodeCount == mHashTable.getNodeCount());
+  MATHICGB_ASSERT(mNodeCount == mHashTable.getNodeCount());
   // how to reset mQueue ?
 }
 

@@ -124,11 +124,11 @@ SignatureGB::~SignatureGB() {}
 bool SignatureGB::processSPair
   (monomial sig, const SigSPairs::PairContainer& pairs)
 {
-  ASSERT(!pairs.empty());
+  MATHICGB_ASSERT(!pairs.empty());
 
   // the module term to reduce is multiple * GB->getSignature(gen)
   size_t gen = GB->minimalLeadInSig(sig);
-  ASSERT(gen != static_cast<size_t>(-1));
+  MATHICGB_ASSERT(gen != static_cast<size_t>(-1));
   monomial multiple = R->allocMonomial();
   R->monomialDivide(sig, GB->getSignature(gen), multiple);
   GB->basis().usedAsStart(gen);
@@ -139,13 +139,13 @@ bool SignatureGB::processSPair
   R->freeMonomial(multiple);
 
   if (f == 0) { // singular reduction
-    ASSERT(f == 0);
+    MATHICGB_ASSERT(f == 0);
     if (tracingLevel >= 7)
       std::cerr << "singular reduction" << std::endl;
     R->freeMonomial(sig);
     return true;
   }
-  ASSERT(f != 0);
+  MATHICGB_ASSERT(f != 0);
 
   if (f->isZero()) { // reduction to zero
     if (tracingLevel >= 7)
@@ -158,7 +158,7 @@ bool SignatureGB::processSPair
   }
 
   // new basis element
-  ASSERT(!GB->isSingularTopReducible(*f, sig));
+  MATHICGB_ASSERT(!GB->isSingularTopReducible(*f, sig));
   {
     std::unique_ptr<Poly> autoF(f);
     GB->insert(sig, std::move(autoF));
@@ -245,7 +245,7 @@ bool SignatureGB::step()
   for (iter it = mSpairTmp.begin(); it != mSpairTmp.end(); ++it) {
     const_monomial a = GB->getLeadMonomial(it->first);
     const_monomial b = GB->getLeadMonomial(it->second);
-    ASSERT(!R->monomialRelativelyPrime(a, b));
+    MATHICGB_ASSERT(!R->monomialRelativelyPrime(a, b));
   }
 #endif
 
