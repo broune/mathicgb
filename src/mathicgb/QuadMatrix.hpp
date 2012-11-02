@@ -49,6 +49,9 @@ public:
   /// columns and how many non-zero entries in each submatrix.
   void printSizes(std::ostream& out) const;
 
+  size_t memoryUse() const;
+  size_t memoryUseTrimmed() const;
+
   /// Shows whole matrix in a string. Useful for debugging.
   std::string toString() const;
 
