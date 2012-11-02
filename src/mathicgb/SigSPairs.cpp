@@ -35,11 +35,11 @@ SigSPairs::SigSPairs(
 
 SigSPairs::~SigSPairs()
 {
-  ASSERT(mUseBaseDivisors || mUseHighBaseDivisors || mKnownSyzygyTri.empty());
+  MATHICGB_ASSERT(mUseBaseDivisors || mUseHighBaseDivisors || mKnownSyzygyTri.empty());
 }
 
 void SigSPairs::newSyzygy(const_monomial sig) {
-  ASSERT(Hsyz->member(sig));
+  MATHICGB_ASSERT(Hsyz->member(sig));
 }
 
 SigSPairs::Stats SigSPairs::getStats() const
@@ -60,12 +60,12 @@ monomial SigSPairs::popSignature(PairContainer& pairs) {
 
 void SigSPairs::newPairs(size_t newGen)
 {
-  ASSERT(mIndexSigs.empty());
+  MATHICGB_ASSERT(mIndexSigs.empty());
   makePreSPairs(newGen);
   mQueue->pushPairs(newGen, mIndexSigs);
   mIndexSigs.clear();
 
-  ASSERT((!mUseBaseDivisors && !mUseHighBaseDivisors) ||
+  MATHICGB_ASSERT((!mUseBaseDivisors && !mUseHighBaseDivisors) ||
     mKnownSyzygyTri.columnCount() == newGen + 1);
 }
 
@@ -80,8 +80,8 @@ void SigSPairs::setupBaseDivisors(
   if (mUseBaseDivisors || mUseHighBaseDivisors)
     divisors.reserve(MaxBaseDivisors + 1);
 
-  ASSERT(mUseBaseDivisors || mUseHighBaseDivisors);
-  ASSERT(mKnownSyzygyTri.columnCount() == newGenerator);
+  MATHICGB_ASSERT(mUseBaseDivisors || mUseHighBaseDivisors);
+  MATHICGB_ASSERT(mKnownSyzygyTri.columnCount() == newGenerator);
   mKnownSyzygyTri.addColumn();
 
   if (mUseHighBaseDivisors) {
@@ -104,7 +104,7 @@ void SigSPairs::setupBaseDivisors(
 
   std::vector<size_t> divs;
   GB->lowBaseDivisors(divs, MaxBaseDivisors, newGenerator);
-  ASSERT(divs.size() <= MaxBaseDivisors);
+  MATHICGB_ASSERT(divs.size() <= MaxBaseDivisors);
 
   divisors.resize(divs.size());
   for (size_t i = 0; i < divisors.size(); ++i) {
@@ -136,15 +136,15 @@ void SigSPairs::setupBaseDivisors(
     divisor1 = divisors.front();
   if (divisors.size() == 2) {
     divisor2 = divisors.back();
-    ASSERT(GB->ratioCompare
+    MATHICGB_ASSERT(GB->ratioCompare
       (divisor1.ratioLessThan, divisor2.ratioLessThan) != LT);
   }
 }
 
 void SigSPairs::makePreSPairs(size_t newGen)
 {
-  ASSERT(mIndexSigs.empty());
-  ASSERT(newGen < GB->size());
+  MATHICGB_ASSERT(mIndexSigs.empty());
+  MATHICGB_ASSERT(newGen < GB->size());
   mStats.spairsConstructed += newGen;
 
   monomial baseDivisorMonomial = 0;
@@ -188,7 +188,7 @@ void SigSPairs::makePreSPairs(size_t newGen)
       highDivisorCmp != static_cast<size_t>(-1) &&
       GB->ratioCompare(oldGen, highDivisorCmp) == GT &&
       mKnownSyzygyTri.bitUnordered(oldGen, highDivisorCmp)) {
-        ASSERT(oldGen != highDivisorCmp); // otherwise ratios should be equal
+        MATHICGB_ASSERT(oldGen != highDivisorCmp); // otherwise ratios should be equal
         mKnownSyzygyTri.setBit(newGen, oldGen, true);
         ++mStats.highBaseDivisorHits;
         // if DEBUG defined, get to the ASSERT below stating
@@ -230,7 +230,7 @@ void SigSPairs::makePreSPairs(size_t newGen)
     if (cmp == GT)
       R->monomialFindSignature(newLead, oldLead, newSig, pairSig);
     else {
-      ASSERT(cmp == LT);
+      MATHICGB_ASSERT(cmp == LT);
       R->monomialFindSignature(oldLead, newLead, oldSig, pairSig);
     }
 
@@ -249,12 +249,12 @@ void SigSPairs::makePreSPairs(size_t newGen)
         mKnownSyzygyTri.setBit(newGen, oldGen, true);
       continue;
     }
-    ASSERT((!mUseBaseDivisors && !mUseHighBaseDivisors)
+    MATHICGB_ASSERT((!mUseBaseDivisors && !mUseHighBaseDivisors)
       || !mKnownSyzygyTri.bit(newGen, oldGen));
 
     if (!mPostponeKoszuls) {
       // add koszul syzygy to Hsyz.
-      ASSERT(cmp == GT || cmp == LT);
+      MATHICGB_ASSERT(cmp == GT || cmp == LT);
       if (cmp == GT)
         R->monomialMult(newSig, oldLead, hsyz);
       else
@@ -269,7 +269,7 @@ void SigSPairs::makePreSPairs(size_t newGen)
     }
 
     if (mUseSingularCriterionEarly) {
-      ASSERT(cmp == GT || cmp == LT);
+      MATHICGB_ASSERT(cmp == GT || cmp == LT);
       size_t const givesSig = (cmp == GT ? newGen : oldGen);    
       if (GB->ratioCompare(GB->minimalLeadInSig(pairSig), givesSig) == GT &&
           !R->monomialRelativelyPrime(newLead, oldLead)) {
@@ -302,9 +302,9 @@ void SigSPairs::setKnownSyzygies(std::vector<std::pair<size_t, size_t> >& pairs)
 }
 
 void SigSPairs::setKnownSyzygy(size_t gen1, size_t gen2) {
-  ASSERT(gen1 < GB->size());
-  ASSERT(gen2 < GB->size());
-  ASSERT(gen1 != gen2);
+  MATHICGB_ASSERT(gen1 < GB->size());
+  MATHICGB_ASSERT(gen2 < GB->size());
+  MATHICGB_ASSERT(gen1 != gen2);
   if (mUseBaseDivisors || mUseHighBaseDivisors)
     mKnownSyzygyTri.setBitUnordered(gen1, gen2, true);
 }

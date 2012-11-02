@@ -80,7 +80,10 @@ namespace MonomialMapInternal {
       return 0;
     }
 
-    mapped_type* findProduct(const_monomial a, const_monomial b) {
+    MATHICGB_INLINE mapped_type* findProduct(
+      const const_monomial a,
+      const const_monomial b
+    ) {
       const HashValue abHash = mRing.monomialHashOfProduct(a, b);
       Node* node = entry(hashToIndex(abHash));
       for (; node != 0; node = node->next) {
@@ -92,6 +95,25 @@ namespace MonomialMapInternal {
           return &node->value;
       }
       return 0;
+    }
+
+    /// As findProduct but looks for a1*b and a2*b at one time.
+    MATHICGB_INLINE std::pair<mapped_type*, mapped_type*> findTwoProducts(
+      const const_monomial a1,
+      const const_monomial a2,
+      const const_monomial b
+    ) {
+      const HashValue a1bHash = mRing.monomialHashOfProduct(a1, b);
+      const HashValue a2bHash = mRing.monomialHashOfProduct(a2, b);
+      Node* const node1 = entry(hashToIndex(a1bHash));
+      Node* const node2 = entry(hashToIndex(a2bHash));
+
+      if (node1 != 0 && node2 != 0 && mRing.monomialIsTwoProductsOfHintTrue
+        (a1, a2, b, node1->mono, node2->mono)
+      )
+        return std::make_pair(&node1->value, &node2->value);
+      else
+        return std::make_pair(findProduct(a1, b), findProduct(a2, b));
     }
 
     void insert(const value_type& value) {
@@ -126,6 +148,11 @@ namespace MonomialMapInternal {
     }
 
     Node* entry(size_t index) {
+      MATHICGB_ASSERT(index < mTable.size());
+      return mTable[index];
+    }
+
+    const Node* entry(size_t index) const {
       MATHICGB_ASSERT(index < mTable.size());
       return mTable[index];
     }
@@ -340,12 +367,29 @@ public:
     return mMap.findProduct(a, b);
   }
 
+  MATHICGB_INLINE std::pair<mapped_type*, mapped_type*> findTwoProducts(
+    const const_monomial a1,
+    const const_monomial a2,
+    const const_monomial b
+  ) {
+    return mMap.findTwoProducts(a1, a2, b);
+  }
+
   const mapped_type* find(const_monomial m) const {
     return const_cast<MonomialMap&>(*this).find(m);
   }
 
   const mapped_type* findProduct(const_monomial a, const_monomial b) const {
     return const_cast<MonomialMap&>(*this).findProduct(a, b);
+  }
+
+  MATHICGB_INLINE const std::pair<const mapped_type*, const mapped_type*>
+  findTwoProducts(
+    const const_monomial a1,
+    const const_monomial a2,
+    const const_monomial b
+  ) const {
+    return const_cast<MonomialMap&>(*this).findTwoProducts(a1, a2, b);
   }
 
   size_t size() const {return map().size();}

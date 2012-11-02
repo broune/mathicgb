@@ -6,8 +6,16 @@
 #include <mathic.h>
 #include <sstream>
 
-QuadMatrixBuilder::QuadMatrixBuilder(const PolyRing& ring):
-  mMonomialToCol(ring) {}
+QuadMatrixBuilder::QuadMatrixBuilder(
+  const PolyRing& ring,
+  const size_t memoryQuantum
+):
+  mMonomialToCol(ring),
+  mTopLeft(0, memoryQuantum),
+  mTopRight(0, memoryQuantum),
+  mBottomLeft(0, memoryQuantum),
+  mBottomRight(0, memoryQuantum)
+{}
 
 void QuadMatrixBuilder::takeRowsFrom(QuadMatrix&& matrix) {
   MATHICGB_ASSERT(&ring() == matrix.ring);

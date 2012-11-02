@@ -27,8 +27,8 @@ GroebnerBasis::GroebnerBasis(
 
 GroebnerBasis::~GroebnerBasis()
 {
-  ASSERT(mBasis.size() == mSignatures.size());
-  ASSERT(mBasis.size() == sigLeadRatio.size());
+  MATHICGB_ASSERT(mBasis.size() == mSignatures.size());
+  MATHICGB_ASSERT(mBasis.size() == sigLeadRatio.size());
 
   for (size_t i = 0; i < mBasis.size(); i++) {
     if (! mSignatures[i].isNull())
@@ -51,9 +51,9 @@ void GroebnerBasis::addComponent() {
 
 void GroebnerBasis::insert(monomial sig, std::unique_ptr<Poly> f)
 {
-  ASSERT(f.get() != 0);
-  ASSERT(f->getLeadCoefficient() != 0);
-  ASSERT(sig.isNull() || ring().getMonomialPool().fromPool(sig.unsafeGetRepresentation()));
+  MATHICGB_ASSERT(f.get() != 0);
+  MATHICGB_ASSERT(f->getLeadCoefficient() != 0);
+  MATHICGB_ASSERT(sig.isNull() || ring().getMonomialPool().fromPool(sig.unsafeGetRepresentation()));
   const size_t index = mSignatures.size();
 
   mSignatures.push_back(sig);
@@ -61,7 +61,7 @@ void GroebnerBasis::insert(monomial sig, std::unique_ptr<Poly> f)
   monomial ratio = 0;
   if (!sig.isNull()) {
     const size_t component = ring().monomialGetComponent(sig);
-    ASSERT(component < mSignatureLookup.size());
+    MATHICGB_ASSERT(component < mSignatureLookup.size());
     mSignatureLookup[component]->insert(sig, index);
 
     ratio = ring().allocMonomial(ring().getMonomialPool());
@@ -76,10 +76,10 @@ void GroebnerBasis::insert(monomial sig, std::unique_ptr<Poly> f)
     mMinimalDivisorLookup->insert(lead, index);
   }
 
-  ASSERT(mMinimalDivisorLookup->type() == 0 ||
+  MATHICGB_ASSERT(mMinimalDivisorLookup->type() == 0 ||
     mBasis.minimalLeadCount() == mMinimalDivisorLookup->size());
-  ASSERT(mSignatures.size() == index + 1);
-  ASSERT(mBasis.size() == index + 1);
+  MATHICGB_ASSERT(mSignatures.size() == index + 1);
+  MATHICGB_ASSERT(mBasis.size() == index + 1);
   if (!mUseRatioRank || sig.isNull())
     return;
 
@@ -111,7 +111,7 @@ again:
       return;
     }
   }
-  ASSERT(prevRank < nextRank);
+  MATHICGB_ASSERT(prevRank < nextRank);
 
   // this formula avoids the overflow inherent in prevRank + nextRank;
   Rank rank = prevRank + (nextRank - prevRank) / 2;
@@ -125,7 +125,7 @@ again:
     size_t increment = std::numeric_limits<Rank>::max() / (mSignatures.size() + 1);
     if (increment == 0)
       increment = 2;
-    ASSERT(!mRatioSorted.empty());
+    MATHICGB_ASSERT(!mRatioSorted.empty());
     size_t rankSum = increment; // leave a gap at beginning
     Rank prevRank = *mRatioRanks.begin();
     for (RatioSortedType::iterator it = mRatioSorted.begin();
@@ -139,22 +139,22 @@ again:
     }
     goto again;
   }
-  ASSERT(rank > 0);
-  ASSERT(rank < std::numeric_limits<Rank>::max());
-  ASSERT(prevRank + 1 < rank && rank < nextRank - 1);
+  MATHICGB_ASSERT(rank > 0);
+  MATHICGB_ASSERT(rank < std::numeric_limits<Rank>::max());
+  MATHICGB_ASSERT(prevRank + 1 < rank && rank < nextRank - 1);
   mRatioRanks.push_back(rank);
-  ASSERT(mRatioRanks.size() == index + 1);
+  MATHICGB_ASSERT(mRatioRanks.size() == index + 1);
 
 #ifdef DEBUG
     // Check that at least one space has been left between every rank
-    ASSERT(mRatioRanks[*mRatioSorted.begin()] > 0);
-    ASSERT(mRatioRanks[*mRatioSorted.rbegin()] <
+    MATHICGB_ASSERT(mRatioRanks[*mRatioSorted.begin()] > 0);
+    MATHICGB_ASSERT(mRatioRanks[*mRatioSorted.rbegin()] <
       std::numeric_limits<Rank>::max());
     RatioSortedType::iterator it2 = mRatioSorted.begin();
     for (++it2; it2 != mRatioSorted.end(); ++it2) {
       RatioSortedType::iterator prev = it2;
       --prev;
-      ASSERT(mRatioRanks[*it2] == mRatioRanks[*prev] ||
+      MATHICGB_ASSERT(mRatioRanks[*it2] == mRatioRanks[*prev] ||
         mRatioRanks[*it2] - 1 > mRatioRanks[*prev]);
     }
 #endif
@@ -206,7 +206,7 @@ void GroebnerBasis::lowBaseDivisors(
   size_t maxDivisors,
   size_t newGenerator) const
 {
-  ASSERT(newGenerator < size());
+  MATHICGB_ASSERT(newGenerator < size());
   const_monomial sigNew = getSignature(newGenerator);
   const size_t component = ring().monomialGetComponent(sigNew);
   mSignatureLookup[component]->
@@ -214,10 +214,10 @@ void GroebnerBasis::lowBaseDivisors(
 #ifdef DEBUG
   std::vector<size_t> debugValue;
   lowBaseDivisorsSlow(debugValue, maxDivisors, newGenerator);
-  ASSERT(divisors.size() <= maxDivisors);
-  ASSERT(debugValue.size() == divisors.size());
+  MATHICGB_ASSERT(divisors.size() <= maxDivisors);
+  MATHICGB_ASSERT(debugValue.size() == divisors.size());
   for (size_t i = 0; i < divisors.size(); ++i) {
-    ASSERT(ratioCompare(debugValue[i], divisors[i]) == EQ);
+    MATHICGB_ASSERT(ratioCompare(debugValue[i], divisors[i]) == EQ);
   }
 #endif
 }
@@ -227,7 +227,7 @@ void GroebnerBasis::lowBaseDivisorsSlow(
   size_t maxDivisors,
   size_t newGenerator) const
 {
-  ASSERT(newGenerator < size());
+  MATHICGB_ASSERT(newGenerator < size());
 
   divisors.clear();
   divisors.reserve(maxDivisors + 1);
@@ -253,26 +253,26 @@ void GroebnerBasis::lowBaseDivisorsSlow(
     }
     if (divisors.size() > maxDivisors)
       divisors.pop_back();
-    ASSERT(divisors.size() <= maxDivisors);
+    MATHICGB_ASSERT(divisors.size() <= maxDivisors);
   }
-  ASSERT(divisors.size() <= maxDivisors);
+  MATHICGB_ASSERT(divisors.size() <= maxDivisors);
 }
 
 size_t GroebnerBasis::highBaseDivisor(size_t newGenerator) const {
-  ASSERT(newGenerator < size());
+  MATHICGB_ASSERT(newGenerator < size());
   size_t highDivisor = divisorLookup().highBaseDivisor(newGenerator);
 #ifdef DEBUG
   size_t debugValue = highBaseDivisorSlow(newGenerator);
-  ASSERT((highDivisor == static_cast<size_t>(-1)) ==
+  MATHICGB_ASSERT((highDivisor == static_cast<size_t>(-1)) ==
     (debugValue == static_cast<size_t>(-1)));
-  ASSERT(highDivisor == static_cast<size_t>(-1) ||
+  MATHICGB_ASSERT(highDivisor == static_cast<size_t>(-1) ||
     ratioCompare(debugValue, highDivisor) == EQ);
 #endif
   return highDivisor;
 }
 
 size_t GroebnerBasis::highBaseDivisorSlow(size_t newGenerator) const {
-  ASSERT(newGenerator < size());
+  MATHICGB_ASSERT(newGenerator < size());
 
   size_t highDivisor = static_cast<size_t>(-1);
   const_monomial leadNew = getLeadMonomial(newGenerator);
@@ -291,10 +291,10 @@ size_t GroebnerBasis::highBaseDivisorSlow(size_t newGenerator) const {
 }
 
 size_t GroebnerBasis::minimalLeadInSig(const_monomial sig) const {
-  ASSERT(! sig.isNull() );
+  MATHICGB_ASSERT(! sig.isNull() );
   const size_t component = ring().monomialGetComponent(sig);
   const size_t minLeadGen = mSignatureLookup[component]->minimalLeadInSig(sig);
-  ASSERT(minLeadGen == minimalLeadInSigSlow(sig));
+  MATHICGB_ASSERT(minLeadGen == minimalLeadInSigSlow(sig));
   return minLeadGen;
 }
 
@@ -330,7 +330,7 @@ size_t GroebnerBasis::minimalLeadInSigSlow(const_monomial sig) const {
           const const_monomial minSig = getSignature(minLeadGen);
           const const_monomial genSig = getSignature(gen);
           int sigCmp = order().signatureCompare(minSig, genSig);
-          ASSERT(sigCmp != EQ); // no two generators have same signature
+          MATHICGB_ASSERT(sigCmp != EQ); // no two generators have same signature
           if (sigCmp == GT)
             continue;
         }
@@ -347,7 +347,7 @@ size_t GroebnerBasis::minimalLeadInSigSlow(const_monomial sig) const {
 
 bool GroebnerBasis::isSingularTopReducible
   (const Poly& poly, const_monomial sig) const {
-  ASSERT( ! sig.isNull() );
+  MATHICGB_ASSERT( ! sig.isNull() );
   if (poly.isZero())
     return false;
 
@@ -424,7 +424,7 @@ size_t GroebnerBasis::getMemoryUse() const
 }
 
 size_t GroebnerBasis::ratioRank(const_monomial ratio) const {
-  ASSERT(mUseRatioRank);
+  MATHICGB_ASSERT(mUseRatioRank);
   const size_t index = size();
   if (index == 0)
     return 0; // any value will do as there is nothing to compare to
@@ -436,18 +436,18 @@ size_t GroebnerBasis::ratioRank(const_monomial ratio) const {
   sigLeadRatioNonConst.pop_back();
 
   if (pos == mRatioSorted.end()) {
-    ASSERT(ratioRank(*mRatioSorted.rbegin()) <
+    MATHICGB_ASSERT(ratioRank(*mRatioSorted.rbegin()) <
       std::numeric_limits<Rank>::max());
     return std::numeric_limits<Rank>::max();
   } else {
     if (order().signatureCompare(ratio, getSigLeadRatio(*pos)) == EQ)
       return ratioRank(*pos);
-    ASSERT(ratioRank(*pos) > 0);
+    MATHICGB_ASSERT(ratioRank(*pos) > 0);
 #ifdef DEBUG
     if (pos != mRatioSorted.begin()) {
       RatioSortedType::iterator prev = pos;
       --prev;
-      ASSERT(ratioRank(*pos) - 1 > ratioRank(*prev));
+      MATHICGB_ASSERT(ratioRank(*pos) - 1 > ratioRank(*prev));
     }
 #endif
     return ratioRank(*pos) - 1;

@@ -109,13 +109,13 @@ class MonTableDivList {
               size_t minRebuild):
         _finder(C(R, minimizeOnInsert, moveDivisorToFront, sortOnInsert, rebuildRatio, minRebuild))
   {
-    ASSERT(!sortOnInsert || !moveDivisorToFront);
+    MATHICGB_ASSERT(!sortOnInsert || !moveDivisorToFront);
   }
 
   MonTableDivList(const Configuration &C) :
         _finder(C)
   {
-    ASSERT(!C.getSortOnInsert() || !C.getMoveDivisorToFront());
+    MATHICGB_ASSERT(!C.getSortOnInsert() || !C.getMoveDivisorToFront());
   }
 
   const C& getConfiguration() const {return _finder.getConfiguration();}

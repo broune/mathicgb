@@ -29,7 +29,7 @@ class QuadMatrixBuilder {
   typedef SparseMatrix::ColIndex ColIndex;
   typedef SparseMatrix::Scalar Scalar;
 
-  QuadMatrixBuilder(const PolyRing& ring);
+  QuadMatrixBuilder(const PolyRing& ring, size_t memoryQuantum = 0);
 
   /// Inserts the rows from builder. To avoid an assert either the matrix must
   /// have no column monomials specified or the monomials that are specified
@@ -194,14 +194,30 @@ class QuadMatrixBuilder {
       return LeftRightColIndex();
   }
 
-  /// As findColumn, but looks for the monomial that is the product of a and b.
-  LeftRightColIndex findColumnProduct(const_monomial a, const_monomial b) const
-  {
-    auto it = mMonomialToCol.findProduct(a, b);
+  /// As findColumn(), but looks for a*b. This is faster than computing a*b
+  /// and then looking that up.
+  LeftRightColIndex findColumnProduct(
+    const const_monomial a,
+    const const_monomial b
+  ) const {
+    const auto it = mMonomialToCol.findProduct(a, b);
     if (it != 0)
       return *it;
     else
       return LeftRightColIndex();
+  }
+
+  /// As findColumnProduct(), but looks for a1*b and a2*b at the same time.
+  MATHICGB_INLINE std::pair<LeftRightColIndex, LeftRightColIndex>
+  findTwoColumnsProduct(
+    const const_monomial a1,
+    const const_monomial a2,
+    const const_monomial b
+  ) const {
+    const auto it = mMonomialToCol.findTwoProducts(a1, a2, b);
+    return std::make_pair(
+      it.first != 0 ? *it.first : LeftRightColIndex(),
+      it.second != 0 ? *it.second : LeftRightColIndex());
   }
 
   const_monomial monomialOfLeftCol(ColIndex col) const {

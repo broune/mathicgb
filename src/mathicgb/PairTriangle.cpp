@@ -13,7 +13,7 @@ PairTriangle::PairTriangle(const FreeModuleOrder& order, const PolyRing& ring, s
 }
 
 void PairTriangle::beginColumn() {
-  ASSERT(mPrePairs.empty());
+  MATHICGB_ASSERT(mPrePairs.empty());
   size_t const maxBigIndex = std::numeric_limits<BigIndex>::max();
   if (mColumnCount >= maxBigIndex)
     throw std::overflow_error
@@ -21,11 +21,11 @@ void PairTriangle::beginColumn() {
 }
 
 void PairTriangle::addPair(size_t index, monomial orderBy) {
-  ASSERT(index < mColumnCount);
+  MATHICGB_ASSERT(index < mColumnCount);
 #ifdef DEBUG
   monomial tmp = mRing.allocMonomial();
   calculateOrderBy(mColumnCount, index, tmp);
-  ASSERT(mRing.monomialEQ(tmp, orderBy));
+  MATHICGB_ASSERT(mRing.monomialEQ(tmp, orderBy));
   mRing.freeMonomial(tmp);
 #endif
 
@@ -71,7 +71,7 @@ void PairTriangle::endColumn() {
 	(Iter(mPrePairs.begin()), Iter(mPrePairs.end()));
 
   ++mColumnCount;
-  ASSERT(mColumnCount == columnCount());
+  MATHICGB_ASSERT(mColumnCount == columnCount());
   for (std::vector<PreSPair>::iterator it = mPrePairs.begin();
 	   it != mPrePairs.end(); ++it)
     mRing.freeMonomial(it->signature);

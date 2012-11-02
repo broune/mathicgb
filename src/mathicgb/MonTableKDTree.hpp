@@ -36,7 +36,7 @@ class MonTableKDTreeConfiguration {
    _rebuildRatio(rebuildRatio),
    _minRebuild(minRebuild),
    _expQueryCount(0) {
-     ASSERT(rebuildRatio >= 0);
+     MATHICGB_ASSERT(rebuildRatio >= 0);
    }
 
   size_t getVarCount() const {return _varCount;}
@@ -109,13 +109,13 @@ class MonTableKDTree {
                  size_t minRebuild):
         _finder(C(R, minimizeOnInsert, sortOnInsert, useDivisorCache, rebuildRatio, minRebuild))
   {
-    ASSERT(!UseTreeDivMask || UseDivMask);
+    MATHICGB_ASSERT(!UseTreeDivMask || UseDivMask);
   }
 
   MonTableKDTree(const Configuration &C) :
         _finder(C)
   {
-    ASSERT(!UseTreeDivMask || UseDivMask);
+    MATHICGB_ASSERT(!UseTreeDivMask || UseDivMask);
   }
 
   const C& getConfiguration() const {return _finder.getConfiguration();}
@@ -207,13 +207,13 @@ inline bool MonTableKDTree<UDM, UTDM, LS, AR>::insert(const Entry& entry) {
     MonomialDeleter mondelete(getPolyRing()->getMonomialPool());
     _finder.removeMultiples(entry, mondelete);
   } else {
-    ASSERT(findDivisor(entry) == 0);
+    MATHICGB_ASSERT(findDivisor(entry) == 0);
     MonomialDeleter mondelete(getPolyRing()->getMonomialPool());
     // todo: can't do the below ASSERT as KD tree won't allow a
     // removal action when removals are not allowed. So there
     // should be a getMultiples() method that could be
     // used instead.
-    //ASSERT(!_finder.removeMultiples(entry, mondelete));
+    //MATHICGB_ASSERT(!_finder.removeMultiples(entry, mondelete));
   }
   _finder.insert(entry);
   return true;
@@ -232,12 +232,12 @@ insert(const Entry& entry, MultipleOutput& removed) {
       return false;
     _finder.removeMultiples(entry, removed);
   } else {
-    ASSERT(findDivisor(entry) == _finder.end());
+    MATHICGB_ASSERT(findDivisor(entry) == _finder.end());
     // todo: can't do the below ASSERT as KD tree won't allow a
     // removal action when removals are not allowed. So there
     // should be a getMultiples() method that could be
     // used instead.
-    //ASSERT(!_finder.removeMultiples(entry, removed));
+    //MATHICGB_ASSERT(!_finder.removeMultiples(entry, removed));
   }
   _finder.insert(entry);
   return true;

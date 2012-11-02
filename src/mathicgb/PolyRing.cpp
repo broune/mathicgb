@@ -140,10 +140,10 @@ void PolyRing::monomialFindSignature(ConstMonomial v1,
   // t1 := (v2:v1) u1
   *t1 = *u1.mValue;
   if (mTotalDegreeGradedOnly) {
-    ASSERT(mNumWeights == 1);
+    MATHICGB_ASSERT(mNumWeights == 1);
     exponent weight = 0;
     for (size_t i = 1; i <= mNumVars; ++i) {
-      ASSERT(mWeights[i - 1] == -1);
+      MATHICGB_ASSERT(mWeights[i - 1] == -1);
       if (v1[i] < v2[i])
         weight -= t1[i] = u1[i] + v2[i] - v1[i];
       else
@@ -151,7 +151,7 @@ void PolyRing::monomialFindSignature(ConstMonomial v1,
     }
 #ifdef MATHICGB_DEBUG
     setWeightsOnly(t1);
-    ASSERT(t1[mNumVars + 1] == weight);
+    MATHICGB_ASSERT(t1[mNumVars + 1] == weight);
 #endif
     t1[mNumVars + 1] = weight;
   } else {
@@ -493,10 +493,10 @@ void PolyRing::monomialFindSignature(const_monomial v1,
   // t1 := (v2:v1) u1
   *t1 = *u1;
   if (mTotalDegreeGradedOnly) {
-    ASSERT(mNumWeights == 1);
+    MATHICGB_ASSERT(mNumWeights == 1);
     exponent weight = 0;
     for (size_t i = 1; i <= mNumVars; ++i) {
-      ASSERT(mWeights[i - 1] == -1);
+      MATHICGB_ASSERT(mWeights[i - 1] == -1);
       if (v1[i] < v2[i])
         weight -= t1[i] = u1[i] + v2[i] - v1[i];
       else
@@ -504,7 +504,7 @@ void PolyRing::monomialFindSignature(const_monomial v1,
     }
 #ifdef DEBUG
     setWeightsOnly(t1);
-    ASSERT(t1[mNumVars + 1] == weight);
+    MATHICGB_ASSERT(t1[mNumVars + 1] == weight);
 #endif
     t1[mNumVars + 1] = weight;
   } else {

@@ -23,7 +23,7 @@ void BjarkeGeobucket::insertTail(const_term multiplier, const Poly *g1)
 {
   if (g1->nTerms() <= 1) return;
 
-  ASSERT(mNodeCount == H_.getNodeCount());
+  MATHICGB_ASSERT(mNodeCount == H_.getNodeCount());
   HashPoly M;
   H_.insert(multiplier, ++(g1->begin()), g1->end(), M);
 
@@ -37,14 +37,14 @@ void BjarkeGeobucket::insertTail(const_term multiplier, const Poly *g1)
   stats_n_compares += G_.getConfiguration().getComparisons();
   G_.getConfiguration().resetComparisons();
 
-  ASSERT(mNodeCount == H_.getNodeCount());
+  MATHICGB_ASSERT(mNodeCount == H_.getNodeCount());
 }
 
 void BjarkeGeobucket::insert(monomial multiplier, const Poly *g1)
 {
   HashPoly M;
 
-  ASSERT(mNodeCount == H_.getNodeCount());
+  MATHICGB_ASSERT(mNodeCount == H_.getNodeCount());
 
   H_.insert(multiplier, g1->begin(), g1->end(), M);
 
@@ -58,12 +58,12 @@ void BjarkeGeobucket::insert(monomial multiplier, const Poly *g1)
   stats_n_compares += G_.getConfiguration().getComparisons();
   G_.getConfiguration().resetComparisons();
 
-  ASSERT(mNodeCount == H_.getNodeCount());
+  MATHICGB_ASSERT(mNodeCount == H_.getNodeCount());
 }
 
 bool BjarkeGeobucket::findLeadTerm(const_term &result)
 {
-  ASSERT(mNodeCount == H_.getNodeCount());
+  MATHICGB_ASSERT(mNodeCount == H_.getNodeCount());
   while (!G_.empty())
     {
       if (H_.popTerm(G_.top(), result.coeff, result.monom))
@@ -81,7 +81,7 @@ void BjarkeGeobucket::removeLeadTerm()
   G_.pop();
   mNodeCount--;
 
-  ASSERT(mNodeCount == H_.getNodeCount());
+  MATHICGB_ASSERT(mNodeCount == H_.getNodeCount());
 }
 
 void BjarkeGeobucket::value(Poly &result)
@@ -95,22 +95,22 @@ void BjarkeGeobucket::value(Poly &result)
       mNodeCount--;
     }
 
-  ASSERT(mNodeCount == H_.getNodeCount());
+  MATHICGB_ASSERT(mNodeCount == H_.getNodeCount());
   resetReducer();
 }
 
 void BjarkeGeobucket::resetReducer()
 {
-  ASSERT(mNodeCount == H_.getNodeCount());
+  MATHICGB_ASSERT(mNodeCount == H_.getNodeCount());
   const_term t;
   while (findLeadTerm(t))
     {
       G_.pop();
       mNodeCount--;
     }
-  ASSERT(mNodeCount == H_.getNodeCount());
+  MATHICGB_ASSERT(mNodeCount == H_.getNodeCount());
   H_.reset();
-  ASSERT(mNodeCount == H_.getNodeCount());
+  MATHICGB_ASSERT(mNodeCount == H_.getNodeCount());
   // how to reset G_ ?
 }
 

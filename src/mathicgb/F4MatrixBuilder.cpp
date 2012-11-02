@@ -20,10 +20,43 @@ MATHICGB_INLINE QuadMatrixBuilder::LeftRightColIndex
   return createColumn(builder, monoA, monoB);
 }
 
-F4MatrixBuilder::F4MatrixBuilder(const PolyBasis& basis, const int threadCount):
+MATHICGB_INLINE const std::pair<
+  QuadMatrixBuilder::LeftRightColIndex,
+  QuadMatrixBuilder::LeftRightColIndex
+> F4MatrixBuilder::findOrCreateTwoColumns
+(
+  const const_monomial monoA1,
+  const const_monomial monoA2,
+  const const_monomial monoB,
+  QuadMatrixBuilder& builder
+) {
+  MATHICGB_ASSERT(!monoA1.isNull());
+  MATHICGB_ASSERT(!monoA2.isNull());
+  MATHICGB_ASSERT(!monoB.isNull());
+  MATHICGB_ASSERT(!ring().monomialEQ(monoA1, monoA2));
+  auto colPair = builder.findTwoColumnsProduct(monoA1, monoA2, monoB);
+  if (!colPair.first.valid()) {
+    colPair.first = createColumn(builder, monoA1, monoB);
+    // Syncing builder to mBuilder could have created a col for monoA2*monoB.
+    if (&mBuilder != &builder && !colPair.second.valid())
+      colPair.second = builder.findColumnProduct(monoA2, monoB);
+  }
+  if (!colPair.second.valid())
+    colPair.second = createColumn(builder, monoA2, monoB);
+  MATHICGB_ASSERT(colPair == std::make_pair(
+    findOrCreateColumn(monoA1, monoB, builder),
+    findOrCreateColumn(monoA2, monoB, builder)));
+  return colPair;
+}
+
+F4MatrixBuilder::F4MatrixBuilder(
+  const PolyBasis& basis,
+  const int threadCount,
+  const size_t memoryQuantum
+):
   mThreadCount(threadCount),
   mBasis(basis),
-  mBuilder(basis.ring()),
+  mBuilder(basis.ring(), memoryQuantum),
   mTmp(basis.ring().allocMonomial())
 {
   MATHICGB_ASSERT(threadCount >= 1);
@@ -323,12 +356,33 @@ void F4MatrixBuilder::appendRowTop(
   MATHICGB_ASSERT(&poly != 0);
   MATHICGB_ASSERT(&builder != 0);
 
-  const Poly::const_iterator end = poly.end();
-  for (Poly::const_iterator it = poly.begin(); it != end; ++it) {
+  auto it = poly.begin();
+  const auto end = poly.end();
+  if ((std::distance(it, end) % 2) == 1) {
     const auto col = findOrCreateColumn(it.getMonomial(), multiple, builder);
 	MATHICGB_ASSERT(it.getCoefficient() < std::numeric_limits<Scalar>::max());
     MATHICGB_ASSERT(it.getCoefficient());
     builder.appendEntryTop(col, static_cast<Scalar>(it.getCoefficient()));
+    ++it;
+  }
+  MATHICGB_ASSERT((std::distance(it, end) % 2) == 0);
+  while (it != end) {
+	MATHICGB_ASSERT(it.getCoefficient() < std::numeric_limits<Scalar>::max());
+    MATHICGB_ASSERT(it.getCoefficient() != 0);
+    const auto scalar1 = static_cast<Scalar>(it.getCoefficient());
+    const const_monomial mono1 = it.getMonomial();
+    ++it;
+
+	MATHICGB_ASSERT(it.getCoefficient() < std::numeric_limits<Scalar>::max());
+    MATHICGB_ASSERT(it.getCoefficient() != 0);
+    const auto scalar2 = static_cast<Scalar>(it.getCoefficient());
+    const const_monomial mono2 = it.getMonomial();
+    ++it;
+
+    const auto colPair =
+      findOrCreateTwoColumns(mono1, mono2, multiple, builder);
+    builder.appendEntryTop(colPair.first, scalar1);
+    builder.appendEntryTop(colPair.second, scalar2);
   }
   builder.rowDoneTopLeftAndRight();
 }

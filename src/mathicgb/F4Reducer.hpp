@@ -36,6 +36,8 @@ public:
 
   virtual void setThreadCount(int threadCount);
 
+  virtual void setMemoryQuantum(size_t quantum);
+
   virtual std::string description() const;
   virtual size_t getMemoryUse() const;
 
@@ -43,6 +45,7 @@ private:
   std::unique_ptr<Reducer> mFallback;
   const PolyRing& mRing;
   int mThreadCount;
+  size_t mMemoryQuantum;
 };
 
 #endif

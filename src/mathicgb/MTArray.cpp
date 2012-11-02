@@ -63,8 +63,8 @@ bool MTArrayT<MT>::insert(const_monomial m, V val)
 {
   stats_.n_calls_insert++;
   size_t x = R->monomialGetComponent(m);
-  ASSERT(x < tables.size());
-  ASSERT(tables[x] != 0);
+  MATHICGB_ASSERT(x < tables.size());
+  MATHICGB_ASSERT(tables[x] != 0);
   bool result = tables[x]->insert(m, val);
   if (result) stats_.n_actual_inserts++;
   return result;
@@ -75,8 +75,8 @@ bool MTArrayT<MT>::member(const_monomial m, V &result)
 {
   stats_.n_calls_member++;
   size_t x = R->monomialGetComponent(m);
-  ASSERT(x < tables.size());
-  ASSERT(tables[x] != 0);
+  MATHICGB_ASSERT(x < tables.size());
+  MATHICGB_ASSERT(tables[x] != 0);
   return tables[x]->member(m, result);
 }
 
@@ -91,7 +91,7 @@ void MTArrayT<MT>::getStats(Stats &stats) const
   unsigned long long exponentCount = 0;
   for (size_t i=0; i<tables.size(); i++) {
     T *p = tables[i];
-    ASSERT(p != 0);
+    MATHICGB_ASSERT(p != 0);
     monomials.clear();
     p->getMonomials(monomials);
     typedef std::vector<const_monomial>::const_iterator iter;
@@ -115,7 +115,7 @@ void MTArrayT<MT>::display(std::ostream &o, int level) const
   for (size_t i=0; i<tables.size(); i++)
     {
       T *p = tables[i];
-      ASSERT(p != 0);
+      MATHICGB_ASSERT(p != 0);
       if (p->n_elems() == 0)
         continue;
 
@@ -140,9 +140,9 @@ void MTArrayT<MT>::printFrobbyM2Format
 {
   R->printRingFrobbyM2Format(out);
 
-  ASSERT(component < tables.size());
+  MATHICGB_ASSERT(component < tables.size());
   T* p = tables[component];
-  ASSERT(p != 0);
+  MATHICGB_ASSERT(p != 0);
   std::vector<const_monomial> monomials;
   p->getMonomials(monomials);
   std::sort(monomials.begin(), monomials.end(),
@@ -181,7 +181,7 @@ size_t MTArrayT<MT>::getMemoryUse() const
 {
   size_t sum = tables.capacity() * sizeof(tables.front());
   for (size_t i = 0; i < tables.size(); ++i) {
-    ASSERT(tables[i] != 0);
+    MATHICGB_ASSERT(tables[i] != 0);
     sum += sizeof(tables[i]) + tables[i]->getMemoryUse();
   }
   return sum;
