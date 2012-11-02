@@ -103,10 +103,10 @@ void BuchbergerAlg::insertPolys
 void BuchbergerAlg::insertReducedPoly(
   std::unique_ptr<Poly> polyToInsert
 ) {
-  ASSERT(polyToInsert.get() != 0);
+  MATHICGB_ASSERT(polyToInsert.get() != 0);
   if (polyToInsert->isZero())
     return;
-  ASSERT(mBasis.divisor(polyToInsert->getLeadMonomial()) ==
+  MATHICGB_ASSERT(mBasis.divisor(polyToInsert->getLeadMonomial()) ==
     static_cast<size_t>(-1));
 
   if (tracingLevel > 20) {
@@ -182,8 +182,8 @@ void BuchbergerAlg::insertReducedPoly(
       delete *it;
     throw;
   }
-  ASSERT(toReduce.empty());
-  ASSERT(toRetireAndReduce.empty());
+  MATHICGB_ASSERT(toReduce.empty());
+  MATHICGB_ASSERT(toRetireAndReduce.empty());
 }
 
 void BuchbergerAlg::computeGrobnerBasis() {
@@ -217,20 +217,20 @@ void BuchbergerAlg::computeGrobnerBasis() {
 }
 
 void BuchbergerAlg::step() {
-  ASSERT(!mSPairs.empty());
+  MATHICGB_ASSERT(!mSPairs.empty());
   if (tracingLevel > 30)
     std::cerr << "Determining next S-pair" << std::endl;
 
   if (mSPairGroupSize == 0) {
     std::pair<size_t, size_t> p = mSPairs.pop();
     if (p.first == static_cast<size_t>(-1)) {
-      ASSERT(p.second == static_cast<size_t>(-1));
+      MATHICGB_ASSERT(p.second == static_cast<size_t>(-1));
       return; // no more S-pairs
     }
-    ASSERT(p.first != static_cast<size_t>(-1));
-    ASSERT(p.second != static_cast<size_t>(-1));
-    ASSERT(!mBasis.retired(p.first));
-    ASSERT(!mBasis.retired(p.second));
+    MATHICGB_ASSERT(p.first != static_cast<size_t>(-1));
+    MATHICGB_ASSERT(p.second != static_cast<size_t>(-1));
+    MATHICGB_ASSERT(!mBasis.retired(p.first));
+    MATHICGB_ASSERT(!mBasis.retired(p.second));
 
     if (tracingLevel > 20) {
       std::cerr << "Reducing S-pair ("
@@ -252,13 +252,13 @@ void BuchbergerAlg::step() {
       std::pair<size_t, size_t> p;
       p = mSPairs.pop(w);
       if (p.first == static_cast<size_t>(-1)) {
-        ASSERT(p.second == static_cast<size_t>(-1));
+        MATHICGB_ASSERT(p.second == static_cast<size_t>(-1));
         break; // no more S-pairs
       }
-      ASSERT(p.first != static_cast<size_t>(-1));
-      ASSERT(p.second != static_cast<size_t>(-1));
-      ASSERT(!mBasis.retired(p.first));
-      ASSERT(!mBasis.retired(p.second));
+      MATHICGB_ASSERT(p.first != static_cast<size_t>(-1));
+      MATHICGB_ASSERT(p.second != static_cast<size_t>(-1));
+      MATHICGB_ASSERT(!mBasis.retired(p.first));
+      MATHICGB_ASSERT(!mBasis.retired(p.second));
 
       spairGroup.push_back(p);
     }
@@ -284,7 +284,7 @@ void BuchbergerAlg::step() {
 }
 
 void BuchbergerAlg::autoTailReduce() {
-  ASSERT(mUseAutoTailReduction);
+  MATHICGB_ASSERT(mUseAutoTailReduction);
 
   for (size_t i = 0; i < mBasis.size(); ++i) {
     if (mBasis.retired(i))

@@ -416,10 +416,19 @@ public:
   bool monomialIsProductOf
     (ConstMonomial a, ConstMonomial b, ConstMonomial ab) const;
 
-  /**As monomialIsProductOf but optimized for the case that the result
-    is true. */
+  /// As monomialIsProductOf but optimized for the case that the result
+  /// is true.
   bool monomialIsProductOfHintTrue
     (ConstMonomial a, ConstMonomial b, ConstMonomial ab) const;
+
+  /// As monomialIsProductOfHintTwo(), but checks two products are equal.
+  /// The return value is true if a1*b = a1b and a2*b = a2b.
+  MATHICGB_INLINE bool monomialIsTwoProductsOfHintTrue(
+    ConstMonomial a1,
+    ConstMonomial a2,
+    ConstMonomial b,
+    ConstMonomial a1b,
+    ConstMonomial a2b) const;
 
   /// Returns the hash of the product of a and b.
   HashValue monomialHashOfProduct(ConstMonomial a, ConstMonomial b) const {
@@ -670,6 +679,30 @@ inline bool PolyRing::monomialIsProductOfHintTrue(
   MATHICGB_ASSERT((orOfXor == 0) == monomialIsProductOf(a, b, ab));
 
   return orOfXor == 0; 
+}
+
+MATHICGB_INLINE bool PolyRing::monomialIsTwoProductsOfHintTrue(
+  const ConstMonomial a1,
+  const ConstMonomial a2,
+  const ConstMonomial b,
+  const ConstMonomial a1b,
+  const ConstMonomial a2b
+) const {
+  uint64 orOfXor = 0;
+  for (size_t i = mNumVars / 2; i != static_cast<size_t>(-1); --i) {
+    uint64 A1, A2, B, A1B, A2B;
+    std::memcpy(&A1, &a1[i*2], 8);
+    std::memcpy(&A2, &a2[i*2], 8);
+    std::memcpy(&B, &b[i*2], 8);
+    std::memcpy(&A1B, &a1b[i*2], 8);
+    std::memcpy(&A2B, &a2b[i*2], 8);
+    orOfXor |= (A1B ^ (A1 + B)) | (A2B ^ (A2 + B));
+  }
+  MATHICGB_ASSERT((orOfXor == 0) ==
+    monomialIsProductOf(a1, b, a1b) &&
+    monomialIsProductOf(a2, b, a2b));
+
+  return orOfXor == 0;
 }
 
 inline bool PolyRing::monomialIsProductOf(

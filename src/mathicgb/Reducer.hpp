@@ -66,6 +66,10 @@ public:
     reducer supports it. */
   virtual void setThreadCount(int threadCount) = 0;
 
+  /** Sets how many bytes of memory to increase the memory use by
+    at a time - if such a thing is appropriate for the reducer. */
+  virtual void setMemoryQuantum(size_t quantum) = 0;
+
   // ***** Kinds of reducers and creating a Reducer 
 
   enum ReducerType {

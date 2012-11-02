@@ -185,7 +185,7 @@ void ReducerPackDedup<Q>::MultipleWithPos::destroy(const PolyRing& ring) {
     ConstMonomial& monom = const_cast<ConstMonomial&>(entry->multiple.monom);
     ring.freeMonomial(monom.castAwayConst());
     MultipleWithPos* next = entry->chain;
-    ASSERT(next != 0);
+    MATHICGB_ASSERT(next != 0);
 
     // Call the destructor to destruct the iterators into std::vector.
     // In debug mode MSVC puts those in a linked list and the destructor
@@ -226,7 +226,7 @@ bool ReducerPackDedup<Q>::leadTerm(const_term& result)
       } else {
         entry->computeCurrent(mRing);
         // Inserted spans must be in descending order
-        ASSERT(mQueue.getConfiguration().ring().
+        MATHICGB_ASSERT(mQueue.getConfiguration().ring().
           monomialLT(entry->current, mLeadTerm.monom));
         mQueue.decreaseTop(entry);
       }
@@ -234,8 +234,8 @@ bool ReducerPackDedup<Q>::leadTerm(const_term& result)
       // handle any chained elements
       MultipleWithPos* chain = chainBegin;
       while (chain != chainEnd) {
-        ASSERT(chain != 0);
-        ASSERT(mRing.monomialEQ(chain->current, mLeadTerm.monom));
+        MATHICGB_ASSERT(chain != 0);
+        MATHICGB_ASSERT(mRing.monomialEQ(chain->current, mLeadTerm.monom));
 
         MultipleWithPos* const next = chain->chain;
         chain->chain = chain; // detach from remaining chained elements
@@ -248,7 +248,7 @@ bool ReducerPackDedup<Q>::leadTerm(const_term& result)
         } else {
           chain->computeCurrent(mRing);
           // Inserted spans must be in descending order
-          ASSERT(mQueue.getConfiguration().ring().
+          MATHICGB_ASSERT(mQueue.getConfiguration().ring().
             monomialLT(chain->current, mLeadTerm.monom));
           mQueue.push(chain);
         }

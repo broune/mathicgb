@@ -22,7 +22,11 @@ private:
   typedef QuadMatrixBuilder::Scalar Scalar;
 
 public:
-  F4MatrixBuilder(const PolyBasis& basis, int threadCount);
+  /// memoryQuantum is how much to increase the memory size by each time the
+  /// current amount of memory is exhausted. A value of 0 indicates to start
+  /// small and double the quantum at each exhaustion.
+  F4MatrixBuilder
+    (const PolyBasis& basis, int threadCount, size_t memoryQuantum = 0);
 
   /** Schedules a row representing the S-polynomial between polyA and
     polyB to be added to the matrix. No ownership is taken, but polyA
@@ -95,6 +99,14 @@ private:
 
   MATHICGB_INLINE LeftRightColIndex findOrCreateColumn
     (const_monomial monoA, const_monomial monoB, QuadMatrixBuilder& builder);
+
+  MATHICGB_INLINE const std::pair<LeftRightColIndex, LeftRightColIndex>
+  findOrCreateTwoColumns(
+    const const_monomial monoA1,
+    const const_monomial monoA2,
+    const const_monomial monoB,
+    QuadMatrixBuilder& builder
+  );
 
 
   const int mThreadCount;

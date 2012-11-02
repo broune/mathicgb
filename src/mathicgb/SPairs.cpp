@@ -12,7 +12,7 @@ SPairs::SPairs(const PolyBasis& basis, size_t queueType):
 
 std::pair<size_t, size_t> SPairs::pop() {
   // Must call addPairs for new elements before popping.
-  ASSERT(mEliminated.columnCount() == mBasis.size());
+  MATHICGB_ASSERT(mEliminated.columnCount() == mBasis.size());
 
   while (!mTri.empty()) {
     std::pair<size_t, size_t> p;
@@ -22,7 +22,7 @@ std::pair<size_t, size_t> SPairs::pop() {
       continue;
     }
     const_monomial lcm = mTri.topOrderBy();
-    ASSERT(mRing.monomialIsLeastCommonMultiple
+    MATHICGB_ASSERT(mRing.monomialIsLeastCommonMultiple
       (mBasis.leadMonomial(p.first),
       mBasis.leadMonomial(p.second), lcm));
     // Can't pop before done with lcm as popping overwrites lcm.
@@ -38,7 +38,7 @@ std::pair<size_t, size_t> SPairs::pop() {
 
 std::pair<size_t, size_t> SPairs::pop(exponent& w) {
   // Must call addPairs for new elements before popping.
-  ASSERT(mEliminated.columnCount() == mBasis.size());
+  MATHICGB_ASSERT(mEliminated.columnCount() == mBasis.size());
 
   while (!mTri.empty()) {
     std::pair<size_t, size_t> p;
@@ -48,7 +48,7 @@ std::pair<size_t, size_t> SPairs::pop(exponent& w) {
       continue;
     }
     const_monomial lcm = mTri.topOrderBy();
-    ASSERT(mRing.monomialIsLeastCommonMultiple
+    MATHICGB_ASSERT(mRing.monomialIsLeastCommonMultiple
       (mBasis.leadMonomial(p.first),
       mBasis.leadMonomial(p.second), lcm));
     // Can't pop before done with lcm as popping overwrites lcm.
@@ -107,14 +107,14 @@ void SPairs::addPairsAssumeAutoReduce(
   size_t newGen,
   std::vector<size_t>& toRetireAndReduce
 ) {
-  ASSERT(mTri.columnCount() == newGen);
+  MATHICGB_ASSERT(mTri.columnCount() == newGen);
 
-  ASSERT(newGen < mBasis.size());
-  ASSERT(!mBasis.retired(newGen));
+  MATHICGB_ASSERT(newGen < mBasis.size());
+  MATHICGB_ASSERT(!mBasis.retired(newGen));
 
   while (mEliminated.columnCount() < mBasis.size()) {
     if (mUseBuchbergerLcmHitCache) {
-      ASSERT(mEliminated.columnCount() == mBuchbergerLcmHitCache.size());
+      MATHICGB_ASSERT(mEliminated.columnCount() == mBuchbergerLcmHitCache.size());
       mBuchbergerLcmHitCache.push_back(0);
     }
     mEliminated.addColumn();
@@ -130,14 +130,14 @@ void SPairs::addPairs(size_t newGen) {
   // newGen could be implicitly picked up from mTri.columnCount(), but
   // doing it this way ensures that what happens is what the client thinks
   // is happening and offers an ASSERT to inform mistaken client code.
-  ASSERT(mTri.columnCount() == newGen);
+  MATHICGB_ASSERT(mTri.columnCount() == newGen);
 
-  ASSERT(newGen < mBasis.size());
-  ASSERT(!mBasis.retired(newGen));
+  MATHICGB_ASSERT(newGen < mBasis.size());
+  MATHICGB_ASSERT(!mBasis.retired(newGen));
 
   while (mEliminated.columnCount() < mBasis.size()) {
     if (mUseBuchbergerLcmHitCache) {
-      ASSERT(mEliminated.columnCount() == mBuchbergerLcmHitCache.size());
+      MATHICGB_ASSERT(mEliminated.columnCount() == mBuchbergerLcmHitCache.size());
       mBuchbergerLcmHitCache.push_back(0);
     }
     mEliminated.addColumn();
@@ -179,14 +179,14 @@ SPairs::ClassicPairTriangle::ClassicPairTriangle(const PolyBasis& basis, size_t 
 bool SPairs::simpleBuchbergerLcmCriterion
 (size_t a, size_t b, const_monomial lcmAB) const
 {
-  ASSERT(a < mBasis.size());
-  ASSERT(b < mBasis.size());
-  ASSERT(a != b);
-  ASSERT(!mBasis.retired(a));
-  ASSERT(!mBasis.retired(b));
-  ASSERT(mRing.monomialIsLeastCommonMultipleNoWeights
+  MATHICGB_ASSERT(a < mBasis.size());
+  MATHICGB_ASSERT(b < mBasis.size());
+  MATHICGB_ASSERT(a != b);
+  MATHICGB_ASSERT(!mBasis.retired(a));
+  MATHICGB_ASSERT(!mBasis.retired(b));
+  MATHICGB_ASSERT(mRing.monomialIsLeastCommonMultipleNoWeights
          (mBasis.leadMonomial(a), mBasis.leadMonomial(b), lcmAB));
-  ASSERT(mEliminated.columnCount() == mBasis.size());
+  MATHICGB_ASSERT(mEliminated.columnCount() == mBasis.size());
 
   class Criterion : public DivisorLookup::EntryOutput {
   public:
@@ -200,9 +200,9 @@ bool SPairs::simpleBuchbergerLcmCriterion
       mAlmostApplies(false) {}
 
     virtual bool proceed(size_t index) {
-      ASSERT(index < mBasis.size());
-      ASSERT(!applies()); // should have stopped search in this case
-      ASSERT(mRing.monomialIsDivisibleBy(mLcmAB, mBasis.leadMonomial(index)));
+      MATHICGB_ASSERT(index < mBasis.size());
+      MATHICGB_ASSERT(!applies()); // should have stopped search in this case
+      MATHICGB_ASSERT(mRing.monomialIsDivisibleBy(mLcmAB, mBasis.leadMonomial(index)));
       if (index == mA || index == mB)
         return true;
       mAlmostApplies = true;
@@ -289,12 +289,12 @@ bool SPairs::simpleBuchbergerLcmCriterion
           ++mStats.buchbergerLcmCacheHits;
       }
     else {
-      ASSERT(!criterion.applies());
+      MATHICGB_ASSERT(!criterion.applies());
       mBasis.divisorLookup().divisors(criterion.lcmAB(), criterion);
       applies = criterion.applies();
 
       if (mUseBuchbergerLcmHitCache && applies) {
-        ASSERT(criterion.hit() < mBasis.size());
+        MATHICGB_ASSERT(criterion.hit() < mBasis.size());
         mBuchbergerLcmHitCache[a] = criterion.hit();
         mBuchbergerLcmHitCache[b] = criterion.hit();
       }
@@ -311,17 +311,17 @@ bool SPairs::simpleBuchbergerLcmCriterion
         ++mStats.buchbergerLcmSimpleHits;
     }
 
-  ASSERT(applies == simpleBuchbergerLcmCriterionSlow(a, b));
+  MATHICGB_ASSERT(applies == simpleBuchbergerLcmCriterionSlow(a, b));
   return applies;
 }
 
 bool SPairs::simpleBuchbergerLcmCriterionSlow(size_t a, size_t b) const {
-  ASSERT(a < mBasis.size());
-  ASSERT(b < mBasis.size());
-  ASSERT(a != b);
-  ASSERT(!mBasis.retired(a));
-  ASSERT(!mBasis.retired(b));
-  ASSERT(mEliminated.columnCount() == mBasis.size());
+  MATHICGB_ASSERT(a < mBasis.size());
+  MATHICGB_ASSERT(b < mBasis.size());
+  MATHICGB_ASSERT(a != b);
+  MATHICGB_ASSERT(!mBasis.retired(a));
+  MATHICGB_ASSERT(!mBasis.retired(b));
+  MATHICGB_ASSERT(mEliminated.columnCount() == mBasis.size());
 
   // todo: use iterators
   monomial lcmAB = mRing.allocMonomial();
@@ -360,15 +360,15 @@ bool SPairs::simpleBuchbergerLcmCriterionSlow(size_t a, size_t b) const {
 bool SPairs::advancedBuchbergerLcmCriterion
   (size_t a, size_t b, const_monomial lcmAB) const
 {
-  ASSERT(a != b);
-  ASSERT(mEliminated.columnCount() == mBasis.size());
-  ASSERT(mRing.monomialIsLeastCommonMultipleNoWeights
+  MATHICGB_ASSERT(a != b);
+  MATHICGB_ASSERT(mEliminated.columnCount() == mBasis.size());
+  MATHICGB_ASSERT(mRing.monomialIsLeastCommonMultipleNoWeights
     (mBasis.leadMonomial(a), mBasis.leadMonomial(b), lcmAB));
 
   mStats.late = true;
   if (simpleBuchbergerLcmCriterion(a, b, lcmAB)) {
     mStats.late = false;
-    ASSERT(advancedBuchbergerLcmCriterionSlow(a, b));
+    MATHICGB_ASSERT(advancedBuchbergerLcmCriterionSlow(a, b));
     return true;
   }
   mStats.late = false;
@@ -397,7 +397,7 @@ bool SPairs::advancedBuchbergerLcmCriterion
   if (graph.size() <= 3) {
     // For the graph approach to be better than the simpler approach of
     // considering triples, there has to be more than 3 nodes in the graph.
-    ASSERT(!advancedBuchbergerLcmCriterionSlow(a, b));
+    MATHICGB_ASSERT(!advancedBuchbergerLcmCriterionSlow(a, b));
     return false;
   }
 
@@ -422,7 +422,7 @@ bool SPairs::advancedBuchbergerLcmCriterion
   while (!applies && !todo.empty()) {
     size_t const currentIndex = todo.back()->first;
     Connection const currentConnect = todo.back()->second;
-    ASSERT(currentConnect != NotConnected);
+    MATHICGB_ASSERT(currentConnect != NotConnected);
     todo.pop_back();
 
     // loop through all potential edges (currentIndex, otherIndex)
@@ -432,7 +432,7 @@ bool SPairs::advancedBuchbergerLcmCriterion
       if (currentConnect == otherConnect)
         continue;
       size_t const otherIndex = other->first;
-      ASSERT(otherIndex != currentIndex);
+      MATHICGB_ASSERT(otherIndex != currentIndex);
 
       const_monomial const otherLead = mBasis.leadMonomial(otherIndex);
       // Note that
@@ -451,7 +451,7 @@ bool SPairs::advancedBuchbergerLcmCriterion
       } else {
         // At this point we have found an edge between a node connected to
         // a and a node connected to b. So a and b are connected.
-        ASSERT(currentConnect != otherConnect);
+        MATHICGB_ASSERT(currentConnect != otherConnect);
         applies = true;
         break;
       }
@@ -464,13 +464,13 @@ bool SPairs::advancedBuchbergerLcmCriterion
   //  if (graph.size() >= 10)
   //    std::cout << "[adv size=" << graph.size() << " result= " << applies << std::endl;
 
-  ASSERT(applies == advancedBuchbergerLcmCriterionSlow(a, b));
+  MATHICGB_ASSERT(applies == advancedBuchbergerLcmCriterionSlow(a, b));
   return applies;
 }
 
 bool SPairs::advancedBuchbergerLcmCriterionSlow(size_t a, size_t b) const {
-  ASSERT(a != b);
-  ASSERT(mEliminated.columnCount() == mBasis.size());
+  MATHICGB_ASSERT(a != b);
+  MATHICGB_ASSERT(mEliminated.columnCount() == mBasis.size());
 
   monomial lcmAB = mRing.allocMonomial();
   monomial lcm = mRing.allocMonomial();
@@ -505,17 +505,17 @@ bool SPairs::advancedBuchbergerLcmCriterionSlow(size_t a, size_t b) const {
   // since then a and b are connected so that the criterion applies.
   bool applies = false;
   while (!applies && !todo.empty()) {
-    ASSERT(todo.size() <= graph.size());
+    MATHICGB_ASSERT(todo.size() <= graph.size());
     std::pair<size_t, Connection> const node = graph[todo.back()];
     todo.pop_back();
-    ASSERT(node.second != NotConnected);
+    MATHICGB_ASSERT(node.second != NotConnected);
 
     // loop through all potential edges (node.first, i)
     const_monomial leadNode = mBasis.leadMonomial(node.first);
     for (size_t i = 0; i < graph.size(); ++i) {
       if (node.second == graph[i].second)
         continue;
-      ASSERT(graph[i].first != node.first);
+      MATHICGB_ASSERT(graph[i].first != node.first);
       size_t const other = graph[i].first;
 
       const_monomial const leadOther = mBasis.leadMonomial(other);
@@ -529,7 +529,7 @@ bool SPairs::advancedBuchbergerLcmCriterionSlow(size_t a, size_t b) const {
       } else {
         // At this point we have found an edge between something a node to
         // a and a node connected to b. So a and b are connected.
-        ASSERT(graph[i].second != node.second);
+        MATHICGB_ASSERT(graph[i].second != node.second);
         applies = true;
         break;
       }
@@ -538,7 +538,7 @@ bool SPairs::advancedBuchbergerLcmCriterionSlow(size_t a, size_t b) const {
   mRing.freeMonomial(lcmAB);
   mRing.freeMonomial(lcm);
 
-  ASSERT(applies || !simpleBuchbergerLcmCriterionSlow(a, b));
+  MATHICGB_ASSERT(applies || !simpleBuchbergerLcmCriterionSlow(a, b));
   return applies;
 }
 
@@ -557,10 +557,10 @@ bool SPairs::ClassicPairTriangle::calculateOrderBy(
   size_t b,
   monomial orderBy
 ) const {
-  ASSERT(!orderBy.isNull());
-  ASSERT(a != b);
-  ASSERT(a < mBasis.size());
-  ASSERT(b < mBasis.size());
+  MATHICGB_ASSERT(!orderBy.isNull());
+  MATHICGB_ASSERT(a != b);
+  MATHICGB_ASSERT(a < mBasis.size());
+  MATHICGB_ASSERT(b < mBasis.size());
   if (mBasis.retired(a) || mBasis.retired(b))
     return false;
   const_monomial const leadA = mBasis.leadMonomial(a);

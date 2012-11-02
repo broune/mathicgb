@@ -80,7 +80,7 @@ namespace {
 
 	typedef monomial PairData;
 	void computePairData(size_t col, size_t row, monomial sig) {
-      ASSERT(mBasis.ratioCompare(col, row) != EQ);
+      MATHICGB_ASSERT(mBasis.ratioCompare(col, row) != EQ);
       // ensure that ratio(col) > ratio(row)
       if (mBasis.ratioCompare(col, row) == LT)
         std::swap(col, row);
@@ -133,11 +133,11 @@ namespace {
 #ifdef DEBUG
       monomial tmp = ring().allocMonomial();
       for (size_t i = 0; i < pairs.size(); ++i) {
-        ASSERT(pairs[i].i < columnCount());
+        MATHICGB_ASSERT(pairs[i].i < columnCount());
         mPairQueue.configuration().computePairData
           (columnCount(), pairs[i].i, tmp);
         comparer().unscrambleSignature(tmp);
-        ASSERT(ring().monomialEQ(tmp, pairs[i].signature));
+        MATHICGB_ASSERT(ring().monomialEQ(tmp, pairs[i].signature));
       }
       ring().freeMonomial(tmp);
 #endif
@@ -503,7 +503,7 @@ public:
     monomial unscrambled = mRing->allocMonomial();
     mRing->monomialCopy(sig, unscrambled);
     unscrambleSignature(unscrambled);
-    ASSERT(mRing->monomialEQ(original, unscrambled));
+    MATHICGB_ASSERT(mRing->monomialEQ(original, unscrambled));
     mRing->freeMonomial(original);
     mRing->freeMonomial(unscrambled);
 #endif

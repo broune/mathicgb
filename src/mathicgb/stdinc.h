@@ -105,9 +105,6 @@
 #define MATHICGB_ASSERT_NO_ASSUME(X)
 #define MATHICGB_IF_DEBUG(X)
 #endif
-// todo: eventually move all ASSERTs to MATHICGB_ASSERTs and then remove
-// ASSERT.
-#define ASSERT(X) MATHICGB_ASSERT(X)
 
 #ifdef MATHICGB_SLOW_DEBUG
 // for asserts that take a long time.

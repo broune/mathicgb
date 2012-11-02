@@ -39,7 +39,10 @@ public:
 
   static const bool supportDeduplication = Deduplicate;
   bool cmpEqual(CompareResult r) const {return r;} // NOT USED IN OUR CASE HERRE!
-  Entry deduplicate(const Entry& a, const Entry& /* b */) const {ASSERT(false); return a;}
+  Entry deduplicate(const Entry& a, const Entry& /* b */) const {
+    MATHICGB_ASSERT(false);
+    return a;
+  }
 
   size_t getComparisons() const {return _comparisons;}
   void resetComparisons() const {_comparisons = 0;}

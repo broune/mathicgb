@@ -13,7 +13,7 @@ PolyBasis::PolyBasis(
   mOrder(order),
   mDivisorLookup(std::move(divisorLookup))
 {
-  ASSERT(mDivisorLookup.get() != 0);
+  MATHICGB_ASSERT(mDivisorLookup.get() != 0);
   mDivisorLookup->setBasis(*this);
 }
 
@@ -22,7 +22,7 @@ PolyBasis::~PolyBasis() {
   for (EntryIter it = mEntries.begin(); it != stop; ++it) {
     if (it->retired)
       continue;
-    ASSERT(it->poly != 0);
+    MATHICGB_ASSERT(it->poly != 0);
     delete it->poly;
   }
 }
@@ -53,7 +53,7 @@ void PolyBasis::insert(std::unique_ptr<Poly> poly) {
   for (EntryIter it = mEntries.begin(); it != stop; ++it) {
     if (it->retired)
       continue;
-    ASSERT(!ring().monomialEQ(lead, it->poly->getLeadMonomial()));
+    MATHICGB_ASSERT(!ring().monomialEQ(lead, it->poly->getLeadMonomial()));
   }
 #endif
 
@@ -64,7 +64,7 @@ void PolyBasis::insert(std::unique_ptr<Poly> poly) {
     public:
       MultipleOutput(EntryCont& entries): mEntries(entries) {}
       virtual bool proceed(size_t index) {
-        ASSERT(index < mEntries.size());
+        MATHICGB_ASSERT(index < mEntries.size());
         mEntries[index].leadMinimal = false;
         return true;
       }
@@ -89,9 +89,9 @@ void PolyBasis::insert(std::unique_ptr<Poly> poly) {
 
 size_t PolyBasis::divisor(const_monomial mon) const {
   size_t index = divisorLookup().divisor(mon);
-  ASSERT((index == static_cast<size_t>(-1)) ==
+  MATHICGB_ASSERT((index == static_cast<size_t>(-1)) ==
     (divisorSlow(mon) == static_cast<size_t>(-1)));
-  ASSERT(index == static_cast<size_t>(-1) ||
+  MATHICGB_ASSERT(index == static_cast<size_t>(-1) ||
     ring().monomialIsDivisibleBy(mon, leadMonomial(index)));
   return index;
 }
@@ -105,8 +105,8 @@ size_t PolyBasis::divisorSlow(const_monomial mon) const {
 }
 
 bool PolyBasis::leadMinimalSlow(size_t index) const {
-  ASSERT(index < size());
-  ASSERT(!retired(index));
+  MATHICGB_ASSERT(index < size());
+  MATHICGB_ASSERT(!retired(index));
   const_monomial const lead = leadMonomial(index);
   EntryCIter const skip = mEntries.begin() + index;
   EntryCIter const stop = mEntries.end();
@@ -158,9 +158,9 @@ size_t PolyBasis::getMemoryUse() const {
 }
 
 bool PolyBasis::buchbergerLcmCriterion(size_t a, size_t b) const {
-  ASSERT(a != b);
-  ASSERT(!retired(a));
-  ASSERT(!retired(b));
+  MATHICGB_ASSERT(a != b);
+  MATHICGB_ASSERT(!retired(a));
+  MATHICGB_ASSERT(!retired(b));
   // We don't need to set the weights on the lcm since we will only use it
   // for testing divisibility, not for determining order.
   monomial lcmAB = mRing.allocMonomial();
@@ -174,10 +174,10 @@ bool PolyBasis::buchbergerLcmCriterion(size_t a, size_t b) const {
 bool PolyBasis::buchbergerLcmCriterion
   (size_t a, size_t b, const_monomial lcmAB) const
 {
-  ASSERT(a != b);
-  ASSERT(!retired(a));
-  ASSERT(!retired(b));
-  ASSERT(mRing.monomialIsLeastCommonMultipleNoWeights
+  MATHICGB_ASSERT(a != b);
+  MATHICGB_ASSERT(!retired(a));
+  MATHICGB_ASSERT(!retired(b));
+  MATHICGB_ASSERT(mRing.monomialIsLeastCommonMultipleNoWeights
     (leadMonomial(a), leadMonomial(b), lcmAB));
 
   class Criterion : public DivisorLookup::EntryOutput {
@@ -191,9 +191,10 @@ bool PolyBasis::buchbergerLcmCriterion
       mAlmostApplies(false) {}
 
     virtual bool proceed(size_t index) {
-      ASSERT(index < mBasis.size());
-      ASSERT(!applies()); // should have stopped search in this case
-      ASSERT(mRing.monomialIsDivisibleBy(mLcmAB, mBasis.leadMonomial(index)));
+      MATHICGB_ASSERT(index < mBasis.size());
+      MATHICGB_ASSERT(!applies()); // should have stopped search in this case
+      MATHICGB_ASSERT(
+        mRing.monomialIsDivisibleBy(mLcmAB, mBasis.leadMonomial(index)));
       if (!mBasis.leadMinimal(index))
         return true;
       if (index == mA || index == mB)
@@ -279,12 +280,12 @@ bool PolyBasis::buchbergerLcmCriterion
     if (applies)
       ++mStats.buchbergerLcmCacheHits;
     else {
-      ASSERT(!criterion.applies());
+      MATHICGB_ASSERT(!criterion.applies());
       mDivisorLookup->divisors(criterion.lcmAB(), criterion);
       applies = criterion.applies();
 
       if (mUseBuchbergerLcmHitCache && applies) {
-        ASSERT(criterion.hit() < size());
+        MATHICGB_ASSERT(criterion.hit() < size());
         mBuchbergerLcmHitCache[a] = criterion.hit();
         mBuchbergerLcmHitCache[b] = criterion.hit();
       }
@@ -298,14 +299,14 @@ bool PolyBasis::buchbergerLcmCriterion
   else if (almostApplies)
     ++mStats.buchbergerLcmNearHits;
 
-  ASSERT(applies == buchbergerLcmCriterionSlow(a, b));
+  MATHICGB_ASSERT(applies == buchbergerLcmCriterionSlow(a, b));
   return applies;
 }
 
 bool PolyBasis::buchbergerLcmCriterionSlow(size_t a, size_t b) const {
-  ASSERT(a != b);
-  ASSERT(!retired(a));
-  ASSERT(!retired(b));
+  MATHICGB_ASSERT(a != b);
+  MATHICGB_ASSERT(!retired(a));
+  MATHICGB_ASSERT(!retired(b));
 
   monomial lcmAB = ring().allocMonomial();
   monomial lcm = ring().allocMonomial();

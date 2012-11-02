@@ -11,7 +11,8 @@ F4Reducer::F4Reducer(
 ):
   mFallback(std::move(fallback)),
   mRing(ring),
-  mThreadCount(1) {
+  mThreadCount(1),
+  mMemoryQuantum(0) {
 }
 
 std::unique_ptr<Poly> F4Reducer::classicReduce
@@ -102,7 +103,7 @@ void F4Reducer::classicReduceSPolySet
   {
     QuadMatrix qm;
     {
-      F4MatrixBuilder builder(basis, mThreadCount);
+      F4MatrixBuilder builder(basis, mThreadCount, mMemoryQuantum);
       for (auto it = spairs.begin(); it != spairs.end(); ++it) {
         builder.addSPolynomialToMatrix
           (basis.poly(it->first), basis.poly(it->second));
@@ -157,7 +158,7 @@ void F4Reducer::classicReducePolySet
   {
     QuadMatrix qm;
     {
-      F4MatrixBuilder builder(basis, mThreadCount);
+      F4MatrixBuilder builder(basis, mThreadCount, mMemoryQuantum);
       for (auto it = polys.begin(); it != polys.end(); ++it)
         builder.addPolynomialToMatrix(**it);
       builder.buildMatrixAndClear(qm);
@@ -198,6 +199,10 @@ Poly* F4Reducer::regularReduce
 
 void F4Reducer::setThreadCount(int threadCount) {
   mThreadCount = threadCount;
+}
+
+void F4Reducer::setMemoryQuantum(size_t quantum) {
+  mMemoryQuantum = quantum;
 }
 
 std::string F4Reducer::description() const {
