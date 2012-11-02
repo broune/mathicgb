@@ -64,6 +64,16 @@ std::string QuadMatrix::toString() const {
   return out.str();
 }
 
+size_t QuadMatrix::memoryUse() const {
+  return topLeft.memoryUse() + topRight.memoryUse() +
+	bottomLeft.memoryUse() + bottomRight.memoryUse();
+}
+
+size_t QuadMatrix::memoryUseTrimmed() const {
+  return topLeft.memoryUseTrimmed() + topRight.memoryUseTrimmed() +
+	bottomLeft.memoryUseTrimmed() + bottomRight.memoryUseTrimmed();
+}
+
 void QuadMatrix::printSizes(std::ostream& out) const {
   typedef mathic::ColumnPrinter ColPr;
 
@@ -71,40 +81,52 @@ void QuadMatrix::printSizes(std::ostream& out) const {
   pr.addColumn(false, " ", "");
   pr.addColumn(false, "", "");
   pr.addColumn(false, "", "");
-  //pr.addColumn(false, " ", "");
-  const char* const line = "-------------------";
+  const char* const line = "----------";
 
   pr[0] << '\n';
   pr[1] << ColPr::commafy(topLeft.colCount()) << "  \n";
-  pr[2] << ColPr::commafy(topRight.colCount()) << "   \n";
-  //pr[3] << '\n';
+  pr[2] << ColPr::commafy(topRight.colCount()) << "  \n";
 
-  pr[0] << '\n';
-  pr[1] << "/"  << line << "|\n";
-  pr[2] << line << "\\ \n";
-  //pr[3] << '\n';
+  pr[0] << "/\n";
+  pr[1] << line << "|\n";
+  pr[2] << line << "\\\n";
 
   pr[0] << ColPr::commafy(topLeft.rowCount()) << " |\n";
   pr[1] << ColPr::commafy(topLeft.entryCount()) << " |\n";
   pr[2] << ColPr::commafy(topRight.entryCount()) << " |\n";
-  //pr[3] << "| " << ColPr::commafy(topRight.rowCount()) << '\n';
 
   pr[0] << "|\n";
-  pr[1] << '-' << line << "|\n";
-  pr[2] << line << "-|\n";
-  //pr[3] << "|\n";
+  pr[1] << ColPr::bytesInUnit(topLeft.memoryUse()) << " |\n";
+  pr[2] << ColPr::bytesInUnit(topRight.memoryUse()) << " |\n";
+
+  pr[0] << "|\n";
+  pr[1] << ColPr::percent(topLeft.memoryUse(), memoryUse()) << " |\n";
+  pr[2] << ColPr::percent(topRight.memoryUse(), memoryUse()) << " |\n";
+
+  pr[0] << "|\n";
+  pr[1] << line << "|\n";
+  pr[2] << line << "|\n";
 
   pr[0] << ColPr::commafy(bottomLeft.rowCount()) << " |\n";
   pr[1] << ColPr::commafy(bottomLeft.entryCount()) << " |\n";
   pr[2] << ColPr::commafy(bottomRight.entryCount()) << " |\n";
-  //pr[3] << "| " << ColPr::commafy(bottomRight.rowCount());
 
-  pr[0] << '\n';
-  pr[1] << "\\"  << line << "|\n";
-  pr[2] << line << "/ \n";
-  //pr[3] << '\n';
+  pr[0] << "|\n";
+  pr[1] << ColPr::bytesInUnit(bottomLeft.memoryUse()) << " |\n";
+  pr[2] << ColPr::bytesInUnit(bottomRight.memoryUse()) << " |\n";
 
-  out << '\n' << pr;
+  pr[0] << "|\n";
+  pr[1] << ColPr::percent(bottomLeft.memoryUse(), memoryUse()) << " |\n";
+  pr[2] << ColPr::percent(bottomRight.memoryUse(), memoryUse()) << " |\n";
+
+  pr[0] << "\\\n";
+  pr[1] << line << "|\n";
+  pr[2] << line << "/\n";
+
+  out << '\n' << pr
+	  << "Total memory: " << memoryUse() << "  ("
+	  << ColPr::percent(memoryUseTrimmed(), memoryUse())
+	  << " written to)\n";
 }
 
 QuadMatrix QuadMatrix::toCanonical() const {

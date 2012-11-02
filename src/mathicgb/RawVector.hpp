@@ -163,6 +163,14 @@ public:
     return *(mEnd - 1);
   }
 
+  size_t memoryUse() const {
+    return capacity() * sizeof(value_type);
+  }
+
+  size_t memoryUseTrimmed() const {
+    return size() * sizeof(value_type);
+  }
+
   /// There must be enough capacity for the new size.
   template<class Iter>
   void rawAssign(Iter begin, Iter end) {

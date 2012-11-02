@@ -91,6 +91,11 @@ public:
     return count;
   }
 
+  /// Returns the number of bytes of memory allocated by this object. Is not
+  /// constant time so avoid calling too many times.
+  size_t memoryUse() const;
+  size_t memoryUseTrimmed() const;
+
    /// Returns the number of entries in the given row.
   ColIndex entryCountInRow(RowIndex row) const {
     MATHICGB_ASSERT(row < rowCount());
@@ -325,6 +330,9 @@ private:
       return *this;
     }
 
+    size_t memoryUse() const;
+    size_t memoryUseTrimmed() const;
+
     /// We need a RawVector here to tie the checks for the need to reallocate
     /// together between mColIndices and mEntries. We only need to check
     /// the capacity once, which, believe it or not, is a significant performance
@@ -345,6 +353,5 @@ inline void swap(SparseMatrix& a, SparseMatrix& b) {
 }
 
 std::ostream& operator<<(std::ostream& out, const SparseMatrix& matrix);
-
 
 #endif

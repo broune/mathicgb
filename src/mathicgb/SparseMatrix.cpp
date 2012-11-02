@@ -326,6 +326,28 @@ void SparseMatrix::growEntryCapacity() {
   MATHICGB_ASSERT(mBlock.mScalars.capacity() == blockSize + pendingCount);
 }
 
+size_t SparseMatrix::memoryUse() const {
+  size_t count = 0;
+  for (auto block = &mBlock; block != 0; block = block->mPreviousBlock)
+    count += block->memoryUse() + sizeof(Block);
+  return count;
+}
+
+size_t SparseMatrix::memoryUseTrimmed() const {
+  size_t count = 0;
+  for (auto block = &mBlock; block != 0; block = block->mPreviousBlock)
+    count += block->memoryUseTrimmed() + sizeof(Block);
+  return count;
+}
+
+size_t SparseMatrix::Block::memoryUse() const {
+  return mColIndices.memoryUse() + mScalars.memoryUse();
+}
+
+size_t SparseMatrix::Block::memoryUseTrimmed() const {
+  return mColIndices.memoryUseTrimmed() + mScalars.memoryUseTrimmed();
+}
+
 std::ostream& operator<<(std::ostream& out, const SparseMatrix& matrix) {
   matrix.print(out);
   return out;
