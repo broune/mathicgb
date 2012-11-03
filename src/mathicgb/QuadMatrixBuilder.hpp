@@ -183,6 +183,12 @@ class QuadMatrixBuilder {
 
   // *** Querying columns
 
+  typedef const MonomialMap<LeftRightColIndex>::SnapshotReader
+    ColSnapshotReader;
+  const MonomialMap<LeftRightColIndex>& columnToIndexMap() const {
+    return mMonomialToCol;
+  }
+
   /** Returns a column for the findThis monomial. Searches on both the
     left and right side. Returns an invalid index if no such column
     exists. */
