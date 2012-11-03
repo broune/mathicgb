@@ -66,6 +66,8 @@ public:
   const PolyRing& ring() const {return mBuilder.ring();}
 
 private:
+  typedef const QuadMatrixBuilder::ColSnapshotReader ColSnapshotReader;
+
   /** Creates a column with monomial label x and schedules a new row to
     reduce that column if possible. Here x is monoA if monoB is
     null and otherwise x is the product of monoA and monoB. */
@@ -97,17 +99,29 @@ private:
     QuadMatrixBuilder& builder
   );
 
-  MATHICGB_INLINE LeftRightColIndex findOrCreateColumn
+  MATHICGB_NO_INLINE LeftRightColIndex findOrCreateColumn
     (const_monomial monoA, const_monomial monoB, QuadMatrixBuilder& builder);
+  MATHICGB_INLINE LeftRightColIndex findOrCreateColumn(
+    const_monomial monoA,
+    const_monomial monoB,
+    const ColSnapshotReader& colMap,
+    QuadMatrixBuilder& builder);
 
-  MATHICGB_INLINE const std::pair<LeftRightColIndex, LeftRightColIndex>
+  MATHICGB_NO_INLINE const std::pair<LeftRightColIndex, LeftRightColIndex>
   findOrCreateTwoColumns(
     const const_monomial monoA1,
     const const_monomial monoA2,
     const const_monomial monoB,
     QuadMatrixBuilder& builder
   );
-
+  MATHICGB_INLINE const std::pair<LeftRightColIndex, LeftRightColIndex>
+  findOrCreateTwoColumns(
+    const const_monomial monoA1,
+    const const_monomial monoA2,
+    const const_monomial monoB,
+    const ColSnapshotReader& colMap,
+    QuadMatrixBuilder& builder
+  );
 
   const int mThreadCount;
   monomial mTmp;

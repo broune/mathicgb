@@ -5,7 +5,7 @@
 #include <omp.h>
 #endif
 
-MATHICGB_INLINE QuadMatrixBuilder::LeftRightColIndex
+MATHICGB_NO_INLINE QuadMatrixBuilder::LeftRightColIndex
   F4MatrixBuilder::findOrCreateColumn
 (
   const const_monomial monoA,
@@ -20,7 +20,23 @@ MATHICGB_INLINE QuadMatrixBuilder::LeftRightColIndex
   return createColumn(builder, monoA, monoB);
 }
 
-MATHICGB_INLINE const std::pair<
+MATHICGB_INLINE QuadMatrixBuilder::LeftRightColIndex
+  F4MatrixBuilder::findOrCreateColumn
+(
+  const const_monomial monoA,
+  const const_monomial monoB,
+  const ColSnapshotReader& colMap,
+  QuadMatrixBuilder& builder
+) {
+  MATHICGB_ASSERT(!monoA.isNull());
+  MATHICGB_ASSERT(!monoB.isNull());
+  const auto col = colMap.findProduct(monoA, monoB);
+  if (col == 0)
+    return createColumn(builder, monoA, monoB);
+  return *col;
+}
+
+MATHICGB_NO_INLINE const std::pair<
   QuadMatrixBuilder::LeftRightColIndex,
   QuadMatrixBuilder::LeftRightColIndex
 > F4MatrixBuilder::findOrCreateTwoColumns
@@ -47,6 +63,27 @@ MATHICGB_INLINE const std::pair<
     findOrCreateColumn(monoA1, monoB, builder),
     findOrCreateColumn(monoA2, monoB, builder)));
   return colPair;
+}
+
+MATHICGB_INLINE const std::pair<
+  QuadMatrixBuilder::LeftRightColIndex,
+  QuadMatrixBuilder::LeftRightColIndex
+> F4MatrixBuilder::findOrCreateTwoColumns
+(
+  const const_monomial monoA1,
+  const const_monomial monoA2,
+  const const_monomial monoB,
+  const ColSnapshotReader& colMap,
+  QuadMatrixBuilder& builder
+) {
+  MATHICGB_ASSERT(!monoA1.isNull());
+  MATHICGB_ASSERT(!monoA2.isNull());
+  MATHICGB_ASSERT(!monoB.isNull());
+  MATHICGB_ASSERT(!ring().monomialEQ(monoA1, monoA2));
+  auto colPair = colMap.findTwoProducts(monoA1, monoA2, monoB);
+  if (colPair.first == 0 || colPair.second == 0)
+    return findOrCreateTwoColumns(monoA1, monoA2, monoB, builder);
+  return std::make_pair(*colPair.first, *colPair.second);
 }
 
 F4MatrixBuilder::F4MatrixBuilder(
@@ -334,9 +371,10 @@ void F4MatrixBuilder::appendRowBottom(
   // todo: eliminate the code-duplication between here and appendRowTop.
   MATHICGB_ASSERT(!multiple.isNull());
   MATHICGB_ASSERT(&builder != 0);
+  const ColSnapshotReader colMap(builder.columnToIndexMap());
 
   for (auto it  = begin; it != end; ++it) {
-    const auto col = findOrCreateColumn(it.getMonomial(), multiple, builder);
+    const auto col = findOrCreateColumn(it.getMonomial(), multiple, colMap, builder);
     const auto origScalar = it.getCoefficient();
     MATHICGB_ASSERT(origScalar != 0);
     const auto possiblyNegated =
@@ -356,10 +394,12 @@ void F4MatrixBuilder::appendRowTop(
   MATHICGB_ASSERT(&poly != 0);
   MATHICGB_ASSERT(&builder != 0);
 
+  QuadMatrixBuilder::ColSnapshotReader colMap(builder.columnToIndexMap());
+
   auto it = poly.begin();
   const auto end = poly.end();
   if ((std::distance(it, end) % 2) == 1) {
-    const auto col = findOrCreateColumn(it.getMonomial(), multiple, builder);
+    const auto col = findOrCreateColumn(it.getMonomial(), multiple, colMap, builder);
 	MATHICGB_ASSERT(it.getCoefficient() < std::numeric_limits<Scalar>::max());
     MATHICGB_ASSERT(it.getCoefficient());
     builder.appendEntryTop(col, static_cast<Scalar>(it.getCoefficient()));
@@ -380,7 +420,7 @@ void F4MatrixBuilder::appendRowTop(
     ++it;
 
     const auto colPair =
-      findOrCreateTwoColumns(mono1, mono2, multiple, builder);
+      findOrCreateTwoColumns(mono1, mono2, multiple, colMap, builder);
     builder.appendEntryTop(colPair.first, scalar1);
     builder.appendEntryTop(colPair.second, scalar2);
   }
@@ -414,6 +454,8 @@ void F4MatrixBuilder::appendRowBottom(
   ++itA;
   ++itB;
 
+  const ColSnapshotReader colMap(builder.columnToIndexMap());
+
   const const_monomial mulA = task.multiply;
   const const_monomial mulB = task.sPairMultiply;
   while (true) {
@@ -431,8 +473,8 @@ void F4MatrixBuilder::appendRowBottom(
 
     coefficient coeff = 0;
     LeftRightColIndex col;
-    const auto colA = findOrCreateColumn(itA.getMonomial(), mulA, builder);
-    const auto colB = findOrCreateColumn(itB.getMonomial(), mulB, builder);
+    const auto colA = findOrCreateColumn(itA.getMonomial(), mulA, colMap, builder);
+    const auto colB = findOrCreateColumn(itB.getMonomial(), mulB, colMap, builder);
     const auto cmp = ring().monomialCompare
       (builder.monomialOfCol(colA), builder.monomialOfCol(colB));
     if (cmp != LT) {

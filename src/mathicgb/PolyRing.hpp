@@ -699,8 +699,7 @@ MATHICGB_INLINE bool PolyRing::monomialIsTwoProductsOfHintTrue(
     orOfXor |= (A1B ^ (A1 + B)) | (A2B ^ (A2 + B));
   }
   MATHICGB_ASSERT((orOfXor == 0) ==
-    monomialIsProductOf(a1, b, a1b) &&
-    monomialIsProductOf(a2, b, a2b));
+    (monomialIsProductOf(a1, b, a1b) && monomialIsProductOf(a2, b, a2b)));
 
   return orOfXor == 0;
 }
