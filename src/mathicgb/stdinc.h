@@ -215,6 +215,10 @@ class A7, class A8, class A9, class A10>
            std::forward<A9>(a9), std::forward<A9>(a10)));
 }
 
+template<class T>
+std::unique_ptr<T[]> make_unique_array(size_t count) {
+  return std::unique_ptr<T[]>(new T[count]);
+}
 
 // TODO: These types should be defined in some way that actually
 // checks that these bit counts are right like in a configure script.
