@@ -66,7 +66,7 @@ public:
   const PolyRing& ring() const {return mBuilder.ring();}
 
 private:
-  typedef const QuadMatrixBuilder::ColSnapshotReader ColSnapshotReader;
+  typedef const QuadMatrixBuilder::ColSubsetReader ColSubsetReader;
 
   /** Creates a column with monomial label x and schedules a new row to
     reduce that column if possible. Here x is monoA if monoB is
@@ -104,7 +104,7 @@ private:
   MATHICGB_INLINE LeftRightColIndex findOrCreateColumn(
     const_monomial monoA,
     const_monomial monoB,
-    const ColSnapshotReader& colMap,
+    const ColSubsetReader& colMap,
     QuadMatrixBuilder& builder);
 
   MATHICGB_NO_INLINE const std::pair<LeftRightColIndex, LeftRightColIndex>
@@ -119,7 +119,7 @@ private:
     const const_monomial monoA1,
     const const_monomial monoA2,
     const const_monomial monoB,
-    const ColSnapshotReader& colMap,
+    const ColSubsetReader& colMap,
     QuadMatrixBuilder& builder
   );
 
