@@ -183,8 +183,8 @@ class QuadMatrixBuilder {
 
   // *** Querying columns
 
-  typedef const MonomialMap<LeftRightColIndex>::SnapshotReader
-    ColSnapshotReader;
+  typedef const MonomialMap<LeftRightColIndex>::SubsetReader
+    ColSubsetReader;
   const MonomialMap<LeftRightColIndex>& columnToIndexMap() const {
     return mMonomialToCol;
   }

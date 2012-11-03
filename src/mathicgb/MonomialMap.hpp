@@ -75,46 +75,30 @@ public:
     delete[] mBuckets;
   }
 
+  /// map must not be mutated except to destruct it after this operation.
+  /// Queries into map will continue to give either a correct result or
+  /// a spurious miss. There will not be spurious hits.
   FixedSizeMonomialMap(
     const size_t requestedBucketCount,
-    const FixedSizeMonomialMap& map
+    FixedSizeMonomialMap<MTT>&& map
   ):
     mHashToIndexMask(computeHashMask(requestedBucketCount)),
     mBuckets(new Node*[hashMaskToBucketCount(mHashToIndexMask)]),
     mRing(map.ring()),
-    mNodeAlloc(sizeofNode(map.ring())),
+    mNodeAlloc(std::move(map.mNodeAlloc)),
     mEntryCount(0)
   {
-    for (size_t bucket = 0; bucket < map.bucketCount(); ++bucket)
-      for (Node* node = map.mBuckets[bucket]; node != 0; node = node->next)
-        insert(std::make_pair(node->mono, node->value));
-    /*
-    todo: use this code once we have a move constructor for mNodeAlloc.
-    // Move nodes from current table into new table
-    decltype(mBuckets) newTable(newTableSize);
-    HashValue newHashToIndexMask = static_cast<HashValue>(newTableSize - 1);
-    const auto tableEnd = mBuckets.end();
-    for (auto tableIt = mBuckets.begin(); tableIt != tableEnd; ++tableIt) {
-      Node* node = *tableIt;
-      while (node != 0) {
-        const size_t index =
-          mRing.monomialHashValue(node->mono) & newHashToIndexMask;
-        MATHICGB_ASSERT(index < newTable.size());
+    std::fill_n(mBuckets, bucketCount(), static_cast<Node*>(0));
+    const auto tableEnd = map.mBuckets + map.bucketCount();
+    for (auto tableIt = map.mBuckets; tableIt != tableEnd; ++tableIt) {
+      for (Node* node = *tableIt; node != 0;) {
+        const size_t index = hashToIndex(mRing.monomialHashValue(node->mono));
         Node* const next = node->next;
-        node->next = newTable[index];
-        newTable[index] = node;
+        node->next = mBuckets[index];
+        mBuckets[index] = node;
         node = next;
       }
     }
-
-    // Move newly calculated table into place
-    mBucketsSize = newTableSize;      
-    mBuckets = std::move(newTable);
-    mHashToIndexMask = newHashToIndexMask;
-    mGrowWhenThisManyEntries = newGrowWhenThisManyEntries;
-
-    MATHICGB_ASSERT(mBucketsSize < mGrowWhenThisManyEntries);
-    */
   }
 
   const PolyRing& ring() const {return mRing;}
@@ -465,15 +449,15 @@ public:
   //typedef typename MapType::Map::const_iterator const_iterator;
   typedef typename MapType::value_type value_type;
 
-  /// A snapshot of a map. Later updates to the map may
-  /// or may not ever become reflected in this snapshot. The acquire/release
-  /// overhead for reading from the table is only performed once per
-  /// snapshot while it is performed every time when reading directly
-  /// from the map.
-  class SnapshotReader {
+  /// Can be used for non-mutating accesses to the monomial map. This reader
+  /// can miss queries that should hit if the map is mutated after the
+  /// reader was constructed - it may only give access to a subset of the
+  /// entries in this case. The only guarantee is that if the reader
+  /// reports a hit then it really is a hit and spurious misses only happen
+  /// after the map has been mutated.
+  class SubsetReader {
   public:
-    SnapshotReader(const MonomialMap<MTT>& map): mMap(&map.mMap) {}
-    void update(const MonomialMap<MTT>& map) {mMap = &map.mMap;}
+    SubsetReader(const MonomialMap<MTT>& map): mMap(map.mMap.get()) {}
 
     const mapped_type* find(const_monomial m) const {
       return mMap->find(m);
@@ -496,21 +480,22 @@ public:
     }
 
   private:
-    SnapshotReader(const FixedSizeMonomialMap<MTT>& map): mMap(&map) {}
-    const FixedSizeMonomialMap<MTT>* mMap;
+    const FixedSizeMonomialMap<MTT>* const mMap;
   };
 
-  MonomialMap(const PolyRing& ring): mMap(200 * 1000, ring) {}
+  MonomialMap(const PolyRing& ring):
+    mMap(make_unique<MapType>(InitialBucketCount, ring)),
+    mCapacityUntilGrowth(maxEntries(mMap->bucketCount())) {}
 
   const mapped_type* find(const_monomial m) const {
-    return mMap.find(m);
+    return mMap->find(m);
   }
 
   const mapped_type* findProduct(
     const const_monomial a,
     const const_monomial b
   ) const {
-    return mMap.findProduct(a, b);
+    return mMap->findProduct(a, b);
   }
 
   MATHICGB_INLINE
@@ -519,19 +504,49 @@ public:
     const const_monomial a2,
     const const_monomial b
   ) const {
-    return mMap.findTwoProducts(a1, a2, b);
+    return mMap->findTwoProducts(a1, a2, b);
   }
 
-  size_t size() const {return mMap.size();}
-  void clear() {mMap.clear();}
+  //size_t size() const {return mMap->size();}
+  void clear() {mMap->clear();}
+
   void insert(const value_type& val) {
-    mMap.insert(val);
+    while (mCapacityUntilGrowth == 0) {
+      const size_t currentSize = size();
+      if (mMap->bucketCount() >
+        std::numeric_limits<size_t>::max() / GrowthFactor)
+      {
+        throw std::bad_alloc();
+      }
+      const size_t newBucketCount = mMap->bucketCount() * GrowthFactor;
+      auto nextMap = make_unique<MapType>(newBucketCount, std::move(*mMap));
+      mOldMaps.push_back(std::move(mMap));
+      mMap = std::move(nextMap);
+      mCapacityUntilGrowth = maxEntries(mMap->bucketCount()) - currentSize;
+    }
+    mMap->insert(val);
+    MATHICGB_ASSERT(mCapacityUntilGrowth > 0);
+    --mCapacityUntilGrowth;
   }
 
-  inline const PolyRing& ring() const {return mMap.ring();}
+  size_t size() const {
+    return maxEntries(mMap->bucketCount()) - mCapacityUntilGrowth;
+  }
+
+  const PolyRing& ring() const {return mMap->ring();}
 
 private:
-  MapType mMap;
+  static const size_t MinBucketsPerEntry = 3; // inverse of max load factor
+  static const size_t GrowthFactor = 2;
+  static const size_t InitialBucketCount = 1 << 16;
+
+  static size_t maxEntries(const size_t bucketCount) {
+    return (bucketCount + (MinBucketsPerEntry - 1)) / MinBucketsPerEntry;
+  }
+
+  std::unique_ptr<MapType> mMap;
+  size_t mCapacityUntilGrowth;
+  std::vector<std::unique_ptr<MapType>> mOldMaps;
 };
 
 #endif
