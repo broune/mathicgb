@@ -34,7 +34,7 @@ public:
   ):
     mHashToIndexMask(computeHashMask(requestedBucketCount)),
     mBuckets(
-      make_unique_array<Atomic<Node*>>(hashMaskToBucketCount(mHashToIndexMask))
+      make_unique_array_init<Atomic<Node*>>(hashMaskToBucketCount(mHashToIndexMask))
     ),
     mRing(ring),
     mNodeAlloc(sizeofNode(ring)) {}
@@ -53,7 +53,7 @@ public:
   ):
     mHashToIndexMask(computeHashMask(requestedBucketCount)),
     mBuckets(
-      make_unique_array<Atomic<Node*>>(hashMaskToBucketCount(mHashToIndexMask))
+      make_unique_array_init<Atomic<Node*>>(hashMaskToBucketCount(mHashToIndexMask))
     ),
     mRing(map.ring()),
     mNodeAlloc(std::move(map.mNodeAlloc))
