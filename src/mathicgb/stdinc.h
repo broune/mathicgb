@@ -233,6 +233,11 @@ std::unique_ptr<T[]> make_unique_array(size_t count) {
   return std::unique_ptr<T[]>(new T[count]);
 }
 
+template<class T>
+std::unique_ptr<T[]> make_unique_array_init(size_t count) {
+  return std::unique_ptr<T[]>(new T[count]());
+}
+
 // TODO: These types should be defined in some way that actually
 // checks that these bit counts are right like in a configure script.
 typedef unsigned long long uint64;
