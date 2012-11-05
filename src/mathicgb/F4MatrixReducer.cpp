@@ -120,7 +120,6 @@ namespace {
       // bit debug builds. This was on Visual Studio version
       // "11.0.50727.1 RTMREL" - Bjarke Hammersholt Roune
 
-
       // MATHICGB_RESTRICT on entries is important. It fixed a performance
       // regression on MSVC 2012 which otherwise was not able to determine that
       // entries is not an alias for anything else in this loop. I suspect that

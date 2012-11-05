@@ -61,6 +61,13 @@
 // so the warning is turned off.
 #pragma warning (disable: 4355)
 
+#if defined (_M_IX86) || defined(_M_X64) // if on x86 (32 bit) or x64 (64 bit)
+#define MATHICGB_USE_CUSTOM_ATOMIC_X86_X64_MSVC_4BYTE
+#endif
+#ifdef _M_X64 // if on x64 (64 bit)
+#define MATHICGB_USE_CUSTOM_ATOMIC_X86_X64_MSVC_8BYTE
+#endif
+
 #elif defined (__GNUC__) // GCC compiler
 
 #define MATHICGB_NO_INLINE __attribute__((noinline))

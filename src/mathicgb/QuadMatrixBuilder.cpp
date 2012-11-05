@@ -69,7 +69,7 @@ namespace {
   {
     MATHICGB_ASSERT(top.colCount() == bottom.colCount());
     MATHICGB_ASSERT(toMonomial.size() == bottom.colCount());
-    MATHICGB_ASSERT(toCol.find(mono) == 0);
+    MATHICGB_ASSERT(typename ToCol::Reader(toCol).find(mono) == 0);
 
     const QuadMatrixBuilder::ColIndex colCount = top.colCount();
     if (colCount == std::numeric_limits<QuadMatrixBuilder::ColIndex>::max())
@@ -107,7 +107,6 @@ QuadMatrixBuilder::LeftRightColIndex QuadMatrixBuilder::createColumnLeft
      mMonomialToCol,
      ring(),
      true);
-  MATHICGB_ASSERT(mMonomialToCol.size() == leftColCount() + rightColCount());
   MATHICGB_ASSERT
     (findColumn(monomialToBeCopied).leftIndex() == leftColCount() - 1);
 }
@@ -122,7 +121,6 @@ QuadMatrixBuilder::LeftRightColIndex QuadMatrixBuilder::createColumnRight
      mMonomialToCol,
      ring(),
      false);
-  MATHICGB_ASSERT(mMonomialToCol.size() == leftColCount() + rightColCount());
   MATHICGB_ASSERT
     (findColumn(monomialToBeCopied).rightIndex() == rightColCount() - 1);
 }
@@ -321,7 +319,7 @@ QuadMatrix QuadMatrixBuilder::buildMatrixAndClear() {
   mMonomialsLeft.clear();
   mMonomialsRight.clear();
 
-  mMonomialToCol.clear();
+  mMonomialToCol.clearNonConcurrent();
 
   MATHICGB_ASSERT(out.debugAssertValid());
   return std::move(out);

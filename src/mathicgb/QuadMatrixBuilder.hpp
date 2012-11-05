@@ -183,8 +183,7 @@ class QuadMatrixBuilder {
 
   // *** Querying columns
 
-  typedef const MonomialMap<LeftRightColIndex>::SubsetReader
-    ColSubsetReader;
+  typedef const MonomialMap<LeftRightColIndex>::Reader ColReader;
   const MonomialMap<LeftRightColIndex>& columnToIndexMap() const {
     return mMonomialToCol;
   }
@@ -193,7 +192,7 @@ class QuadMatrixBuilder {
     left and right side. Returns an invalid index if no such column
     exists. */
   LeftRightColIndex findColumn(const_monomial findThis) const {
-    auto it = mMonomialToCol.find(findThis);
+    auto it = ColReader(mMonomialToCol).find(findThis);
     if (it != 0)
       return *it;
     else
@@ -206,7 +205,7 @@ class QuadMatrixBuilder {
     const const_monomial a,
     const const_monomial b
   ) const {
-    const auto it = mMonomialToCol.findProduct(a, b);
+    const auto it = ColReader(mMonomialToCol).findProduct(a, b);
     if (it != 0)
       return *it;
     else
@@ -220,7 +219,7 @@ class QuadMatrixBuilder {
     const const_monomial a2,
     const const_monomial b
   ) const {
-    const auto it = mMonomialToCol.findTwoProducts(a1, a2, b);
+    const auto it = ColReader(mMonomialToCol).findTwoProducts(a1, a2, b);
     return std::make_pair(
       it.first != 0 ? *it.first : LeftRightColIndex(),
       it.second != 0 ? *it.second : LeftRightColIndex());
