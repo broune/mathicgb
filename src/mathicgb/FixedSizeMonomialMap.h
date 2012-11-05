@@ -34,10 +34,19 @@ public:
   ):
     mHashToIndexMask(computeHashMask(requestedBucketCount)),
     mBuckets(
-      make_unique_array_init<Atomic<Node*>>(hashMaskToBucketCount(mHashToIndexMask))
+      make_unique_array<Atomic<Node*>>(hashMaskToBucketCount(mHashToIndexMask))
     ),
     mRing(ring),
-    mNodeAlloc(sizeofNode(ring)) {}
+    mNodeAlloc(sizeofNode(ring))
+  {
+    // Calling new int[x] does not zero the array. std::atomic has a trivial
+    // constructor so the same thing is true of new atomic[x]. Calling
+    // new int[x]() is supposed to zero initialize but this apparently
+    // does not work on GCC. So we have to fill the table with nulls
+    // manually. This was wonderful to debug btw.
+    // We can store relaxed as the constructor does not run concurrently.
+    setTableEntriesToNullRelaxed();
+  }
 
   /// Construct a hash table with at least requestedBucketCount buckets and
   /// insert the elements from the parameter map.
@@ -53,11 +62,13 @@ public:
   ):
     mHashToIndexMask(computeHashMask(requestedBucketCount)),
     mBuckets(
-      make_unique_array_init<Atomic<Node*>>(hashMaskToBucketCount(mHashToIndexMask))
+      make_unique_array<Atomic<Node*>>(hashMaskToBucketCount(mHashToIndexMask))
     ),
     mRing(map.ring()),
     mNodeAlloc(std::move(map.mNodeAlloc))
   {
+    // We can store relaxed as the constructor does not run concurrently.
+    setTableEntriesToNullRelaxed();
     const auto tableEnd = map.mBuckets.get() + map.bucketCount();
     for (auto tableIt = map.mBuckets.get(); tableIt != tableEnd; ++tableIt) {
       for (Node* node = tableIt->load(); node != 0;) {
@@ -181,12 +192,8 @@ public:
       MATHICGB_ASSERT(false);
     }
 #endif
-    const auto tableEnd = mBuckets.get() + bucketCount();
-    for (auto tableIt = mBuckets.get(); tableIt != tableEnd; ++tableIt) {
-      // we can store as std::memory_order_relaxed because the client is
-      // already required to ensure synchronization.
-      tableIt->store(0, std::memory_order_relaxed);
-    }
+    // we can store relaxed as the client supplies synchronization.
+    setTableEntriesToNullRelaxed();
 
     // This is the reason that we cannot support this operation concurrently -
     // we have no way to know when it is safe to deallocate the monomials
@@ -195,6 +202,12 @@ public:
   }
 
 private:
+  void setTableEntriesToNullRelaxed() {
+    const auto tableEnd = mBuckets.get() + bucketCount();
+    for (auto tableIt = mBuckets.get(); tableIt != tableEnd; ++tableIt)
+      tableIt->store(0, std::memory_order_relaxed);
+  }
+
   struct Node {
     Node(Node* next, const mapped_type value): next(next), value(value) {}
 
