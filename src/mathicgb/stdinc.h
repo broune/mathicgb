@@ -100,6 +100,10 @@
 #include <memory>
 
 #ifdef MATHICGB_DEBUG
+// don't force inline while debugging
+#undef MATHICGB_INLINE
+#define MATHICGB_INLINE inline
+
 // we have to define DEBUG as lots of code assumes that asserts are turned
 // on/off depending on DEBUG. Those should change to checking
 // MATHICGB_DEBUG and then we can remove this define.
