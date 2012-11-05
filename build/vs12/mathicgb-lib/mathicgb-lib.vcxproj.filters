@@ -269,5 +269,11 @@
     <ClInclude Include="..\..\..\src\mathicgb\RawVector.hpp">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\src\mathicgb\Atomic.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\mathicgb\FixedSizeMonomialMap.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

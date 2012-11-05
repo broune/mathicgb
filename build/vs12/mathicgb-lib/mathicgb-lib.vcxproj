@@ -433,6 +433,7 @@
     <ClCompile Include="..\..\..\src\mathicgb\TypicalReducer.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\..\src\mathicgb\Atomic.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\BjarkeGeobucket.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\BjarkeGeobucket2.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\BuchbergerAlg.hpp" />
@@ -442,6 +443,7 @@
     <ClInclude Include="..\..\..\src\mathicgb\F4MatrixBuilder.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\F4MatrixReducer.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\F4Reducer.hpp" />
+    <ClInclude Include="..\..\..\src\mathicgb\FixedSizeMonomialMap.h" />
     <ClInclude Include="..\..\..\src\mathicgb\FreeModuleOrder.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\GroebnerBasis.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\HashTourReducer.hpp" />

@@ -25,7 +25,7 @@ MATHICGB_INLINE QuadMatrixBuilder::LeftRightColIndex
 (
   const const_monomial monoA,
   const const_monomial monoB,
-  const ColSubsetReader& colMap,
+  const ColReader& colMap,
   QuadMatrixBuilder& builder
 ) {
   MATHICGB_ASSERT(!monoA.isNull());
@@ -73,7 +73,7 @@ MATHICGB_INLINE const std::pair<
   const const_monomial monoA1,
   const const_monomial monoA2,
   const const_monomial monoB,
-  const ColSubsetReader& colMap,
+  const ColReader& colMap,
   QuadMatrixBuilder& builder
 ) {
   MATHICGB_ASSERT(!monoA1.isNull());
@@ -371,7 +371,7 @@ void F4MatrixBuilder::appendRowBottom(
   // todo: eliminate the code-duplication between here and appendRowTop.
   MATHICGB_ASSERT(!multiple.isNull());
   MATHICGB_ASSERT(&builder != 0);
-  const ColSubsetReader colMap(builder.columnToIndexMap());
+  const ColReader colMap(builder.columnToIndexMap());
 
   for (auto it  = begin; it != end; ++it) {
     const auto col = findOrCreateColumn(it.getMonomial(), multiple, colMap, builder);
@@ -394,7 +394,7 @@ void F4MatrixBuilder::appendRowTop(
   MATHICGB_ASSERT(&poly != 0);
   MATHICGB_ASSERT(&builder != 0);
 
-  ColSubsetReader colMap(builder.columnToIndexMap());
+  ColReader colMap(builder.columnToIndexMap());
 
   auto it = poly.begin();
   const auto end = poly.end();
@@ -454,7 +454,7 @@ void F4MatrixBuilder::appendRowBottom(
   ++itA;
   ++itB;
 
-  const ColSubsetReader colMap(builder.columnToIndexMap());
+  const ColReader colMap(builder.columnToIndexMap());
 
   const const_monomial mulA = task.multiply;
   const const_monomial mulB = task.sPairMultiply;
