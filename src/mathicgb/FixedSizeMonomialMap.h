@@ -70,9 +70,6 @@ public:
     }
   }
 
-  /// Return how many elements there are in the hash table.
-  size_t elementCount() const {return mEntryCount;}
-
   /// Return how many buckets the hash table has.
   size_t bucketCount() const {
     return hashMaskToBucketCount(mHashToIndexMask);
