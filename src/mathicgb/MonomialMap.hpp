@@ -166,7 +166,7 @@ public:
   /// Return the number of entries. This method requires locking so do not
   /// call too much. The count may have 
   size_t entryCount() const {
-    const std::lock_guard<std::mutex> lockGuard(mInsertMutex);
+    const std::lock_guard<std::mutex> lockGuard(mInsertionMutex);
     // We can load with std::memory_order_relaxed because we are holding the
     // lock.
     auto& map = *mMap.load(std::memory_order_relaxed);
