@@ -62,10 +62,72 @@ namespace AtomicInternalMsvc {
 #endif
   template<class T> struct SeqCstSelect : public SeqCst<T, sizeof(T)> {};
 }
+#endif
+
+#if defined(__GNUC__) && defined(MATHICGB_USE_CUSTOM_ATOMIC_X86_X64)
+
+// As far as I can tell this is not documented to work, but it is the
+// only way to do this on GCC and it is what the Linux kernel does, so
+// that will have to be good enough for me.
+#define MATHICGB_COMPILER_READ_WRITE_MEMORY_BARRIER \
+  __asm__ __volatile__ ("" ::: "memory");
+
+// As far as I can tell there is no way to do a partial optimization
+// barrier on GCC, so we have to do the full barrier every time.
+#define MATHICGB_COMPILER_READ_MEMORY_BARRIER \
+  MATHICGB_COMPILER_READ_WRITE_MEMORY_BARRIER
+
+#define MATHICGB_COMPILER_WRITE_MEMORY_BARRIER \
+  MATHICGB_COMPILER_READ_WRITE_MEMORY_BARRIER
+
+#define MATHICGB_CPU_READ_WRITE_MEMORY_BARRIER __sync_synchronize()
+
+#define MATHICGB_SEQ_CST_LOAD(REF) \
+  AtomicInternalGCC::SeqCst<decltype(REF)>::load(REF)
+#define MATHICGB_SEQ_CST_STORE(VALUE, REF) \
+  AtomicInternalGCC::SeqCst<decltype(REF)>::store(VALUE, REF)
+
+namespace AtomicInternalGCC {
+  template<class T> struct SeqCst {
+    static T load(const T& ref) {
+      const auto ptr = static_cast<volatile T*>(const_cast<T*>(&ref));
+      return __sync_fetch_and_or((volatile T*)&ref, 0);
+    }
+    static void store(const T value, T& ref) {
+      const auto ptr = static_cast<volatile T*>(&ref);
+      while (!__sync_bool_compare_and_swap(ptr, *ptr, value)) {}
+    }
+  };
+  template<class T> struct SeqCst<const T> : public SeqCst<T> {};
+}
 
 #endif
 
 namespace AtomicInternal {
+#ifdef MATHICGB_USE_FAKE_ATOMIC
+  // This class has the same interface as the actual custom atomic
+  // class but it does absolutely no synchronization and it does not
+  // constrain compiler optimizations in any way. The purpose of this class
+  // is to enable it while running single core to compare the single core
+  // overhead of the atomic ordering constraints.
+  template<class T>
+  class FakeAtomic {
+  public:
+    FakeAtomic(): mValue() {}
+    FakeAtomic(T value): mValue(value) {}
+    T load(const std::memory_order) const {return mValue;}
+    void store(const T value, const std::memory_order order) {mValue = value;}
+
+  private:
+    T mValue;
+  };
+
+  template<class T, size_t size>
+  struct ChooseAtomic {
+    typedef FakeAtomic<T> type;
+  };
+
+#else
   /// Class for deciding which implementation of atomic to use. The default is
   /// to use std::atomic which is a fine choice if std::atomic is implemented
   /// in a reasonable way by the standard library implementation you are using.
@@ -73,6 +135,7 @@ namespace AtomicInternal {
   struct ChooseAtomic {
     typedef std::atomic<T> type;
   };
+#endif
 }
 
 #ifdef MATHICGB_USE_CUSTOM_ATOMIC_X86_X64
@@ -127,14 +190,11 @@ namespace AtomicInternal {
   template<class T>
   class CustomAtomicX86X64 {
   public:
-    MATHICGB_INLINE
     CustomAtomicX86X64(): mValue() {}
-    
-    MATHICGB_INLINE
     CustomAtomicX86X64(T value): mValue(value) {}
 
     MATHICGB_INLINE
-    T load(std::memory_order order) const {
+    T load(const std::memory_order order) const {
       switch (order) {
       case std::memory_order_relaxed:
         // The only constraint here is that if you read *p, then you will never
@@ -181,7 +241,7 @@ namespace AtomicInternal {
     }
 
     MATHICGB_INLINE
-    void store(const T value, std::memory_order order) {
+    void store(const T value, const std::memory_order order) {
       switch (order) {
       case std::memory_order_relaxed:
         // No ordering constraints here other than atomicity and as noted
@@ -261,19 +321,19 @@ namespace AtomicInternal {
 template<class T>
 class Atomic {
 public:
-  MATHICGB_INLINE Atomic(): mValue() {}
-  MATHICGB_INLINE Atomic(T value): mValue(value) {}
+  Atomic(): mValue() {}
+  Atomic(T value): mValue(value) {}
 
-  MATHICGB_INLINE T load(
-    std::memory_order order = std::memory_order_seq_cst
-  ) const {
+  MATHICGB_INLINE
+  T load(const std::memory_order order = std::memory_order_seq_cst) const {
     MATHICGB_ASSERT(debugAligned());
     return mValue.load(order);
   }
 
-  MATHICGB_INLINE void store(
-    T value,
-    std::memory_order order = std::memory_order_seq_cst
+  MATHICGB_INLINE
+  void store(
+    const T value,
+    const std::memory_order order = std::memory_order_seq_cst
   ) {
     MATHICGB_ASSERT(debugAligned());
     mValue.store(value, order);
