@@ -5,15 +5,11 @@
 #include <algorithm>
 
 void SparseMatrix::takeRowsFrom(SparseMatrix&& matrix) {
-  MATHICGB_ASSERT(matrix.colCount() <= colCount());
-
   if (matrix.mRows.empty())
     return;
 
   if (mRows.empty()) {
-    const auto savedColCount = colCount();
     *this = std::move(matrix);
-    mColCount = savedColCount;
     return;
   }
 
@@ -36,7 +32,6 @@ void SparseMatrix::rowToPolynomial(
   const std::vector<monomial>& colMonomials,
   Poly& poly
 ) {
-  MATHICGB_ASSERT(colMonomials.size() == colCount());
   poly.setToZero();
   poly.reserve(entryCountInRow(row));
   const auto end = rowEnd(row);
@@ -54,7 +49,7 @@ void SparseMatrix::sortRowsByIncreasingPivots() {
   // compute pairs (pivot column index, row)
   std::vector<std::pair<SparseMatrix::ColIndex, SparseMatrix::RowIndex> > order;
   const SparseMatrix::RowIndex lRowCount = rowCount();
-  const SparseMatrix::ColIndex lColCount = colCount();
+  const SparseMatrix::ColIndex lColCount = computeColCount();
   for (SparseMatrix::RowIndex row = 0; row < lRowCount; ++row) {
     if (entryCountInRow(row) == 0)
       order.push_back(std::make_pair(lColCount, row));
@@ -79,14 +74,12 @@ void SparseMatrix::sortRowsByIncreasingPivots() {
 }
 
 void SparseMatrix::applyColumnMap(const std::vector<ColIndex>& colMap) {
-  MATHICGB_ASSERT(colMap.size() >= colCount());
+  MATHICGB_ASSERT(colMap.size() >= computeColCount());
   Block* block = &mBlock;
   for (; block != 0; block = block->mPreviousBlock) {
     const auto end = block->mColIndices.end();
-    for (auto it = block->mColIndices.begin(); it != end; ++it) {
-      MATHICGB_ASSERT(*it < colCount());
+    for (auto it = block->mColIndices.begin(); it != end; ++it)
       *it = colMap[*it];
-    }
   }
 }
 
@@ -96,10 +89,8 @@ void SparseMatrix::print(std::ostream& out) const {
   for (RowIndex row = 0; row < rowCount(); ++row) {
     out << row << ':';
     const auto end = rowEnd(row);
-    for (auto it = rowBegin(row); it != end; ++it) {
-      MATHICGB_ASSERT(it.index() < colCount());
+    for (auto it = rowBegin(row); it != end; ++it)
       out << ' ' << it.index() << '#' << it.scalar();
-    }
     out << '\n';
   }
 }
@@ -145,7 +136,8 @@ void SparseMatrix::appendRow(const SparseMatrix& matrix, const RowIndex row) {
 }
   
 SparseMatrix& SparseMatrix::operator=(const SparseMatrix& matrix) {
-  clear(matrix.colCount());
+  // todo: use copy-swap or copy-move.
+  clear();
   // A version that works on each block would be faster, but this is not
   // used anywhere time-critical right now. Improve this if it turns
   // up in profiling at some point.
@@ -158,8 +150,19 @@ void SparseMatrix::swap(SparseMatrix& matrix) {
   mBlock.swap(matrix.mBlock);
   using std::swap;
   swap(mRows, matrix.mRows);
-  swap(mColCount, matrix.mColCount);
   swap(mMemoryQuantum, matrix.mMemoryQuantum);
+}
+
+SparseMatrix::ColIndex SparseMatrix::computeColCount() const {
+  // Obviously this can be done faster, but there has not been a need for that
+  // so far.
+  ColIndex colCount = 0;
+  for (size_t row = 0; row < rowCount(); ++row) {
+    const auto end = rowEnd(row);
+    for (auto it = rowBegin(row); it != end; ++it)
+      colCount = std::max(colCount, it.index() + 1);
+  }
+  return colCount;
 }
 
 void SparseMatrix::clear(const ColIndex newColCount) {
@@ -175,15 +178,13 @@ void SparseMatrix::clear(const ColIndex newColCount) {
   mBlock.mPreviousBlock = 0;
   mBlock.mHasNoRows = true;
   mRows.clear();
-  mColCount = newColCount;
 }
 
 void SparseMatrix::appendRowWithModulus(
   std::vector<uint64> const& v,
   const Scalar modulus
 ) {
-  MATHICGB_ASSERT(v.size() == colCount());
-  const ColIndex count = colCount();
+  const auto count = static_cast<ColIndex>(v.size());
   for (ColIndex col = 0; col < count; ++col) {
     const Scalar scalar = static_cast<Scalar>(v[col] % modulus);
     if (scalar != 0)
@@ -196,14 +197,13 @@ void SparseMatrix::appendRow(
   std::vector<uint64> const& v,
   const ColIndex leadCol
 ) {
-  MATHICGB_ASSERT(v.size() == colCount());
 #ifdef MATHICGB_DEBUG
   for (ColIndex col = leadCol; col < leadCol; ++col) {
     MATHICGB_ASSERT(v[col] == 0);
   }
 #endif
 
-  const ColIndex count = colCount();
+  const auto count = static_cast<ColIndex>(v.size());
   for (ColIndex col = leadCol; col < count; ++col) {
 	MATHICGB_ASSERT(v[col] < std::numeric_limits<Scalar>::max());
     if (v[col] != 0)
@@ -216,10 +216,9 @@ void SparseMatrix::appendRowWithModulusNormalized(
   std::vector<uint64> const& v,
   const Scalar modulus
 ) {
-  MATHICGB_ASSERT(v.size() == colCount());
   uint16 multiply = 1; 
   bool first = true;
-  const ColIndex count = colCount();
+  const auto count = static_cast<ColIndex>(v.size());
   for (ColIndex col = 0; col < count; ++col) {
     Scalar scalar = static_cast<Scalar>(v[col] % modulus);
     if (scalar == 0)
@@ -251,7 +250,6 @@ bool SparseMatrix::appendRowWithModulusIfNonZero(
 }
 
 void SparseMatrix::trimLeadingZeroColumns(const ColIndex trimThisMany) {
-  MATHICGB_ASSERT(trimThisMany <= colCount());
   Block* block = &mBlock;
   for (; block != 0; block = block->mPreviousBlock) {
     const auto end = block->mColIndices.end();
@@ -260,7 +258,6 @@ void SparseMatrix::trimLeadingZeroColumns(const ColIndex trimThisMany) {
       *it -= trimThisMany;
     }
   }
-  mColCount -= trimThisMany;
 }
 
 void SparseMatrix::reserveFreeEntries(const size_t freeCount) {

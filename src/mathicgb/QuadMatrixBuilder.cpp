@@ -11,10 +11,10 @@ QuadMatrixBuilder::QuadMatrixBuilder(
   const size_t memoryQuantum
 ):
   mMonomialToCol(ring),
-  mTopLeft(0, memoryQuantum),
-  mTopRight(0, memoryQuantum),
-  mBottomLeft(0, memoryQuantum),
-  mBottomRight(0, memoryQuantum)
+  mTopLeft(memoryQuantum),
+  mTopRight(memoryQuantum),
+  mBottomLeft(memoryQuantum),
+  mBottomRight(memoryQuantum)
 {}
 
 void QuadMatrixBuilder::takeRowsFrom(QuadMatrix&& matrix) {
@@ -25,14 +25,12 @@ void QuadMatrixBuilder::takeRowsFrom(QuadMatrix&& matrix) {
     !matrix.rightColumnMonomials.empty()
   ) {
     // check left column monomials are the same
-    MATHICGB_ASSERT(matrix.leftColumnMonomials.size() <= leftColCount());
     for (ColIndex col = 0; col < matrix.leftColumnMonomials.size(); ++col) {
       MATHICGB_ASSERT(ring().monomialEQ
         (matrix.leftColumnMonomials[col], monomialOfLeftCol(col)));
     }
 
     // check right column monomials are the same
-    MATHICGB_ASSERT(matrix.rightColumnMonomials.size() <= rightColCount());
     for (ColIndex col = 0; col < matrix.rightColumnMonomials.size(); ++col) {
       MATHICGB_ASSERT(ring().monomialEQ
         (matrix.rightColumnMonomials[col], monomialOfRightCol(col)));
@@ -67,11 +65,10 @@ namespace {
    const PolyRing& ring,
    const bool left)
   {
-    MATHICGB_ASSERT(top.colCount() == bottom.colCount());
-    MATHICGB_ASSERT(toMonomial.size() == bottom.colCount());
     MATHICGB_ASSERT(typename ToCol::Reader(toCol).find(mono) == 0);
 
-    const QuadMatrixBuilder::ColIndex colCount = top.colCount();
+    const auto colCount =
+      static_cast<QuadMatrixBuilder::ColIndex>(toMonomial.size());
     if (colCount == std::numeric_limits<QuadMatrixBuilder::ColIndex>::max())
       throw std::overflow_error("Too many columns in QuadMatrixBuilder");
 
@@ -89,10 +86,6 @@ namespace {
     }
     toMonomial.back() = copied;
 
-    top.appendColumn();
-    MATHICGB_ASSERT(top.colCount() == colCount + 1);
-    bottom.appendColumn();
-    MATHICGB_ASSERT(bottom.colCount() == colCount + 1);
     return QuadMatrixBuilder::LeftRightColIndex(colCount, left);
   }
 }
@@ -107,8 +100,6 @@ QuadMatrixBuilder::LeftRightColIndex QuadMatrixBuilder::createColumnLeft
      mMonomialToCol,
      ring(),
      true);
-  MATHICGB_ASSERT
-    (findColumn(monomialToBeCopied).leftIndex() == leftColCount() - 1);
 }
 
 QuadMatrixBuilder::LeftRightColIndex QuadMatrixBuilder::createColumnRight
@@ -121,8 +112,6 @@ QuadMatrixBuilder::LeftRightColIndex QuadMatrixBuilder::createColumnRight
      mMonomialToCol,
      ring(),
      false);
-  MATHICGB_ASSERT
-    (findColumn(monomialToBeCopied).rightIndex() == rightColCount() - 1);
 }
 
 namespace {
@@ -181,15 +170,14 @@ namespace {
 
   // The purpose of this function is to avoid code duplication for
   // left/right variants.
-  void sortColumns
-  (const FreeModuleOrder& order,
-   std::vector<monomial>& monomials,
-   SparseMatrix& topMatrix,
-   SparseMatrix& bottomMatrix)
-  {
+  void sortColumns(
+    const FreeModuleOrder& order,
+    std::vector<monomial>& monomials,
+    SparseMatrix& topMatrix,
+    SparseMatrix& bottomMatrix
+  ) {
     typedef SparseMatrix::ColIndex ColIndex;
-    MATHICGB_ASSERT(topMatrix.colCount() == bottomMatrix.colCount());
-    const ColIndex colCount = topMatrix.colCount();
+    const auto colCount = static_cast<ColIndex>(monomials.size());
 
     // Monomial needs to be non-const as we are going to put these
     // monomials back into the vector of monomials which is not const.
@@ -269,13 +257,15 @@ void QuadMatrixBuilder::print(std::ostream& out) const {
 
   // column monomials
   out << "Left columns:";
-  for (ColIndex leftCol = 0; leftCol < leftColCount(); ++leftCol) {
+  const auto leftColCount = static_cast<ColIndex>(mMonomialsLeft.size());
+  for (ColIndex leftCol = 0; leftCol < leftColCount; ++leftCol) {
     out << ' ';
     ring().monomialDisplay(out, monomialOfLeftCol(leftCol), false, true);
   }
 
   out << "\nRight columns:";
-  for (ColIndex rightCol = 0; rightCol < rightColCount(); ++rightCol) {
+  const auto rightColCount = static_cast<ColIndex>(mMonomialsRight.size());
+  for (ColIndex rightCol = 0; rightCol < rightColCount; ++rightCol) {
     out << ' ';
     ring().monomialDisplay(out, monomialOfRightCol(rightCol), false, true);
   }

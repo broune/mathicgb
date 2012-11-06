@@ -61,8 +61,8 @@ TEST(F4MatrixBuilder, Empty) {
     builder.buildMatrixAndClear(matrix);
     ASSERT_EQ(0, matrix.topLeft.rowCount());
     ASSERT_EQ(0, matrix.bottomLeft.rowCount());
-    ASSERT_EQ(0, matrix.topLeft.colCount());
-    ASSERT_EQ(0, matrix.topRight.colCount());
+    ASSERT_EQ(0, matrix.topLeft.computeColCount());
+    ASSERT_EQ(0, matrix.topRight.computeColCount());
     ASSERT_EQ(0, matrix.leftColumnMonomials.size());
     ASSERT_EQ(0, matrix.rightColumnMonomials.size());
   }
