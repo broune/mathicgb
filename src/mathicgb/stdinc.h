@@ -5,48 +5,47 @@
 
 #ifdef _MSC_VER // For Microsoft Compiler in Visual Studio C++.
 
-// Sometimes you know that a function will be called very rarely so you want to
-// tell the compiler not to inline it even if it could be inlined at only a
-// modest increase in code size. That is what MATHICGB_NO_INLINE does.
+/// Sometimes you know that a function will be called very rarely so you want to
+/// tell the compiler not to inline it even if it could be inlined at only a
+/// modest increase in code size. That is what MATHICGB_NO_INLINE does.
 #define MATHICGB_NO_INLINE __declspec(noinline)
 
-// Sometimes the compiler just will not inline functions that should
-// be inlined. Use sparingly --- preferably only if a profiler says
-// that a tiny often-called function consumes a significant amount of time.
+/// Sometimes the compiler just will not inline functions that should
+/// be inlined. Use sparingly --- preferably only if a profiler says
+/// that a tiny often-called function consumes a significant amount of time.
 #define MATHICGB_INLINE __forceinline
 
-// Tells the compiler to always assume that the expression X is true.
+/// Tells the compiler to always assume that the expression X is true.
 #define MATHICGB_ASSUME(X) __assume(X)
 
-// As MATHICGB_ASSUME, but might actually evaluate X at run-time if it has
-// side-effects. The point is that this can be used on compilers with no other
-// support for assuming things. So there is no difference on MS VC++.
+/// As MATHICGB_ASSUME, but might actually evaluate X at run-time if it has
+/// side-effects. The point is that this can be used on compilers with no other
+/// support for assuming things. So there is no difference on MS VC++.
 #define MATHICGB_ASSUME_AND_MAY_EVALUATE(X) __assume(X)
 
-// Tells the compiler that this function returns a pointer that is not an alias
-// for any other point that is currently valid in the program - like malloc.
+/// Tells the compiler that this function returns a pointer that is not an alias
+/// for any other point that is currently valid in the program - like malloc.
 #define MATHICGB_RETURN_NO_ALIAS __declspec(restrict)
 
-// Tells the compiler that this function will never throw an exception.
+/// Tells the compiler that this function will never throw an exception.
 #define MATHICGB_NOTHROW __declspec(nothrow)
 
-// Tells the compiler that this function has no effects except the return value
-// and the return value depends only on the arguments and first-level
-// indirections of the arguments. (this is the common denominator of GCC
-// and MS VC++ capabilities)
+/// Tells the compiler that this function has no effects except the return value
+/// and the return value depends only on the arguments and first-level
+/// indirections of the arguments. (this is the common denominator of GCC
+/// and MS VC++ capabilities)
 #define MATHICGB_PURE __declspec(noalias)
 
-// Tells the compiler that the return value of this function must be looked
-// at by the caller. For example this is appropriate for realloc.
+/// Tells the compiler that the return value of this function must be looked
+/// at by the caller. For example this is appropriate for realloc.
 #define MATHICGB_MUST_CHECK_RETURN_VALUE
 
-// Tells the compiler that the current line of code cannot be reached.
+/// Tells the compiler that the current line of code cannot be reached.
 #define MATHICGB_UNREACHABLE __assume(false)
 
-// Tells the compiler that a variable that is a pointer (not a reference)
-// does not alias any other pointer that is used in the current scope.
+/// Tells the compiler that a variable that is a pointer (not a reference)
+/// does not alias any other pointer that is used in the current scope.
 #define MATHICGB_RESTRICT __restrict
-
 
 #pragma warning (disable: 4996) // std::copy on pointers is flagged as dangerous
 #pragma warning (disable: 4290) // VC++ ignores throw () specification.
@@ -62,10 +61,11 @@
 #pragma warning (disable: 4355)
 
 #if defined (_M_IX86) || defined(_M_X64) // if on x86 (32 bit) or x64 (64 bit)
-#define MATHICGB_USE_CUSTOM_ATOMIC_X86_X64_MSVC_4BYTE
-#endif
+#define MATHICGB_USE_CUSTOM_ATOMIC_X86_X64
+#define MATHICGB_USE_CUSTOM_ATOMIC_4BYTE
 #ifdef _M_X64 // if on x64 (64 bit)
-#define MATHICGB_USE_CUSTOM_ATOMIC_X86_X64_MSVC_8BYTE
+#define MATHICGB_USE_CUSTOM_ATOMIC_8BYTE
+#endif
 #endif
 
 #elif defined (__GNUC__) // GCC compiler
