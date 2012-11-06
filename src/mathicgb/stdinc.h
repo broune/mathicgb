@@ -60,11 +60,13 @@
 // so the warning is turned off.
 #pragma warning (disable: 4355)
 
+#ifndef MATHICGB_USE_FAKE_ATOMIC
 #if defined (_M_IX86) || defined(_M_X64) // if on x86 (32 bit) or x64 (64 bit)
 #define MATHICGB_USE_CUSTOM_ATOMIC_X86_X64
 #define MATHICGB_USE_CUSTOM_ATOMIC_4BYTE
 #ifdef _M_X64 // if on x64 (64 bit)
 #define MATHICGB_USE_CUSTOM_ATOMIC_8BYTE
+#endif
 #endif
 #endif
 
@@ -80,6 +82,17 @@
 #define MATHICGB_MUST_CHECK_RETURN_VALUE __attribute__(warn_unused_result)
 #define MATHICGB_UNREACHABLE __builtin_unreachable()
 #define MATHICGB_RESTRICT __restrict
+
+// if on x86 (32 bit) or x64 (64 bit)
+#ifndef MATHICGB_USE_FAKE_ATOMIC
+#if defined (_X86_) || defined(__x86_64__)
+#define MATHICGB_USE_CUSTOM_ATOMIC_X86_X64
+#define MATHICGB_USE_CUSTOM_ATOMIC_4BYTE
+#ifdef __x86_64__ // if on x64 (64 bit)
+#define MATHICGB_USE_CUSTOM_ATOMIC_8BYTE
+#endif
+#endif
+#endif
 
 #else
 
