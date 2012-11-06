@@ -9,13 +9,14 @@ bool QuadMatrix::debugAssertValid() const {
 #ifndef MATHICGB_DEBUG
   return true;
 #else
-  MATHICGB_ASSERT(topLeft.colCount() == bottomLeft.colCount());
+  MATHICGB_ASSERT(topLeft.computeColCount() <= leftColumnMonomials.size());
+  MATHICGB_ASSERT(bottomLeft.computeColCount() <= leftColumnMonomials.size());
   MATHICGB_ASSERT(topLeft.rowCount() == topRight.rowCount());
-  MATHICGB_ASSERT(topLeft.colCount() == leftColumnMonomials.size());
 
-  MATHICGB_ASSERT(bottomRight.colCount() == topRight.colCount());
+  MATHICGB_ASSERT(topRight.computeColCount() <= rightColumnMonomials.size());
+  MATHICGB_ASSERT(bottomRight.computeColCount() <=
+    rightColumnMonomials.size());
   MATHICGB_ASSERT(bottomRight.rowCount() == bottomLeft.rowCount());
-  MATHICGB_ASSERT(bottomRight.colCount() == rightColumnMonomials.size());   
   return true;
 #endif
 }
@@ -33,13 +34,15 @@ void QuadMatrix::print(std::ostream& out) const {
 
   // column monomials
   out << "Left columns:";
-  for (ColIndex leftCol = 0; leftCol < topLeft.colCount(); ++leftCol) {
+  const auto leftColCount = leftColumnMonomials.size();
+  for (ColIndex leftCol = 0; leftCol < leftColCount; ++leftCol) {
     out << ' ';
     ring->monomialDisplay(out, leftColumnMonomials[leftCol], false, true);
   }
 
   out << "\nRight columns:";
-  for (ColIndex rightCol = 0; rightCol < topRight.colCount(); ++rightCol) {
+  const auto rightColCount = rightColumnMonomials.size();
+  for (ColIndex rightCol = 0; rightCol < rightColCount; ++rightCol) {
     out << ' ';
     ring->monomialDisplay(out, rightColumnMonomials[rightCol], false, true);
   }
@@ -84,8 +87,8 @@ void QuadMatrix::printSizes(std::ostream& out) const {
   const char* const line = "----------";
 
   pr[0] << '\n';
-  pr[1] << ColPr::commafy(topLeft.colCount()) << "  \n";
-  pr[2] << ColPr::commafy(topRight.colCount()) << "  \n";
+  pr[1] << ColPr::commafy(leftColumnMonomials.size()) << "  \n";
+  pr[2] << ColPr::commafy(rightColumnMonomials.size()) << "  \n";
 
   pr[0] << "/\n";
   pr[1] << line << "|\n";
@@ -163,6 +166,9 @@ QuadMatrix QuadMatrix::toCanonical() const {
     const SparseMatrix& mMatrix;
   };
 
+  const auto leftColCount = leftColumnMonomials.size();
+  const auto rightColCount = rightColumnMonomials.size();
+
   // todo: eliminate left/right code duplication here
   QuadMatrix matrix;
   { // left side
@@ -174,8 +180,8 @@ QuadMatrix QuadMatrix::toCanonical() const {
       std::sort(rows.begin(), rows.end(), comparer);
     }
 
-    matrix.topLeft.clear(topLeft.colCount());
-    matrix.topRight.clear(topRight.colCount());
+    matrix.topLeft.clear();
+    matrix.topRight.clear();
     for (size_t i = 0; i < rows.size(); ++i) {
       matrix.topLeft.appendRow(topLeft, rows[i]);
       matrix.topRight.appendRow(topRight, rows[i]);
@@ -190,8 +196,8 @@ QuadMatrix QuadMatrix::toCanonical() const {
       std::sort(rows.begin(), rows.end(), comparer);
     }
 
-    matrix.bottomLeft.clear(bottomLeft.colCount());
-    matrix.bottomRight.clear(bottomRight.colCount());
+    matrix.bottomLeft.clear();
+    matrix.bottomRight.clear();
     for (size_t i = 0; i < rows.size(); ++i) {
       matrix.bottomLeft.appendRow(bottomLeft, rows[i]);
       matrix.bottomRight.appendRow(bottomRight, rows[i]);

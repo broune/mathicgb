@@ -93,17 +93,24 @@ class QuadMatrixBuilder {
     bool mLeft;
   };
 
+  ColIndex leftColCount() const {
+    return static_cast<ColIndex>(mMonomialsLeft.size());
+  }
+
+  ColIndex rightColCount() const {
+    return static_cast<ColIndex>(mMonomialsRight.size());
+  }
+
+
   // **** Appending entries to top matrices.
   // Same interface as SparseMatrix except with two matrices and here
   // you have to create columns before you can use them.
 
   void appendEntryTopLeft(ColIndex col, Scalar scalar) {
-    MATHICGB_ASSERT(col < leftColCount());
     mTopLeft.appendEntry(col, scalar);
   }
 
   void appendEntryTopRight(ColIndex col, Scalar scalar) {
-    MATHICGB_ASSERT(col < rightColCount());
     mTopRight.appendEntry(col, scalar);
   }
 
@@ -125,12 +132,10 @@ class QuadMatrixBuilder {
   // you have to create columns before you can use them.
 
   void appendEntryBottomLeft(ColIndex col, Scalar scalar) {
-    MATHICGB_ASSERT(col < leftColCount());
     mBottomLeft.appendEntry(col, scalar);
   }
 
   void appendEntryBottomRight(ColIndex col, Scalar scalar) {
-    MATHICGB_ASSERT(col < rightColCount());
     mBottomRight.appendEntry(col, scalar);
   }
 
@@ -255,16 +260,6 @@ class QuadMatrixBuilder {
   std::string toString() const;
 
   const PolyRing& ring() const {return mMonomialToCol.ring();}
-
-  ColIndex leftColCount() const {
-    MATHICGB_ASSERT(topLeft().colCount() == bottomLeft().colCount());
-    return topLeft().colCount();
-  }
-
-  ColIndex rightColCount() const {
-    MATHICGB_ASSERT(topRight().colCount() == bottomRight().colCount());
-    return topRight().colCount();
-  }
 
   /// Returns the built matrix and sets the builder to a state
   /// with no columns and no rows.
