@@ -596,7 +596,7 @@ private:
 
   coefficient mCharac; // p=mCharac: ring is ZZ/p
   size_t mNumVars;
-  int mNumWeights; // stored as negative of weight vectors
+  size_t mNumWeights; // stored as negative of weight vectors
   size_t mTopIndex;
   size_t mHashIndex; // 1 more than mTopIndex.  Where the has value is stored.
   size_t mMaxMonomialSize;
