@@ -9,13 +9,16 @@ bool QuadMatrix::debugAssertValid() const {
 #ifndef MATHICGB_DEBUG
   return true;
 #else
-  MATHICGB_ASSERT(topLeft.computeColCount() <= leftColumnMonomials.size());
-  MATHICGB_ASSERT(bottomLeft.computeColCount() <= leftColumnMonomials.size());
-  MATHICGB_ASSERT(topLeft.rowCount() == topRight.rowCount());
-
-  MATHICGB_ASSERT(topRight.computeColCount() <= rightColumnMonomials.size());
-  MATHICGB_ASSERT(bottomRight.computeColCount() <=
+  if (!leftColumnMonomials.empty() || !rightColumnMonomials.empty()) {
+    MATHICGB_ASSERT(topLeft.computeColCount() <= leftColumnMonomials.size());
+    MATHICGB_ASSERT(bottomLeft.computeColCount() <=
+      leftColumnMonomials.size());
+    MATHICGB_ASSERT(topRight.computeColCount() <= rightColumnMonomials.size());
+    MATHICGB_ASSERT(bottomRight.computeColCount() <=
     rightColumnMonomials.size());
+  }
+
+  MATHICGB_ASSERT(topLeft.rowCount() == topRight.rowCount());
   MATHICGB_ASSERT(bottomRight.rowCount() == bottomLeft.rowCount());
   return true;
 #endif
@@ -214,4 +217,88 @@ QuadMatrix QuadMatrix::toCanonical() const {
 std::ostream& operator<<(std::ostream& out, const QuadMatrix& qm) {
   qm.print(out);
   return out;
+}
+
+namespace {
+  class ColumnComparer {
+  public:
+    ColumnComparer(const PolyRing& ring): mRing(ring) {}
+
+    typedef SparseMatrix::ColIndex ColIndex;
+    typedef std::pair<monomial, ColIndex> Pair;
+    bool operator()(const Pair& a, const Pair b) const {
+      return mRing.monomialLT(b.first, a.first);
+    }
+
+  private:
+    const PolyRing& mRing;
+  };
+
+  std::vector<SparseMatrix::ColIndex> sortColumnMonomialsAndMakePermutation(
+    std::vector<monomial>& monomials,
+    const PolyRing& ring
+  ) {
+    typedef SparseMatrix::ColIndex ColIndex;
+    MATHICGB_ASSERT(monomials.size() <= std::numeric_limits<ColIndex>::max());
+    const ColIndex colCount = static_cast<ColIndex>(monomials.size());
+    // Monomial needs to be non-const as we are going to put these
+    // monomials back into the vector of monomials which is not const.
+    std::vector<std::pair<monomial, ColIndex>> columns;
+    columns.reserve(colCount);
+    for (ColIndex col = 0; col < colCount; ++col)
+      columns.push_back(std::make_pair(monomials[col], col));
+    std::sort(columns.begin(), columns.end(), ColumnComparer(ring));
+
+    // Apply sorting permutation to monomials. This is why it is necessary to
+    // copy the values in monomial out of there: in-place application of a
+    // permutation is messy.
+    MATHICGB_ASSERT(columns.size() == colCount);
+    MATHICGB_ASSERT(monomials.size() == colCount);
+    for (size_t col = 0; col < colCount; ++col) {
+      MATHICGB_ASSERT(col == 0 ||
+        ring.monomialLT(columns[col].first, columns[col - 1].first));
+      monomials[col] = columns[col].first;
+    }
+
+    // Construct permutation of indices to match permutation of monomials
+    std::vector<ColIndex> permutation(colCount);
+    for (ColIndex col = 0; col < colCount; ++col) {
+      // The monomial for column columns[col].second is now the
+      // monomial for col, so we need the inverse map for indices.
+      permutation[columns[col].second] = col;
+    }
+
+    return std::move(permutation);
+  }
+}
+
+void QuadMatrix::sortColumnsLeftRightParallel(const int threadCount) {
+  typedef SparseMatrix::ColIndex ColIndex;
+  std::vector<ColIndex> leftPermutation;
+  std::vector<ColIndex> rightPermutation;
+
+#pragma omp parallel for num_threads(threadCount) schedule(static)
+  for (OMPIndex i = 0; i < 2; ++i) {
+    if (i == 0)
+      leftPermutation =
+        sortColumnMonomialsAndMakePermutation(leftColumnMonomials, *ring);
+    else 
+      rightPermutation =
+        sortColumnMonomialsAndMakePermutation(rightColumnMonomials, *ring);
+  }
+
+  // todo: parallelize per block instead of per matrix.
+#pragma omp parallel for num_threads(threadCount) schedule(dynamic)
+  for (OMPIndex i = 0; i < 4; ++i) {
+    if (i == 0)
+      topRight.applyColumnMap(rightPermutation);
+    else if (i == 1)
+      bottomRight.applyColumnMap(rightPermutation);
+    else if (i == 2)
+      topLeft.applyColumnMap(leftPermutation);
+    else {
+      MATHICGB_ASSERT(i == 3);
+      bottomLeft.applyColumnMap(leftPermutation);
+    }
+  }
 }
