@@ -20,6 +20,8 @@ private:
   typedef QuadMatrixBuilder::ColIndex ColIndex;
   typedef QuadMatrixBuilder::LeftRightColIndex LeftRightColIndex;
   typedef QuadMatrixBuilder::Scalar Scalar;
+  typedef QuadMatrixBuilder::Map Map;
+  typedef QuadMatrixBuilder::MonomialsType Monomials;
 
 public:
   /// memoryQuantum is how much to increase the memory size by each time the
@@ -66,13 +68,14 @@ public:
   const PolyRing& ring() const {return mBuilder.ring();}
 
 private:
-  typedef const QuadMatrixBuilder::ColReader ColReader;
+  typedef const MonomialMap<LeftRightColIndex>::Reader ColReader;
 
   /** Creates a column with monomial label x and schedules a new row to
     reduce that column if possible. Here x is monoA if monoB is
     null and otherwise x is the product of monoA and monoB. */
-  MATHICGB_NO_INLINE LeftRightColIndex createColumn
-    (QuadMatrixBuilder& builder, const_monomial monoA, const_monomial monoB);
+  MATHICGB_NO_INLINE
+  std::pair<LeftRightColIndex, ConstMonomial>
+  createColumn(const_monomial monoA, const_monomial monoB);
 
   /// Represents the task of adding a row to the matrix. If sPairPoly is null
   /// then the row to add is multiply * poly. Otherwise, the row to add is
@@ -99,35 +102,36 @@ private:
     QuadMatrixBuilder& builder
   );
 
-  MATHICGB_NO_INLINE LeftRightColIndex findOrCreateColumn
-    (const_monomial monoA, const_monomial monoB, QuadMatrixBuilder& builder);
-  MATHICGB_INLINE LeftRightColIndex findOrCreateColumn(
+  MATHICGB_NO_INLINE
+  std::pair<QuadMatrixBuilder::LeftRightColIndex, ConstMonomial>
+  findOrCreateColumn(const_monomial monoA, const_monomial monoB);
+  
+  MATHICGB_INLINE
+  std::pair<QuadMatrixBuilder::LeftRightColIndex, ConstMonomial>
+  findOrCreateColumn(
     const_monomial monoA,
     const_monomial monoB,
-    const ColReader& colMap,
-    QuadMatrixBuilder& builder);
-
-  MATHICGB_NO_INLINE const std::pair<LeftRightColIndex, LeftRightColIndex>
-  findOrCreateTwoColumns(
-    const const_monomial monoA1,
-    const const_monomial monoA2,
-    const const_monomial monoB,
-    QuadMatrixBuilder& builder
-  );
-  MATHICGB_INLINE const std::pair<LeftRightColIndex, LeftRightColIndex>
-  findOrCreateTwoColumns(
-    const const_monomial monoA1,
-    const const_monomial monoA2,
-    const const_monomial monoB,
-    const ColReader& colMap,
-    QuadMatrixBuilder& builder
+    const ColReader& colMap
   );
 
-  const int mThreadCount;
+  MATHICGB_NO_INLINE
+  void createTwoColumns(
+    const const_monomial monoA1,
+    const const_monomial monoA2,
+    const const_monomial monoB
+  );
+
+  std::mutex mCreateColumnLock;
+  ColIndex mLeftColCount;
+  ColIndex mRightColCount;
   monomial mTmp;
-  std::vector<RowTask> mTodo;
+  const int mThreadCount;
   const PolyBasis& mBasis;
+  Monomials mMonomialsLeft;
+  Monomials mMonomialsRight;
   QuadMatrixBuilder mBuilder;
+  Map mMap;
+  std::vector<RowTask> mTodo;
 };
 
 #endif

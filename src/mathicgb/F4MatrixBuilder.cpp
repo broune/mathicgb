@@ -5,85 +5,43 @@
 #include <omp.h>
 #endif
 
-MATHICGB_NO_INLINE QuadMatrixBuilder::LeftRightColIndex
-  F4MatrixBuilder::findOrCreateColumn
-(
+MATHICGB_NO_INLINE
+std::pair<QuadMatrixBuilder::LeftRightColIndex, ConstMonomial>
+F4MatrixBuilder::findOrCreateColumn(
   const const_monomial monoA,
-  const const_monomial monoB,
-  QuadMatrixBuilder& builder
+  const const_monomial monoB
 ) {
   MATHICGB_ASSERT(!monoA.isNull());
   MATHICGB_ASSERT(!monoB.isNull());
-  const auto col = builder.findColumnProduct(monoA, monoB);
-  if (col.valid())
-    return col;
-  return createColumn(builder, monoA, monoB);
+  const auto col = ColReader(mMap).findProduct(monoA, monoB);
+  if (col.first != 0)
+    return std::make_pair(*col.first, col.second);
+  return createColumn(monoA, monoB);
 }
 
-MATHICGB_INLINE QuadMatrixBuilder::LeftRightColIndex
-  F4MatrixBuilder::findOrCreateColumn
-(
+MATHICGB_INLINE
+std::pair<QuadMatrixBuilder::LeftRightColIndex, ConstMonomial>
+F4MatrixBuilder::findOrCreateColumn(
   const const_monomial monoA,
   const const_monomial monoB,
-  const ColReader& colMap,
-  QuadMatrixBuilder& builder
+  const ColReader& colMap
 ) {
   MATHICGB_ASSERT(!monoA.isNull());
   MATHICGB_ASSERT(!monoB.isNull());
   const auto col = colMap.findProduct(monoA, monoB);
-  if (col == 0)
-    return findOrCreateColumn(monoA, monoB, builder);
-  return *col;
+  if (col.first == 0)
+    return findOrCreateColumn(monoA, monoB);
+  return std::make_pair(*col.first, col.second);
 }
 
-MATHICGB_NO_INLINE const std::pair<
-  QuadMatrixBuilder::LeftRightColIndex,
-  QuadMatrixBuilder::LeftRightColIndex
-> F4MatrixBuilder::findOrCreateTwoColumns
-(
+MATHICGB_NO_INLINE
+void F4MatrixBuilder::createTwoColumns(
   const const_monomial monoA1,
   const const_monomial monoA2,
-  const const_monomial monoB,
-  QuadMatrixBuilder& builder
+  const const_monomial monoB
 ) {
-  MATHICGB_ASSERT(!monoA1.isNull());
-  MATHICGB_ASSERT(!monoA2.isNull());
-  MATHICGB_ASSERT(!monoB.isNull());
-  MATHICGB_ASSERT(!ring().monomialEQ(monoA1, monoA2));
-  auto colPair = builder.findTwoColumnsProduct(monoA1, monoA2, monoB);
-  if (!colPair.first.valid()) {
-    colPair.first = createColumn(builder, monoA1, monoB);
-    // Syncing builder to mBuilder could have created a col for monoA2*monoB.
-    if (&mBuilder != &builder && !colPair.second.valid())
-      colPair.second = builder.findColumnProduct(monoA2, monoB);
-  }
-  if (!colPair.second.valid())
-    colPair.second = createColumn(builder, monoA2, monoB);
-  MATHICGB_ASSERT(colPair == std::make_pair(
-    findOrCreateColumn(monoA1, monoB, builder),
-    findOrCreateColumn(monoA2, monoB, builder)));
-  return colPair;
-}
-
-MATHICGB_INLINE const std::pair<
-  QuadMatrixBuilder::LeftRightColIndex,
-  QuadMatrixBuilder::LeftRightColIndex
-> F4MatrixBuilder::findOrCreateTwoColumns
-(
-  const const_monomial monoA1,
-  const const_monomial monoA2,
-  const const_monomial monoB,
-  const ColReader& colMap,
-  QuadMatrixBuilder& builder
-) {
-  MATHICGB_ASSERT(!monoA1.isNull());
-  MATHICGB_ASSERT(!monoA2.isNull());
-  MATHICGB_ASSERT(!monoB.isNull());
-  MATHICGB_ASSERT(!ring().monomialEQ(monoA1, monoA2));
-  auto colPair = colMap.findTwoProducts(monoA1, monoA2, monoB);
-  if (colPair.first == 0 || colPair.second == 0)
-    return findOrCreateTwoColumns(monoA1, monoA2, monoB, builder);
-  return std::make_pair(*colPair.first, *colPair.second);
+  createColumn(monoA1, monoB);
+  createColumn(monoA2, monoB);
 }
 
 F4MatrixBuilder::F4MatrixBuilder(
@@ -92,9 +50,14 @@ F4MatrixBuilder::F4MatrixBuilder(
   const size_t memoryQuantum
 ):
   mThreadCount(threadCount),
+  mTmp(basis.ring().allocMonomial()),
   mBasis(basis),
-  mBuilder(basis.ring(), memoryQuantum),
-  mTmp(basis.ring().allocMonomial())
+  mMap(basis.ring()),
+  mMonomialsLeft(),
+  mMonomialsRight(),
+  mBuilder(basis.ring(), mMap, mMonomialsLeft, mMonomialsRight, memoryQuantum),
+  mLeftColCount(0),
+  mRightColCount(0)
 {
   MATHICGB_ASSERT(threadCount >= 1);
 
@@ -172,21 +135,17 @@ void F4MatrixBuilder::buildMatrixAndClear(QuadMatrix& matrix) {
   // Process pending rows until we are done. Note that the methods
   // we are calling here can add more items to mTodo.
 
+  QuadMatrixBuilder mainBuilder(
+    ring(), mMap, mMonomialsLeft, mMonomialsRight, mBuilder.memoryQuantum()
+  );
+
 #ifdef _OPENMP
-  struct ThreadData {
-    QuadMatrixBuilder* builder;
-    monomial tmp;
-  };
   MATHICGB_ASSERT(mThreadCount >= 1);
-  std::vector<ThreadData> threadData(mThreadCount);
-  if (mThreadCount == 1) {
-    threadData[0].builder = &mBuilder;
-    threadData[0].tmp = mTmp;
-  } else {
-    for (size_t i = 0; i < threadData.size(); ++i) {
-      threadData[i].builder = new QuadMatrixBuilder(ring());
-      threadData[i].tmp = new exponent[ring().maxMonomialByteSize()];
-    }
+  std::vector<QuadMatrixBuilder*> threadData(mThreadCount);
+  for (size_t i = 0; i < threadData.size(); ++i) {
+    threadData[i] = i == 0 ? &mainBuilder : new QuadMatrixBuilder(
+      ring(), mMap, mMonomialsLeft, mMonomialsRight, mBuilder.memoryQuantum()
+    );
   }
 #endif
 
@@ -209,10 +168,9 @@ void F4MatrixBuilder::buildMatrixAndClear(QuadMatrix& matrix) {
       const size_t taskIndex = taskOMP;
 #ifdef _OPENMP
       MATHICGB_ASSERT(omp_get_thread_num() < threadData.size());
-      const ThreadData& td = threadData[omp_get_thread_num()];
-      QuadMatrixBuilder& builder = *td.builder;
+      QuadMatrixBuilder& builder = *threadData[omp_get_thread_num()];
 #else
-      QuadMatrixBuilder& builder = mBuilder;
+      QuadMatrixBuilder& builder = mainBuilder;
 #endif
 
       const RowTask task = currentTasks[taskIndex];
@@ -228,137 +186,91 @@ void F4MatrixBuilder::buildMatrixAndClear(QuadMatrix& matrix) {
 
 #ifdef _OPENMP
 #pragma omp flush
-  MATHICGB_ASSERT(mThreadCount > 1 || threadData.back().builder == &mBuilder);
-  if (mThreadCount > 1) {
-    for (auto it = threadData.begin(); it != threadData.end(); ++it) {
-      MATHICGB_ASSERT(&mBuilder != it->builder);
-      QuadMatrix qm(it->builder->buildMatrixAndClear());
-      mBuilder.takeRowsFrom(std::move(qm));
-      delete it->builder;
+  for (auto it = threadData.begin(); it != threadData.end(); ++it) {
+    if (&mainBuilder != *it) {
+      mainBuilder.takeRowsFrom((*it)->buildMatrixAndClear());
+      delete *it;
     }
   }
   threadData.clear();
 #endif
 
-  mBuilder.sortColumnsLeftRightParallel(mBasis.order(), mThreadCount);
-  matrix = mBuilder.buildMatrixAndClear();
+  matrix = mainBuilder.buildMatrixAndClear();
+  {
+    ColReader reader(mMap);
+    matrix.leftColumnMonomials.clear();
+    matrix.rightColumnMonomials.clear();
+    const auto end = reader.end();
+    for (auto it = reader.begin(); it != end; ++it) {
+      const auto p = *it;
+      monomial copy = ring().allocMonomial();
+      ring().monomialCopy(p.second, copy);
+      auto& monos = p.first.left() ?
+        matrix.leftColumnMonomials : matrix.rightColumnMonomials;
+      const auto index = p.first.index();
+      if (monos.size() <= index)
+        monos.resize(index + 1);
+      MATHICGB_ASSERT(monos[index].isNull());
+      monos[index] = copy;
+    }
+  }
+#ifdef MATHICGB_DEBUG
+  for (size_t side = 0; side < 2; ++side) {
+    auto& monos = side == 0 ?
+      matrix.leftColumnMonomials : matrix.rightColumnMonomials;
+    for (auto it = monos.begin(); it != monos.end(); ++it) {
+      MATHICGB_ASSERT(!it->isNull());
+    }
+  }
+#endif
+  matrix.sortColumnsLeftRightParallel(mThreadCount);
+  mMap.clearNonConcurrent();
 }
 
-F4MatrixBuilder::LeftRightColIndex
+std::pair<F4MatrixBuilder::LeftRightColIndex, ConstMonomial>
 F4MatrixBuilder::createColumn(
-  QuadMatrixBuilder& builder,
   const const_monomial monoA,
   const const_monomial monoB
 ) {
   MATHICGB_ASSERT(!monoA.isNull());
   MATHICGB_ASSERT(!monoB.isNull());
-  // Must be declared up here since we cannot return out of an omp critical
-  // section.
-  QuadMatrixBuilder::LeftRightColIndex newCol;
 
-#pragma omp critical
+  std::lock_guard<std::mutex> lock(mCreateColumnLock);
+  // see if the column exists now after we have synchronized
   {
-    ring().monomialMult(monoA, monoB, mTmp);
-
-    MATHICGB_ASSERT(ring().hashValid(mTmp));
-    MATHICGB_ASSERT(!builder.findColumn(mTmp).valid());
-#ifndef _OPENMP
-    MATHICGB_ASSERT(&builder == &mBuilder);
-#endif
-
-#ifdef _OPENMP
-    // builder does not have a column for mTmp but mBuilder might
-    if (&mBuilder != &builder)
-      newCol = mBuilder.findColumn(mTmp);
-    if (!newCol.valid())
-#endif
-    {
-      // we need to add a new column to mBuilder
-
-      // look for a reducer of mTmp
-      size_t reducerIndex = mBasis.divisor(mTmp);
-      if (reducerIndex == static_cast<size_t>(-1)) {
-        newCol = mBuilder.createColumnRight(mTmp);
-      } else {
-        newCol = mBuilder.createColumnLeft(mTmp);
-
-        // schedule the reducer to be added as a row
-        RowTask task = {};
-        task.addToTop = true;
-        task.poly = &mBasis.poly(reducerIndex);
-        task.multiply = ring().allocMonomial();
-        ring().monomialDivideToNegative
-          (mTmp, task.poly->getLeadMonomial(), task.multiply);
-        MATHICGB_ASSERT(ring().hashValid(task.multiply));
-        mTodo.push_back(task);
-      }
-    }
-    MATHICGB_ASSERT(newCol.valid());
-    MATHICGB_ASSERT(ring().monomialEQ(mBuilder.monomialOfCol(newCol), mTmp));
-    MATHICGB_ASSERT(newCol == mBuilder.findColumn(mTmp));
-
-#ifdef _OPENMP
-    // If we are running in parallel we need to catch builder up to date with
-    // with respect to the columns in mBuilder. We have just ensured that
-    // mBuilder has a column for mTmp so now builder will also get that column.
-
-    if (&builder != &mBuilder) {
-      // add missing left columns
-      if (builder.leftColCount() != mBuilder.leftColCount()) {
-        const auto colCount = mBuilder.leftColCount();
-        MATHICGB_ASSERT(builder.leftColCount() < colCount);
-        for (auto col = builder.leftColCount(); col < colCount; ++col) {
-          const const_monomial monoToCopy = mBuilder.monomialOfLeftCol(col);
-          MATHICGB_ASSERT(!builder.findColumn(monoToCopy).valid());
-          builder.createColumnLeft(monoToCopy);
-          MATHICGB_ASSERT(builder.findColumn(monoToCopy) ==
-            mBuilder.findColumn(monoToCopy));
-          MATHICGB_ASSERT(ring().monomialEQ
-            (mBuilder.monomialOfLeftCol(col), builder.monomialOfLeftCol(col)));
-        }
-      }
-#ifdef MATHICGB_DEBUG
-      MATHICGB_ASSERT(builder.leftColCount() == mBuilder.leftColCount());
-      for (SparseMatrix::ColIndex col = 0;
-        col < builder.leftColCount(); ++col) {
-        MATHICGB_ASSERT(ring().monomialEQ
-          (mBuilder.monomialOfLeftCol(col), builder.monomialOfLeftCol(col)));
-      }
-#endif
-
-      // add missing right columns
-      if (builder.rightColCount() != mBuilder.rightColCount()) {
-        const auto colCount = mBuilder.rightColCount();
-        MATHICGB_ASSERT(builder.rightColCount() < colCount);
-        for (auto col = builder.rightColCount(); col < colCount; ++col) {
-          const const_monomial monoToCopy = mBuilder.monomialOfRightCol(col);
-          MATHICGB_ASSERT(!builder.findColumn(monoToCopy).valid());
-          builder.createColumnRight(monoToCopy);
-          MATHICGB_ASSERT(builder.findColumn(monoToCopy) ==
-            mBuilder.findColumn(monoToCopy));
-          MATHICGB_ASSERT(ring().monomialEQ
-            (mBuilder.monomialOfRightCol(col), builder.monomialOfRightCol(col)));
-        }
-      }
-#ifdef MATHICGB_DEBUG
-      MATHICGB_ASSERT(builder.rightColCount() == mBuilder.rightColCount());
-      for (SparseMatrix::ColIndex col = 0;
-        col < builder.rightColCount(); ++col) {
-        MATHICGB_ASSERT(ring().monomialEQ
-          (mBuilder.monomialOfRightCol(col), builder.monomialOfRightCol(col)));
-      }
-#endif
-
-      MATHICGB_ASSERT(ring().monomialEQ(mBuilder.monomialOfCol(mBuilder.findColumn(mTmp)), mTmp));
-      MATHICGB_ASSERT(newCol == mBuilder.findColumn(mTmp));
-
-      MATHICGB_ASSERT(builder.findColumn(mTmp).valid());
-      MATHICGB_ASSERT(ring().monomialEQ(builder.monomialOfCol(builder.findColumn(mTmp)), mTmp));
-      MATHICGB_ASSERT(newCol == builder.findColumn(mTmp));
-    }
-#endif
+    const auto found(ColReader(mMap).findProduct(monoA, monoB));
+    if (found.first != 0)
+      return std::make_pair(*found.first, found.second);
   }
-  return newCol;
+
+  // The column really does not exist, so we need to create it
+  ring().monomialMult(monoA, monoB, mTmp);
+  MATHICGB_ASSERT(ring().hashValid(mTmp));
+
+  // look for a reducer of mTmp
+  const size_t reducerIndex = mBasis.divisor(mTmp);
+  const bool insertLeft = (reducerIndex != static_cast<size_t>(-1));
+  if (insertLeft) {
+    RowTask task = {}; // schedule the new reducer to be added as a row
+    task.addToTop = true;
+    task.poly = &mBasis.poly(reducerIndex);
+    task.multiply = ring().allocMonomial();
+    ring().monomialDivideToNegative
+      (mTmp, task.poly->getLeadMonomial(), task.multiply);
+    MATHICGB_ASSERT(ring().hashValid(task.multiply));
+    mTodo.push_back(task);
+  }
+
+  // Create the new left or right column
+  const auto colCount = insertLeft ? mLeftColCount : mRightColCount;
+  if (colCount == std::numeric_limits<ColIndex>::max())
+    throw std::overflow_error("Too many columns in QuadMatrix");
+  const auto inserted = mMap.insert
+    (std::make_pair(mTmp, LeftRightColIndex(colCount, insertLeft)));
+  insertLeft ? ++mLeftColCount : ++mRightColCount;
+  MATHICGB_ASSERT(inserted.second);
+  MATHICGB_ASSERT(inserted.first.first != 0);
+  return std::make_pair(*inserted.first.first, inserted.first.second);
 }
 
 void F4MatrixBuilder::appendRowBottom(
@@ -371,16 +283,26 @@ void F4MatrixBuilder::appendRowBottom(
   // todo: eliminate the code-duplication between here and appendRowTop.
   MATHICGB_ASSERT(!multiple.isNull());
   MATHICGB_ASSERT(&builder != 0);
-  const ColReader colMap(builder.columnToIndexMap());
 
-  for (auto it  = begin; it != end; ++it) {
-    const auto col = findOrCreateColumn(it.getMonomial(), multiple, colMap, builder);
+  auto it = begin;
+updateReader:
+  // Use an on-stack const reader to make it as obvious as possible to the
+  // optimizer's alias analysis that the pointer inside the reader never
+  // changes inside the loop.
+  const ColReader reader(mMap);
+  for (; it != end; ++it) {
+    const auto col = reader.findProduct(it.getMonomial(), multiple);
+    if (col.first == 0) {
+      createColumn(it.getMonomial(), multiple);
+      goto updateReader;
+    }
+
     const auto origScalar = it.getCoefficient();
     MATHICGB_ASSERT(origScalar != 0);
-    const auto possiblyNegated =
+    const auto maybeNegated =
       negate ? ring().coefficientNegateNonZero(origScalar) : origScalar;
-	MATHICGB_ASSERT(possiblyNegated < std::numeric_limits<Scalar>::max());
-    builder.appendEntryBottom(col, static_cast<Scalar>(possiblyNegated));
+	MATHICGB_ASSERT(maybeNegated < std::numeric_limits<Scalar>::max());
+    builder.appendEntryBottom(*col.first, static_cast<Scalar>(maybeNegated));
   }
   builder.rowDoneBottomLeftAndRight();
 }
@@ -394,35 +316,41 @@ void F4MatrixBuilder::appendRowTop(
   MATHICGB_ASSERT(&poly != 0);
   MATHICGB_ASSERT(&builder != 0);
 
-  ColReader colMap(builder.columnToIndexMap());
-
   auto it = poly.begin();
   const auto end = poly.end();
   if ((std::distance(it, end) % 2) == 1) {
-    const auto col = findOrCreateColumn(it.getMonomial(), multiple, colMap, builder);
+    ColReader reader(mMap);
+    const auto col = findOrCreateColumn(it.getMonomial(), multiple, reader);
 	MATHICGB_ASSERT(it.getCoefficient() < std::numeric_limits<Scalar>::max());
     MATHICGB_ASSERT(it.getCoefficient());
-    builder.appendEntryTop(col, static_cast<Scalar>(it.getCoefficient()));
+    builder.appendEntryTop(col.first, static_cast<Scalar>(it.getCoefficient()));
     ++it;
   }
+updateReader:
+  ColReader colMap(mMap);
   MATHICGB_ASSERT((std::distance(it, end) % 2) == 0);
   while (it != end) {
 	MATHICGB_ASSERT(it.getCoefficient() < std::numeric_limits<Scalar>::max());
     MATHICGB_ASSERT(it.getCoefficient() != 0);
     const auto scalar1 = static_cast<Scalar>(it.getCoefficient());
     const const_monomial mono1 = it.getMonomial();
-    ++it;
 
-	MATHICGB_ASSERT(it.getCoefficient() < std::numeric_limits<Scalar>::max());
-    MATHICGB_ASSERT(it.getCoefficient() != 0);
-    const auto scalar2 = static_cast<Scalar>(it.getCoefficient());
-    const const_monomial mono2 = it.getMonomial();
-    ++it;
+    auto it2 = it;
+    ++it2;
+	MATHICGB_ASSERT(it2.getCoefficient() < std::numeric_limits<Scalar>::max());
+    MATHICGB_ASSERT(it2.getCoefficient() != 0);
+    const auto scalar2 = static_cast<Scalar>(it2.getCoefficient());
+    const const_monomial mono2 = it2.getMonomial();
 
-    const auto colPair =
-      findOrCreateTwoColumns(mono1, mono2, multiple, colMap, builder);
-    builder.appendEntryTop(colPair.first, scalar1);
-    builder.appendEntryTop(colPair.second, scalar2);
+    const auto colPair = colMap.findTwoProducts(mono1, mono2, multiple);
+    if (colPair.first == 0 || colPair.second == 0) {
+      createTwoColumns(mono1, mono2, multiple);
+      goto updateReader;
+    }
+
+    builder.appendEntryTop(*colPair.first, scalar1);
+    builder.appendEntryTop(*colPair.second, scalar2);
+    it = ++it2;
   }
   builder.rowDoneTopLeftAndRight();
 }
@@ -454,7 +382,7 @@ void F4MatrixBuilder::appendRowBottom(
   ++itA;
   ++itB;
 
-  const ColReader colMap(builder.columnToIndexMap());
+  const ColReader colMap(mMap);
 
   const const_monomial mulA = task.multiply;
   const const_monomial mulB = task.sPairMultiply;
@@ -473,18 +401,19 @@ void F4MatrixBuilder::appendRowBottom(
 
     coefficient coeff = 0;
     LeftRightColIndex col;
-    const auto colA = findOrCreateColumn(itA.getMonomial(), mulA, colMap, builder);
-    const auto colB = findOrCreateColumn(itB.getMonomial(), mulB, colMap, builder);
-    const auto cmp = ring().monomialCompare
-      (builder.monomialOfCol(colA), builder.monomialOfCol(colB));
+    const auto colA = findOrCreateColumn(itA.getMonomial(), mulA, colMap);
+    const auto colB = findOrCreateColumn(itB.getMonomial(), mulB, colMap);
+    const auto cmp = ring().monomialCompare(colA.second, colB.second);
+    //const auto cmp = ring().monomialCompare
+    //  (builder.monomialOfCol(colA), builder.monomialOfCol(colB));
     if (cmp != LT) {
       coeff = itA.getCoefficient();
-      col = colA;
+      col = colA.first;
       ++itA;
     }
     if (cmp != GT) {
       coeff = ring().coefficientSubtract(coeff, itB.getCoefficient());
-      col = colB;
+      col = colB.first;
       ++itB;
     }
     MATHICGB_ASSERT(coeff < std::numeric_limits<Scalar>::max());

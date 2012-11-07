@@ -51,7 +51,7 @@ TEST(SparseMatrix, Simple) {
   mat.rowDone(); // add a row with two entries
   ASSERT_EQ(3, mat.entryCount());
   ASSERT_EQ(3, mat.rowCount());
-  ASSERT_EQ(6, mat.computeColCount());
+  ASSERT_EQ(2002, mat.computeColCount());
   ASSERT_EQ(5, mat.leadCol(2));
   ASSERT_EQ(2, mat.entryCountInRow(2));
   ASSERT_EQ("0: 5#101\n1:\n2: 5#102 2001#0\n", mat.toString()); 

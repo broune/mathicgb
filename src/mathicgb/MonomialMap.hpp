@@ -85,14 +85,17 @@ public:
     }
 
     /// Returns the value that mono maps to or null if no such key has been
-    /// inserted. Misses can be spurious! Read the comments on the parent
+    /// inserted. Also returns the internal monomial that matches mono if such
+    /// a monomial exists. Misses can be spurious! Read the comments on the parent
     /// class.
-    const mapped_type* find(const_monomial mono) const {
+    std::pair<const mapped_type*, ConstMonomial>
+    find(const_monomial mono) const {
       return mMap.find(mono);
     }
 
-    // As find but looks for the product of a and b.
-    const mapped_type* findProduct(
+    // As find but looks for the product of a and b and also returns the
+    // monomal that is the product.
+    std::pair<const mapped_type*, ConstMonomial> findProduct(
       const const_monomial a,
       const const_monomial b
     ) const {
@@ -111,6 +114,14 @@ public:
       return mMap.findTwoProducts(a1, a2, b);
     }
 
+    typedef typename FixedSizeMonomialMap<T>::const_iterator const_iterator;
+
+    /// The range [begin(), end()) contains all entries in the hash table.
+    /// Insertions invalidate all iterators. Beware that insertions can
+    /// happen concurrently.
+    const_iterator begin() const {return mMap.begin();}
+    const_iterator end() const {return mMap.end();}
+
   private:
     const FixedSizeMonomialMap<T>& mMap;
   };
@@ -121,11 +132,13 @@ public:
 
   /// Makes value.first map to value.second unless value.first is already
   /// present in the map - in that case nothing is done. If p is the returned
-  /// pair then *p.first is the value that value.first maps to after the insert
-  /// and p.second is true if an insertion was performed. *p.first will not
+  /// pair then *p.first.first is the value that value.first maps to after the insert
+  /// and p.second is true if an insertion was performed. *p.first.first will not
   /// equal value.second if an insertion was not performed - unless the
-  /// inserted value equals the already present value.
-  std::pair<const mapped_type*, bool> insert(const value_type& value) {
+  /// inserted value equals the already present value. p.first.second is an
+  /// internal monomial that equals value.first.
+  std::pair<std::pair<const mapped_type*, ConstMonomial>, bool>
+  insert(const value_type& value) {
     const std::lock_guard<std::mutex> lockGuard(mInsertionMutex);
 
     // We can load mMap as std::memory_order_relaxed because we have already

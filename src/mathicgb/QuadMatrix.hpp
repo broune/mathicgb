@@ -55,6 +55,11 @@ public:
   /// Shows whole matrix in a string. Useful for debugging.
   std::string toString() const;
 
+  /// Sort the left columns to be in decreasing order according to the monomial
+  /// order from the ring. The operation is parallel using up to threadCount
+  /// threads.
+  void sortColumnsLeftRightParallel(int threadCount);
+
   /// Makes a copy of this matrix whose rows are sorted in some canonical way.
   /// TODO: Actually only coarsely sorts the top rows right now.
   QuadMatrix toCanonical() const;

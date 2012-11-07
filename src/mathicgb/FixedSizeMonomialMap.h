@@ -25,6 +25,9 @@ public:
   typedef T mapped_type;
   typedef std::pair<const_monomial, mapped_type> value_type;
 
+  /// Iterates through entries in the hash table.
+  class const_iterator;
+
   // Construct a hash table with at least requestedBucketCount buckets. There
   // may be more buckets. Currently the number is rounded up to the next power
   // of two.
@@ -75,7 +78,7 @@ public:
         const size_t index = hashToIndex(mRing.monomialHashValue(node->mono));
         Node* const next = node->next.load();
         node->next.store(mBuckets[index].load());
-        mBuckets[index].store(node);
+        mBuckets[index].store(node, std::memory_order_relaxed);
         node = next;
       }
     }
@@ -88,8 +91,26 @@ public:
 
   const PolyRing& ring() const {return mRing;}
 
-  // Returns the value associated to mono or null if there is no such value.
-  const mapped_type* find(const const_monomial mono) const {
+  /// The range [begin(), end()) contains all entries in the hash table.
+  /// Insertions invalidate all iterators. Beware that insertions can
+  /// happen concurrently.
+  const_iterator begin() const {
+    const auto bucketsBegin = mBuckets.get();
+    const auto bucketsEnd = bucketsBegin + bucketCount();
+    return const_iterator(bucketsBegin, bucketsEnd);
+  }
+
+  const_iterator end() const {
+    const auto bucketsBegin = mBuckets.get();
+    const auto bucketsEnd = bucketsBegin + bucketCount();
+    return const_iterator(bucketsEnd, bucketsEnd);
+  }
+
+  /// Returns the value associated to mono or null if there is no such value.
+  /// Also returns an internal monomial that equals mono of such a monomial
+  /// exists.
+  std::pair<const mapped_type*, ConstMonomial>
+  find(const const_monomial mono) const {
     const HashValue monoHash = mRing.monomialHashValue(mono);
     const Node* node = bucketAtIndex(hashToIndex(monoHash));
     for (; node != 0; node = node->next.load(std::memory_order_consume)) {
@@ -98,13 +119,15 @@ public:
       //if (monoHash != mRing.monomialHashValue(node->mono))
       //  continue;
       if (mRing.monomialEqualHintTrue(mono, node->mono))
-        return &node->value;
+        return std::make_pair(&node->value, node->mono);
     }
-    return 0;
+    return std::make_pair(static_cast<const mapped_type*>(0), ConstMonomial(0));
   }
 
-  // As find on the product a*b.
-  MATHICGB_INLINE const mapped_type* findProduct(
+  // As find on the product a*b but also returns the monomial that is the
+  // product.
+  MATHICGB_INLINE
+  std::pair<const mapped_type*, ConstMonomial> findProduct(
     const const_monomial a,
     const const_monomial b
   ) const {
@@ -116,9 +139,9 @@ public:
       //if (abHash != mRing.monomialHashValue(node->mono))
       //  continue;
       if (mRing.monomialIsProductOfHintTrue(a, b, node->mono))
-        return &node->value;
+        return std::make_pair(&node->value, node->mono);
     }
-    return 0;
+    return std::make_pair(static_cast<const mapped_type*>(0), ConstMonomial(0));
   }
 
   /// As findProduct but looks for a1*b and a2*b at one time.
@@ -138,16 +161,19 @@ public:
     )
       return std::make_pair(&node1->value, &node2->value);
     else
-      return std::make_pair(findProduct(a1, b), findProduct(a2, b));
+      return std::make_pair(findProduct(a1, b).first, findProduct(a2, b).first);
   }
 
   /// Makes value.first map to value.second unless value.first is already
   /// present in the map - in that case nothing is done. If p is the returned
-  /// pair then *p.first is the value that value.first maps to after the insert
-  /// and p.second is true if an insertion was performed. *p.first will not
+  /// pair then *p.first.first is the value that value.first maps to after the insert
+  /// and p.second is true if an insertion was performed. *p.first.first will not
   /// equal value.second if an insertion was not performed - unless the
   /// inserted value equals the already present value.
-  std::pair<const mapped_type*, bool> insert(const value_type& value) {
+  ///
+  /// p.first.second is a internal monomial that equals value.first.
+  std::pair<std::pair<const mapped_type*, ConstMonomial>, bool>
+  insert(const value_type& value) {
     const std::lock_guard<std::mutex> lockGuard(mInsertionMutex);
     // find() loads buckets with memory_order_consume, so it may seem like
     // we need some extra synchronization to make sure that we have the
@@ -158,8 +184,8 @@ public:
     // insertion mutex and by locking that mutex we have synchronized with
     // all threads that previously did insertions.
     {
-      const mapped_type* const found = find(value.first);
-      if (found != 0)
+      const auto found = find(value.first);
+      if (found.first != 0)
         return std::make_pair(found, false); // key already present
     }
 
@@ -176,7 +202,7 @@ public:
     // lock only synchronizes with threads who later grab the lock - it does
     // not synchronize with reading threads since they do not grab the lock.
     mBuckets[index].store(node, std::memory_order_release);
-    return std::make_pair(&node->value, true); // successful insertion
+    return std::make_pair(std::make_pair(&node->value, node->mono), true); // successful insertion
   }
 
   /// This operation removes all entries from the table. This operation
@@ -264,6 +290,81 @@ private:
   const PolyRing& mRing;
   memt::BufferPool mNodeAlloc; // nodes are allocated from here.
   std::mutex mInsertionMutex;
+
+public:
+  class const_iterator {
+  public:
+    const_iterator(): mNode(0), mBucket(0), mBucketEnd(0) {}
+
+    const_iterator& operator++() {
+      MATHICGB_ASSERT(mNode != 0);
+      MATHICGB_ASSERT(mBucket != mBucketsEnd);
+      const Node* const node = mNode->next.load(std::memory_order_consume);
+      if (node != 0)
+        mNode = node;
+      else
+        advanceBucket();
+      return *this;
+    }
+
+    bool operator==(const const_iterator& it) const {
+      MATHICGB_ASSERT(fromSameMap(it));
+      return mNode == it.mNode;
+    }
+
+    bool operator!=(const const_iterator& it) const {
+      return !(*this == it);
+    }
+
+    const std::pair<mapped_type, ConstMonomial> operator*() const {
+      MATHICGB_ASSERT(mNode != 0);
+      return std::make_pair(mNode->value, mNode->mono);
+    }
+
+  private:
+    friend class FixedSizeMonomialMap<T>;
+    const_iterator(
+      const Atomic<Node*>* const bucketBegin,
+      const Atomic<Node*>* const bucketEnd
+    ):
+      mBucket(bucketBegin),
+      mBucketsEnd(bucketEnd)
+    {
+      if (bucketBegin == bucketEnd) {
+        mNode = 0;
+        return;
+      }
+      const Node* const node = bucketBegin->load(std::memory_order_consume);
+      if (node != 0)
+        mNode = node;
+      else
+        advanceBucket();
+    }
+
+    void advanceBucket() {
+      MATHICGB_ASSERT(mBucket != mBucketsEnd);
+      while (true) {
+        ++mBucket;
+        if (mBucket == mBucketsEnd) {
+          mNode = 0;
+          break;
+        }
+        const Node* const node = mBucket->load(std::memory_order_consume);
+        if (node != 0) {
+          mNode = node;
+          break;
+        }
+      }
+    }
+
+    bool fromSameMap(const const_iterator& it) const {
+      return mBucketsEnd == it.mBucketsEnd;
+    }
+
+    const Node* mNode;
+    const Atomic<Node*>* mBucket;
+    const Atomic<Node*>* mBucketsEnd;
+  };
 };
 
 #endif
