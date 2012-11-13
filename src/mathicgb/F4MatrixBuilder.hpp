@@ -71,13 +71,6 @@ public:
 private:
   typedef const MonomialMap<LeftRightColIndex>::Reader ColReader;
 
-  /** Creates a column with monomial label x and schedules a new row to
-    reduce that column if possible. Here x is monoA if monoB is
-    null and otherwise x is the product of monoA and monoB. */
-  MATHICGB_NO_INLINE
-  std::pair<LeftRightColIndex, ConstMonomial>
-  createColumn(const_monomial monoA, const_monomial monoB);
-
   /// Represents the task of adding a row to the matrix. If sPairPoly is null
   /// then the row to add is multiply * poly. Otherwise, the row to add is
   ///   multiply * poly - sPairMultiply * sPairPoly
@@ -89,37 +82,62 @@ private:
     const Poly* sPairPoly;
     monomial sPairMultiply;
   };
+  typedef tbb::parallel_do_feeder<RowTask> TaskFeeder;
+
+  /// Creates a column with monomial label x and schedules a new row to
+  /// reduce that column if possible. Here x is monoA if monoB is
+  /// null and otherwise x is the product of monoA and monoB.
+  MATHICGB_NO_INLINE
+  std::pair<LeftRightColIndex, ConstMonomial>
+  createColumn(
+    const_monomial monoA,
+    const_monomial monoB,
+    TaskFeeder& feeder
+  );
 
   void appendRowTop(
     const_monomial multiple,
     const Poly& poly,
-    QuadMatrixBuilder& builder);
-  void appendRowBottom(const RowTask& task, QuadMatrixBuilder& builder);
+    QuadMatrixBuilder& builder,
+    TaskFeeder& feeder
+  );
+  void appendRowBottom(
+    const RowTask& task,
+    QuadMatrixBuilder& builder,
+    TaskFeeder& feeder
+  );
   void appendRowBottom(
     const_monomial multiple,
     bool negate,
     Poly::const_iterator begin,
     Poly::const_iterator end,
-    QuadMatrixBuilder& builder
+    QuadMatrixBuilder& builder,
+    TaskFeeder& feeder
   );
 
   MATHICGB_NO_INLINE
   std::pair<QuadMatrixBuilder::LeftRightColIndex, ConstMonomial>
-  findOrCreateColumn(const_monomial monoA, const_monomial monoB);
+  findOrCreateColumn(
+    const_monomial monoA,
+    const_monomial monoB,
+    TaskFeeder& feeder
+  );
   
   MATHICGB_INLINE
   std::pair<QuadMatrixBuilder::LeftRightColIndex, ConstMonomial>
   findOrCreateColumn(
     const_monomial monoA,
     const_monomial monoB,
-    const ColReader& colMap
+    const ColReader& colMap,
+    TaskFeeder& feeder
   );
 
   MATHICGB_NO_INLINE
   void createTwoColumns(
     const const_monomial monoA1,
     const const_monomial monoA2,
-    const const_monomial monoB
+    const const_monomial monoB,
+    TaskFeeder& feeder
   );
 
   tbb::mutex mCreateColumnLock;
