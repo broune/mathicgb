@@ -235,7 +235,7 @@ F4MatrixBuilder::createColumn(
   MATHICGB_ASSERT(!monoA.isNull());
   MATHICGB_ASSERT(!monoB.isNull());
 
-  std::lock_guard<std::mutex> lock(mCreateColumnLock);
+  tbb::mutex::scoped_lock lock(mCreateColumnLock);
   // see if the column exists now after we have synchronized
   {
     const auto found(ColReader(mMap).findProduct(monoA, monoB));

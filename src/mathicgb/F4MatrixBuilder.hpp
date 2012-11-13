@@ -6,6 +6,7 @@
 #include "PolyRing.hpp"
 #include "PolyBasis.hpp"
 #include "QuadMatrix.hpp"
+#include <tbb/tbb.h>
 #include <vector>
 
 /** Class for constructing an F4 matrix. This class is reponsible for
@@ -121,7 +122,7 @@ private:
     const const_monomial monoB
   );
 
-  std::mutex mCreateColumnLock;
+  tbb::mutex mCreateColumnLock;
   ColIndex mLeftColCount;
   ColIndex mRightColCount;
   monomial mTmp;
