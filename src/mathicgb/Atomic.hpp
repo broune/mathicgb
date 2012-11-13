@@ -34,10 +34,6 @@
   ::AtomicInternalMsvc::SeqCstSelect<decltype(REF)>::store(VALUE, REF)
 
 #include <Windows.h>
-// Windows.h defines macroes max and min that mess up things like std::max and
-// std::numeric_limits<T>::max. So we need to undefine those macroes.
-#undef max
-#undef min
 namespace AtomicInternalMsvc {
   template<class T, size_t size> struct SeqCst {};
 #ifdef MATHICGB_USE_CUSTOM_ATOMIC_4BYTE

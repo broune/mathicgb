@@ -2,6 +2,7 @@
 #include "QuadMatrix.hpp"
 
 #include <mathic.h>
+#include <tbb/tbb.h>
 #include <ostream>
 #include <sstream>
 
@@ -276,20 +277,17 @@ void QuadMatrix::sortColumnsLeftRightParallel(const int threadCount) {
   typedef SparseMatrix::ColIndex ColIndex;
   std::vector<ColIndex> leftPermutation;
   std::vector<ColIndex> rightPermutation;
-
-#pragma omp parallel for num_threads(threadCount) schedule(static)
-  for (OMPIndex i = 0; i < 2; ++i) {
+  
+  tbb::parallel_for(0, 2, 1, [&](int i) {
     if (i == 0)
       leftPermutation =
         sortColumnMonomialsAndMakePermutation(leftColumnMonomials, *ring);
     else 
       rightPermutation =
         sortColumnMonomialsAndMakePermutation(rightColumnMonomials, *ring);
-  }
+  });
 
-  // todo: parallelize per block instead of per matrix.
-#pragma omp parallel for num_threads(threadCount) schedule(dynamic)
-  for (OMPIndex i = 0; i < 4; ++i) {
+  tbb::parallel_for(0, 4, 1, [&](int i) {
     if (i == 0)
       topRight.applyColumnMap(rightPermutation);
     else if (i == 1)
@@ -300,5 +298,5 @@ void QuadMatrix::sortColumnsLeftRightParallel(const int threadCount) {
       MATHICGB_ASSERT(i == 3);
       bottomLeft.applyColumnMap(leftPermutation);
     }
-  }
+  });
 }

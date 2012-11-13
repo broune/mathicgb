@@ -4,10 +4,10 @@
 #include "Atomic.hpp"
 #include "PolyRing.hpp"
 #include <memtailor.h>
+#include <tbb/tbb.h>
 #include <limits>
 #include <vector>
 #include <algorithm>
-#include <mutex>
 
 /// Concurrent hashtable mapping from monomials to T with a fixed number of
 /// buckets. Lookups are lockless while insertions grab a lock.
@@ -174,7 +174,7 @@ public:
   /// p.first.second is a internal monomial that equals value.first.
   std::pair<std::pair<const mapped_type*, ConstMonomial>, bool>
   insert(const value_type& value) {
-    const std::lock_guard<std::mutex> lockGuard(mInsertionMutex);
+    const tbb::mutex::scoped_lock lockGuard(mInsertionMutex);
     // find() loads buckets with memory_order_consume, so it may seem like
     // we need some extra synchronization to make sure that we have the
     // most up to date view of the bucket that value.first goes in -
@@ -289,12 +289,12 @@ private:
   std::unique_ptr<Atomic<Node*>[]> const mBuckets;
   const PolyRing& mRing;
   memt::BufferPool mNodeAlloc; // nodes are allocated from here.
-  std::mutex mInsertionMutex;
+  tbb::mutex mInsertionMutex;
 
 public:
   class const_iterator {
   public:
-    const_iterator(): mNode(0), mBucket(0), mBucketEnd(0) {}
+    const_iterator(): mNode(0), mBucket(0), mBucketsEnd(0) {}
 
     const_iterator& operator++() {
       MATHICGB_ASSERT(mNode != 0);

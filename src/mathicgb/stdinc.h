@@ -60,6 +60,11 @@
 // so the warning is turned off.
 #pragma warning (disable: 4355)
 
+// Tells Windows.h/Windef.h not to define macroes called min and max since that
+// clashes with std::numeric_limits::max and std::max and probably lots of
+// other things too.
+#define NOMINMAX
+
 #ifndef MATHICGB_USE_FAKE_ATOMIC
 #if defined (_M_IX86) || defined(_M_X64) // if on x86 (32 bit) or x64 (64 bit)
 #define MATHICGB_USE_CUSTOM_ATOMIC_X86_X64
