@@ -1,9 +1,7 @@
 #include "stdinc.h"
 #include "F4MatrixBuilder.hpp"
 
-#ifdef _OPENMP
-#include <omp.h>
-#endif
+#include <tbb/tbb.h>
 
 MATHICGB_NO_INLINE
 std::pair<QuadMatrixBuilder::LeftRightColIndex, ConstMonomial>
@@ -133,21 +131,15 @@ void F4MatrixBuilder::buildMatrixAndClear(QuadMatrix& matrix) {
   // todo: prefer sparse/old reducers among the inputs.
 
   // Process pending rows until we are done. Note that the methods
-  // we are calling here can add more items to mTodo.
+  // we are calling here can add more pending items.
 
-  QuadMatrixBuilder mainBuilder(
-    ring(), mMap, mMonomialsLeft, mMonomialsRight, mBuilder.memoryQuantum()
-  );
-
-#ifdef _OPENMP
   MATHICGB_ASSERT(mThreadCount >= 1);
-  std::vector<QuadMatrixBuilder*> threadData(mThreadCount);
-  for (size_t i = 0; i < threadData.size(); ++i) {
-    threadData[i] = i == 0 ? &mainBuilder : new QuadMatrixBuilder(
+  tbb::enumerable_thread_specific<std::unique_ptr<QuadMatrixBuilder>>
+  builders([&](){
+    return make_unique<QuadMatrixBuilder>(
       ring(), mMap, mMonomialsLeft, mMonomialsRight, mBuilder.memoryQuantum()
     );
-  }
-#endif
+  }); 
 
   decltype(mTodo) currentTasks;
   while (!mTodo.empty()) {
@@ -160,18 +152,14 @@ void F4MatrixBuilder::buildMatrixAndClear(QuadMatrix& matrix) {
     }
     currentTasks.clear();
     mTodo.swap(currentTasks);
-    const auto taskCountOMP = static_cast<OMPIndex>(currentTasks.size());
-#pragma omp parallel for num_threads(mThreadCount) schedule(dynamic)
-    for (OMPIndex taskOMP = 0; taskOMP < taskCountOMP; ++taskOMP) {
-#pragma omp flush
 
-      const size_t taskIndex = taskOMP;
-#ifdef _OPENMP
-      MATHICGB_ASSERT(omp_get_thread_num() < threadData.size());
-      QuadMatrixBuilder& builder = *threadData[omp_get_thread_num()];
-#else
-      QuadMatrixBuilder& builder = mainBuilder;
-#endif
+    tbb::parallel_for(tbb::blocked_range<size_t>(0, currentTasks.size(), 1),
+      [&](const tbb::blocked_range<size_t>& range)
+      {for (auto it = range.begin(); it != range.end(); ++it)
+    {
+      const size_t taskIndex = it;
+      QuadMatrixBuilder& builder = *builders.local();
+      MATHICGB_ASSERT(&builder != 0);
 
       const RowTask task = currentTasks[taskIndex];
       MATHICGB_ASSERT(ring().hashValid(task.multiply));
@@ -181,21 +169,22 @@ void F4MatrixBuilder::buildMatrixAndClear(QuadMatrix& matrix) {
         appendRowTop(task.multiply, *task.poly, builder);
       } else
         appendRowBottom(task, builder);
-    }
+    }});
   }
 
-#ifdef _OPENMP
-#pragma omp flush
-  for (auto it = threadData.begin(); it != threadData.end(); ++it) {
-    if (&mainBuilder != *it) {
-      mainBuilder.takeRowsFrom((*it)->buildMatrixAndClear());
-      delete *it;
-    }
+  if (builders.empty()) {
+    matrix = QuadMatrix();
+    matrix.ring = &ring();
+    return;
   }
-  threadData.clear();
-#endif
 
-  matrix = mainBuilder.buildMatrixAndClear();
+  auto& builder = **builders.begin();
+  const auto end = builders.end();
+  for (auto it = builders.begin() + 1; it != end; ++it)
+    builder.takeRowsFrom((*it)->buildMatrixAndClear());
+  matrix = builder.buildMatrixAndClear();
+  builders.clear();
+
   {
     ColReader reader(mMap);
     matrix.leftColumnMonomials.clear();
