@@ -7,6 +7,7 @@
 #include "mathicgb/MTArray.hpp"
 
 #include <mathic.h>
+#include <tbb/tbb.h>
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
@@ -187,7 +188,12 @@ public:
       ideal = Ideal::parse(inputFile);
     }
     std::unique_ptr<PolyRing const> ring(&(ideal->ring()));
-      
+
+    const auto threadCount = mThreadCount.value() == 0 ?
+      tbb::task_scheduler_init::automatic :
+      mThreadCount.value();
+    tbb::task_scheduler_init scheduler(threadCount);
+
     if (mClassicBuchbergerAlgorithm.value()) {
       BuchbergerAlg alg(
         *ideal,
@@ -197,9 +203,9 @@ public:
         mPreferSparseReducers.value(),
         mSPairQueue.value());
       alg.setBreakAfter(mBreakAfter.value());
+      alg.setThreadCount(mThreadCount.value());
       alg.setPrintInterval(mPrintInterval.value());
       alg.setSPairGroupSize(mSPairGroupSize.value());
-      alg.setThreadCount(mThreadCount.value());
       alg.setReducerMemoryQuantum(mMemoryQuantum.value());
       alg.setUseAutoTopReduction(mAutoTopReduce.value());
       alg.setUseAutoTailReduction(mAutoTailReduce.value());
@@ -324,9 +330,7 @@ private:
   mic::IntegerParameter mMemoryQuantum;
 };
 
-int oldmain(int argc, char **argv);
 int main(int argc, char **argv) {
-  //oldmain(argc, argv);
   try {
     mic::CliParser parser;
     parser.registerAction<CliActionSignature>();

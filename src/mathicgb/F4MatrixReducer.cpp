@@ -4,6 +4,7 @@
 #include "QuadMatrix.hpp"
 #include "SparseMatrix.hpp"
 #include "PolyRing.hpp"
+#include <tbb/tbb.h>
 #include <algorithm>
 #include <vector>
 #include <stdexcept>
@@ -11,10 +12,6 @@
 #include <string>
 #include <cstdio>
 #include <iostream>
-
-#ifdef _OPENMP
-#include <omp.h>
-#endif
 
 namespace {
   template<class T>
@@ -85,40 +82,9 @@ namespace {
     template<class Iter>
     void addRowMultiple(
       const SparseMatrix::Scalar multiple,
-      const Iter& begin,
-      const Iter& end
+      const Iter begin,
+      const Iter end
     ) {
-      // Now, you may be wondering why begin and end are passed by reference
-      // instead of by value, and that would be a good question. As it turns
-      // out, this method does not work otherwise when run in parallel using
-      // OpenMP on MS Visual Studio 2012 when being called from reduce().
-      // Strange but true.
-      //
-      // Why is that? To the best of my ability
-      // to determine what was going on, it appears that, sometimes,
-      // two threads would be running on the same stack when calling this method,
-      // overwriting each other's local variables causing all kinds of havoc.
-      // My evidence for this is that I could find no other explanation after
-      // hours of investigation and that I could consistently get two threads
-      // with different return values of omp_get_thread_num() to print out the
-      // same address for a local variable - and this would happen just before
-      // things went wrong. So at this point I'm concluding that it is a compiler
-      // bug. All the writes and reads outside critical sections are to local
-      // variables, memory allocated by the same thread or to data structures
-      // that do not change within the scope of the parallel code in reduce(),
-      // so I don't know what the issue would otherwise be. I thought perhaps
-      // not building all the code with OpenMP enabled could be the issue,
-      // but changing that did not fix the issue.
-      // 
-      // Now you may be wondering what that has to do with passing iterators by
-      // reference. As it happens, the issue does not happen this way. "But that
-      // doesn't make any sense", you say, and you would be right. Feel free
-      // to come up with a better explanation of this issue.
-      //
-      // If you want to take a look at this issue, the issue only turns up for 64
-      // bit debug builds. This was on Visual Studio version
-      // "11.0.50727.1 RTMREL" - Bjarke Hammersholt Roune
-
       // MATHICGB_RESTRICT on entries is important. It fixed a performance
       // regression on MSVC 2012 which otherwise was not able to determine that
       // entries is not an alias for anything else in this loop. I suspect that
@@ -194,23 +160,22 @@ namespace {
 
     SparseMatrix reduced(qm.topRight.memoryQuantum());
 
-#ifdef _OPENMP
-    std::vector<DenseRow<uint64> > denseRowPerThread(threadCount);
-#else
-    DenseRow<uint64> denseRow;
-#endif
+    tbb::enumerable_thread_specific<DenseRow<uint64>> denseRowPerThread([&](){
+      return DenseRow<uint64>();
+    }); 
 
     SparseMatrix tmp(qm.topRight.memoryQuantum());
 
     std::vector<SparseMatrix::RowIndex> rowOrder(rowCount);
 
-#pragma omp parallel for num_threads(threadCount) schedule(dynamic)
-    for (OMPIndex rowOMP = 0;
-      rowOMP < static_cast<OMPIndex>(rowCount); ++rowOMP) {
-      const size_t row = static_cast<size_t>(rowOMP);
-#ifdef _OPENMP
-      auto& denseRow = denseRowPerThread[omp_get_thread_num()];
-#endif
+    tbb::mutex lock;
+    tbb::parallel_for(tbb::blocked_range<size_t>(0, rowCount),
+      [&](const tbb::blocked_range<size_t>& range)
+      {for (auto it = range.begin(); it != range.end(); ++it)
+    {
+      const size_t row = it;
+      auto& denseRow = denseRowPerThread.local();
+
       denseRow.clear(leftColCount);
       denseRow.addRow(toReduceLeft, row);
       MATHICGB_ASSERT(leftColCount == pivotCount);
@@ -233,25 +198,23 @@ namespace {
         denseRow.addRowMultiple(static_cast<SparseMatrix::Scalar>(entry), ++reduceByLeft.rowBegin(row), reduceByLeft.rowEnd(row));
         denseRow[pivot] = entry;
       }
-#pragma omp critical
-      {
-        for (size_t pivot = 0; pivot < pivotCount; ++pivot) {
-		  MATHICGB_ASSERT(denseRow[pivot] < std::numeric_limits<SparseMatrix::Scalar>::max());
-          if (denseRow[pivot] != 0)
-            tmp.appendEntry(rowThatReducesCol[pivot], static_cast<SparseMatrix::Scalar>(denseRow[pivot]));
-	    }
-        tmp.rowDone();
-        rowOrder[tmp.rowCount() - 1] = row;
-      }
-    }
+      tbb::mutex::scoped_lock lockGuard(lock);
+      for (size_t pivot = 0; pivot < pivotCount; ++pivot) {
+		MATHICGB_ASSERT(denseRow[pivot] < std::numeric_limits<SparseMatrix::Scalar>::max());
+        if (denseRow[pivot] != 0)
+          tmp.appendEntry(rowThatReducesCol[pivot], static_cast<SparseMatrix::Scalar>(denseRow[pivot]));
+	  }
+      tmp.rowDone();
+      rowOrder[tmp.rowCount() - 1] = row;
+    }});
 
-#pragma omp parallel for num_threads(threadCount) schedule(dynamic)
-    for (OMPIndex iOMP = 0; iOMP < static_cast<OMPIndex>(rowCount); ++iOMP) {
-      const size_t i = static_cast<size_t>(iOMP);
-#ifdef _OPENMP
-      auto& denseRow = denseRowPerThread[omp_get_thread_num()];
-#endif
-      size_t row = rowOrder[i];
+    tbb::parallel_for(tbb::blocked_range<size_t>(0, rowCount),
+      [&](const tbb::blocked_range<size_t>& range)
+      {for (auto iter = range.begin(); iter != range.end(); ++iter)
+    {
+      const size_t i = iter;
+      const size_t row = rowOrder[i];
+      auto& denseRow = denseRowPerThread.local();
 
       denseRow.clear(rightColCount);
       denseRow.addRow(toReduceRight, row);
@@ -263,21 +226,19 @@ namespace {
         denseRow.addRowMultiple(it.scalar(), begin, end);
       }
 
-#pragma omp critical
-      {
-        bool zero = true;
-	    for (SparseMatrix::ColIndex col = 0; col < rightColCount; ++col) {
-          const auto entry =
-            static_cast<SparseMatrix::Scalar>(denseRow[col] % modulus);
-          if (entry != 0) {
-            reduced.appendEntry(col, entry);
-            zero = false;
-          }
+      tbb::mutex::scoped_lock lockGuard(lock);
+      bool zero = true;
+	  for (SparseMatrix::ColIndex col = 0; col < rightColCount; ++col) {
+        const auto entry =
+          static_cast<SparseMatrix::Scalar>(denseRow[col] % modulus);
+        if (entry != 0) {
+          reduced.appendEntry(col, entry);
+          zero = false;
         }
-        if (!zero)
-          reduced.rowDone();
       }
-    }
+      if (!zero)
+        reduced.rowDone();
+    }});
     return std::move(reduced);
   }
 
@@ -292,15 +253,16 @@ namespace {
     SparseMatrix::RowIndex const rowCount = toReduce.rowCount();
 
     // dense representation 
-    std::vector<DenseRow<uint64> > dense(rowCount);
-#pragma omp parallel for num_threads(threadCount) schedule(dynamic)
-    for (OMPIndex rowOMP = 0;
-      rowOMP < static_cast<OMPIndex>(rowCount); ++rowOMP) {
-      const size_t row = static_cast<size_t>(rowOMP);
-      MATHICGB_ASSERT(!toReduce.emptyRow(row));
+    std::vector<DenseRow<uint64>> dense(rowCount);
+
+    tbb::parallel_for(tbb::blocked_range<size_t>(0, rowCount),
+      [&](const tbb::blocked_range<size_t>& range)
+      {for (auto it = range.begin(); it != range.end(); ++it)
+    {
+      const size_t row = it;
       dense[row].clear(colCount);
       dense[row].addRow(toReduce, row);
-    }
+    }});
 
     // invariant: all columns in row to the left of leadCols[row] are zero.
     std::vector<SparseMatrix::ColIndex> leadCols(rowCount);
@@ -325,14 +287,16 @@ namespace {
       size_t const reducerCount = reduced.rowCount();
 
       //std::cout << "reducing " << reduced.rowCount() << " out of " << toReduce.rowCount() << std::endl;
-#pragma omp parallel for num_threads(threadCount) schedule(dynamic)
-      for (OMPIndex rowOMP = 0;
-        rowOMP < static_cast<OMPIndex>(rowCount); ++rowOMP) {
-        const size_t row = static_cast<size_t>(rowOMP);
+      tbb::mutex lock;
+      tbb::parallel_for(tbb::blocked_range<size_t>(0, rowCount),
+        [&](const tbb::blocked_range<size_t>& range)
+        {for (auto it = range.begin(); it != range.end(); ++it)
+      {
+        const size_t row = it;
         MATHICGB_ASSERT(leadCols[row] <= colCount);
         DenseRow<uint64>& denseRow = dense[row];
         if (denseRow.empty())
-          continue;
+          return;
 
         // reduce by each row of reduced.
         for (size_t reducerRow = 0; reducerRow < reducerCount; ++reducerRow) {
@@ -359,8 +323,8 @@ namespace {
         else {
           MATHICGB_ASSERT(col < colCount);
           bool isNewReducer = false;
-#pragma omp critical
           {
+            tbb::mutex::scoped_lock lockGuard(lock);
             if (!columnHasPivot[col]) {
               columnHasPivot[col] = true;
               isNewReducer = true;
@@ -370,7 +334,7 @@ namespace {
           if (isNewReducer)
             denseRow.makeUnitary(modulus, col);
         }
-      }
+      }});
       //std::cout << "done reducing that batch" << std::endl;
 
       reduced.clear(colCount);
@@ -391,12 +355,13 @@ namespace {
       nextReducers.clear();
     }
 
-#pragma omp parallel for num_threads(threadCount) schedule(dynamic)
-    for (OMPIndex rowOMP = 0;
-      rowOMP < static_cast<OMPIndex>(rowCount); ++rowOMP) {
-      const size_t row = static_cast<size_t>(rowOMP);
+    tbb::parallel_for(tbb::blocked_range<size_t>(0, rowCount),
+      [&](const tbb::blocked_range<size_t>& range)
+      {for (auto it = range.begin(); it != range.end(); ++it)
+    {
+      const size_t row = it;
       dense[row].takeModulus(modulus);
-    }
+    }});
 
     toReduce.clear(colCount);
     for (size_t row = 0; row < rowCount; ++row)

@@ -1,8 +1,6 @@
 #ifndef MATHICGB_QUAD_MATRIX_BUILDER_GUARD
 #define MATHICGB_QUAD_MATRIX_BUILDER_GUARD
 
-#define MATHICGB_USE_QUADMATRIX_STD_HASH
-
 #include "MonomialMap.hpp"
 
 #include "SparseMatrix.hpp"
@@ -13,9 +11,6 @@
 #include <string>
 #include <ostream>
 #include <memtailor.h>
-#ifdef MATHICGB_USE_QUADMATRIX_STD_HASH
-#include <unordered_map>
-#endif
 class FreeModuleOrder;
 class QuadMatrix;
 
