@@ -79,23 +79,11 @@ void F4MatrixBuilder::addSPolynomialToMatrix(
   MATHICGB_ASSERT(!polyB.isZero());
   MATHICGB_ASSERT(polyB.isMonic());
 
-  monomial lcm = ring().allocMonomial();
-  ring().monomialLeastCommonMultiple
-    (polyA.getLeadMonomial(), polyB.getLeadMonomial(), lcm);
-
   RowTask task;
   task.addToTop = false;
-
   task.poly = &polyA;
-  task.multiply = ring().allocMonomial();
-  ring().monomialDivide(lcm, polyA.getLeadMonomial(), task.multiply);
-
   task.sPairPoly = &polyB;
-  task.sPairMultiply = ring().allocMonomial();
-  ring().monomialDivide(lcm, polyB.getLeadMonomial(), task.sPairMultiply);
-
   mTodo.push_back(task);
-  ring().freeMonomial(lcm);
 }
 
 void F4MatrixBuilder::addPolynomialToMatrix(const Poly& poly) {
@@ -104,13 +92,7 @@ void F4MatrixBuilder::addPolynomialToMatrix(const Poly& poly) {
 
   RowTask task = {};
   task.addToTop = false;
-
   task.poly = &poly;
-  task.multiply = ring().allocMonomial();
-  ring().monomialSetIdentity(task.multiply);
-
-  MATHICGB_ASSERT(task.sPairPoly == 0);
-  MATHICGB_ASSERT(task.sPairMultiply.isNull());
   mTodo.push_back(task);
 }
 
@@ -122,73 +104,95 @@ void F4MatrixBuilder::addPolynomialToMatrix
 
   RowTask task = {};
   task.addToTop = false;
-
   task.poly = &poly;
-  task.multiply = ring().allocMonomial();
-  ring().monomialCopy(multiple, task.multiply);
+  task.desiredLead = ring().allocMonomial();
+  ring().monomialMult(poly.getLeadMonomial(), multiple, task.desiredLead);
+  MATHICGB_ASSERT(ring().hashValid(task.desiredLead));
 
   MATHICGB_ASSERT(task.sPairPoly == 0);
-  MATHICGB_ASSERT(task.sPairMultiply.isNull());
   mTodo.push_back(task);
 }
 
 void F4MatrixBuilder::buildMatrixAndClear(QuadMatrix& matrix) {
-  // todo: prefer sparse/old reducers among the inputs.
-
-  // Process pending rows until we are done. Note that the methods
-  // we are calling here can add more pending items.
-
-  MATHICGB_ASSERT(mThreadCount >= 1);
-  tbb::enumerable_thread_specific<std::unique_ptr<QuadMatrixBuilder>>
-  builders([&](){
-    return make_unique<QuadMatrixBuilder>(
-      ring(), mMap, mMonomialsLeft, mMonomialsRight, mBuilder.memoryQuantum()
-    );
-  });
-
-  tbb::parallel_do(mTodo.begin(), mTodo.end(),
-    [&](const RowTask& task, tbb::parallel_do_feeder<RowTask>& feeder)
-  {
-    QuadMatrixBuilder& builder = *builders.local();
-    MATHICGB_ASSERT(&builder != 0);
-    MATHICGB_ASSERT(ring().hashValid(task.multiply));
-
-    if (task.addToTop) {
-      MATHICGB_ASSERT(task.sPairPoly == 0);
-      appendRowTop(task.multiply, *task.poly, builder, feeder);
-    } else
-      appendRowBottom(task, builder, feeder);
-    {
-      tbb::mutex::scoped_lock guard(mCreateColumnLock);
-      ring().freeMonomial(task.multiply);
-      if (!task.sPairMultiply.isNull())
-        ring().freeMonomial(task.sPairMultiply);
-    }
-  });
-  mTodo.clear();
-  /*
-  // Free the monomials from all the tasks
-  const auto todoEnd = mTodo.end();
-  for (auto it = mTodo.begin(); it != todoEnd; ++it) {
-    MATHICGB_ASSERT(!it->multiply.isNull());
-    ring().freeMonomial(it->multiply);
-    MATHICGB_ASSERT(it->sPairMultiply.isNull() == (it->sPairPoly == 0));
-    if (!it->sPairMultiply.isNull())
-      ring().freeMonomial(it->sPairMultiply);
-  }
-*/
-  if (builders.empty()) {
+  if (mTodo.empty()) {
     matrix = QuadMatrix();
     matrix.ring = &ring();
     return;
   }
 
-  auto& builder = **builders.begin();
-  const auto end = builders.end();
-  for (auto it = builders.begin() + 1; it != end; ++it)
-    builder.takeRowsFrom((*it)->buildMatrixAndClear());
+  // todo: prefer sparse/old reducers among the inputs.
+
+  // Process pending rows until we are done. Note that the methods
+  // we are calling here can add more pending items.
+
+  struct ThreadData {
+    QuadMatrixBuilder builder;
+    monomial tmp1;
+    monomial tmp2;
+  };
+
+  MATHICGB_ASSERT(mThreadCount >= 1);
+  tbb::enumerable_thread_specific<ThreadData> threadData([&](){  
+    ThreadData data = {QuadMatrixBuilder(
+      ring(), mMap, mMonomialsLeft, mMonomialsRight, mBuilder.memoryQuantum()
+    )};
+    {
+      tbb::mutex::scoped_lock guard(mCreateColumnLock);
+      data.tmp1 = ring().allocMonomial();
+      data.tmp2 = ring().allocMonomial();
+    }
+    return std::move(data);
+  });
+
+  tbb::parallel_do(mTodo.begin(), mTodo.end(),
+    [&](const RowTask& task, TaskFeeder& feeder)
+  {
+    auto& data = threadData.local();
+    QuadMatrixBuilder& builder = data.builder;
+    const Poly& poly = *task.poly;
+
+    if (task.sPairPoly != 0) {
+      MATHICGB_ASSERT(!task.addToTop);
+      ring().monomialColons(
+        poly.getLeadMonomial(),
+        task.sPairPoly->getLeadMonomial(),
+        data.tmp2,
+        data.tmp1
+      );
+      appendRowBottom
+        (&poly, data.tmp1, task.sPairPoly, data.tmp2, data.builder, feeder);
+      return;
+    }
+    if (task.desiredLead.isNull())
+      ring().monomialSetIdentity(data.tmp1);
+    else
+      ring().monomialDivide
+        (task.desiredLead, poly.getLeadMonomial(), data.tmp1);
+    MATHICGB_ASSERT(ring().hashValid(data.tmp1));
+    if (task.addToTop)
+      appendRowTop(data.tmp1, *task.poly, builder, feeder);
+    else
+      appendRowBottom
+        (data.tmp1, false, poly.begin(), poly.end(), builder, feeder);
+  });
+  MATHICGB_ASSERT(!threadData.empty()); // as mTodo empty causes early return
+  // Free the monomials from all the tasks
+  const auto todoEnd = mTodo.end();
+  for (auto it = mTodo.begin(); it != todoEnd; ++it)
+    if (!it->desiredLead.isNull())
+      ring().freeMonomial(it->desiredLead);
+  mTodo.clear();
+
+  auto& builder = threadData.begin()->builder;
+  const auto end = threadData.end();
+  for (auto it = threadData.begin(); it != end; ++it) {
+    if (&it->builder != &builder)
+      builder.takeRowsFrom(it->builder.buildMatrixAndClear());
+    ring().freeMonomial(it->tmp1);
+    ring().freeMonomial(it->tmp2);
+  }
   matrix = builder.buildMatrixAndClear();
-  builders.clear();
+  threadData.clear();
 
   {
     ColReader reader(mMap);
@@ -245,16 +249,6 @@ F4MatrixBuilder::createColumn(
   // look for a reducer of mTmp
   const size_t reducerIndex = mBasis.divisor(mTmp);
   const bool insertLeft = (reducerIndex != static_cast<size_t>(-1));
-  if (insertLeft) {
-    RowTask task = {}; // schedule the new reducer to be added as a row
-    task.addToTop = true;
-    task.poly = &mBasis.poly(reducerIndex);
-    task.multiply = ring().allocMonomial();
-    ring().monomialDivideToNegative
-      (mTmp, task.poly->getLeadMonomial(), task.multiply);
-    MATHICGB_ASSERT(ring().hashValid(task.multiply));
-    feeder.add(task);
-  }
 
   // Create the new left or right column
   const auto colCount = insertLeft ? mLeftColCount : mRightColCount;
@@ -265,6 +259,16 @@ F4MatrixBuilder::createColumn(
   insertLeft ? ++mLeftColCount : ++mRightColCount;
   MATHICGB_ASSERT(inserted.second);
   MATHICGB_ASSERT(inserted.first.first != 0);
+
+  // schedule new task if we found a reducer
+  if (insertLeft) {
+    RowTask task = {};
+    task.addToTop = true;
+    task.poly = &mBasis.poly(reducerIndex);
+    task.desiredLead = inserted.first.second.castAwayConst();
+    feeder.add(task);
+  }
+
   return std::make_pair(*inserted.first.first, inserted.first.second);
 }
 
@@ -355,27 +359,25 @@ updateReader:
 }
 
 void F4MatrixBuilder::appendRowBottom(
-  const RowTask& task,
+  const Poly* poly,
+  monomial multiply,
+  const Poly* sPairPoly,
+  monomial sPairMultiply,
   QuadMatrixBuilder& builder,
   TaskFeeder& feeder
 ) {
-  MATHICGB_ASSERT(!task.addToTop);
-  MATHICGB_ASSERT(!task.poly->isZero());
-  MATHICGB_ASSERT(!task.multiply.isNull());
-  MATHICGB_ASSERT(ring().hashValid(task.multiply));
-  Poly::const_iterator itA = task.poly->begin();
-  const Poly::const_iterator endA = task.poly->end();
+  MATHICGB_ASSERT(!poly->isZero());
+  MATHICGB_ASSERT(!multiply.isNull());
+  MATHICGB_ASSERT(ring().hashValid(multiply));
+  MATHICGB_ASSERT(sPairPoly != 0);
+  Poly::const_iterator itA = poly->begin();
+  const Poly::const_iterator endA = poly->end();
 
-  if (task.sPairPoly == 0) {
-    appendRowBottom(task.multiply, false, itA, endA, builder, feeder);
-    return;
-  }
-
-  MATHICGB_ASSERT(!task.sPairPoly->isZero());
-  MATHICGB_ASSERT(!task.sPairMultiply.isNull());
-  MATHICGB_ASSERT(ring().hashValid(task.sPairMultiply));
-  Poly::const_iterator itB = task.sPairPoly->begin();
-  Poly::const_iterator endB = task.sPairPoly->end();
+  MATHICGB_ASSERT(!sPairPoly->isZero());
+  MATHICGB_ASSERT(!sPairMultiply.isNull());
+  MATHICGB_ASSERT(ring().hashValid(sPairMultiply));
+  Poly::const_iterator itB = sPairPoly->begin();
+  Poly::const_iterator endB = sPairPoly->end();
 
   // skip leading terms since they cancel
   MATHICGB_ASSERT(itA.getCoefficient() == itB.getCoefficient());
@@ -384,8 +386,8 @@ void F4MatrixBuilder::appendRowBottom(
 
   const ColReader colMap(mMap);
 
-  const const_monomial mulA = task.multiply;
-  const const_monomial mulB = task.sPairMultiply;
+  const const_monomial mulA = multiply;
+  const const_monomial mulB = sPairMultiply;
   while (true) {
     // Watch out: we are depending on appendRowBottom to finish the row, so
     // if you decide not to call that function in case

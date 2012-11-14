@@ -53,7 +53,7 @@ public:
   /** Builds an F4 matrix to the specifications given. Also clears the
     information in this object.
 
-    The right columns are ordered by decreasing monomial of that
+    The right columns are ordered by decreasing monomial of each
     column according to the order from the basis. The left columns are
     ordered in some way so that the first entry in each top row (the
     pivot) has a lower index than any other entries in that row.
@@ -62,7 +62,7 @@ public:
     reduced by the basis and that is present in the matrix. There is
     no guarantee that the bottom part of the matrix contains rows that
     exactly correspond to the polynomials that have been scheduled to
-    be added to the matrix. It is only guaranteed that the matrix has
+    be added to the matrix. It is only guaranteed that the whole matrix has
     the same row-space as though that had been the case. */
   void buildMatrixAndClear(QuadMatrix& matrix);
 
@@ -77,8 +77,8 @@ private:
   /// where sPairMultiply makes the lead terms cancel.
   struct RowTask {
     bool addToTop; // add the row to the bottom if false
+    monomial desiredLead; // multiply monomial onto poly to get this lead
     const Poly* poly;
-    monomial multiply;
     const Poly* sPairPoly;
     monomial sPairMultiply;
   };
@@ -102,7 +102,10 @@ private:
     TaskFeeder& feeder
   );
   void appendRowBottom(
-    const RowTask& task,
+    const Poly* poly,
+    monomial multiply,
+    const Poly* sPairPoly,
+    monomial sPairMultiply,
     QuadMatrixBuilder& builder,
     TaskFeeder& feeder
   );

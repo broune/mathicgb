@@ -123,7 +123,7 @@ public:
   ConstMonomial() : mValue(0) {}
   ConstMonomial(const exponent *val) : mValue(val) {}
 
-  inline Monomial& castAwayConst();
+  inline const Monomial& castAwayConst() const;
 
   bool isNull() const { return mValue == 0; }
 
@@ -171,9 +171,9 @@ private:
   exponent& operator*() { return * const_cast<exponent *>(mValue); }
 };
 
-inline Monomial& ConstMonomial::castAwayConst()
+inline const Monomial& ConstMonomial::castAwayConst() const
 {
-  return reinterpret_cast<Monomial&>(*this);
+  return reinterpret_cast<const Monomial&>(*this);
 }
 
 #ifdef NEWMONOMIALS
@@ -408,6 +408,9 @@ public:
 
   /// sets result to a/b, even if that produces negative exponents.
   void monomialDivideToNegative(ConstMonomial a, ConstMonomial b, Monomial &result) const;
+
+  /// Sets aColonB = a:b and bColonA = b:a.
+  void monomialColons(ConstMonomial a, ConstMonomial b, monomial aColonB, monomial bColonA) const;
 
   /// returns true if b divides a.  Components are ignored.
   bool monomialIsDivisibleBy(ConstMonomial a, ConstMonomial b) const;
@@ -814,6 +817,23 @@ inline bool PolyRing::monomialDivide(ConstMonomial a,
   for ( ; i<=mHashIndex; i++)
     result[i] = a[i] - b[i];
   return true;
+}
+
+inline void PolyRing::monomialColons(
+  ConstMonomial a,
+  ConstMonomial b,
+  monomial aColonB,
+  monomial bColonA
+) const {
+  *aColonB = *a;
+  *bColonA = *b;
+  for (size_t i = 1; i <= mNumVars; i++) {
+    exponent max = std::max(a[i], b[i]);
+    aColonB[i] = max - b[i];
+    bColonA[i] = max - a[i];
+  }
+  setWeightsAndHash(aColonB);
+  setWeightsAndHash(bColonA);
 }
 
 inline void PolyRing::monomialDivideToNegative(ConstMonomial a, 
