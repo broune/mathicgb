@@ -360,14 +360,18 @@ public:
 
   bool weightsCorrect(ConstMonomial a) const;
 
+  // returns LT, EQ, or GT, depending on sig ? (m2 * sig2).
   int monomialCompare(ConstMonomial a, 
                       ConstMonomial b) const; 
   // returns LT, EQ or GT
-
   int monomialCompare(ConstMonomial sig, 
                       ConstMonomial m2, 
                       ConstMonomial sig2) const;
-  // returns LT, EQ, or GT, depending on sig ? (m2 * sig2).
+
+  // If this method returns true for monomials a and b then it is guaranteed
+  // the multiplying a and b together will not overflow the underlying
+  // exponent integer. Does not work for negative exponents.
+  bool monomialHasAmpleCapacity(ConstMonomial mono) const;
 
   bool monomialLT(ConstMonomial a, ConstMonomial b) const {
     for (size_t i = mTopIndex; i != static_cast<size_t>(-1); --i)
@@ -435,8 +439,9 @@ public:
 
   /// Returns the hash of the product of a and b.
   HashValue monomialHashOfProduct(ConstMonomial a, ConstMonomial b) const {
-    return static_cast<HashValue>(a[mHashIndex]) +
-      static_cast<HashValue>(b[mHashIndex]);
+    return static_cast<exponent>(
+      static_cast<HashValue>(a[mHashIndex]) +
+      static_cast<HashValue>(b[mHashIndex]));
   }
 
   void monomialCopy(ConstMonomial  a, Monomial &result) const;
@@ -667,6 +672,9 @@ inline bool PolyRing::monomialIsProductOfHintTrue(
   // for unaligned access. Performance seems to be no worse than for using
   // 32 bit integers directly.
 
+  if (sizeof(exponent) < 4)
+    return monomialIsProductOf(a, b, ab);
+
   uint64 orOfXor = 0;
   for (size_t i = mNumVars / 2; i != static_cast<size_t>(-1); --i) {
     uint64 A, B, AB;
@@ -691,6 +699,10 @@ MATHICGB_INLINE bool PolyRing::monomialIsTwoProductsOfHintTrue(
   const ConstMonomial a1b,
   const ConstMonomial a2b
 ) const {
+  if (sizeof(exponent) < 4)
+    return (monomialIsProductOf(a1, b, a1b) &&
+      monomialIsProductOf(a2, b, a2b));
+
   uint64 orOfXor = 0;
   for (size_t i = mNumVars / 2; i != static_cast<size_t>(-1); --i) {
     uint64 A1, A2, B, A1B, A2B;
@@ -725,7 +737,7 @@ inline void PolyRing::monomialMult(ConstMonomial a,
   for (size_t i = mHashIndex; i != static_cast<size_t>(-1); --i)
     result[i] = a[i] + b[i];
   MATHICGB_ASSERT(computeHashValue(result) ==
-                  computeHashValue(a) + computeHashValue(b));
+    static_cast<exponent>(computeHashValue(a) + computeHashValue(b)));
 
 #if 0
   // testing different things to see if we can speed it up further.
@@ -761,7 +773,10 @@ inline HashValue PolyRing::computeHashValue(const_monomial a1) const {
   a++;
   for (size_t i = 0; i < mNumVars; ++i)
     hash += static_cast<HashValue>(a[i]) * mHashVals[i];
-  return hash;
+  // cast to potentially discard precision that will also be lost
+  // when storing a hash value as an exponent. Otherwise the hash
+  // value that is computed will not match the stored hash value.
+  return static_cast<exponent>(hash);
 }
 
 inline void PolyRing::setHashOnly(Monomial& a1) const
@@ -842,10 +857,11 @@ inline void PolyRing::monomialDivideToNegative(ConstMonomial a,
 {
   for (size_t i = 0; i <= mHashIndex; ++i)
     result[i] = a[i] - b[i];
-  MATHICGB_ASSERT(monomialHashValue(result) == monomialHashValue(a) - monomialHashValue(b));
+  MATHICGB_ASSERT(monomialHashValue(result) ==
+    static_cast<exponent>(monomialHashValue(a) - monomialHashValue(b)));
   MATHICGB_ASSERT(!hashValid(a) || !hashValid(b) || hashValid(result));
-  MATHICGB_ASSERT(computeHashValue(result) ==
-                  computeHashValue(a) - computeHashValue(b));
+  MATHICGB_ASSERT(computeHashValue(result) == static_cast<exponent>
+    (computeHashValue(a) - computeHashValue(b)));
 }
 
 inline bool PolyRing::monomialRelativelyPrime(ConstMonomial a, 
@@ -1123,6 +1139,14 @@ inline void PolyRing::coefficientMult(coefficient a, coefficient b, coefficient 
   mStats.n_mult++;
   coefficient c = b * a;
   result = c % mCharac;
+}
+
+inline bool PolyRing::monomialHasAmpleCapacity(ConstMonomial mono) const {
+  const auto halfMax = std::numeric_limits<exponent>::max() / 2;
+  for (size_t i = mTopIndex; i != 0; --i)
+    if (mono[i] > halfMax)
+      return false;
+  return true;
 }
 
 #endif

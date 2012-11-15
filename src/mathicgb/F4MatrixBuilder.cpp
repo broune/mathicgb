@@ -244,6 +244,8 @@ F4MatrixBuilder::createColumn(
 
   // The column really does not exist, so we need to create it
   ring().monomialMult(monoA, monoB, mTmp);
+  if (!ring().monomialHasAmpleCapacity(mTmp))
+    mathic::reportError("Monomial exponent overflow in F4MatrixBuilder.");
   MATHICGB_ASSERT(ring().hashValid(mTmp));
 
   // look for a reducer of mTmp
@@ -251,12 +253,12 @@ F4MatrixBuilder::createColumn(
   const bool insertLeft = (reducerIndex != static_cast<size_t>(-1));
 
   // Create the new left or right column
-  const auto colCount = insertLeft ? mLeftColCount : mRightColCount;
+  auto& colCount = insertLeft ? mLeftColCount : mRightColCount;
   if (colCount == std::numeric_limits<ColIndex>::max())
     throw std::overflow_error("Too many columns in QuadMatrix");
   const auto inserted = mMap.insert
     (std::make_pair(mTmp, LeftRightColIndex(colCount, insertLeft)));
-  insertLeft ? ++mLeftColCount : ++mRightColCount;
+  ++colCount;
   MATHICGB_ASSERT(inserted.second);
   MATHICGB_ASSERT(inserted.first.first != 0);
 
