@@ -335,7 +335,7 @@ namespace {
       }});
       //std::cout << "done reducing that batch" << std::endl;
 
-      reduced.clear(colCount);
+      reduced.clear();
       std::sort(nextReducers.begin(), nextReducers.end());
       for (size_t i = 0; i < nextReducers.size(); ++i) {
         size_t const row = nextReducers[i].second;
@@ -361,7 +361,7 @@ namespace {
       dense[row].takeModulus(modulus);
     }});
 
-    toReduce.clear(colCount);
+    toReduce.clear();
     for (size_t row = 0; row < rowCount; ++row)
       if (!dense[row].empty())
         dense[row].appendTo(toReduce);

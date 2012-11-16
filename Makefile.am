@@ -61,7 +61,11 @@ libmathicgb_la_SOURCES = src/mathicgb/BjarkeGeobucket2.cpp				\
   src/mathicgb/QuadMatrix.cpp src/mathicgb/F4MatrixReducer.cpp			\
   src/mathicgb/F4MatrixReducer.hpp src/mathicgb/MonomialMap.hpp			\
   src/mathicgb/RawVector.hpp src/mathicgb/Atomic.hpp					\
-  src/mathicgb/FixedSizeMonomialMap.hpp	
+  src/mathicgb/FixedSizeMonomialMap.hpp src/cli/CommonParams.hpp		\
+  src/cli/CommonParams.cpp src/cli/GBAction.hpp src/cli/GBAction.cpp	\
+  src/cli/GBCommonParams.hpp src/cli/GBCommonParams.cpp					\
+  src/cli/MatrixAction.cpp src/cli/MatrixAction.hpp						\
+  src/cli/SigGBAction.hpp src/cli/SigGBAction.cpp
 
 # When making a distribution file, Automake knows to include all files
 # that are necessary to build the project. EXTRA_DIST specifies files

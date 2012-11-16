@@ -29,7 +29,7 @@ TEST(F4MatrixReducer, Reduce) {
   }
 
   // top left
-  m.topLeft.clear(4);
+  m.topLeft.clear();
   m.topLeft.appendEntry(0, 1);
   m.topLeft.appendEntry(1, 2);
   m.topLeft.appendEntry(3, 3);
@@ -44,7 +44,7 @@ TEST(F4MatrixReducer, Reduce) {
   m.topLeft.rowDone();
 
   // top right
-  m.topRight.clear(5);
+  m.topRight.clear();
   m.topRight.appendEntry(2,8);
   m.topRight.rowDone();
   m.topRight.appendEntry(3,9);
@@ -54,7 +54,7 @@ TEST(F4MatrixReducer, Reduce) {
   m.topRight.rowDone();
 
   // bottom left
-  m.bottomLeft.clear(4);
+  m.bottomLeft.clear();
   m.bottomLeft.rowDone();
   m.bottomLeft.appendEntry(1, 9);
   m.bottomLeft.rowDone();
@@ -72,7 +72,7 @@ TEST(F4MatrixReducer, Reduce) {
   m.bottomLeft.rowDone();
 
   // bottom right
-  m.bottomRight.clear(5);
+  m.bottomRight.clear();
   m.bottomRight.rowDone();
   m.bottomRight.appendEntry(1, 2);
   m.bottomRight.appendEntry(3, 11);

@@ -66,7 +66,7 @@ TEST(SparseMatrix, toRow) {
     monomials.push_back(it.getMonomial());
 
   SparseMatrix mat(5);
-  mat.clear(6);
+  mat.clear();
   mat.rowDone();
   mat.appendEntry(0,10);
   mat.rowDone();

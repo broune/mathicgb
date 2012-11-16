@@ -61,7 +61,7 @@ void SparseMatrix::sortRowsByIncreasingPivots() {
   std::sort(order.begin(), order.end());
 
   // construct ordered with pivot columns in increaing order
-  ordered.clear(lColCount);
+  ordered.clear();
   for (size_t i = 0; i < lRowCount; ++i) {
     const auto row = order[i].second;
     const auto end = rowEnd(row);
@@ -165,7 +165,7 @@ SparseMatrix::ColIndex SparseMatrix::computeColCount() const {
   return colCount;
 }
 
-void SparseMatrix::clear(const ColIndex newColCount) {
+void SparseMatrix::clear() {
   Block* block = &mBlock;
   while (block != 0) {
     delete[] block->mColIndices.releaseMemory();
@@ -271,12 +271,13 @@ void SparseMatrix::reserveFreeEntries(const size_t freeCount) {
     std::distance(mRows.back().mIndicesEnd, mBlock.mColIndices.end())
   );
 
+  // @todo: fix memory leaks on exception
+
   auto oldBlock = new Block(std::move(mBlock));
   MATHICGB_ASSERT(mBlock.mColIndices.begin() == 0);
   MATHICGB_ASSERT(mBlock.mScalars.begin() == 0);
   MATHICGB_ASSERT(mBlock.mHasNoRows);
   MATHICGB_ASSERT(mBlock.mPreviousBlock == 0);
-  mBlock.mPreviousBlock = oldBlock;
 
   {
     const auto begin = new ColIndex[count];
@@ -296,11 +297,20 @@ void SparseMatrix::reserveFreeEntries(const size_t freeCount) {
       (oldBlock->mColIndices.begin(), oldBlock->mColIndices.end());
     mBlock.mScalars.rawAssign
       (oldBlock->mScalars.begin(), oldBlock->mScalars.end());
+    delete oldBlock; // no reason to keep it around
   } else {
     mBlock.mColIndices.rawAssign
       (mRows.back().mIndicesEnd, oldBlock->mColIndices.end());
     mBlock.mScalars.rawAssign
       (mRows.back().mScalarsEnd, oldBlock->mScalars.end());
+
+    // remove the pending entries from old block so that counting the number
+    // of entries will give the correct result in future.
+    oldBlock->mColIndices.resize
+      (std::distance(oldBlock->mColIndices.begin(), mRows.back().mIndicesEnd));
+    oldBlock->mScalars.resize
+      (std::distance(oldBlock->mScalars.begin(), mRows.back().mScalarsEnd));      
+    mBlock.mPreviousBlock = oldBlock;
   }
 }
 
@@ -349,4 +359,108 @@ size_t SparseMatrix::Block::memoryUseTrimmed() const {
 std::ostream& operator<<(std::ostream& out, const SparseMatrix& matrix) {
   matrix.print(out);
   return out;
+}
+
+namespace {
+  template<class T>
+  T readOne(FILE* file) {
+    T t;
+    fread(&t, sizeof(T), 1, file);
+    return t;
+  }
+
+  template<class T>
+  void writeOne(const T& t, FILE* file) {
+    fwrite(&t, sizeof(T), 1, file);
+  }
+
+  template<class T>
+  void writeMany(const std::vector<T>& v, FILE* file) {
+    if (v.empty())
+      return;
+    fwrite(&v[0], sizeof(T), v.size(), file);
+  }
+
+  template<class T>
+  void readMany(FILE* file, size_t count, std::vector<T>& v) {
+    size_t const originalSize = v.size();
+    v.resize(originalSize + count);
+    fread(&v[originalSize], sizeof(T), count, file);
+  }
+
+}
+
+void SparseMatrix::write(const Scalar modulus, FILE* file) const {
+  const auto storedRowCount = rowCount();
+
+  writeOne(static_cast<uint32>(storedRowCount), file);
+  writeOne(static_cast<uint32>(computeColCount()), file);
+  writeOne(static_cast<uint32>(modulus), file);
+  writeOne(static_cast<uint64>(entryCount()), file);
+
+  // write scalars
+  for (SparseMatrix::RowIndex row = 0; row < storedRowCount; ++row)
+    fwrite(&rowBegin(row).index(), sizeof(uint16), entryCountInRow(row), file);
+
+  // write indices
+  for (SparseMatrix::RowIndex row = 0; row < storedRowCount; ++row)
+    fwrite(&rowBegin(row).index(), sizeof(uint32), entryCountInRow(row), file);
+
+  std::vector<uint32> entryCounts;
+  for (SparseMatrix::RowIndex row = 0; row < storedRowCount; ++row)
+    entryCounts.push_back(entryCountInRow(row));
+  writeMany<uint32>(entryCounts, file);
+}
+
+SparseMatrix::Scalar SparseMatrix::read(FILE* file) {
+  MATHICGB_ASSERT(file != 0);
+
+  const auto rowCount = readOne<uint32>(file);
+  const auto colCount = readOne<uint32>(file);
+  const auto modulus = readOne<uint32>(file);
+  const auto entryCount = readOne<uint64>(file);
+
+  // Allocate memory to hold the matrix in one block.
+  clear();
+  reserveFreeEntries(entryCount);
+  mRows.reserve(rowCount);
+  MATHICGB_ASSERT(mBlock.mPreviousBlock == 0); // only one block
+
+  // @todo: we can read directly into the block. Do that.
+
+  // Read scalars.
+  {
+    mBlock.mScalars.resize(entryCount);
+    std::vector<uint16> scalars;
+    readMany(file, entryCount, scalars);
+    std::copy(scalars.begin(), scalars.end(), mBlock.mScalars.begin());
+  }
+
+  // Read column indices.
+  {
+    mBlock.mColIndices.resize(entryCount);
+    std::vector<uint32> indices;
+    readMany(file, entryCount, indices);
+    std::copy(indices.begin(), indices.end(), mBlock.mColIndices.begin());
+  }
+
+  // Read where rows begin and end.
+  {
+    std::vector<uint32> sizes;
+    readMany(file, rowCount, sizes);
+    uint32 runningOffset = 0;
+    for (auto it = sizes.begin(); it != sizes.end(); ++it) {
+      Row row;
+      row.mIndicesBegin = mBlock.mColIndices.begin() + runningOffset;
+      row.mScalarsBegin = mBlock.mScalars.begin() + runningOffset;
+      runningOffset += *it;
+      row.mIndicesEnd = mBlock.mColIndices.begin() + runningOffset;
+      row.mScalarsEnd = mBlock.mScalars.begin() + runningOffset;
+      mRows.push_back(row);
+    }
+    MATHICGB_ASSERT(runningOffset == entryCount);
+  }
+
+  MATHICGB_ASSERT(mBlock.mPreviousBlock == 0); // still only one block
+  return modulus;
 }
