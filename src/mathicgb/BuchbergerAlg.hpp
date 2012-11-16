@@ -1,5 +1,5 @@
-#ifndef _buchberger_alg_
-#define _bucbberger_alg_
+#ifndef MATHICGB_BUCHBERGER_ALG_GUARD
+#define MATHICGB_BUCHBERGER_ALG_GUARD
 
 #include "Reducer.hpp"
 #include "FreeModuleOrder.hpp"

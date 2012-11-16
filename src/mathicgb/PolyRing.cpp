@@ -244,7 +244,7 @@ void PolyRing::monomialParse(std::istream &i,
           e = 1;
           if (isdigit(next))
             i >> e;
-          result[v+1] = e;
+          result[v+1] = static_cast<exponent>(e);
         }
       else if (next == '<')
         {
@@ -658,7 +658,7 @@ PolyRing *PolyRing::read(std::istream &i)
   int mNumVars, mNumWeights;
 
   i >> characInt;
-  charac = characInt;
+  charac = static_cast<exponent>(characInt);
   i >> mNumVars;
   i >> mNumWeights;
   PolyRing* R = new PolyRing(charac, mNumVars, mNumWeights);
@@ -669,7 +669,7 @@ PolyRing *PolyRing::read(std::istream &i)
     exponent a;
     int64 aInt;
     i >> aInt;
-    a = aInt;
+    a = static_cast<exponent>(aInt);
     R->mWeights[j] = -a;
     if (R->mWeights[j] != -1)
       R->mTotalDegreeGradedOnly = false;
