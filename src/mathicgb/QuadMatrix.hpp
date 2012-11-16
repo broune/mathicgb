@@ -56,9 +56,8 @@ public:
   std::string toString() const;
 
   /// Sort the left columns to be in decreasing order according to the monomial
-  /// order from the ring. The operation is parallel using up to threadCount
-  /// threads.
-  void sortColumnsLeftRightParallel(int threadCount);
+  /// order from the ring. The operation is done in parallel.
+  void sortColumnsLeftRightParallel();
 
   /// Makes a copy of this matrix whose rows are sorted in some canonical way.
   /// TODO: Actually only coarsely sorts the top rows right now.

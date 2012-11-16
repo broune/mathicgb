@@ -15,7 +15,6 @@ BuchbergerAlg::BuchbergerAlg(
   mBreakAfter(0),
   mPrintInterval(0),
   mSPairGroupSize(0),
-  mThreadCount(0),
   mUseAutoTopReduction(true),
   mUseAutoTailReduction(false),
   mRing(*ideal.getPolyRing()),
@@ -187,7 +186,6 @@ void BuchbergerAlg::insertReducedPoly(
 }
 
 void BuchbergerAlg::computeGrobnerBasis() {
-  mReducer->setThreadCount(mThreadCount);
   size_t counter = 0;
   mTimer.reset();
   mRing.resetCoefficientStats();

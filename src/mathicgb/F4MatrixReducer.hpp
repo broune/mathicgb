@@ -9,7 +9,7 @@ class PolyRing;
   answer you get is the submatrix that contains new pivots. */
 class F4MatrixReducer {
 public:
-  F4MatrixReducer(const PolyRing& ring, int threadCount);
+  F4MatrixReducer(const PolyRing& ring);
 
   /// Reduces the lower right part of the row echelon form of matrix. Assumes
   /// that there is a permutation of the upper rows that makes the upper
@@ -18,7 +18,6 @@ public:
 
 private:
   const SparseMatrix::Scalar mModulus;
-  const int mThreadCount;
 };
 
 #endif

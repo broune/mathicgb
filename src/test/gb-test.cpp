@@ -19,6 +19,7 @@
 #include <sstream>
 #include <memory>
 #include <gtest/gtest.h>
+#include <tbb/tbb.h>
 
 TEST(IO, ideal) {
   const char* idealA_fromStr_format = 
@@ -278,6 +279,7 @@ spairQueue	reducerType	divLookup	monTable	buchberger	postponeKoszul	useBaseDivis
     MATHICGB_ASSERT
       (Reducer::makeReducerNullOnUnknown(red, I->ring()).get() != 0);
 
+    tbb::task_scheduler_init scheduler(threadCount);
     if (buchberger) {
       BuchbergerAlg alg
         (*I, freeModuleOrder, Reducer::reducerType(reducerType),
@@ -285,7 +287,6 @@ spairQueue	reducerType	divLookup	monTable	buchberger	postponeKoszul	useBaseDivis
       alg.setUseAutoTopReduction(autoTopReduce);
       alg.setUseAutoTailReduction(autoTailReduce);
       alg.setSPairGroupSize(sPairGroupSize);
-      alg.setThreadCount(threadCount);
       alg.computeGrobnerBasis();
       std::unique_ptr<Ideal> initialIdeal =
         alg.basis().initialIdeal();

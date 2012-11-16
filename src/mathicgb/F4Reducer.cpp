@@ -59,7 +59,7 @@ std::unique_ptr<Poly> F4Reducer::classicReduceSPoly
 
   SparseMatrix reduced;
   {
-    F4MatrixReducer red(basis.ring(), mThreadCount);
+    F4MatrixReducer red(basis.ring());
     reduced = red.reduce(qm);
   }
 
@@ -103,7 +103,7 @@ void F4Reducer::classicReduceSPolySet
   {
     QuadMatrix qm;
     {
-      F4MatrixBuilder builder(basis, mThreadCount, mMemoryQuantum);
+      F4MatrixBuilder builder(basis, mMemoryQuantum);
       for (auto it = spairs.begin(); it != spairs.end(); ++it) {
         builder.addSPolynomialToMatrix
           (basis.poly(it->first), basis.poly(it->second));
@@ -113,7 +113,7 @@ void F4Reducer::classicReduceSPolySet
       // there has to be something to reduce
       MATHICGB_ASSERT(qm.bottomLeft.rowCount() > 0);
     }
-    reduced = F4MatrixReducer(basis.ring(), mThreadCount).reduce(qm);
+    reduced = F4MatrixReducer(basis.ring()).reduce(qm);
     monomials = std::move(qm.rightColumnMonomials);
     for (auto it = qm.leftColumnMonomials.begin();
       it != qm.leftColumnMonomials.end(); ++it)
@@ -158,7 +158,7 @@ void F4Reducer::classicReducePolySet
   {
     QuadMatrix qm;
     {
-      F4MatrixBuilder builder(basis, mThreadCount, mMemoryQuantum);
+      F4MatrixBuilder builder(basis, mMemoryQuantum);
       for (auto it = polys.begin(); it != polys.end(); ++it)
         builder.addPolynomialToMatrix(**it);
       builder.buildMatrixAndClear(qm);
@@ -166,7 +166,7 @@ void F4Reducer::classicReducePolySet
       // there has to be something to reduce
       MATHICGB_ASSERT(qm.bottomLeft.rowCount() > 0);
     }
-    reduced = F4MatrixReducer(basis.ring(), mThreadCount).reduce(qm);
+    reduced = F4MatrixReducer(basis.ring()).reduce(qm);
     monomials = std::move(qm.rightColumnMonomials);
     for (auto it = qm.leftColumnMonomials.begin();
       it != qm.leftColumnMonomials.end(); ++it)
@@ -195,10 +195,6 @@ Poly* F4Reducer::regularReduce
   mSigStats = mFallback->sigStats();
   mClassicStats = mFallback->classicStats();
   return p;
-}
-
-void F4Reducer::setThreadCount(int threadCount) {
-  mThreadCount = threadCount;
 }
 
 void F4Reducer::setMemoryQuantum(size_t quantum) {
