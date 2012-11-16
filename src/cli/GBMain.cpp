@@ -2,6 +2,7 @@
 
 #include "GBAction.hpp"
 #include "SigGBAction.hpp"
+#include "MatrixAction.hpp"
 #include <mathic.h>
 #include <cctype>
 #include <iostream>
@@ -12,6 +13,7 @@ int main(int argc, char **argv) {
     mathic::CliParser parser;
     parser.registerAction<SigGBAction>();
     parser.registerAction<GBAction>();
+    parser.registerAction<MatrixAction>();
     parser.registerAction<mathic::HelpAction>();
 
     std::vector<std::string> commandLine(argv, argv + argc);

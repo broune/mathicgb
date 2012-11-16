@@ -73,7 +73,9 @@ public:
 
   SparseMatrix& operator=(const SparseMatrix&);
   void swap(SparseMatrix& matrix);
-  void clear(ColIndex newColCount = 0);
+
+  // Removes all rows from *this.
+  void clear();
 
   /// Appends the rows from matrix to this object. Avoids most of the copies
   /// that would otherwise be required for a big matrix insert by taking
@@ -220,6 +222,12 @@ public:
   /// slow and it makes a copy internally.
   void sortRowsByIncreasingPivots();
 
+  // Write *this and modulus to file.
+  void write(Scalar modulus, FILE* file) const;
+
+  // Set *this to a matrix read from file and return the modulus from the file.
+  Scalar read(FILE* file);
+
   /// Iterates through the entries in a row.
   class ConstRowIterator {
   public:
@@ -268,7 +276,6 @@ public:
     const ColIndex* mColIndexIt;
     const Scalar* mScalarIt;
   };
-
 
 private:
   MATHICGB_NO_INLINE void growEntryCapacity();

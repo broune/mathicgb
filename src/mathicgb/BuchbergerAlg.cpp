@@ -7,7 +7,7 @@
 BuchbergerAlg::BuchbergerAlg(
   const Ideal& ideal,
   FreeModuleOrderType orderType,
-  Reducer::ReducerType reducerType,
+  Reducer& reducer,
   int divisorLookupType,
   bool preferSparseReducers,
   size_t queueType
@@ -19,7 +19,7 @@ BuchbergerAlg::BuchbergerAlg(
   mUseAutoTailReduction(false),
   mRing(*ideal.getPolyRing()),
   mOrder(FreeModuleOrder::makeOrder(orderType, &ideal)),
-  mReducer(Reducer::makeReducer(reducerType, *ideal.getPolyRing())),
+  mReducer(reducer),
   mBasis(mRing, *mOrder, DivisorLookup::makeFactory(
     *ideal.getPolyRing(),
     divisorLookupType)->create(preferSparseReducers, true)
@@ -44,7 +44,7 @@ void BuchbergerAlg::insertPolys
       if ((*it)->isZero())
         continue;
       if (mBasis.divisor((*it)->getLeadMonomial()) != static_cast<size_t>(-1)) {
-        *it = mReducer->classicReduce(**it, mBasis);
+        *it = mReducer.classicReduce(**it, mBasis);
         if ((*it)->isZero())
           continue;
       }
@@ -90,7 +90,7 @@ void BuchbergerAlg::insertPolys
     MATHICGB_ASSERT(toRetire.empty());
 
     // reduce everything in toReduce
-    mReducer->classicReducePolySet(toReduce, mBasis, toInsert);
+    mReducer.classicReducePolySet(toReduce, mBasis, toInsert);
     toReduce.clear();
   }
 
@@ -140,7 +140,7 @@ void BuchbergerAlg::insertReducedPoly(
         if (toReduce.empty()) // if first iteration
           reduced = std::move(polyToInsert);
         else {
-          reduced = mReducer->classicReduce(*toReduce.back(), mBasis);
+          reduced = mReducer.classicReduce(*toReduce.back(), mBasis);
           if (tracingLevel > 20) {
             if (reduced->isZero()) {
               std::cerr << "auto-top-reduce cascade: "
@@ -236,7 +236,7 @@ void BuchbergerAlg::step() {
                 << p.second << ")" << std::endl;
     }
     std::unique_ptr<Poly> reduced
-      (mReducer->classicReduceSPoly
+      (mReducer.classicReduceSPoly
        (mBasis.poly(p.first), mBasis.poly(p.second), mBasis));
     if (!reduced->isZero()) {
       insertReducedPoly(std::move(reduced));
@@ -263,7 +263,7 @@ void BuchbergerAlg::step() {
     if (spairGroup.empty())
       return; // no more s-pairs
     std::vector<std::unique_ptr<Poly> > reduced;
-    mReducer->classicReduceSPolySet(spairGroup, mBasis, reduced);
+    mReducer.classicReduceSPolySet(spairGroup, mBasis, reduced);
     
     insertPolys(reduced);
     /*
@@ -271,7 +271,7 @@ void BuchbergerAlg::step() {
       auto p = std::move(*it);
       MATHICGB_ASSERT(!p->isZero());
       if (it != reduced.begin())
-        p = mReducer->classicReduce(*p, mBasis);
+        p = mReducer.classicReduce(*p, mBasis);
       if (!p->isZero())
         insertReducedPoly(std::move(p));
     }
@@ -290,7 +290,7 @@ void BuchbergerAlg::autoTailReduce() {
     if (mBasis.usedAsReducerCount(i) < 1000)
       continue;
     mBasis.replaceSameLeadTerm
-      (i, mReducer->classicTailReduce(mBasis.poly(i), mBasis));
+      (i, mReducer.classicTailReduce(mBasis.poly(i), mBasis));
   }
 }
 
@@ -298,13 +298,13 @@ size_t BuchbergerAlg::getMemoryUse() const {
   return
     mBasis.getMemoryUse() +
     mRing.getMonomialPool().getMemoryUse() +
-    mReducer->getMemoryUse() +
+    mReducer.getMemoryUse() +
     mSPairs.getMemoryUse();
 }
 
 void BuchbergerAlg::printStats(std::ostream& out) const {
   out << " term order:         " << mBasis.order().description() << '\n';
-  out << " reduction type:     " << mReducer->description() << '\n';
+  out << " reduction type:     " << mReducer.description() << '\n';
   out << " divisor tab type:   " << mBasis.divisorLookup().getName() << '\n';
   out << " S-pair queue type:  " << mSPairs.name() << '\n';
   out << " total compute time: " << mTimer.getMilliseconds()/1000.0 << " seconds " << '\n';
@@ -376,7 +376,7 @@ void BuchbergerAlg::printStats(std::ostream& out) const {
   value << mic::ColumnPrinter::commafy(reductions) << '\n';
   extra << '\n';
 
-  Reducer::Stats reducerStats = mReducer->sigStats();
+  Reducer::Stats reducerStats = mReducer.sigStats();
   SPairs::Stats sPairStats = mSPairs.stats();
 
   unsigned long long const primeElim = sPairStats.relativelyPrimeHits;
@@ -418,7 +418,7 @@ void BuchbergerAlg::printStats(std::ostream& out) const {
   value << mic::ColumnPrinter::commafy(longestReduction) << '\n';
   extra << '\n';
 
-  Reducer::Stats classicRedStats = mReducer->classicStats();
+  Reducer::Stats classicRedStats = mReducer.classicStats();
   const unsigned long long clReductions = classicRedStats.reductions;
   name << "Classic reductions:\n";
   value << mic::ColumnPrinter::commafy(clReductions) << '\n';
@@ -509,7 +509,7 @@ void BuchbergerAlg::printMemoryUse(std::ostream& out) const
     extra << mic::ColumnPrinter::percent(sPairMem, total) << '\n';
   }
   { // Reducer
-    const size_t reducerMem = mReducer->getMemoryUse();
+    const size_t reducerMem = mReducer.getMemoryUse();
     name << "Reducer:\n";
     value << mic::ColumnPrinter::bytesInUnit(reducerMem) << '\n';
     extra << mic::ColumnPrinter::percent(reducerMem, total) << '\n';

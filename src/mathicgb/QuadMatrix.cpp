@@ -28,9 +28,6 @@ bool QuadMatrix::debugAssertValid() const {
 void QuadMatrix::print(std::ostream& out) const {
   MATHICGB_ASSERT(debugAssertValid());
 
-  // @todo: fix the code duplication here from QuadMatrixBuilder's
-  // string code.
-
   typedef SparseMatrix::ColIndex ColIndex;
   mathic::ColumnPrinter printer;
   printer.addColumn(true, "", "");
@@ -63,6 +60,24 @@ void QuadMatrix::print(std::ostream& out) const {
   bottomRight.print(printer[1]);
 
   out << printer;
+}
+
+size_t QuadMatrix::rowCount() const {
+  return topLeft.rowCount() + bottomLeft.rowCount();
+}
+
+size_t QuadMatrix::computeLeftColCount() const {
+  return std::max(topLeft.computeColCount(), bottomLeft.computeColCount());
+}
+
+size_t QuadMatrix::computeRightColCount() const {
+  return std::max(topRight.computeColCount(), bottomRight.computeColCount());
+}
+
+size_t QuadMatrix::entryCount() const {
+  return
+    topLeft.entryCount() + topRight.entryCount() +
+    bottomLeft.entryCount() + bottomRight.entryCount();
 }
 
 std::string QuadMatrix::toString() const {
@@ -131,9 +146,9 @@ void QuadMatrix::printSizes(std::ostream& out) const {
   pr[2] << line << "/\n";
 
   out << '\n' << pr
-	  << "Total memory: " << memoryUse() << "  ("
-	  << ColPr::percent(memoryUseTrimmed(), memoryUse())
-	  << " written to)\n";
+    << "Total memory: " << ColPr::bytesInUnit(memoryUse()) << "  ("
+	<< ColPr::percent(memoryUseTrimmed(), memoryUse())
+	<< " in use)\n";
 }
 
 QuadMatrix QuadMatrix::toCanonical() const {
@@ -299,4 +314,37 @@ void QuadMatrix::sortColumnsLeftRightParallel() {
       bottomLeft.applyColumnMap(leftPermutation);
     }
   });
+}
+
+void QuadMatrix::write(
+  const SparseMatrix::Scalar modulus,
+  FILE* file
+) const {
+  MATHICGB_ASSERT(file != 0);
+  topLeft.write(modulus, file);
+  topRight.write(modulus, file);
+  bottomLeft.write(modulus, file);
+  bottomRight.write(modulus, file);
+}
+
+SparseMatrix::Scalar QuadMatrix::read(FILE* file) {
+  MATHICGB_ASSERT(file != 0);
+
+  leftColumnMonomials.clear();
+  rightColumnMonomials.clear();
+  ring = 0;
+
+  const auto topLeftModulus = topLeft.read(file);
+  const auto topRightModulus = topRight.read(file);
+  const auto bottomLeftModulus = bottomLeft.read(file);
+  const auto bottomRightModulus = bottomRight.read(file);
+
+  // todo: this should throw some kind of invalid format exception instead of
+  // these asserts.
+  MATHICGB_ASSERT(topLeftModulus == topRightModulus);
+  MATHICGB_ASSERT(bottomLeftModulus == topRightModulus);
+  MATHICGB_ASSERT(bottomRightModulus == topRightModulus);
+  MATHICGB_ASSERT(debugAssertValid());
+
+  return topLeftModulus;
 }

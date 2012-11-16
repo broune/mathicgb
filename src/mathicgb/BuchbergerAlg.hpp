@@ -16,7 +16,7 @@ public:
   BuchbergerAlg(
     const Ideal& ideal,
     FreeModuleOrderType orderType,
-    Reducer::ReducerType reducerType,
+    Reducer& reducer,
     int divisorLookupType,
     bool preferSparseReducers,
     size_t queueType);
@@ -51,7 +51,7 @@ public:
   }
 
   void setReducerMemoryQuantum(size_t memoryQuantum) {
-    mReducer->setMemoryQuantum(memoryQuantum);
+    mReducer.setMemoryQuantum(memoryQuantum);
   }
 
   void setUseAutoTopReduction(bool value) {
@@ -81,7 +81,7 @@ private:
 
   const PolyRing& mRing;
   std::unique_ptr<FreeModuleOrder> mOrder;
-  std::unique_ptr<Reducer> mReducer;
+  Reducer& mReducer;
   PolyBasis mBasis;
   SPairs mSPairs;
   mic::Timer mTimer;

@@ -102,13 +102,13 @@ public:
   };
 
   static std::unique_ptr<Reducer> makeReducer
-  (ReducerType t, PolyRing const& ring);
+    (ReducerType t, const PolyRing& ring);
 
   static std::unique_ptr<Reducer> makeReducerNullOnUnknown
-  (ReducerType t, PolyRing const& ring);
+    (ReducerType t, const PolyRing& ring);
 
   static ReducerType reducerType(int typ);
-  static void displayReducerTypes(std::ostream &o);
+  static void displayReducerTypes(std::ostream& o);
 
 
   // ***** Obtaining statistics about the reduction process
