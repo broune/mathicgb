@@ -34,8 +34,6 @@ public:
     size_t basisElement,
     const GroebnerBasis& basis);
 
-  virtual void setThreadCount(int threadCount);
-
   virtual void setMemoryQuantum(size_t quantum);
 
   virtual std::string description() const;

@@ -47,10 +47,8 @@ void F4MatrixBuilder::createTwoColumns(
 
 F4MatrixBuilder::F4MatrixBuilder(
   const PolyBasis& basis,
-  const int threadCount,
   const size_t memoryQuantum
 ):
-  mThreadCount(threadCount),
   mTmp(basis.ring().allocMonomial()),
   mBasis(basis),
   mMap(basis.ring()),
@@ -60,8 +58,6 @@ F4MatrixBuilder::F4MatrixBuilder(
   mLeftColCount(0),
   mRightColCount(0)
 {
-  MATHICGB_ASSERT(threadCount >= 1);
-
   // This assert to be _NO_ASSUME since otherwise the compiler will assume that
   // the error checking branch here cannot be taken and optimize it away.
   const Scalar maxScalar = std::numeric_limits<Scalar>::max();
@@ -131,7 +127,6 @@ void F4MatrixBuilder::buildMatrixAndClear(QuadMatrix& matrix) {
     monomial tmp2;
   };
 
-  MATHICGB_ASSERT(mThreadCount >= 1);
   tbb::enumerable_thread_specific<ThreadData> threadData([&](){  
     ThreadData data = {QuadMatrixBuilder(
       ring(), mMap, mMonomialsLeft, mMonomialsRight, mBuilder.memoryQuantum()
@@ -221,7 +216,7 @@ void F4MatrixBuilder::buildMatrixAndClear(QuadMatrix& matrix) {
     }
   }
 #endif
-  matrix.sortColumnsLeftRightParallel(mThreadCount);
+  matrix.sortColumnsLeftRightParallel();
   mMap.clearNonConcurrent();
 }
 

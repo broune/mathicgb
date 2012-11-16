@@ -9,6 +9,7 @@
 #include "mathicgb/io-util.hpp"
 
 #include <gtest/gtest.h>
+#include <tbb/tbb.h>
 #include <memory>
 
 namespace {
@@ -18,8 +19,7 @@ namespace {
   // @todo: This whole thing is fairly ridiculous - some kind of more
   // general dependency injection mechanism might be nice here.
   struct BuilderMaker {
-    BuilderMaker(int threadCount):
-      mThreadCount(threadCount),
+    BuilderMaker():
       mRing(ringFromString("101 6 1\n1 1 1 1 1 1")),
       mIdeal(*mRing),
       mOrder(FreeModuleOrder::makeOrder(1, &mIdeal)),
@@ -36,14 +36,13 @@ namespace {
 
     F4MatrixBuilder& create() {
       MATHICGB_ASSERT(mBuilder.get() == 0);
-      mBuilder.reset(new F4MatrixBuilder(mBasis, mThreadCount));
+      mBuilder.reset(new F4MatrixBuilder(mBasis));
       return *mBuilder;
     }
 
     const PolyRing& ring() const {return *mRing;}
      
   private:
-    const int mThreadCount;
     std::unique_ptr<PolyRing> mRing;
     Ideal mIdeal;
     std::unique_ptr<FreeModuleOrder> mOrder;
@@ -54,7 +53,8 @@ namespace {
 
 TEST(F4MatrixBuilder, Empty) {
   for (int threadCount = 1; threadCount < 4; ++threadCount) {
-    BuilderMaker maker(threadCount);
+    tbb::task_scheduler_init scheduler(threadCount);
+    BuilderMaker maker;
     F4MatrixBuilder& builder = maker.create();
 
     QuadMatrix matrix;
@@ -70,7 +70,8 @@ TEST(F4MatrixBuilder, Empty) {
 
 TEST(F4MatrixBuilder, SPair) {
   for (int threadCount = 1; threadCount < 4; ++threadCount) {
-    BuilderMaker maker(threadCount);
+    tbb::task_scheduler_init scheduler(threadCount);
+    BuilderMaker maker;
     const Poly& p1 = maker.addBasisElement("a4c2-d");
     const Poly& p2 = maker.addBasisElement("a4b+d");
     // S-pair of p1 and p2 is -c2d-bd
@@ -91,7 +92,8 @@ TEST(F4MatrixBuilder, SPair) {
 
 TEST(F4MatrixBuilder, OneByOne) {
   for (int threadCount = 1; threadCount < 4; ++threadCount) {
-    BuilderMaker maker(threadCount);
+    tbb::task_scheduler_init scheduler(threadCount);
+    BuilderMaker maker;
     const Poly& p = maker.addBasisElement("a");
     F4MatrixBuilder& builder = maker.create();
     builder.addPolynomialToMatrix(p.getLeadMonomial(), p);
@@ -109,7 +111,7 @@ TEST(F4MatrixBuilder, OneByOne) {
 
 TEST(F4MatrixBuilder, DirectReducers) {
   for (int threadCount = 1; threadCount < 4; ++threadCount) {
-    BuilderMaker maker(threadCount);
+    BuilderMaker maker;
     maker.addBasisElement("a6<0>"); // reducer == to lead term
     maker.addBasisElement("a3b2<0>+a3c"); // reducer == to lower order term
     maker.addBasisElement("c<0>"); // reducer divides
@@ -149,7 +151,7 @@ TEST(F4MatrixBuilder, DirectReducers) {
 
 TEST(F4MatrixBuilder, IteratedReducer) {
   for (int threadCount = 1; threadCount < 4; ++threadCount) {
-    BuilderMaker maker(threadCount);
+    BuilderMaker maker;
     const Poly& p1 = maker.addBasisElement("a4-a3");
     const Poly& p2 = maker.addBasisElement("a-1");
     F4MatrixBuilder& builder = maker.create();

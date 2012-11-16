@@ -50,10 +50,6 @@ public:
     mSPairGroupSize = groupSize;
   }
 
-  void setThreadCount(int threadCount) {
-    mThreadCount = threadCount;
-  }
-
   void setReducerMemoryQuantum(size_t memoryQuantum) {
     mReducer->setMemoryQuantum(memoryQuantum);
   }
@@ -70,7 +66,6 @@ private:
   unsigned int mBreakAfter;
   unsigned int mPrintInterval;
   unsigned int mSPairGroupSize;
-  int mThreadCount;
   bool mUseAutoTopReduction;
   bool mUseAutoTailReduction;
 

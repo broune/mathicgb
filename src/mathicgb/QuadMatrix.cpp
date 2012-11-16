@@ -273,7 +273,7 @@ namespace {
   }
 }
 
-void QuadMatrix::sortColumnsLeftRightParallel(const int threadCount) {
+void QuadMatrix::sortColumnsLeftRightParallel() {
   typedef SparseMatrix::ColIndex ColIndex;
   std::vector<ColIndex> leftPermutation;
   std::vector<ColIndex> rightPermutation;

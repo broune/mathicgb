@@ -125,8 +125,7 @@ namespace {
 
   SparseMatrix reduce(
     const QuadMatrix& qm,
-    SparseMatrix::Scalar modulus,
-    const int threadCount
+    SparseMatrix::Scalar modulus
   ) {
     const SparseMatrix& toReduceLeft = qm.bottomLeft;
     const SparseMatrix& toReduceRight = qm.bottomRight;
@@ -245,8 +244,7 @@ namespace {
   void reduceToEchelonForm(
     SparseMatrix& toReduce,
     const SparseMatrix::ColIndex colCount,
-    const SparseMatrix::Scalar modulus,
-    int threadCount
+    const SparseMatrix::Scalar modulus
   ) {
     // making no assumptions on toReduce except no zero rows
 
@@ -371,15 +369,14 @@ namespace {
 }
 
 SparseMatrix F4MatrixReducer::reduce(const QuadMatrix& matrix) {
-  MATHICGB_ASSERT(mThreadCount >= 1);
   MATHICGB_ASSERT(matrix.debugAssertValid());
   if (tracingLevel >= 3)
     matrix.printSizes(std::cerr);
 
   const auto rightColCount =
     static_cast<SparseMatrix::ColIndex>(matrix.rightColumnMonomials.size());
-  SparseMatrix newPivots(::reduce(matrix, mModulus, mThreadCount));
-  ::reduceToEchelonForm(newPivots, rightColCount, mModulus, mThreadCount);
+  SparseMatrix newPivots(::reduce(matrix, mModulus));
+  ::reduceToEchelonForm(newPivots, rightColCount, mModulus);
   return std::move(newPivots);
 }
 
@@ -398,8 +395,5 @@ namespace {
   }
 }
 
-F4MatrixReducer::F4MatrixReducer(const PolyRing& ring, const int threadCount):
-  mModulus(checkModulus(ring)),
-  mThreadCount(std::max(threadCount, 1)
-) {
-}
+F4MatrixReducer::F4MatrixReducer(const PolyRing& ring):
+  mModulus(checkModulus(ring)) {}

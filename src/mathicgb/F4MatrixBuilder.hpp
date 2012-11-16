@@ -28,8 +28,7 @@ public:
   /// memoryQuantum is how much to increase the memory size by each time the
   /// current amount of memory is exhausted. A value of 0 indicates to start
   /// small and double the quantum at each exhaustion.
-  F4MatrixBuilder
-    (const PolyBasis& basis, int threadCount, size_t memoryQuantum = 0);
+  F4MatrixBuilder(const PolyBasis& basis, size_t memoryQuantum = 0);
 
   /** Schedules a row representing the S-polynomial between polyA and
     polyB to be added to the matrix. No ownership is taken, but polyA
@@ -147,7 +146,6 @@ private:
   ColIndex mLeftColCount;
   ColIndex mRightColCount;
   monomial mTmp;
-  const int mThreadCount;
   const PolyBasis& mBasis;
   Monomials mMonomialsLeft;
   Monomials mMonomialsRight;

@@ -159,7 +159,7 @@ TEST(QuadMatrixBuilder, SortColumns) {
     QuadMatrixBuilder b(*ring, map, monoLeft, monoRight);
     b.rowDoneTopLeftAndRight();
     auto matrix = b.buildMatrixAndClear();
-    matrix.sortColumnsLeftRightParallel(1);
+    matrix.sortColumnsLeftRightParallel();
     const char* matrixStr = 
       "Left columns:\n"
       "Right columns:\n"
@@ -206,10 +206,10 @@ TEST(QuadMatrixBuilder, SortColumns) {
       "0: 1#1 0#2 | 0: 2#3 0#4 1#5 \n"
       "           |                \n"
       "0: 1#6 0#7 | 0: 2#8 0#9 1#10\n";
-    matrix.sortColumnsLeftRightParallel(1);
+    matrix.sortColumnsLeftRightParallel();
     ASSERT_EQ(matrixStr2, matrix.toString());
 
-    matrix.sortColumnsLeftRightParallel(1);
+    matrix.sortColumnsLeftRightParallel();
     ASSERT_EQ(matrixStr2, matrix.toString());
   }
 }

@@ -62,10 +62,6 @@ public:
     size_t basisElement,
     const GroebnerBasis& basis) = 0;
 
-  /** Sets how many parallel threads to use for reduction - if the
-    reducer supports it. */
-  virtual void setThreadCount(int threadCount) = 0;
-
   /** Sets how many bytes of memory to increase the memory use by
     at a time - if such a thing is appropriate for the reducer. */
   virtual void setMemoryQuantum(size_t quantum) = 0;
