@@ -1,11 +1,7 @@
 #include "mathicgb/stdinc.h"
 #include "CommonParams.hpp"
 
-CommonParams::CommonParams():
-  mInputFile("inputFile",
-    "The file to read input from.",
-    ""),
-
+CommonParams::CommonParams(size_t minDirectParams, size_t maxDirectParams):
   mTracingLevel("tracingLevel",
     "How much information to print out about what the program does. No "
     "information is shown if the value is zero. Higher values "
@@ -14,7 +10,10 @@ CommonParams::CommonParams():
 
   mThreadCount("threadCount",
     "Specifies how many threads to use at a time.",
-    1)
+    1),
+
+  mMinDirectParams(minDirectParams),
+  mMaxDirectParams(maxDirectParams)
 {
 }
 
@@ -22,16 +21,16 @@ void CommonParams::directOptions(
   std::vector<std::string> tokens,
   mathic::CliParser& parser
 ) {
-  if (tokens.size() == 1)
-    mInputFile.processArgument(tokens.back());
-  if (tokens.size() > 1)
-    mathic::reportError("Too many direct options.");
+  if (tokens.size() < mMinDirectParams)
+    mathic::reportError("Too few direct options");
+  if (tokens.size() > mMaxDirectParams)
+    mathic::reportError("Too many direct options");
+  mDirectParameters = std::move(tokens);
 }
 
 void CommonParams::pushBackParameters(
   std::vector<mathic::CliParameter*>& parameters
 ) {
-  parameters.push_back(&mInputFile);
   parameters.push_back(&mTracingLevel);
   parameters.push_back(&mThreadCount);
 }
@@ -55,16 +54,27 @@ void CommonParams::registerFileNameExtension(std::string extension) {
   mExtensions.push_back(std::move(extension));
 }
 
-std::string CommonParams::inputFileNameStem() {
-  const auto& str = mInputFile.value();
-  const auto toStrip = inputFileNameExtension();
+size_t CommonParams::inputFileCount() const {
+  return mDirectParameters.size();
+}
+
+std::string CommonParams::inputFileName(size_t i) {
+  MATHICGB_ASSERT(i < inputFileCount());
+  return mDirectParameters[i];
+}
+
+std::string CommonParams::inputFileNameStem(size_t i) {
+  MATHICGB_ASSERT(i < inputFileCount());
+  const auto& str = mDirectParameters[i];
+  const auto toStrip = inputFileNameExtension(i);
   MATHICGB_ASSERT
     (toStrip.size() < str.size() || (toStrip.empty() && str.empty()));
   return str.substr(0, str.size() - toStrip.size());
 }
 
-std::string CommonParams::inputFileNameExtension() {
-  const auto& str = mInputFile.value();
+std::string CommonParams::inputFileNameExtension(size_t i) {
+  MATHICGB_ASSERT(i < inputFileCount());
+  const auto& str = mDirectParameters[i];
   const auto end = mExtensions.end();
   for (auto it = mExtensions.begin(); it != end; ++it) {
     if (
