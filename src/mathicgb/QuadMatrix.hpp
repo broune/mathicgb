@@ -62,10 +62,10 @@ public:
   size_t rowCount() const;
 
   /// Return the number of left columns.
-  size_t computeLeftColCount() const;
+  SparseMatrix::ColIndex computeLeftColCount() const;
 
   /// Return the number of right columns.
-  size_t computeRightColCount() const;
+  SparseMatrix::ColIndex computeRightColCount() const;
 
   void write(SparseMatrix::Scalar modulus, FILE* file) const;
 

@@ -74,6 +74,11 @@ public:
   SparseMatrix& operator=(const SparseMatrix&);
   void swap(SparseMatrix& matrix);
 
+  bool operator==(const SparseMatrix& matrix) const;
+  bool operator!=(const SparseMatrix& matrix) const {
+    return !(*this == matrix);
+  }
+
   // Removes all rows from *this.
   void clear();
 

@@ -1,8 +1,9 @@
 # MathicGB generated files
 *.gb
 *.stats
-*.mat
 *.qmat
+*.brmat
+*.rbrmat
 
 # Compiled Object files
 *.slo

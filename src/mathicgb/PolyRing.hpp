@@ -11,6 +11,7 @@
 #include <memtailor.h>
 #include <cstdio>
 #include <cstring>
+#include <limits>
 
 #define LT (-1)
 #define EQ 0
