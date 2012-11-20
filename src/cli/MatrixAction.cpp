@@ -7,6 +7,7 @@
 #include "mathicgb/SparseMatrix.hpp"
 #include "mathicgb/CFile.hpp"
 #include <mathic.h>
+#include <limits>
 #include <fstream>
 #include <iostream>
 
@@ -28,7 +29,8 @@ namespace {
   }
 }
 
-MatrixAction::MatrixAction() {
+MatrixAction::MatrixAction():
+  mParams(1, std::numeric_limits<size_t>::max()) {
   mParams.registerFileNameExtension(QuadMatrixExtension);
   mParams.registerFileNameExtension(LowerRightMatrixExtension);
   mParams.registerFileNameExtension(ReducedLowerRightMatrixExtension);
@@ -44,65 +46,68 @@ void MatrixAction::directOptions(
 
 void MatrixAction::performAction() {
   mParams.perform();
-  const auto fileNameStem = mParams.inputFileNameStem();
-  const auto extension = mParams.inputFileNameExtension();
-  const auto quadFileName = fileNameStem + QuadMatrixExtension;
-  const auto lowerRightFileName = fileNameStem + LowerRightMatrixExtension;
-  const auto reducedLowerRightFileName =
-    fileNameStem + ReducedLowerRightMatrixExtension;
-  std::string inputFileName;
+  for (size_t i = 0; i < mParams.inputFileCount(); ++i) {
+    const auto fileNameStem = mParams.inputFileNameStem(i);
+    const auto extension = mParams.inputFileNameExtension(i);
+    const auto quadFileName = fileNameStem + QuadMatrixExtension;
+    const auto lowerRightFileName = fileNameStem + LowerRightMatrixExtension;
+    const auto reducedLowerRightFileName =
+      fileNameStem + ReducedLowerRightMatrixExtension;
+    std::string inputFileName;
 
-  SparseMatrix lowerRightMatrix;
-  SparseMatrix::Scalar modulus;
-  if (
-    extension == QuadMatrixExtension ||
-    extension == "." ||
-    extension == ""
-  ) {
-    inputFileName = quadFileName;
-    CFile file(quadFileName, "rb");
-    QuadMatrix matrix;
-    modulus = matrix.read(file.handle());
-    fclose(file.handle());
-    // @todo: F4MatrixReducer should not take a PolyRing parameter.
-    PolyRing ring(modulus, 0, 0);
-    F4MatrixReducer reducer(ring);
-    // @todo: only reduce down to D, do not reduce D itself
-    lowerRightMatrix = reducer.reduce(matrix);
+    SparseMatrix lowerRightMatrix;
+    SparseMatrix::Scalar modulus;
+    if (
+      extension == QuadMatrixExtension ||
+      extension == "." ||
+      extension == ""
+    ) {
+      inputFileName = quadFileName;
+      CFile file(quadFileName, "rb");
+      QuadMatrix matrix;
+      modulus = matrix.read(file.handle());
+      fclose(file.handle());
+      // @todo: F4MatrixReducer should not take a PolyRing parameter.
+      PolyRing ring(modulus, 0, 0);
+      F4MatrixReducer reducer(ring);
+      // @todo: only reduce down to D, do not reduce D itself
+      lowerRightMatrix = reducer.reduce(matrix);
 
-    if (!fileExists(lowerRightFileName)) {
-      CFile file(lowerRightFileName, "wb");
-      lowerRightMatrix.write(modulus, file.handle());
+      if (!fileExists(lowerRightFileName)) {
+        CFile file(lowerRightFileName, "wb");
+        lowerRightMatrix.write(modulus, file.handle());
+      }
+    } else if (extension == LowerRightMatrixExtension) {
+      inputFileName = lowerRightFileName;
+      CFile file(lowerRightFileName, "rb");
+      modulus = lowerRightMatrix.read(file.handle());
+    } else {
+      mathic::reportError
+        ("Unknown input file extension of " + mParams.inputFileName(i));
     }
-  } else if (extension == LowerRightMatrixExtension) {
-    inputFileName = lowerRightFileName;
-    CFile file(lowerRightFileName, "rb");
-    modulus = lowerRightMatrix.read(file.handle());
-  } else {
-    mathic::reportError
-      ("Unknown input file extension of " + mParams.mInputFile.value());
-  }
 
-  {
-    // @todo: expose D -> reduced D code and call it here
-    //PolyRing ring(modulus, 0, 0);
-    //F4MatrixReducer reducer(ring);
-  }
-  lowerRightMatrix.sortRowsByIncreasingPivots();
+    {
+      // @todo: expose D -> reduced D code and call it here
+      //PolyRing ring(modulus, 0, 0);
+      //F4MatrixReducer reducer(ring);
+    }
+    lowerRightMatrix.sortRowsByIncreasingPivots();
 
-  if (!fileExists(reducedLowerRightFileName)) {
-    CFile file(reducedLowerRightFileName.c_str(), "wb");
-    lowerRightMatrix.write(modulus, file.handle());
-  } else {
-    SparseMatrix referenceMatrix;
-    CFile file(reducedLowerRightFileName.c_str(), "rb");
-    referenceMatrix.read(file.handle());
-    if (lowerRightMatrix != referenceMatrix) {
-      std::cerr << "Reducing " << inputFileName
-        << " does not yield the matrix " << reducedLowerRightFileName << ".\n";
-    } else if (tracingLevel > 0) {
-      std::cerr << "Match for " << inputFileName 
-        << " -> " << ReducedLowerRightMatrixExtension << ".\n";
+    if (!fileExists(reducedLowerRightFileName)) {
+      CFile file(reducedLowerRightFileName.c_str(), "wb");
+      lowerRightMatrix.write(modulus, file.handle());
+    } else {
+      SparseMatrix referenceMatrix;
+      CFile file(reducedLowerRightFileName.c_str(), "rb");
+      referenceMatrix.read(file.handle());
+      if (lowerRightMatrix != referenceMatrix) {
+        std::cerr << "Reducing " << inputFileName
+          << " does not yield the matrix "
+          << reducedLowerRightFileName << ".\n";
+      } else if (tracingLevel > 0) {
+        std::cerr << "Match for " << inputFileName 
+          << " -> " << ReducedLowerRightMatrixExtension << ".\n";
+      }
     }
   }
 }

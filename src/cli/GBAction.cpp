@@ -37,8 +37,9 @@ GBAction::GBAction():
    "files named X-1.mat, X-2.mat and so on where X is the project name. Only "
    "matrices with at least as many entries as the parameter are stored. "
    "A value of 0 indicates not to store any matrices.",
-   0)
+   0),
 
+   mParams(1, 1)
 {
   std::ostringstream orderOut;
   FreeModuleOrder::displayOrderTypes(orderOut);
@@ -55,7 +56,7 @@ void GBAction::directOptions(
 void GBAction::performAction() {
   mParams.perform();
   mGBParams.perform();
-  const std::string projectName = mParams.inputFileNameStem();
+  const std::string projectName = mParams.inputFileNameStem(0);
 
   // read input
   std::unique_ptr<Ideal> ideal;

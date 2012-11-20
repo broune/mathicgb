@@ -27,7 +27,9 @@ SigGBAction::SigGBAction():
 
   mModuleOrder("moduleOrder",
     "The free module term order.\n",
-    4)
+    4),
+
+  mParams(1, 1)
 {
   std::ostringstream orderOut;
   FreeModuleOrder::displayOrderTypes(orderOut);
@@ -48,7 +50,7 @@ void SigGBAction::performAction() {
   // read input file
   std::unique_ptr<Ideal> ideal;
   {
-    std::string const inputIdealFile = mParams.inputFileNameStem() + ".ideal";
+    const std::string inputIdealFile = mParams.inputFileNameStem(0) + ".ideal";
     std::ifstream inputFile(inputIdealFile.c_str());
     if (inputFile.fail())
       mic::reportError("Could not read input file \"" + inputIdealFile + '\n');
@@ -75,21 +77,21 @@ void SigGBAction::performAction() {
   alg.displayStats(std::cout);
   alg.displayPaperStats(std::cout);
   {
-    std::ofstream statsOut((mParams.inputFileNameStem() + ".stats").c_str());
+    std::ofstream statsOut((mParams.inputFileNameStem(0) + ".stats").c_str());
     alg.displayStats(statsOut);
     alg.displayPaperStats(statsOut);
   }
 
   // print basis
   {
-    std::ofstream ogb((mParams.inputFileNameStem() + ".gb").c_str());
+    std::ofstream ogb((mParams.inputFileNameStem(0) + ".gb").c_str());
     ogb << "-- gb: ----\n";
     alg.getGB()->display(ogb);
   }
 
   // print syzygy basis
   {
-    std::ofstream syzygyOut((mParams.inputFileNameStem() + ".syz").c_str());
+    std::ofstream syzygyOut((mParams.inputFileNameStem(0) + ".syz").c_str());
     syzygyOut << "-- syz: ----\n";
     alg.getSyzTable()->display(syzygyOut, 1);
     syzygyOut << std::endl;

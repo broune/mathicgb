@@ -7,7 +7,7 @@
 
 class CommonParams {
 public:
-  CommonParams();
+  CommonParams(size_t minDirectParams, size_t maxDirectParams);
 
   void directOptions
     (std::vector<std::string> tokens, mathic::CliParser& parser);
@@ -22,20 +22,29 @@ public:
   /// for a file name instead of part of the file name.
   void registerFileNameExtension(std::string extensions);
 
-  /// Returns the stem of the input file name, with any registered extensions
-  /// stripped off.
-  std::string inputFileNameStem();
+  /// Returns the number of direct parameters/input files.
+  size_t inputFileCount() const;
 
-  /// Returns the registered extension of the input file name, if any.
-  std::string inputFileNameExtension();
+  /// Returns the file name at offset i, if any.
+  std::string inputFileName(size_t i);
 
-  mathic::StringParameter mInputFile;
+  /// Returns the stem of the input file name at offset i, with any registered
+  /// extensions stripped off.
+  std::string inputFileNameStem(size_t i);
+
+  /// Returns the registered extension of the input file name at offset i,
+  /// if any.
+  std::string inputFileNameExtension(size_t i);
+
+private:
   mathic::IntegerParameter mTracingLevel;
   mathic::IntegerParameter mThreadCount;
 
-private:
   std::vector<std::string> mExtensions; // to recognize file type
   std::unique_ptr<tbb::task_scheduler_init> mTbbInit; // to set thread count
+  std::size_t mMinDirectParams;
+  std::size_t mMaxDirectParams;
+  std::vector<std::string> mDirectParameters;
 };
 
 #endif
