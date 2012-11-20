@@ -201,12 +201,9 @@ void F4Reducer::saveMatrix(const QuadMatrix& matrix) {
     return;
   ++mMatrixSaveCount;
   std::ostringstream fileName;
-  fileName << mStoreToFile << '-' << mMatrixSaveCount << ".mat";
-  if (tracingLevel > 2) {
-    std::cerr << "F4Reducer: Saving "
-      << mathic::ColumnPrinter::commafy(entryCount)
-      << " entry matrix to " << fileName.str() << '\n';
-  }
+  fileName << mStoreToFile << '-' << mMatrixSaveCount << ".qmat";
+  if (tracingLevel > 2)
+    std::cerr << "F4Reducer: Saving matrix to " << fileName.str() << '\n';
   FILE* file = fopen(fileName.str().c_str(), "wb");
   // @todo: fix leak of file on exception
   matrix.write(static_cast<SparseMatrix::Scalar>(mRing.charac()), file);

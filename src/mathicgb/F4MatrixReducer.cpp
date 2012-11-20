@@ -132,10 +132,10 @@ namespace {
     const SparseMatrix& reduceByLeft = qm.topLeft;
     const SparseMatrix& reduceByRight = qm.topRight;
 
-    const auto leftColCount =
-      static_cast<SparseMatrix::ColIndex>(qm.leftColumnMonomials.size());
-    const auto rightColCount =
-      static_cast<SparseMatrix::ColIndex>(qm.rightColumnMonomials.size());
+    const auto leftColCount = qm.computeLeftColCount();
+//      static_cast<SparseMatrix::ColIndex>(qm.leftColumnMonomials.size());
+    const auto rightColCount = static_cast<SparseMatrix::ColIndex>(qm.computeRightColCount());
+//      static_cast<SparseMatrix::ColIndex>(qm.rightColumnMonomials.size());
     MATHICGB_ASSERT(leftColCount == reduceByLeft.rowCount());
     const auto pivotCount = leftColCount;
     const auto rowCount = toReduceLeft.rowCount();
@@ -373,8 +373,8 @@ SparseMatrix F4MatrixReducer::reduce(const QuadMatrix& matrix) {
   if (tracingLevel >= 3)
     matrix.printSizes(std::cerr);
 
-  const auto rightColCount =
-    static_cast<SparseMatrix::ColIndex>(matrix.rightColumnMonomials.size());
+  const auto rightColCount = matrix.computeRightColCount();
+    //static_cast<SparseMatrix::ColIndex>(matrix.rightColumnMonomials.size());
   SparseMatrix newPivots(::reduce(matrix, mModulus));
   ::reduceToEchelonForm(newPivots, rightColCount, mModulus);
   return std::move(newPivots);

@@ -153,6 +153,23 @@ void SparseMatrix::swap(SparseMatrix& matrix) {
   swap(mMemoryQuantum, matrix.mMemoryQuantum);
 }
 
+bool SparseMatrix::operator==(const SparseMatrix& matrix) const {
+  const auto count = rowCount();
+  if (count != matrix.rowCount())
+    return false;
+  for (size_t row = 0; row < count; ++row) {
+    if (entryCountInRow(row) != matrix.entryCountInRow(row))
+      return false;
+    const auto end = rowEnd(row);
+    auto it = rowBegin(row);
+    auto matrixIt = matrix.rowBegin(row);
+    for (auto it = rowBegin(row); it != end; ++it, ++matrixIt)
+      if (*it != *matrixIt)
+        return false;
+  }
+  return true;
+}
+
 SparseMatrix::ColIndex SparseMatrix::computeColCount() const {
   // Obviously this can be done faster, but there has not been a need for that
   // so far.
@@ -400,7 +417,7 @@ void SparseMatrix::write(const Scalar modulus, FILE* file) const {
 
   // write scalars
   for (SparseMatrix::RowIndex row = 0; row < storedRowCount; ++row)
-    fwrite(&rowBegin(row).index(), sizeof(uint16), entryCountInRow(row), file);
+    fwrite(&rowBegin(row).scalar(), sizeof(uint16), entryCountInRow(row), file);
 
   // write indices
   for (SparseMatrix::RowIndex row = 0; row < storedRowCount; ++row)

@@ -66,11 +66,11 @@ size_t QuadMatrix::rowCount() const {
   return topLeft.rowCount() + bottomLeft.rowCount();
 }
 
-size_t QuadMatrix::computeLeftColCount() const {
+SparseMatrix::ColIndex QuadMatrix::computeLeftColCount() const {
   return std::max(topLeft.computeColCount(), bottomLeft.computeColCount());
 }
 
-size_t QuadMatrix::computeRightColCount() const {
+SparseMatrix::ColIndex QuadMatrix::computeRightColCount() const {
   return std::max(topRight.computeColCount(), bottomRight.computeColCount());
 }
 
