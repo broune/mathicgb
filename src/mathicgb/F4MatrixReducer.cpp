@@ -241,23 +241,22 @@ namespace {
     return std::move(reduced);
   }
 
-  void reduceToEchelonForm(
-    SparseMatrix& toReduce,
-    const SparseMatrix::ColIndex colCount,
+  SparseMatrix reduceToEchelonForm(
+    const SparseMatrix& toReduce,
     const SparseMatrix::Scalar modulus
   ) {
-    // making no assumptions on toReduce except no zero rows
+    const auto colCount = toReduce.computeColCount();
+    const auto rowCount = toReduce.rowCount();
 
-    SparseMatrix::RowIndex const rowCount = toReduce.rowCount();
-
-    // dense representation 
+    // convert to dense representation 
     std::vector<DenseRow<uint64>> dense(rowCount);
-
     tbb::parallel_for(tbb::blocked_range<size_t>(0, rowCount),
       [&](const tbb::blocked_range<size_t>& range)
       {for (auto it = range.begin(); it != range.end(); ++it)
     {
       const size_t row = it;
+      if (toReduce.emptyRow(row))
+        return;
       dense[row].clear(colCount);
       dense[row].addRow(toReduce, row);
     }});
@@ -361,39 +360,49 @@ namespace {
       dense[row].takeModulus(modulus);
     }});
 
-    toReduce.clear();
+    reduced.clear();
     for (size_t row = 0; row < rowCount; ++row)
       if (!dense[row].empty())
-        dense[row].appendTo(toReduce);
+        dense[row].appendTo(reduced);
+    return std::move(reduced);
   }
 }
 
-SparseMatrix F4MatrixReducer::reduce(const QuadMatrix& matrix) {
+
+SparseMatrix F4MatrixReducer::reduceToBottomRight(const QuadMatrix& matrix) {
   MATHICGB_ASSERT(matrix.debugAssertValid());
   if (tracingLevel >= 3)
     matrix.printSizes(std::cerr);
+  return reduce(matrix, mModulus);
+}
 
-  const auto rightColCount = matrix.computeRightColCount();
-    //static_cast<SparseMatrix::ColIndex>(matrix.rightColumnMonomials.size());
-  SparseMatrix newPivots(::reduce(matrix, mModulus));
-  ::reduceToEchelonForm(newPivots, rightColCount, mModulus);
-  return std::move(newPivots);
+SparseMatrix F4MatrixReducer::reducedRowEchelonForm(
+  const SparseMatrix& matrix
+) {
+  return reduceToEchelonForm(matrix, mModulus);
+}
+
+SparseMatrix F4MatrixReducer::reducedRowEchelonFormBottomRight(
+  const QuadMatrix& matrix
+) {
+  return reducedRowEchelonForm(reduceToBottomRight(matrix));
 }
 
 namespace {
   /// this has to be a separate function that returns the scalar since signed
   /// overflow is undefine behavior so we cannot check after the cast and
-  /// we also cannot set mCharac inside the constructor since it is const.
-  SparseMatrix::Scalar checkModulus(const PolyRing& ring) {
+  /// we also cannot set the modulus field inside the constructor since it is
+  /// const.
+  SparseMatrix::Scalar checkModulus(const coefficient modulus) {
     // this assert has to be NO_ASSUME as otherwise the branch below will get
     // optimized out.
-    MATHICGB_ASSERT_NO_ASSUME(ring.charac() <=
+    MATHICGB_ASSERT_NO_ASSUME(modulus <=
       std::numeric_limits<SparseMatrix::Scalar>::max());
-    if (ring.charac() > std::numeric_limits<SparseMatrix::Scalar>::max())
-      throw std::overflow_error("Too large modulus in F4 matrix computation.");
-    return static_cast<SparseMatrix::Scalar>(ring.charac());
+    if (modulus > std::numeric_limits<SparseMatrix::Scalar>::max())
+      throw std::overflow_error("Too large modulus in F4 matrix reduction.");
+    return static_cast<SparseMatrix::Scalar>(modulus);
   }
 }
 
-F4MatrixReducer::F4MatrixReducer(const PolyRing& ring):
-  mModulus(checkModulus(ring)) {}
+F4MatrixReducer::F4MatrixReducer(const coefficient modulus):
+  mModulus(checkModulus(modulus)) {}

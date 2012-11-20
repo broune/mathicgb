@@ -93,7 +93,8 @@ void F4Reducer::classicReduceSPolySet(
       MATHICGB_ASSERT(qm.bottomLeft.rowCount() > 0);
     }
     saveMatrix(qm);
-    reduced = F4MatrixReducer(basis.ring()).reduce(qm);
+    reduced = F4MatrixReducer(basis.ring().charac()).
+      reducedRowEchelonFormBottomRight(qm);
     monomials = std::move(qm.rightColumnMonomials);
     const auto end = qm.leftColumnMonomials.end();
     for (auto it = qm.leftColumnMonomials.begin(); it != end; ++it)
@@ -147,7 +148,8 @@ void F4Reducer::classicReducePolySet
       MATHICGB_ASSERT(qm.bottomLeft.rowCount() > 0);
     }
     saveMatrix(qm);
-    reduced = F4MatrixReducer(basis.ring()).reduce(qm);
+    reduced = F4MatrixReducer(basis.ring().charac()).
+      reducedRowEchelonFormBottomRight(qm);
     monomials = std::move(qm.rightColumnMonomials);
     for (auto it = qm.leftColumnMonomials.begin();
       it != qm.leftColumnMonomials.end(); ++it)

@@ -67,11 +67,7 @@ void MatrixAction::performAction() {
       QuadMatrix matrix;
       modulus = matrix.read(file.handle());
       fclose(file.handle());
-      // @todo: F4MatrixReducer should not take a PolyRing parameter.
-      PolyRing ring(modulus, 0, 0);
-      F4MatrixReducer reducer(ring);
-      // @todo: only reduce down to D, do not reduce D itself
-      lowerRightMatrix = reducer.reduce(matrix);
+      lowerRightMatrix = F4MatrixReducer(modulus).reduceToBottomRight(matrix);
 
       if (!fileExists(lowerRightFileName)) {
         CFile file(lowerRightFileName, "wb");
@@ -86,11 +82,8 @@ void MatrixAction::performAction() {
         ("Unknown input file extension of " + mParams.inputFileName(i));
     }
 
-    {
-      // @todo: expose D -> reduced D code and call it here
-      //PolyRing ring(modulus, 0, 0);
-      //F4MatrixReducer reducer(ring);
-    }
+    lowerRightMatrix = F4MatrixReducer(modulus).
+      reducedRowEchelonForm(lowerRightMatrix);
     lowerRightMatrix.sortRowsByIncreasingPivots();
 
     if (!fileExists(reducedLowerRightFileName)) {
