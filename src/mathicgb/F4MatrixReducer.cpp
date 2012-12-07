@@ -4,6 +4,8 @@
 #include "QuadMatrix.hpp"
 #include "SparseMatrix.hpp"
 #include "PolyRing.hpp"
+#include "LogDomain.hpp"
+
 #include <tbb/tbb.h>
 #include <algorithm>
 #include <vector>
@@ -12,6 +14,11 @@
 #include <string>
 #include <cstdio>
 #include <iostream>
+
+MATHICGB_DEFINE_LOG_DOMAIN(
+  F4MatrixReduce,
+  "Displays statistics about matrices that are row reduced."
+);
 
 namespace {
   template<class T>
@@ -368,11 +375,10 @@ namespace {
   }
 }
 
-
 SparseMatrix F4MatrixReducer::reduceToBottomRight(const QuadMatrix& matrix) {
   MATHICGB_ASSERT(matrix.debugAssertValid());
-  if (tracingLevel >= 3)
-    matrix.printSizes(std::cerr);
+  if (::logs::F4MatrixReduce.enabled())
+    matrix.printSizes(::logs::F4MatrixReduce.stream());
   return reduce(matrix, mModulus);
 }
 

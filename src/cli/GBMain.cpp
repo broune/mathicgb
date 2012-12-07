@@ -3,6 +3,7 @@
 #include "GBAction.hpp"
 #include "SigGBAction.hpp"
 #include "MatrixAction.hpp"
+#include "HelpAction.hpp"
 #include <mathic.h>
 #include <cctype>
 #include <iostream>
@@ -14,7 +15,7 @@ int main(int argc, char **argv) {
     parser.registerAction<SigGBAction>();
     parser.registerAction<GBAction>();
     parser.registerAction<MatrixAction>();
-    parser.registerAction<mathic::HelpAction>();
+    parser.registerAction<HelpAction>();
 
     std::vector<std::string> commandLine(argv, argv + argc);
     commandLine.erase(commandLine.begin());

@@ -1,6 +1,9 @@
 #include "mathicgb/stdinc.h"
 #include "CommonParams.hpp"
 
+#include "mathicgb/LogDomain.hpp"
+#include "mathicgb/LogDomainSet.hpp"
+
 CommonParams::CommonParams(size_t minDirectParams, size_t maxDirectParams):
   mTracingLevel("tracingLevel",
     "How much information to print out about what the program does. No "
@@ -11,6 +14,11 @@ CommonParams::CommonParams(size_t minDirectParams, size_t maxDirectParams):
   mThreadCount("threadCount",
     "Specifies how many threads to use at a time.",
     1),
+
+  mLogs("logs",
+    "Enable the specified log. Do \"help logs\" to see all available logs. "
+    "To enable logs X, Y and Z, do \"-logs x,y,z\".",
+    ""),
 
   mMinDirectParams(minDirectParams),
   mMaxDirectParams(maxDirectParams)
@@ -31,11 +39,31 @@ void CommonParams::directOptions(
 void CommonParams::pushBackParameters(
   std::vector<mathic::CliParameter*>& parameters
 ) {
+  parameters.push_back(&mLogs);
   parameters.push_back(&mTracingLevel);
   parameters.push_back(&mThreadCount);
 }
 
 void CommonParams::perform() {
+  size_t offset = 0;
+  const auto& logStr = mLogs.value();
+  auto& logs = LogDomainSet::singleton();
+  while (offset < logStr.size()) {
+    size_t next = logStr.find(',', offset);
+    const auto name = logStr.substr(offset, next - offset);
+    auto log = logs.logDomain(name.c_str());
+    if (log == 0) {
+      std::ostringstream out;
+      out << "Unknown log domain \"" << name <<
+        "\" extracted from -log param \"" << logStr << "\".\n";
+      mathic::reportError(out.str());
+    }
+    log->setEnabled(true);
+    if (next < logStr.size())
+      ++next;
+    offset = next;
+  }
+
   tracingLevel = mTracingLevel.value();
 
   // delete the old init object first to make the new one take control.

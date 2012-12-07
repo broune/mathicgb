@@ -454,6 +454,7 @@
     <ClCompile Include="..\..\..\src\mathicgb\Ideal.cpp" />
     <ClCompile Include="..\..\..\src\mathicgb\io-util.cpp" />
     <ClCompile Include="..\..\..\src\mathicgb\KoszulQueue.cpp" />
+    <ClCompile Include="..\..\..\src\mathicgb\LogDomain.cpp" />
     <ClCompile Include="..\..\..\src\mathicgb\MonTableNaive.cpp" />
     <ClCompile Include="..\..\..\src\mathicgb\MTArray.cpp" />
     <ClCompile Include="..\..\..\src\mathicgb\PairTriangle.cpp" />
@@ -495,6 +496,8 @@
     <ClInclude Include="..\..\..\src\mathicgb\Ideal.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\io-util.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\KoszulQueue.hpp" />
+    <ClInclude Include="..\..\..\src\mathicgb\LogDomain.hpp" />
+    <ClInclude Include="..\..\..\src\mathicgb\LogDomainSet.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\MonomialHashTable.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\MonomialMap.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\MonTableDivList.hpp" />

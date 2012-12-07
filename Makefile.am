@@ -62,7 +62,8 @@ libmathicgb_la_SOURCES = src/mathicgb/BjarkeGeobucket2.cpp				\
   src/mathicgb/F4MatrixReducer.hpp src/mathicgb/MonomialMap.hpp			\
   src/mathicgb/RawVector.hpp src/mathicgb/Atomic.hpp					\
   src/mathicgb/FixedSizeMonomialMap.hpp src/mathicgb/CFile.hpp			\
-  src/mathicgb/CFile.cpp
+  src/mathicgb/CFile.cpp src/mathicgb/LogDomain.hpp						\
+  src/mathicgb/LogDomain.cpp src/mathicgb/LogDomainSet.hpp
 
 # When making a distribution file, Automake knows to include all files
 # that are necessary to build the project. EXTRA_DIST specifies files
@@ -78,7 +79,8 @@ mgb_SOURCES = src/cli/GBMain.cpp src/cli/CommonParams.hpp				\
   src/cli/CommonParams.cpp src/cli/GBAction.hpp src/cli/GBAction.cpp	\
   src/cli/GBCommonParams.hpp src/cli/GBCommonParams.cpp					\
   src/cli/MatrixAction.cpp src/cli/MatrixAction.hpp						\
-  src/cli/SigGBAction.hpp src/cli/SigGBAction.cpp
+  src/cli/SigGBAction.hpp src/cli/SigGBAction.cpp						\
+  src/cli/HelpAction.hpp src/cli/HelpAction.cpp
 mgb_LDADD = $(top_builddir)/libmathicgb.la
 
 # set up tests to run on "make check"

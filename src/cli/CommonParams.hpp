@@ -39,6 +39,7 @@ public:
 private:
   mathic::IntegerParameter mTracingLevel;
   mathic::IntegerParameter mThreadCount;
+  mathic::StringParameter mLogs;
 
   std::vector<std::string> mExtensions; // to recognize file type
   std::unique_ptr<tbb::task_scheduler_init> mTbbInit; // to set thread count
