@@ -198,6 +198,8 @@ size_t F4Reducer::getMemoryUse() const {
 }
 
 void F4Reducer::saveMatrix(const QuadMatrix& matrix) {
+  if (mStoreToFile.empty())
+    return;
   const auto entryCount = matrix.entryCount();
   if (mMinEntryCountForStore > entryCount)
     return;
