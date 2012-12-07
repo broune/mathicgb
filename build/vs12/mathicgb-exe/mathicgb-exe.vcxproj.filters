@@ -33,6 +33,9 @@
     <ClCompile Include="..\..\..\src\cli\CommonParams.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\src\cli\HelpAction.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\src\cli\GBCommonParams.hpp">
@@ -48,6 +51,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\src\cli\CommonParams.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\cli\HelpAction.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -47,6 +47,7 @@
     <ClCompile Include="..\..\..\src\cli\GBAction.cpp" />
     <ClCompile Include="..\..\..\src\cli\GBCommonParams.cpp" />
     <ClCompile Include="..\..\..\src\cli\GBMain.cpp" />
+    <ClCompile Include="..\..\..\src\cli\HelpAction.cpp" />
     <ClCompile Include="..\..\..\src\cli\MatrixAction.cpp" />
     <ClCompile Include="..\..\..\src\cli\SigGBAction.cpp" />
   </ItemGroup>
@@ -65,6 +66,7 @@
     <ClInclude Include="..\..\..\src\cli\CommonParams.hpp" />
     <ClInclude Include="..\..\..\src\cli\GBAction.hpp" />
     <ClInclude Include="..\..\..\src\cli\GBCommonParams.hpp" />
+    <ClInclude Include="..\..\..\src\cli\HelpAction.hpp" />
     <ClInclude Include="..\..\..\src\cli\MatrixAction.hpp" />
     <ClInclude Include="..\..\..\src\cli\SigGBAction.hpp" />
   </ItemGroup>

@@ -144,6 +144,18 @@
 #define MATHICGB_SLOW_ASSERT(X)
 #endif
 
+/// Concatenates A to B without expanding A and B. This is achieved since
+/// token pasting (##) defeats macro expansion.
+#define MATHICGB_CONCATENATE(A,B) A##B
+
+/// Concatenates A to B after expanding A and B. This is achieved since
+/// macro parameters are expanded before expanding the macro itself,
+/// so the token pasting inside MATHICGB_CONCATENATE does not defeat
+/// expansion of the parameters. So even though this macro just evaluates
+/// directly to MATHICGB_CONCATENATE(A,B) it does not do the same thing
+/// as that macro does.
+#define MATHICGB_CONCATENATE_AFTER_EXPANSION(A,B) MATHICGB_CONCATENATE(A,B)
+
 #include <utility>
 /*
 See http://herbsutter.com/gotw/_102/ for a reason to have a
