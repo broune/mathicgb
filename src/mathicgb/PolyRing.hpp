@@ -82,6 +82,19 @@ T modularProduct(T a, T b, T modulus) {
   return static_cast<T>(bigProd % modulus);
 }
 
+/** Returns a+b mod modulus.  It is required that 0 <= a, b < modulus. */
+template<class T>
+T modularSum(T a, T b, T modulus) {
+  typedef typename ModularProdType<T>::type BigT;
+  MATHICGB_ASSERT(0 <= a);
+  MATHICGB_ASSERT(a < modulus);
+  MATHICGB_ASSERT(0 <= b);
+  MATHICGB_ASSERT(b < modulus);
+  BigT bigSum = static_cast<BigT>(a) + b;
+  MATHICGB_ASSERT(bigSum - a == b);
+  return static_cast<T>(bigSum % modulus);
+}
+
 /** Returns -a mod modulus. It is required that 0 <= a < modulus. */
 template<class T>
 T modularNegative(T a, T modulus) {
