@@ -72,6 +72,7 @@
 #define MATHICGB_PURE __attribute__(pure)
 #define MATHICGB_MUST_CHECK_RETURN_VALUE __attribute__(warn_unused_result)
 #define MATHICGB_UNREACHABLE __builtin_unreachable()
+#define MATHICGB_RESTRICT
 
 #else
 
@@ -84,6 +85,7 @@
 #define MATHICGB_PURE
 #define MATHICGB_MUST_CHECK_RETURN_VALUE
 #define MATHICGB_UNREACHABLE
+#define MATHICGB_RESTRICT
 
 #endif
 
