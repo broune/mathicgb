@@ -5,42 +5,36 @@
 // using std::atomic.
 #include <atomic>
 
+namespace AtomicInternal {
+  /// Tells the compiler (not the CPU) to not reorder reads across this line.
+  inline void compilerReadMemoryBarrier();
+
+  /// Tells the compiler (not the CPU) to not reorder writes across this line.
+  inline void compilerWriteMemoryBarrier();
+
+  /// Tells the compiler (not the CPU) to not reorder reads and writes across
+  /// this line.
+  inline void compilerReadWriteMemoryBarrier();
+
+  /// Tells the CPU and also the compiler to not reorder reads and writes
+  /// across this line.
+  inline void cpuReadWriteMemoryBarrier();
+
+  /// Stores a variable with sequentially consistent ordering. The variable
+  /// must be aligned and have a size such that aligned reads of that size
+  /// are atomic. This requies a locked instruction like XHCG according to
+  /// http://goo.gl/U8xTK .
+  template<class T>
+  void seqCstStore(const T value, T& ref);
+}
+
 #if defined(_MSC_VER) && defined(MATHICGB_USE_CUSTOM_ATOMIC_X86_X64)
-
-/// Tells the compiler (not the CPU) to not reorder reads across this line.
-#define MATHICGB_COMPILER_READ_MEMORY_BARRIER _ReadBarrier()
-
-/// Tells the compiler (not the CPU) to not reorder writes across this line.
-#define MATHICGB_COMPILER_WRITE_MEMORY_BARRIER _WriteBarrier()
-
-/// Tells the compiler (not the CPU) to not reorder reads and writes across
-/// this line.
-#define MATHICGB_COMPILER_READ_WRITE_MEMORY_BARRIER _ReadWriteBarrier()
-
-/// Tells the CPU and also the compiler to not reorder reads and writes
-/// across this line.
-#define MATHICGB_CPU_READ_WRITE_MEMORY_BARRIER MemoryBarrier()
-
-/// Loads a variable with sequentially consistent ordering. The variable
-/// must be aligned and have a size such that aligned loads of that size
-/// are atomic.
-#define MATHICGB_SEQ_CST_LOAD(REF) \
-  ::AtomicInternalMsvc::SeqCstSelect<decltype(REF)>::load(REF)
-
-/// Stores a variable with sequentially consistent ordering. The variable
-/// must be aligned and have a size such that aligned reads of that size
-/// are atomic.
-#define MATHICGB_SEQ_CST_STORE(VALUE, REF) \
-  ::AtomicInternalMsvc::SeqCstSelect<decltype(REF)>::store(VALUE, REF)
-
 #include <Windows.h>
-namespace AtomicInternalMsvc {
-  template<class T, size_t size> struct SeqCst {};
+namespace AtomicInternal {
+  template<class T, size_t size = sizeof(T)>
+  struct SeqCst {};
 #ifdef MATHICGB_USE_CUSTOM_ATOMIC_4BYTE
   template<class T> struct SeqCst<T, 4> {
-    static T load(const T& ref) {
-      return (T)_InterlockedOr((volatile LONG*)&ref, 0);
-    }
     static void store(const T value, T& ref) {
       _InterlockedExchange((volatile LONG*)&ref, (LONG)value);
     }
@@ -48,55 +42,46 @@ namespace AtomicInternalMsvc {
 #endif
 #ifdef MATHICGB_USE_CUSTOM_ATOMIC_8BYTE
   template<class T> struct SeqCst<T, 8> {
-    static T load(const T& ref) {
-      return (T)_InterlockedOr64((volatile _LONGLONG*)&ref, 0);
-    }
     static void store(const T value, T& ref) {
       _InterlockedExchange64((volatile _LONGLONG*)&ref, (_LONGLONG)value);
     }
   };
 #endif
-  template<class T> struct SeqCstSelect : public SeqCst<T, sizeof(T)> {};
+
+  inline void compilerReadMemoryBarrier() {_ReadBarrier();}
+  inline void compilerWriteMemoryBarrier() {_WriteBarrier();}
+  inline void compilerReadWriteMemoryBarrier() {_ReadWriteBarrier();}
+  inline void cpuReadWriteMemoryBarrier() {MemoryBarrier();}
+  template<class T>
+  void seqCstStore(const T value, T& ref) {SeqCst<T>::store(value, ref);}
 }
 #endif
 
 #if defined(__GNUC__) && defined(MATHICGB_USE_CUSTOM_ATOMIC_X86_X64)
+namespace AtomicInternal {
+  inline void compilerReadMemoryBarrier() {
+    // As far as I can tell there is no way to do a partial optimization
+    // barrier on GCC, so we have to do the full barrier every time.
+    compilerReadWriteMemoryBarrier();
+  }
 
-// As far as I can tell this is not documented to work, but it is the
-// only way to do this on GCC and it is what the Linux kernel does, so
-// that will have to be good enough for me.
-#define MATHICGB_COMPILER_READ_WRITE_MEMORY_BARRIER \
-  __asm__ __volatile__ ("" ::: "memory");
+  inline void compilerWriteMemoryBarrier() {compilerReadWriteMemoryBarrier();}
 
-// As far as I can tell there is no way to do a partial optimization
-// barrier on GCC, so we have to do the full barrier every time.
-#define MATHICGB_COMPILER_READ_MEMORY_BARRIER \
-  MATHICGB_COMPILER_READ_WRITE_MEMORY_BARRIER
+  inline void compilerReadWriteMemoryBarrier() {
+    // As far as I can tell this is not documented to work, but it is the
+    // only way to do this on GCC and it is what the Linux kernel does, so
+    // that will have to be good enough.
+    __asm__ __volatile__ ("" ::: "memory");
+  }
 
-#define MATHICGB_COMPILER_WRITE_MEMORY_BARRIER \
-  MATHICGB_COMPILER_READ_WRITE_MEMORY_BARRIER
+  inline void cpuReadWriteMemoryBarrier() {__sync_synchronize();}
 
-#define MATHICGB_CPU_READ_WRITE_MEMORY_BARRIER __sync_synchronize()
-
-#define MATHICGB_SEQ_CST_LOAD(REF) \
-  AtomicInternalGCC::SeqCst<decltype(REF)>::load(REF)
-#define MATHICGB_SEQ_CST_STORE(VALUE, REF) \
-  AtomicInternalGCC::SeqCst<decltype(REF)>::store(VALUE, REF)
-
-namespace AtomicInternalGCC {
-  template<class T> struct SeqCst {
-    static T load(const T& ref) {
-      const auto ptr = static_cast<volatile T*>(const_cast<T*>(&ref));
-      return __sync_fetch_and_or((volatile T*)&ref, 0);
-    }
-    static void store(const T value, T& ref) {
-      const auto ptr = static_cast<volatile T*>(&ref);
-      while (!__sync_bool_compare_and_swap(ptr, *ptr, value)) {}
-    }
-  };
-  template<class T> struct SeqCst<const T> : public SeqCst<T> {};
+  template<class T>
+  void seqCstStore(const T value, T& ref) {
+    const auto ptr = static_cast<volatile T*>(&ref);
+    while (!__sync_bool_compare_and_swap(ptr, *ptr, value)) {}
+  }    
 }
-
 #endif
 
 namespace AtomicInternal {
@@ -104,8 +89,8 @@ namespace AtomicInternal {
   // This class has the same interface as the actual custom atomic
   // class but it does absolutely no synchronization and it does not
   // constrain compiler optimizations in any way. The purpose of this class
-  // is to enable it while running single core to compare the single core
-  // overhead of the atomic ordering constraints.
+  // is to enable it while running only a single thread to determine the
+  // overhead imposed by the atomic operations.
   template<class T>
   class FakeAtomic {
   public:
@@ -136,13 +121,19 @@ namespace AtomicInternal {
 
 #ifdef MATHICGB_USE_CUSTOM_ATOMIC_X86_X64
 namespace AtomicInternal {
-  /// Custom Atomic class for x86 and x64. Uses special compiler instructions
+  /// Custom Atomic class for x86 and x64. Uses special compiler directives
   /// for barriers. Only instantiate this for sizes where aligned reads and
   /// writes are guaranteed to be atomic - this class only takes care of the
   /// ordering constraints using CPU and compiler fences. Since the directives
-  /// to achieve this are coming from the compiler it is very strange that
+  /// to achieve this are coming from the compiler it is surprising that
   /// any compiler ships with a std::atomic that is worse than this - but
-  /// that is very much the case.
+  /// that is very much the case. Though implementing atomic load and store
+  /// is very little code, as you can see, it is quite tricky and took me
+  /// a long time to understand everything well enough to actually know what
+  /// those few lines of code should say. Perhaps compiler vendors have
+  /// postponed fast atomics just because they want to focus on other things
+  /// since it's not that easy to figure out how to do right (on that topic,
+  /// bug reports on this code are welcome!).
   ///
   /// There are 5 kinds of reorderings that we are concerned with here. Let
   /// S,S' be stores and let L,L' be stores. Note that these short-hands may
@@ -161,28 +152,29 @@ namespace AtomicInternal {
   /// DLL can happen on DEC Alpha if p->a is cached locally while p is not.
   /// Then p will be loaded from memory while p->a is loaded from the cache,
   /// which is functionally identical to loading p->a before p since we may
-  /// see a value of p->a that was stored before the value of p. This happens
-  /// even if the processor that stored p did a full memory barrier between
-  /// storing p->a and storing p.
+  /// see a value of p->a from the past while we get an up to date value of p.
+  /// This can happen even if the processor that stored p did a full memory
+  /// barrier between storing p->a and storing p.
   ///
   /// Compilers will also perform all of these reorderings to optimize the
   /// code - even including DLL. DLL happens if the compiler guesses what
   /// the value of p is, loads p->a and then checks that the guess for p
   /// was correct. This directly causes p->a to be actually loaded before p.
-  /// These kinds of optimizations turn up in profile-driven optimization,
-  /// but it is always allowed unless we tell the compiler not to do it.
+  /// These kinds of optimizations turn up in profile-driven optimization.
   ///
   /// You can check this out here:
   ///   http://en.wikipedia.org/wiki/Memory_ordering
   ///
-  /// On x86 and x64 only SL is doe by the CPU, so we need a CPU barrier to
+  /// On x86 and x64 only SL is done by the CPU, so we need a CPU barrier to
   /// prevent that and nothing else. The compiler is free to perform all of
   /// these reorderings, so we need lots of compiler optimization barriers
   /// to deal with all of these cases.
   ///
-  /// Some of the quotes below are from
-  ///
+  /// Some of the quotes below are from:
   ///   http://www.open-std.org/jtc1/sc22/wg14/www/docs/n1525.htm
+  ///
+  /// Also interesting:
+  ///http://bartoszmilewski.com/2008/11/05/who-ordered-memory-fences-on-an-x86/
   template<class T>
   class CustomAtomicX86X64 {
   public:
@@ -193,45 +185,87 @@ namespace AtomicInternal {
     T load(const std::memory_order order) const {
       switch (order) {
       case std::memory_order_relaxed:
-        // The only constraint here is that if you read *p, then you will never
+        // There are two constraints for memory_order_relaxed. The first
+        // constraint is that if you read *p, then you will never
         // after that read a value of *p that was stored before the value
         // you just read, where "before" is in terms of either the same thread
         // that did the writing or external synchronization of another thread
         // with this thread. This is automaticaly guaranteed on this platform
         // and the compiler cannot break this guarantee.
-        return mValue;
+        //
+        // The second constraint is that writes performed by other threads will
+        // appear "in a timely manner" when reading the written-to memory
+        // location. It is not clear how much time is allowed to elapse before
+        // this constraint is broken, but clearly the written value must turn
+        // up eventually. This constraint could be broken in cases like this:
+        //
+        //   while (x.load(std::memory_order_relaxed) == 0) {
+        //     // do something that does not write to x
+        //   }
+        //
+        // The problem is that the compiler might observe that x is not being
+        // written to inside the loop, so the expression x.load(...) should be
+        // the value for every iteration, so the code can safely be transformed
+        // to:
+        //
+        //   if (x.load(std::memory_order_relaxed) == 0) {
+        //     while (true) {
+        //       // ...
+        //     }
+        //   }
+        //
+        // So we need to tell the compiler that the value can change due to
+        // code not in view of the current thread of execution. There are two
+        // solutions that I have considered:
+        //
+        // * A compiler read memory barrier. This is overkill because it stops
+        //   the compiler from moving all reads across this line.
+        //
+        // * A volatile read. This is pretty much exactly what we need on gcc,
+        //   but on MSVC it provides extra guarantees that we do not need here:
+        //   http://msdn.microsoft.com/en-us/library/12a04hfd%28v=vs.80%29.aspx
+        //
+        // I do not think there is any best choice on MSVC, so I went for a
+        // volatile read since it is the best choice on GCC.
+        return const_cast<volatile T&>(mValue);
 
       case std::memory_order_consume: {
         // Loads in this thread that depend on the loaded value must not be
         // reordered to before this load. So no DLL reorderings past this
         // load from after to before (up). So we need a read barrier AFTER the
-        // load. It is a compiler only barrier since the CPU does not do DLL
-        // reorderings. 
+        // load. It is a compiler only barrier since x86 and x64 CPUs do not do
+        // DLL reorderings. 
         const auto value = mValue;
-        MATHICGB_COMPILER_READ_MEMORY_BARRIER;
+        compilerReadMemoryBarrier();
         return value;
       }
 
       case std::memory_order_acquire: {
         // Loads in this thread must not be reordered to before this load.
         // So no LL reorderings past this load from after to before (up).
-        // So we need a barrier AFTER the load. It is a compiler only barrier
-        // since the CPU does not do LL reorderings.
+        // So we need a read barrier AFTER the load. It is a compiler only
+        // barrier since x86 and x64 CPUs do not do LL reorderings.
         const auto value = mValue;
-        MATHICGB_COMPILER_READ_MEMORY_BARRIER;
-        return mValue;
+        compilerReadMemoryBarrier();
+        return value;
       }
 
-      case std::memory_order_seq_cst:
+      case std::memory_order_seq_cst: {
         // There must be some global order in which all sequentially consistent
-        // atomic operations are considered to have happened in. This is automatic
-        // on x64, ARM, SPARC and x64 too for reads (but not writes) - see:
-        //   http://www.stdthread.co.uk/forum/index.php?topic=72.0
-        return MATHICGB_SEQ_CST_LOAD(mValue);
+        // atomic operations are considered to have happened in. On x86 and x64
+        // this is guaranteed by just a normal read as long as all writes use
+        // locked instructions like XHCG. See: http://goo.gl/U8xTK
+        //
+        // We still need to prevent the compiler from reordering the reads,
+        // which is the same constraint as for std::memory_order_acquire.
+        const auto value = mValue;
+        compilerReadMemoryBarrier();
+        return value;
+      }
 
       case std::memory_order_release: // not available for load
       case std::memory_order_acq_rel: // not available for load
-      default:
+      default: // specified value is not a known std::memory_order
         MATHICGB_UNREACHABLE;
       }
     }
@@ -240,17 +274,25 @@ namespace AtomicInternal {
     void store(const T value, const std::memory_order order) {
       switch (order) {
       case std::memory_order_relaxed:
-        // No ordering constraints here other than atomicity and as noted
-        // for relaxed load so we can just store directly.
-        mValue = value;
+        // There are no reordering constraints here but we need to tell the
+        // compiler that it must actually write out the value to memory in
+        // a scenario like this:
+        //
+        //   x.store(1, std::memory_order_relaxed);
+        //   while (true) {}
+        //
+        // So as for relaxed store we need either a volatile access or a memory
+        // barrier. I chose a volatile access for the same reason as for the
+        // store: MSVC has no best choice and for GCC the volatile is perfect.
+        const_cast<volatile T&>(mValue) = value;
         break;
 
       case std::memory_order_release:
         // Stores in this thread must not be reordered to after this store.
         // So no SS reorderings past this load from before to after (down).
         // So we need a barrier BEFORE the load. It is a compiler only barrier
-        // since the CPU does not do SS reorderings.
-        MATHICGB_COMPILER_WRITE_MEMORY_BARRIER;
+        // since x86 and x64 CPUs do not do SS reorderings.
+        compilerWriteMemoryBarrier();
         mValue = value;
         break;
 
@@ -258,24 +300,22 @@ namespace AtomicInternal {
         // Combine the guarantees for std::memory_order_acquire and
         // std::memory_order_release. So no loads moved up past here (SL) and
         // no stores moved down past here (LL). We need a compiler barrier
-        // BEFORE the load to avoid LL and a CPU barrier (implies also a
-        // compiler barrier AFTER the load to avoid SL, since the CPU can in
-        // fact do SL reordering.
-        MATHICGB_COMPILER_WRITE_MEMORY_BARRIER;
+        // BEFORE the load to avoid LL and a CPU (+compiler) barrier AFTER the
+        // load to avoid SL, since x86 and x64 CPUs can in fact do SL
+        // reordering.
+        compilerWriteMemoryBarrier();
         mValue = value;
-        MATHICGB_CPU_READ_WRITE_MEMORY_BARRIER;
+        cpuReadWriteMemoryBarrier();
         break;
 
       case std::memory_order_seq_cst:
-        // All operations happen in a globally consistent linear order. I am
-        // sure if this can be achieved with barriers but I know that it can be
-        // achieved with locked instructions, so I am using that.
-        MATHICGB_SEQ_CST_STORE(value, mValue);
+        // All operations happen in a globally consistent total order.
+        seqCstStore(value, mValue);
         break;
 
       case std::memory_order_consume: // not available for store
       case std::memory_order_acquire: // not available for store
-      default:
+      default: // specified value is not a known std::memory_order
         MATHICGB_UNREACHABLE;
       }
     }
@@ -300,7 +340,7 @@ namespace AtomicInternal {
 }
 #endif
 
-/// This class is equivalent to std::atomic<T*>. Some functions from the
+/// This class is equivalent to std::atomic<T>. Some functions from the
 /// interface of std::atomic are missing - add them as necessary. Do not add
 /// operator= and operator T() --- it is better to make the code explicit
 /// about when and how loading and storing of atomic variables occurs.
@@ -340,7 +380,7 @@ private:
   void operator=(const Atomic<T>&); // not available
 
   bool debugAligned() const {
-    return reinterpret_cast<size_t>(&mValue) % sizeof(void*) == 0;
+    return reinterpret_cast<size_t>(&mValue) % sizeof(T) == 0;
   }
 
   typename AtomicInternal::ChooseAtomic<T, sizeof(T)>::type mValue;
