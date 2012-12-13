@@ -43,8 +43,6 @@ public:
    const PolyBasis& basis,
    std::vector<std::unique_ptr<Poly> >& reducedOut);
 
-  virtual void setThreadCount(int threadCount);
-
   virtual void setMemoryQuantum(size_t quantum);
 
 protected:

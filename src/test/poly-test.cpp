@@ -282,7 +282,7 @@ TEST(Monomial, ops)
   testMonomialOps(R.get(), "<0>", "<0>");
   testMonomialOps(R.get(), "a<0>", "a<0>");
   testMonomialOps(R.get(), "a<0>", "b<0>");
-  testMonomialOps(R.get(), "a1000b1000c1000d1000e1000f1000<0>", "b2f5<0>");
+  testMonomialOps(R.get(), "a10b10c10d10e10f10<0>", "b2f5<0>");
 }
 
 TEST(Monomial, ei)

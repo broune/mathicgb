@@ -2,6 +2,7 @@
 #include "QuadMatrix.hpp"
 
 #include <mathic.h>
+#include <tbb/tbb.h>
 #include <ostream>
 #include <sstream>
 
@@ -9,22 +10,23 @@ bool QuadMatrix::debugAssertValid() const {
 #ifndef MATHICGB_DEBUG
   return true;
 #else
-  MATHICGB_ASSERT(topLeft.colCount() == bottomLeft.colCount());
-  MATHICGB_ASSERT(topLeft.rowCount() == topRight.rowCount());
-  MATHICGB_ASSERT(topLeft.colCount() == leftColumnMonomials.size());
+  if (!leftColumnMonomials.empty() || !rightColumnMonomials.empty()) {
+    MATHICGB_ASSERT(topLeft.computeColCount() <= leftColumnMonomials.size());
+    MATHICGB_ASSERT(bottomLeft.computeColCount() <=
+      leftColumnMonomials.size());
+    MATHICGB_ASSERT(topRight.computeColCount() <= rightColumnMonomials.size());
+    MATHICGB_ASSERT(bottomRight.computeColCount() <=
+    rightColumnMonomials.size());
+  }
 
-  MATHICGB_ASSERT(bottomRight.colCount() == topRight.colCount());
+  MATHICGB_ASSERT(topLeft.rowCount() == topRight.rowCount());
   MATHICGB_ASSERT(bottomRight.rowCount() == bottomLeft.rowCount());
-  MATHICGB_ASSERT(bottomRight.colCount() == rightColumnMonomials.size());   
   return true;
 #endif
 }
 
 void QuadMatrix::print(std::ostream& out) const {
   MATHICGB_ASSERT(debugAssertValid());
-
-  // @todo: fix the code duplication here from QuadMatrixBuilder's
-  // string code.
 
   typedef SparseMatrix::ColIndex ColIndex;
   mathic::ColumnPrinter printer;
@@ -33,13 +35,15 @@ void QuadMatrix::print(std::ostream& out) const {
 
   // column monomials
   out << "Left columns:";
-  for (ColIndex leftCol = 0; leftCol < topLeft.colCount(); ++leftCol) {
+  const auto leftColCount = leftColumnMonomials.size();
+  for (ColIndex leftCol = 0; leftCol < leftColCount; ++leftCol) {
     out << ' ';
     ring->monomialDisplay(out, leftColumnMonomials[leftCol], false, true);
   }
 
   out << "\nRight columns:";
-  for (ColIndex rightCol = 0; rightCol < topRight.colCount(); ++rightCol) {
+  const auto rightColCount = rightColumnMonomials.size();
+  for (ColIndex rightCol = 0; rightCol < rightColCount; ++rightCol) {
     out << ' ';
     ring->monomialDisplay(out, rightColumnMonomials[rightCol], false, true);
   }
@@ -56,6 +60,24 @@ void QuadMatrix::print(std::ostream& out) const {
   bottomRight.print(printer[1]);
 
   out << printer;
+}
+
+size_t QuadMatrix::rowCount() const {
+  return topLeft.rowCount() + bottomLeft.rowCount();
+}
+
+SparseMatrix::ColIndex QuadMatrix::computeLeftColCount() const {
+  return std::max(topLeft.computeColCount(), bottomLeft.computeColCount());
+}
+
+SparseMatrix::ColIndex QuadMatrix::computeRightColCount() const {
+  return std::max(topRight.computeColCount(), bottomRight.computeColCount());
+}
+
+size_t QuadMatrix::entryCount() const {
+  return
+    topLeft.entryCount() + topRight.entryCount() +
+    bottomLeft.entryCount() + bottomRight.entryCount();
 }
 
 std::string QuadMatrix::toString() const {
@@ -84,8 +106,8 @@ void QuadMatrix::printSizes(std::ostream& out) const {
   const char* const line = "----------";
 
   pr[0] << '\n';
-  pr[1] << ColPr::commafy(topLeft.colCount()) << "  \n";
-  pr[2] << ColPr::commafy(topRight.colCount()) << "  \n";
+  pr[1] << ColPr::commafy(leftColumnMonomials.size()) << "  \n";
+  pr[2] << ColPr::commafy(rightColumnMonomials.size()) << "  \n";
 
   pr[0] << "/\n";
   pr[1] << line << "|\n";
@@ -124,9 +146,9 @@ void QuadMatrix::printSizes(std::ostream& out) const {
   pr[2] << line << "/\n";
 
   out << '\n' << pr
-	  << "Total memory: " << memoryUse() << "  ("
-	  << ColPr::percent(memoryUseTrimmed(), memoryUse())
-	  << " written to)\n";
+    << "Total memory: " << ColPr::bytesInUnit(memoryUse()) << "  ("
+	<< ColPr::percent(memoryUseTrimmed(), memoryUse())
+	<< " in use)\n";
 }
 
 QuadMatrix QuadMatrix::toCanonical() const {
@@ -163,6 +185,9 @@ QuadMatrix QuadMatrix::toCanonical() const {
     const SparseMatrix& mMatrix;
   };
 
+  const auto leftColCount = leftColumnMonomials.size();
+  const auto rightColCount = rightColumnMonomials.size();
+
   // todo: eliminate left/right code duplication here
   QuadMatrix matrix;
   { // left side
@@ -174,8 +199,8 @@ QuadMatrix QuadMatrix::toCanonical() const {
       std::sort(rows.begin(), rows.end(), comparer);
     }
 
-    matrix.topLeft.clear(topLeft.colCount());
-    matrix.topRight.clear(topRight.colCount());
+    matrix.topLeft.clear();
+    matrix.topRight.clear();
     for (size_t i = 0; i < rows.size(); ++i) {
       matrix.topLeft.appendRow(topLeft, rows[i]);
       matrix.topRight.appendRow(topRight, rows[i]);
@@ -190,8 +215,8 @@ QuadMatrix QuadMatrix::toCanonical() const {
       std::sort(rows.begin(), rows.end(), comparer);
     }
 
-    matrix.bottomLeft.clear(bottomLeft.colCount());
-    matrix.bottomRight.clear(bottomRight.colCount());
+    matrix.bottomLeft.clear();
+    matrix.bottomRight.clear();
     for (size_t i = 0; i < rows.size(); ++i) {
       matrix.bottomLeft.appendRow(bottomLeft, rows[i]);
       matrix.bottomRight.appendRow(bottomRight, rows[i]);
@@ -208,4 +233,118 @@ QuadMatrix QuadMatrix::toCanonical() const {
 std::ostream& operator<<(std::ostream& out, const QuadMatrix& qm) {
   qm.print(out);
   return out;
+}
+
+namespace {
+  class ColumnComparer {
+  public:
+    ColumnComparer(const PolyRing& ring): mRing(ring) {}
+
+    typedef SparseMatrix::ColIndex ColIndex;
+    typedef std::pair<monomial, ColIndex> Pair;
+    bool operator()(const Pair& a, const Pair b) const {
+      return mRing.monomialLT(b.first, a.first);
+    }
+
+  private:
+    const PolyRing& mRing;
+  };
+
+  std::vector<SparseMatrix::ColIndex> sortColumnMonomialsAndMakePermutation(
+    std::vector<monomial>& monomials,
+    const PolyRing& ring
+  ) {
+    typedef SparseMatrix::ColIndex ColIndex;
+    MATHICGB_ASSERT(monomials.size() <= std::numeric_limits<ColIndex>::max());
+    const ColIndex colCount = static_cast<ColIndex>(monomials.size());
+    // Monomial needs to be non-const as we are going to put these
+    // monomials back into the vector of monomials which is not const.
+    std::vector<std::pair<monomial, ColIndex>> columns;
+    columns.reserve(colCount);
+    for (ColIndex col = 0; col < colCount; ++col)
+      columns.push_back(std::make_pair(monomials[col], col));
+    std::sort(columns.begin(), columns.end(), ColumnComparer(ring));
+
+    // Apply sorting permutation to monomials. This is why it is necessary to
+    // copy the values in monomial out of there: in-place application of a
+    // permutation is messy.
+    MATHICGB_ASSERT(columns.size() == colCount);
+    MATHICGB_ASSERT(monomials.size() == colCount);
+    for (size_t col = 0; col < colCount; ++col) {
+      MATHICGB_ASSERT(col == 0 ||
+        ring.monomialLT(columns[col].first, columns[col - 1].first));
+      monomials[col] = columns[col].first;
+    }
+
+    // Construct permutation of indices to match permutation of monomials
+    std::vector<ColIndex> permutation(colCount);
+    for (ColIndex col = 0; col < colCount; ++col) {
+      // The monomial for column columns[col].second is now the
+      // monomial for col, so we need the inverse map for indices.
+      permutation[columns[col].second] = col;
+    }
+
+    return std::move(permutation);
+  }
+}
+
+void QuadMatrix::sortColumnsLeftRightParallel() {
+  typedef SparseMatrix::ColIndex ColIndex;
+  std::vector<ColIndex> leftPermutation;
+  std::vector<ColIndex> rightPermutation;
+  
+  tbb::parallel_for(0, 2, 1, [&](int i) {
+    if (i == 0)
+      leftPermutation =
+        sortColumnMonomialsAndMakePermutation(leftColumnMonomials, *ring);
+    else 
+      rightPermutation =
+        sortColumnMonomialsAndMakePermutation(rightColumnMonomials, *ring);
+  });
+
+  tbb::parallel_for(0, 4, 1, [&](int i) {
+    if (i == 0)
+      topRight.applyColumnMap(rightPermutation);
+    else if (i == 1)
+      bottomRight.applyColumnMap(rightPermutation);
+    else if (i == 2)
+      topLeft.applyColumnMap(leftPermutation);
+    else {
+      MATHICGB_ASSERT(i == 3);
+      bottomLeft.applyColumnMap(leftPermutation);
+    }
+  });
+}
+
+void QuadMatrix::write(
+  const SparseMatrix::Scalar modulus,
+  FILE* file
+) const {
+  MATHICGB_ASSERT(file != 0);
+  topLeft.write(modulus, file);
+  topRight.write(modulus, file);
+  bottomLeft.write(modulus, file);
+  bottomRight.write(modulus, file);
+}
+
+SparseMatrix::Scalar QuadMatrix::read(FILE* file) {
+  MATHICGB_ASSERT(file != 0);
+
+  leftColumnMonomials.clear();
+  rightColumnMonomials.clear();
+  ring = 0;
+
+  const auto topLeftModulus = topLeft.read(file);
+  const auto topRightModulus = topRight.read(file);
+  const auto bottomLeftModulus = bottomLeft.read(file);
+  const auto bottomRightModulus = bottomRight.read(file);
+
+  // todo: this should throw some kind of invalid format exception instead of
+  // these asserts.
+  MATHICGB_ASSERT(topLeftModulus == topRightModulus);
+  MATHICGB_ASSERT(bottomLeftModulus == topRightModulus);
+  MATHICGB_ASSERT(bottomRightModulus == topRightModulus);
+  MATHICGB_ASSERT(debugAssertValid());
+
+  return topLeftModulus;
 }

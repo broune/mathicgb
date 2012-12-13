@@ -225,7 +225,7 @@ void PolyRing::monomialParse(std::istream &i,
   // first initialize result:
   for (size_t j=0; j<mMaxMonomialSize; j++) result[j] = 0;
 
-  exponent e;
+  uint64 e;
   int v, x;
   // now look at the next char
   for (;;)
@@ -243,10 +243,8 @@ void PolyRing::monomialParse(std::istream &i,
           next = i.peek();
           e = 1;
           if (isdigit(next))
-            {
-              i >> e;
-            }
-          result[v+1] = e;
+            i >> e;
+          result[v+1] = static_cast<exponent>(e);
         }
       else if (next == '<')
         {
@@ -273,19 +271,19 @@ void PolyRing::monomialDisplay(std::ostream &o,
   // print_one: only is consulted in print_comp is false.
 
   bool printed_any = false;
-  for (size_t i=0; i<mNumVars; i++)
-    if (a[i+1] != 0)
-      {
-        printed_any = true;
-        if (i <= 25)
-          o << static_cast<unsigned char>('a' + i);
-        else
-          o << static_cast<unsigned char>('A' + (i - 26));
-        if (a[i+1] != 1)
-          o << a[i+1];
-      }
+  for (size_t i=0; i<mNumVars; i++) {
+    if (a[i+1] != 0) {
+      printed_any = true;
+      if (i <= 25)
+        o << static_cast<unsigned char>('a' + i);
+      else
+        o << static_cast<unsigned char>('A' + (i - 26));
+      if (a[i+1] != 1)
+        o << static_cast<int64>(a[i+1]);
+    }
+  }
   if (print_comp)
-    o << '<' << *a.mValue << '>';
+    o << '<' << static_cast<int64>(*a.mValue) << '>';
   else if (!printed_any && print_one)
     o << "1";
 }
@@ -655,24 +653,27 @@ void PolyRing::printMonomialFrobbyM2Format(std::ostream& out, const_monomial m) 
 
 PolyRing *PolyRing::read(std::istream &i)
 {
+  int64 characInt;
   coefficient charac;
   int mNumVars, mNumWeights;
 
-  i >> charac;
+  i >> characInt;
+  charac = static_cast<exponent>(characInt);
   i >> mNumVars;
   i >> mNumWeights;
-  PolyRing *R = new PolyRing(charac, mNumVars, mNumWeights);
+  PolyRing* R = new PolyRing(charac, mNumVars, mNumWeights);
   int wtlen = mNumVars * mNumWeights;
   R->mWeights.resize(wtlen);
   R->mTotalDegreeGradedOnly = (mNumWeights == 1);
-  for (int j=0; j <mNumVars * mNumWeights; j++)
-    {
-      exponent a;
-      i >> a;
-      R->mWeights[j] = -a;
-      if (R->mWeights[j] != -1)
-        R->mTotalDegreeGradedOnly = false;
-    }
+  for (int j=0; j <mNumVars * mNumWeights; j++) {
+    exponent a;
+    int64 aInt;
+    i >> aInt;
+    a = static_cast<exponent>(aInt);
+    R->mWeights[j] = -a;
+    if (R->mWeights[j] != -1)
+      R->mTotalDegreeGradedOnly = false;
+  }
   return R;
 }
 

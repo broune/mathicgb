@@ -1,8 +1,6 @@
 #ifndef MATHICGB_QUAD_MATRIX_BUILDER_GUARD
 #define MATHICGB_QUAD_MATRIX_BUILDER_GUARD
 
-#define MATHICGB_USE_QUADMATRIX_STD_HASH
-
 #include "MonomialMap.hpp"
 
 #include "SparseMatrix.hpp"
@@ -13,9 +11,6 @@
 #include <string>
 #include <ostream>
 #include <memtailor.h>
-#ifdef MATHICGB_USE_QUADMATRIX_STD_HASH
-#include <unordered_map>
-#endif
 class FreeModuleOrder;
 class QuadMatrix;
 
@@ -28,14 +23,6 @@ class QuadMatrixBuilder {
   typedef SparseMatrix::RowIndex RowIndex;
   typedef SparseMatrix::ColIndex ColIndex;
   typedef SparseMatrix::Scalar Scalar;
-
-  QuadMatrixBuilder(const PolyRing& ring, size_t memoryQuantum = 0);
-
-  /// Inserts the rows from builder. To avoid an assert either the matrix must
-  /// have no column monomials specified or the monomials that are specified
-  /// must match exactly to the column monomials for this object --- including
-  /// the ordering of the monomials.
-  void takeRowsFrom(QuadMatrix&& matrix);
 
   /// The index of a column that can be either on the left or the
   /// right side. The largest representable ColIndex is an invalid
@@ -93,17 +80,36 @@ class QuadMatrixBuilder {
     bool mLeft;
   };
 
+  typedef MonomialMap<LeftRightColIndex> Map;
+  typedef std::vector<monomial> MonomialsType;
+
+  QuadMatrixBuilder(
+    const PolyRing& ring,
+    Map& map,
+    MonomialsType& monomialsLeft,
+    MonomialsType& monomialsRight,
+    size_t memoryQuantum = 0
+  );
+
+  /// Inserts the rows from builder. To avoid an assert either the matrix must
+  /// have no column monomials specified or the monomials that are specified
+  /// must match exactly to the column monomials for this object --- including
+  /// the ordering of the monomials.
+  void takeRowsFrom(QuadMatrix&& matrix);
+
+  size_t memoryQuantum() const {
+    return mTopLeft.memoryQuantum();
+  }
+
   // **** Appending entries to top matrices.
   // Same interface as SparseMatrix except with two matrices and here
   // you have to create columns before you can use them.
 
   void appendEntryTopLeft(ColIndex col, Scalar scalar) {
-    MATHICGB_ASSERT(col < leftColCount());
     mTopLeft.appendEntry(col, scalar);
   }
 
   void appendEntryTopRight(ColIndex col, Scalar scalar) {
-    MATHICGB_ASSERT(col < rightColCount());
     mTopRight.appendEntry(col, scalar);
   }
 
@@ -125,12 +131,10 @@ class QuadMatrixBuilder {
   // you have to create columns before you can use them.
 
   void appendEntryBottomLeft(ColIndex col, Scalar scalar) {
-    MATHICGB_ASSERT(col < leftColCount());
     mBottomLeft.appendEntry(col, scalar);
   }
 
   void appendEntryBottomRight(ColIndex col, Scalar scalar) {
-    MATHICGB_ASSERT(col < rightColCount());
     mBottomRight.appendEntry(col, scalar);
   }
 
@@ -158,120 +162,34 @@ class QuadMatrixBuilder {
   /** Creates a new column associated to the monomial
     monomialToBeCopied to the left matrices. There must not already
     exist a column for this monomial on the left or on the right. */
-  LeftRightColIndex createColumnLeft(const_monomial monomialToBeCopied);
+  std::pair<QuadMatrixBuilder::LeftRightColIndex, ConstMonomial>
+  createColumnLeft(const_monomial monomialToBeCopied);
 
   /** Creates a new column associated to the monomial monomialToBeCopied
     to the right matrices. There must not already exist a column for
     this monomial on the left or on the right. */
-  LeftRightColIndex createColumnRight(const_monomial monomialToBeCopied);
-
-  /// As calling sortColumnsLeft() and sortColumnsRight(), but performs
-  /// the operations in parallel using up to threadCount threads.
-  void sortColumnsLeftRightParallel
-    (const FreeModuleOrder& order, int threadCount);
-
-  /** Sorts the left columns to be decreasing with respect to
-    order. Also updates the column indices already in the matrix to
-    reflect the new ordering. */
-  void sortColumnsLeft(const FreeModuleOrder& order);
-
-  /** Sorts the right columns to be decreasing with respect to
-    order. Also updates the column indices already in the matrix to
-    reflect the new ordering. */
-  void sortColumnsRight(const FreeModuleOrder& order);
-
+  std::pair<QuadMatrixBuilder::LeftRightColIndex, ConstMonomial>
+  createColumnRight(const_monomial monomialToBeCopied);
 
   // *** Querying columns
-
-  /** Returns a column for the findThis monomial. Searches on both the
-    left and right side. Returns an invalid index if no such column
-    exists. */
-  LeftRightColIndex findColumn(const_monomial findThis) const {
-    auto it = mMonomialToCol.find(findThis);
-    if (it != 0)
-      return *it;
-    else
-      return LeftRightColIndex();
-  }
-
-  /// As findColumn(), but looks for a*b. This is faster than computing a*b
-  /// and then looking that up.
-  LeftRightColIndex findColumnProduct(
-    const const_monomial a,
-    const const_monomial b
-  ) const {
-    const auto it = mMonomialToCol.findProduct(a, b);
-    if (it != 0)
-      return *it;
-    else
-      return LeftRightColIndex();
-  }
-
-  /// As findColumnProduct(), but looks for a1*b and a2*b at the same time.
-  MATHICGB_INLINE std::pair<LeftRightColIndex, LeftRightColIndex>
-  findTwoColumnsProduct(
-    const const_monomial a1,
-    const const_monomial a2,
-    const const_monomial b
-  ) const {
-    const auto it = mMonomialToCol.findTwoProducts(a1, a2, b);
-    return std::make_pair(
-      it.first != 0 ? *it.first : LeftRightColIndex(),
-      it.second != 0 ? *it.second : LeftRightColIndex());
-  }
-
-  const_monomial monomialOfLeftCol(ColIndex col) const {
-    MATHICGB_ASSERT(col < mMonomialsLeft.size());
-    return mMonomialsLeft[col];
-  }
-
-  const_monomial monomialOfRightCol(ColIndex col) const {
-    MATHICGB_ASSERT(col < mMonomialsRight.size());
-    return mMonomialsRight[col];
-  }
-
-  const_monomial monomialOfCol(LeftRightColIndex col) const {
-    MATHICGB_ASSERT(col.valid());
-    if (col.left())
-      return monomialOfLeftCol(col.leftIndex());
-    else
-      return monomialOfRightCol(col.rightIndex());
-  }
 
   const SparseMatrix& topLeft() const {return mTopLeft;}
   const SparseMatrix& topRight() const {return mTopRight;}
   const SparseMatrix& bottomLeft() const {return mBottomLeft;}
   const SparseMatrix& bottomRight() const {return mBottomRight;}
 
-  // String representation intended for debugging.
-  void print(std::ostream& out) const;
-
-  // String representation intended for debugging.
-  std::string toString() const;
-
   const PolyRing& ring() const {return mMonomialToCol.ring();}
-
-  ColIndex leftColCount() const {
-    MATHICGB_ASSERT(topLeft().colCount() == bottomLeft().colCount());
-    return topLeft().colCount();
-  }
-
-  ColIndex rightColCount() const {
-    MATHICGB_ASSERT(topRight().colCount() == bottomRight().colCount());
-    return topRight().colCount();
-  }
 
   /// Returns the built matrix and sets the builder to a state
   /// with no columns and no rows.
   QuadMatrix buildMatrixAndClear();
 
 private:
-  typedef std::vector<monomial> MonomialsType;
-  MonomialsType mMonomialsLeft; /// stores one monomial per left column
-  MonomialsType mMonomialsRight; /// stores one monomial per right column
+  MonomialsType& mMonomialsLeft; /// stores one monomial per left column
+  MonomialsType& mMonomialsRight; /// stores one monomial per right column
 
   /// Used for fast determination of which column has a given monomial.
-  MonomialMap<LeftRightColIndex> mMonomialToCol;
+  Map& mMonomialToCol;
 
   SparseMatrix mTopLeft;
   SparseMatrix mTopRight;

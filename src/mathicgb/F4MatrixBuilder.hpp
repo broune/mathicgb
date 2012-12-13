@@ -6,6 +6,7 @@
 #include "PolyRing.hpp"
 #include "PolyBasis.hpp"
 #include "QuadMatrix.hpp"
+#include <tbb/mutex.h>
 #include <vector>
 
 /** Class for constructing an F4 matrix. This class is reponsible for
@@ -20,13 +21,14 @@ private:
   typedef QuadMatrixBuilder::ColIndex ColIndex;
   typedef QuadMatrixBuilder::LeftRightColIndex LeftRightColIndex;
   typedef QuadMatrixBuilder::Scalar Scalar;
+  typedef QuadMatrixBuilder::Map Map;
+  typedef QuadMatrixBuilder::MonomialsType Monomials;
 
 public:
   /// memoryQuantum is how much to increase the memory size by each time the
   /// current amount of memory is exhausted. A value of 0 indicates to start
   /// small and double the quantum at each exhaustion.
-  F4MatrixBuilder
-    (const PolyBasis& basis, int threadCount, size_t memoryQuantum = 0);
+  F4MatrixBuilder(const PolyBasis& basis, size_t memoryQuantum = 0);
 
   /** Schedules a row representing the S-polynomial between polyA and
     polyB to be added to the matrix. No ownership is taken, but polyA
@@ -50,7 +52,7 @@ public:
   /** Builds an F4 matrix to the specifications given. Also clears the
     information in this object.
 
-    The right columns are ordered by decreasing monomial of that
+    The right columns are ordered by decreasing monomial of each
     column according to the order from the basis. The left columns are
     ordered in some way so that the first entry in each top row (the
     pivot) has a lower index than any other entries in that row.
@@ -59,18 +61,14 @@ public:
     reduced by the basis and that is present in the matrix. There is
     no guarantee that the bottom part of the matrix contains rows that
     exactly correspond to the polynomials that have been scheduled to
-    be added to the matrix. It is only guaranteed that the matrix has
+    be added to the matrix. It is only guaranteed that the whole matrix has
     the same row-space as though that had been the case. */
   void buildMatrixAndClear(QuadMatrix& matrix);
 
   const PolyRing& ring() const {return mBuilder.ring();}
 
 private:
-  /** Creates a column with monomial label x and schedules a new row to
-    reduce that column if possible. Here x is monoA if monoB is
-    null and otherwise x is the product of monoA and monoB. */
-  MATHICGB_NO_INLINE LeftRightColIndex createColumn
-    (QuadMatrixBuilder& builder, const_monomial monoA, const_monomial monoB);
+  typedef const MonomialMap<LeftRightColIndex>::Reader ColReader;
 
   /// Represents the task of adding a row to the matrix. If sPairPoly is null
   /// then the row to add is multiply * poly. Otherwise, the row to add is
@@ -78,42 +76,82 @@ private:
   /// where sPairMultiply makes the lead terms cancel.
   struct RowTask {
     bool addToTop; // add the row to the bottom if false
+    monomial desiredLead; // multiply monomial onto poly to get this lead
     const Poly* poly;
-    monomial multiply;
     const Poly* sPairPoly;
     monomial sPairMultiply;
   };
+  typedef tbb::parallel_do_feeder<RowTask> TaskFeeder;
+
+  /// Creates a column with monomial label x and schedules a new row to
+  /// reduce that column if possible. Here x is monoA if monoB is
+  /// null and otherwise x is the product of monoA and monoB.
+  MATHICGB_NO_INLINE
+  std::pair<LeftRightColIndex, ConstMonomial>
+  createColumn(
+    const_monomial monoA,
+    const_monomial monoB,
+    TaskFeeder& feeder
+  );
 
   void appendRowTop(
     const_monomial multiple,
     const Poly& poly,
-    QuadMatrixBuilder& builder);
-  void appendRowBottom(const RowTask& task, QuadMatrixBuilder& builder);
+    QuadMatrixBuilder& builder,
+    TaskFeeder& feeder
+  );
+  void appendRowBottom(
+    const Poly* poly,
+    monomial multiply,
+    const Poly* sPairPoly,
+    monomial sPairMultiply,
+    QuadMatrixBuilder& builder,
+    TaskFeeder& feeder
+  );
   void appendRowBottom(
     const_monomial multiple,
     bool negate,
     Poly::const_iterator begin,
     Poly::const_iterator end,
-    QuadMatrixBuilder& builder
+    QuadMatrixBuilder& builder,
+    TaskFeeder& feeder
   );
 
-  MATHICGB_INLINE LeftRightColIndex findOrCreateColumn
-    (const_monomial monoA, const_monomial monoB, QuadMatrixBuilder& builder);
+  MATHICGB_NO_INLINE
+  std::pair<QuadMatrixBuilder::LeftRightColIndex, ConstMonomial>
+  findOrCreateColumn(
+    const_monomial monoA,
+    const_monomial monoB,
+    TaskFeeder& feeder
+  );
+  
+  MATHICGB_INLINE
+  std::pair<QuadMatrixBuilder::LeftRightColIndex, ConstMonomial>
+  findOrCreateColumn(
+    const_monomial monoA,
+    const_monomial monoB,
+    const ColReader& colMap,
+    TaskFeeder& feeder
+  );
 
-  MATHICGB_INLINE const std::pair<LeftRightColIndex, LeftRightColIndex>
-  findOrCreateTwoColumns(
+  MATHICGB_NO_INLINE
+  void createTwoColumns(
     const const_monomial monoA1,
     const const_monomial monoA2,
     const const_monomial monoB,
-    QuadMatrixBuilder& builder
+    TaskFeeder& feeder
   );
 
-
-  const int mThreadCount;
+  tbb::mutex mCreateColumnLock;
+  ColIndex mLeftColCount;
+  ColIndex mRightColCount;
   monomial mTmp;
-  std::vector<RowTask> mTodo;
   const PolyBasis& mBasis;
+  Monomials mMonomialsLeft;
+  Monomials mMonomialsRight;
   QuadMatrixBuilder mBuilder;
+  Map mMap;
+  std::vector<RowTask> mTodo;
 };
 
 #endif
