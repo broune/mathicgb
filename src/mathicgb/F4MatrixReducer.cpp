@@ -405,20 +405,49 @@ namespace {
 }
 
 // todo: use auto instead of these typedefs where possible/reasonable
-// todo: do SparseMatrix::Scalar instead of Scalar and remove this typedef
-typedef SparseMatrix::Scalar Scalar;
-typedef SparseMatrix::RowIndex RowIndex; // todo: same
-typedef SparseMatrix::ColIndex ColIndex; // todo: same
+// todo: do SparseMatrix::Scalar instead of Scalar and remove this typedef		:: DONE
+//typedef SparseMatrix::Scalar Scalar; 											:: DONE
+//typedef SparseMatrix::RowIndex RowIndex; // todo: same  						:: DONE
+//typedef SparseMatrix::ColIndex ColIndex; // todo: same  						:: DONE
 
-Scalar modPrime = 11; // todo: remove this variable
+//Scalar modPrime = 11; // todo: remove this variable 							:: DONE
+
+const SharwanMatrix m1;
+int x = m1[2,3];
+
+SharwanMatrix m2;
+m2[2,3] = 5;
+
+class SharwanMatrix {
+public:
+// typedefs for scalar, row index and col index
+// typedef Row to be your representation of a row
+
+  const Scalar& operator[](RowIndex row, ColIndex col) const {return mMatrix[row][col];}
+  Scalar& operator[](RowIndex row, ColIndex col) {return mMatrix[row][col];}
+  
+  Row& operator[](RowIndex) {}
+  const Row& operator[](RowIndex) const {}
+
+  // example of setter. Do not make a setter for modulus, row index or col index. No setters, except for entries of the matrix.
+  void setX(int value) {mX = value;}  
+    
+
+// store matrix, modulus, rowCount and colCount
+// accessor for getting modulus: modulus()
+private:
+  int mX; // todo: remove, just example
+  // all member variables go here. member x is written mX.
+};
 
 void addRowMultipleInplace(
-  std::vector<std::vector<Scalar> >& matrix,
-  const RowIndex addRow,
-  const Scalar multiple,
-  const RowIndex row,
-  const ColIndex leadingCol,
-  const ColIndex colCount
+  std::vector<std::vector<SparseMatrix::Scalar> >& matrix,
+  const SparseMatrix::RowIndex addRow,
+  const SparseMatrix::Scalar multiple,
+  const SparseMatrix::RowIndex row,
+  const SparseMatrix::ColIndex leadingCol,
+  const SparseMatrix::ColIndex colCount,
+  const SparseMatrix::Scalar modulus
 ) {
   assert(addRow < matrix.size());
   assert(row < matrix.size());
@@ -426,40 +455,43 @@ void addRowMultipleInplace(
   assert(leadingCol < colCount);
   assert(matrix[row].size() == colCount);
   assert(matrix[addRow].size() == colCount);
-  for(ColIndex col = leadingCol; col < colCount; ++col){
-    const Scalar product = modularProduct
-      (multiple, matrix[addRow][col], modPrime);
-    matrix[row][col] = modularSum(matrix[row][col], product, modPrime);
+  for(auto col = leadingCol; col < colCount; ++col){
+    const auto product = modularProduct
+      (multiple, matrix[addRow][col], modulus);
+    matrix[row][col] = modularSum(matrix[row][col], product, modulus);
   }
 }
 
 void makeRowUnitary(
-  std:: vector< std:: vector< Scalar> >& matrix,
-  const RowIndex row,
-  const ColIndex colCount,
-  const ColIndex leadingCol
+  std::vector<std::vector<SparseMatrix::Scalar>>& matrix,
+  const SparseMatrix::RowIndex row,
+  const SparseMatrix::ColIndex colCount,
+  const SparseMatrix::ColIndex leadingCol,
+  const SparseMatrix::Scalar modulus
 ) {
   assert(row<matrix.size());
   assert(matrix[row].size() == colCount);
   assert(leadingCol < colCount);
-  assert(modPrime > 1);
-  const Scalar leadingScalar = matrix[row][leadingCol];
+  assert(modulus> 1);
+  const auto leadingScalar = matrix[row][leadingCol];
   assert(leadingScalar != 0);
-  Scalar multiply = modularInverse(leadingScalar, modPrime);
-  for(ColIndex col = leadingCol; col < colCount; ++col)
-    matrix[row][col] = (matrix[row][col] * multiply) % modPrime;
-  // todo: use modularProduct on above line
+  auto multiply = modularInverse(leadingScalar, modulus);
+  for(SparseMatrix::ColIndex col = leadingCol; col < colCount; ++col)
+    matrix[row][col] = modularProduct(matrix[row][col], multiply, modulus);
+    
+  // todo: use modularProduct on above line    									::DONE
 }
 
-// todo: make this take a parameter startAtCol
-ColIndex leadingColumn(
-  const std::vector<std::vector<Scalar> >& matrix,
-  const RowIndex row,
-  const ColIndex colCount
+// todo: make this take a parameter startAtCol 									::DONE
+SparseMatrix::ColIndex leadingColumn(
+  const std::vector<std::vector<SparseMatrix::Scalar>>& matrix,
+  const SparseMatrix::RowIndex row,
+  const SparseMatrix::ColIndex colCount,
+  SparseMatrix::ColIndex startAtCol 
 ) {
   assert(row < matrix.size());
   assert(matrix[row].size() == colCount);
-  for(ColIndex col = 0; col < colCount; ++col){
+  for(auto col = startAtCol; col < colCount; ++col){
     if(matrix[row][col] != 0)
       return col;
   }
@@ -467,30 +499,30 @@ ColIndex leadingColumn(
 }
 
 void rowReducedEchelonMatrix(
-  std::vector<std::vector<Scalar> >& matrix,
-  const ColIndex colCount
+  std::vector<std::vector<SparseMatrix::Scalar> >& matrix,
+  const SparseMatrix::ColIndex colCount,
+  const SparseMatrix::Scalar modulus
 ) {
-  // todo assert: matrix.empty() || matrix[0].size() == colCount
+  assert(matrix.empty() || matrix[0].size() == colCount);
   const	auto rowCount=matrix.size();
   // pivotRowOfCol[i] is the pivot in column i or rowCount
   // if we have not identified such a pivot so far.
-  std::vector<Scalar> pivotRowOfCol(colCount, rowCount);
-  for(RowIndex rowIt=0; rowIt<rowCount;++rowIt){ // todo: rename rowIt to row
+  std::vector<SparseMatrix::Scalar> pivotRowOfCol(colCount, rowCount);
+  for(SparseMatrix::RowIndex row=0; row<rowCount;++row){ 
+    SparseMatrix::ColIndex leadingCol = 0;
     while (true) { // reduce row by previous pivots
-      const auto leadingCol = leadingColumn(matrix, rowIt, colCount);
+      leadingCol = leadingColumn(matrix, row, colCount, leadingCol);
       if(leadingCol==colCount)
         break; // row was zero
       const auto pivotRow = pivotRowOfCol[leadingCol];
       if(pivotRow == rowCount) {
-        makeRowUnitary(matrix, rowIt, colCount, leadingCol);
-        pivotRowOfCol[leadingCol] = rowIt;
+        makeRowUnitary(matrix, row, colCount, leadingCol, modulus);
+        pivotRowOfCol[leadingCol] = row;
         break; // row is now a pivot
       }
-
-      const auto multiple =
-        modularNegative(matrix[rowIt][leadingCol], modPrime);
+      const auto multiple = modularNegative(matrix[row][leadingCol], modulus);
 	  addRowMultipleInplace
-	    (matrix, pivotRow, multiple, rowIt, leadingCol, colCount);
+	    (matrix, pivotRow, multiple, row, leadingCol, colCount, modulus);
     }
   }  
 }   
@@ -502,8 +534,8 @@ void reduceToEchelonFormShrawan
   const SparseMatrix::ColIndex colCount = toReduce.colCount();
 
   // Convert input matrix to dense format
-  std::vector<std::vector<Scalar>> matrix(rowCount);
-  for (RowIndex row; row < rowCount; ++row) {
+  std::vector<std::vector<SparseMatrix::Scalar>> matrix(rowCount);
+  for (SparseMatrix::RowIndex row; row < rowCount; ++row) {
     MATHICGB_ASSERT(!toReduce.emptyRow(row));
     matrix[row].resize(colCount);
     const auto end = toReduce.rowEnd(row);
@@ -513,9 +545,9 @@ void reduceToEchelonFormShrawan
     }
   }
 
-  // todo: make modPrime a parameter and rename it to modulus.
-  modPrime = modulus;
-  rowReducedEchelonMatrix(matrix, colCount);
+  // todo: make modPrime a parameter and rename it to modulus.  				:: DONE
+ // modPrime = modulus;  														:: DONE
+  rowReducedEchelonMatrix(matrix, colCount,  modulus);
 
   // convert reduced matrix to SparseMatrix.
   toReduce.clear(colCount);
@@ -540,8 +572,8 @@ void reduceToEchelonFormShrawanDelayedModulus
   const SparseMatrix::ColIndex colCount = toReduce.colCount();
 
   // Convert input matrix to dense format
-  std::vector<std::vector<Scalar>> matrix(rowCount);
-  for (RowIndex row; row < rowCount; ++row) {
+  std::vector<std::vector<SparseMatrix::Scalar>> matrix(rowCount);
+  for (SparseMatrix::RowIndex row; row < rowCount; ++row) {
     MATHICGB_ASSERT(!toReduce.emptyRow(row));
     matrix[row].resize(colCount);
     const auto end = toReduce.rowEnd(row);
@@ -551,9 +583,7 @@ void reduceToEchelonFormShrawanDelayedModulus
     }
   }
 
-  // todo: make modPrime a parameter and rename it to modulus.
-  modPrime = modulus;
-  rowReducedEchelonMatrix(matrix, colCount);
+  rowReducedEchelonMatrix(matrix, colCount, modulus);
 
   // convert reduced matrix to SparseMatrix.
   toReduce.clear(colCount);
