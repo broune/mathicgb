@@ -10,7 +10,7 @@
 #include <algorithm>
 #include <vector>
 #include <stdexcept>
-#include <map>
+#include <map>  
 #include <string>
 #include <cstdio>
 #include <iostream>
@@ -141,7 +141,8 @@ namespace {
 
     const auto leftColCount = qm.computeLeftColCount();
 //      static_cast<SparseMatrix::ColIndex>(qm.leftColumnMonomials.size());
-    const auto rightColCount = static_cast<SparseMatrix::ColIndex>(qm.computeRightColCount());
+    const auto rightColCount =
+      static_cast<SparseMatrix::ColIndex>(qm.computeRightColCount());
 //      static_cast<SparseMatrix::ColIndex>(qm.rightColumnMonomials.size());
     MATHICGB_ASSERT(leftColCount == reduceByLeft.rowCount());
     const auto pivotCount = leftColCount;
@@ -252,6 +253,11 @@ namespace {
     const SparseMatrix& toReduce,
     const SparseMatrix::Scalar modulus
   ) {
+      const char* p = STR(MATHICGB_IF_LOG(F4MatrixReduce));
+
+    MATHICGB_LOG_TIME(F4MatrixReduce) <<
+      "Reducing matrix to row echelon form\n";
+
     const auto colCount = toReduce.computeColCount();
     const auto rowCount = toReduce.rowCount();
 
@@ -375,10 +381,13 @@ namespace {
   }
 }
 
+#define STR(X) #X
 SparseMatrix F4MatrixReducer::reduceToBottomRight(const QuadMatrix& matrix) {
   MATHICGB_ASSERT(matrix.debugAssertValid());
-  if (::logs::F4MatrixReduce.enabled())
-    matrix.printSizes(::logs::F4MatrixReduce.stream());
+  const char* p = STR(MATHICGB_IF_LOG(F4MatrixReduce));
+  /*MATHICGB_IF_LOG(F4MatrixReduce) {
+    matrix.printSizes(log.stream();
+  };*/
   return reduce(matrix, mModulus);
 }
 
