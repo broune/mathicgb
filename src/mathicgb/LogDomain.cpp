@@ -87,3 +87,4 @@ void LogDomain<true>::Timer::start() {
   mTimerRunning = true;
   mRealTicks = tbb::tick_count::now();
 }
+
