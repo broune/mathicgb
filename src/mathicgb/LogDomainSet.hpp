@@ -4,6 +4,7 @@
 #include "LogDomain.hpp"
 #include <vector>
 #include <algorithm>
+#include <cstring>
 
 class LogDomainSet {
 public:
