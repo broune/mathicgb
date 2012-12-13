@@ -147,7 +147,7 @@ namespace LogDomainInternal {
   template<class L>
   struct LambdaRunner {L& log;};
   template<class L>
-  LambdaRunner<L> lambdaRunner(L& log) {return LambdaRunner{log};}
+  LambdaRunner<L> lambdaRunner(L& log) {return LambdaRunner<L>{log};}
   template<class L, class T>
   void operator+(LambdaRunner<L> runner, T& lambda) {lambda(runner.log);}
 }
@@ -186,7 +186,7 @@ namespace LogDomainInternal {
 ///
 /// Example:
 ///   auto timer = MATHICGB_LOGGER(MyDomain).timer();
-#define MATHICGB_LOGGER(DOMAIN) ::logs::##DOMAIN
+#define MATHICGB_LOGGER(DOMAIN) ::logs::DOMAIN
 
 /// This expression yields the type of the indicated logger.
 ///
@@ -228,7 +228,8 @@ namespace LogDomainInternal {
 /// Example:
 ///   MATHICGB_LOG_SCOPE_TIME(MyDomain) << "Starting timed task";
 #define MATHICGB_LOG_TIME(DOMAIN) \
-  auto MATHICGB_timer##DOMAIN##_##__LINE__##(MATHICGB_LOGGER(DOMAIN).timer()); \
+  auto MATHICGB_timer##DOMAIN##_##__LINE__(MATHICGB_LOGGER(DOMAIN).timer()); \
   MATHICGB_LOG(DOMAIN)
 
 #endif
+
