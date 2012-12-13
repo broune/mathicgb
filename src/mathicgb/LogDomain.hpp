@@ -147,7 +147,10 @@ namespace LogDomainInternal {
   template<class L>
   struct LambdaRunner {L& log;};
   template<class L>
-  LambdaRunner<L> lambdaRunner(L& log) {return LambdaRunner<L>{log};}
+  LambdaRunner<L> lambdaRunner(L& l) {
+    LambdaRunner<L> r = {l};
+    return r;
+  }
   template<class L, class T>
   void operator+(LambdaRunner<L> runner, T& lambda) {lambda(runner.log);}
 }
@@ -228,7 +231,9 @@ namespace LogDomainInternal {
 /// Example:
 ///   MATHICGB_LOG_SCOPE_TIME(MyDomain) << "Starting timed task";
 #define MATHICGB_LOG_TIME(DOMAIN) \
-  auto MATHICGB_timer##DOMAIN##_##__LINE__(MATHICGB_LOGGER(DOMAIN).timer()); \
+  auto MATHICGB_CONCATENATE_AFTER_EXPANSION( \
+    DOMAIN, MATHICGB_CONCATENATE_AFTER_EXPANSION(_timer_, __LINE__)) \
+  (MATHICGB_LOGGER(DOMAIN).timer()); \
   MATHICGB_LOG(DOMAIN)
 
 #endif

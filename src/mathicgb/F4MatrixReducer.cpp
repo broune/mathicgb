@@ -590,19 +590,19 @@ SparseMatrix reduceToEchelonFormShrawanDelayedModulus(
   return std::move(reduced);
 }
 
+#define STR2(X) #X
+#define STR(X) STR2(X)
 SparseMatrix F4MatrixReducer::reduceToBottomRight(const QuadMatrix& matrix) {
+  std::cout << STR(MATHICGB_LOG_TIME(F4MatrixReduce)) << std::endl;
   MATHICGB_ASSERT(matrix.debugAssertValid());
-  //const char* p = STR(MATHICGB_IF_LOG(F4MatrixReduce));
-  /*MATHICGB_IF_LOG(F4MatrixReduce) {
-    matrix.printSizes(log.stream();
-  };*/
+  MATHICGB_IF_LOG(F4MatrixReduce) {matrix.printSizes(log.stream());};
   return reduce(matrix, mModulus);
 }
 
 SparseMatrix F4MatrixReducer::reducedRowEchelonForm(
   const SparseMatrix& matrix
 ) {
-  const bool useShrawan = true;
+  const bool useShrawan = false;
   const bool useDelayedModulus = false;
   if (useShrawan) {
     if (useDelayedModulus)
