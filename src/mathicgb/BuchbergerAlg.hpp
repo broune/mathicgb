@@ -1,5 +1,5 @@
-#ifndef _buchberger_alg_
-#define _bucbberger_alg_
+#ifndef MATHICGB_BUCHBERGER_ALG_GUARD
+#define MATHICGB_BUCHBERGER_ALG_GUARD
 
 #include "Reducer.hpp"
 #include "FreeModuleOrder.hpp"
@@ -16,7 +16,7 @@ public:
   BuchbergerAlg(
     const Ideal& ideal,
     FreeModuleOrderType orderType,
-    Reducer::ReducerType reducerType,
+    Reducer& reducer,
     int divisorLookupType,
     bool preferSparseReducers,
     size_t queueType);
@@ -50,12 +50,8 @@ public:
     mSPairGroupSize = groupSize;
   }
 
-  void setThreadCount(int threadCount) {
-    mThreadCount = threadCount;
-  }
-
   void setReducerMemoryQuantum(size_t memoryQuantum) {
-    mReducer->setMemoryQuantum(memoryQuantum);
+    mReducer.setMemoryQuantum(memoryQuantum);
   }
 
   void setUseAutoTopReduction(bool value) {
@@ -70,7 +66,6 @@ private:
   unsigned int mBreakAfter;
   unsigned int mPrintInterval;
   unsigned int mSPairGroupSize;
-  int mThreadCount;
   bool mUseAutoTopReduction;
   bool mUseAutoTailReduction;
 
@@ -86,7 +81,7 @@ private:
 
   const PolyRing& mRing;
   std::unique_ptr<FreeModuleOrder> mOrder;
-  std::unique_ptr<Reducer> mReducer;
+  Reducer& mReducer;
   PolyBasis mBasis;
   SPairs mSPairs;
   mic::Timer mTimer;

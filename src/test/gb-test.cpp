@@ -19,6 +19,7 @@
 #include <sstream>
 #include <memory>
 #include <gtest/gtest.h>
+#include <tbb/tbb.h>
 
 TEST(IO, ideal) {
   const char* idealA_fromStr_format = 
@@ -278,14 +279,16 @@ spairQueue	reducerType	divLookup	monTable	buchberger	postponeKoszul	useBaseDivis
     MATHICGB_ASSERT
       (Reducer::makeReducerNullOnUnknown(red, I->ring()).get() != 0);
 
+    tbb::task_scheduler_init scheduler(threadCount);
     if (buchberger) {
+      const auto reducer = Reducer::makeReducer
+        (Reducer::reducerType(reducerType), I->ring());
       BuchbergerAlg alg
-        (*I, freeModuleOrder, Reducer::reducerType(reducerType),
+        (*I, freeModuleOrder, *reducer,
          divLookup, preferSparseReducers, spairQueue);
       alg.setUseAutoTopReduction(autoTopReduce);
       alg.setUseAutoTailReduction(autoTailReduce);
       alg.setSPairGroupSize(sPairGroupSize);
-      alg.setThreadCount(threadCount);
       alg.computeGrobnerBasis();
       std::unique_ptr<Ideal> initialIdeal =
         alg.basis().initialIdeal();
@@ -295,7 +298,8 @@ spairQueue	reducerType	divLookup	monTable	buchberger	postponeKoszul	useBaseDivis
     } else {
       SignatureGB basis
         (*I, freeModuleOrder, Reducer::reducerType(reducerType),
-         divLookup, monTable, postponeKoszul, useBaseDivisors, preferSparseReducers, useSingularCriterionEarly, spairQueue);
+         divLookup, monTable, postponeKoszul, useBaseDivisors,
+         preferSparseReducers, useSingularCriterionEarly, spairQueue);
       basis.computeGrobnerBasis();
       EXPECT_EQ(sigBasisStr, toString(basis.getGB(), 1))
         << reducerType << ' ' << divLookup << ' '

@@ -4,6 +4,9 @@
 #include "QuadMatrix.hpp"
 #include "SparseMatrix.hpp"
 #include "PolyRing.hpp"
+#include "LogDomain.hpp"
+
+#include <tbb/tbb.h>
 #include <algorithm>
 #include <vector>
 #include <stdexcept>
@@ -12,9 +15,10 @@
 #include <cstdio>
 #include <iostream>
 
-#ifdef _OPENMP
-#include <omp.h>
-#endif
+MATHICGB_DEFINE_LOG_DOMAIN(
+  F4MatrixReduce,
+  "Displays statistics about matrices that are row reduced."
+);
 
 namespace {
   template<class T>
@@ -75,7 +79,6 @@ namespace {
 
     void addRow(const SparseMatrix& matrix, SparseMatrix::RowIndex row) {
       MATHICGB_ASSERT(row < matrix.rowCount());
-      MATHICGB_ASSERT(matrix.colCount() == colCount());
       const auto end = matrix.rowEnd(row);
       for (auto it = matrix.rowBegin(row); it != end; ++it) {
         MATHICGB_ASSERT(it.index() < colCount());
@@ -86,41 +89,9 @@ namespace {
     template<class Iter>
     void addRowMultiple(
       const SparseMatrix::Scalar multiple,
-      const Iter& begin,
-      const Iter& end
+      const Iter begin,
+      const Iter end
     ) {
-      // Now, you may be wondering why begin and end are passed by reference
-      // instead of by value, and that would be a good question. As it turns
-      // out, this method does not work otherwise when run in parallel using
-      // OpenMP on MS Visual Studio 2012 when being called from reduce().
-      // Strange but true.
-      //
-      // Why is that? To the best of my ability
-      // to determine what was going on, it appears that, sometimes,
-      // two threads would be running on the same stack when calling this method,
-      // overwriting each other's local variables causing all kinds of havoc.
-      // My evidence for this is that I could find no other explanation after
-      // hours of investigation and that I could consistently get two threads
-      // with different return values of omp_get_thread_num() to print out the
-      // same address for a local variable - and this would happen just before
-      // things went wrong. So at this point I'm concluding that it is a compiler
-      // bug. All the writes and reads outside critical sections are to local
-      // variables, memory allocated by the same thread or to data structures
-      // that do not change within the scope of the parallel code in reduce(),
-      // so I don't know what the issue would otherwise be. I thought perhaps
-      // not building all the code with OpenMP enabled could be the issue,
-      // but changing that did not fix the issue.
-      // 
-      // Now you may be wondering what that has to do with passing iterators by
-      // reference. As it happens, the issue does not happen this way. "But that
-      // doesn't make any sense", you say, and you would be right. Feel free
-      // to come up with a better explanation of this issue.
-      //
-      // If you want to take a look at this issue, the issue only turns up for 64
-      // bit debug builds. This was on Visual Studio version
-      // "11.0.50727.1 RTMREL" - Bjarke Hammersholt Roune
-
-
       // MATHICGB_RESTRICT on entries is important. It fixed a performance
       // regression on MSVC 2012 which otherwise was not able to determine that
       // entries is not an alias for anything else in this loop. I suspect that
@@ -142,7 +113,6 @@ namespace {
       const SparseMatrix& matrix,
       const SparseMatrix::Scalar modulus
     ) {
-      MATHICGB_ASSERT(pivotRow < matrix.rowCount());
       MATHICGB_ASSERT(matrix.rowBegin(pivotRow).scalar() == 1); // unitary
       MATHICGB_ASSERT(modulus > 1);
 
@@ -162,19 +132,20 @@ namespace {
 
   SparseMatrix reduce(
     const QuadMatrix& qm,
-    SparseMatrix::Scalar modulus,
-    const int threadCount
+    SparseMatrix::Scalar modulus
   ) {
     const SparseMatrix& toReduceLeft = qm.bottomLeft;
     const SparseMatrix& toReduceRight = qm.bottomRight;
     const SparseMatrix& reduceByLeft = qm.topLeft;
     const SparseMatrix& reduceByRight = qm.topRight;
 
-    MATHICGB_ASSERT(reduceByLeft.colCount() == reduceByLeft.rowCount());
-    const auto pivotCount = reduceByLeft.colCount();
+    const auto leftColCount = qm.computeLeftColCount();
+//      static_cast<SparseMatrix::ColIndex>(qm.leftColumnMonomials.size());
+    const auto rightColCount = static_cast<SparseMatrix::ColIndex>(qm.computeRightColCount());
+//      static_cast<SparseMatrix::ColIndex>(qm.rightColumnMonomials.size());
+    MATHICGB_ASSERT(leftColCount == reduceByLeft.rowCount());
+    const auto pivotCount = leftColCount;
     const auto rowCount = toReduceLeft.rowCount();
-    const auto colCountLeft = toReduceLeft.colCount();
-    const auto colCountRight = toReduceRight.colCount();
 
     // ** pre-calculate what rows are pivots for what columns.
 
@@ -193,28 +164,27 @@ namespace {
       rowThatReducesCol[col] = pivot;
     }
 
-    SparseMatrix reduced(colCountRight, qm.topRight.memoryQuantum());
+    SparseMatrix reduced(qm.topRight.memoryQuantum());
 
-#ifdef _OPENMP
-    std::vector<DenseRow<uint64> > denseRowPerThread(threadCount);
-#else
-    DenseRow<uint64> denseRow;
-#endif
+    tbb::enumerable_thread_specific<DenseRow<uint64>> denseRowPerThread([&](){
+      return DenseRow<uint64>();
+    }); 
 
-    SparseMatrix tmp(pivotCount, qm.topRight.memoryQuantum());
+    SparseMatrix tmp(qm.topRight.memoryQuantum());
 
     std::vector<SparseMatrix::RowIndex> rowOrder(rowCount);
 
-#pragma omp parallel for num_threads(threadCount) schedule(dynamic)
-    for (OMPIndex rowOMP = 0;
-      rowOMP < static_cast<OMPIndex>(rowCount); ++rowOMP) {
-      const size_t row = static_cast<size_t>(rowOMP);
-#ifdef _OPENMP
-      auto& denseRow = denseRowPerThread[omp_get_thread_num()];
-#endif
-      denseRow.clear(colCountLeft);
+    tbb::mutex lock;
+    tbb::parallel_for(tbb::blocked_range<size_t>(0, rowCount),
+      [&](const tbb::blocked_range<size_t>& range)
+      {for (auto it = range.begin(); it != range.end(); ++it)
+    {
+      const size_t row = it;
+      auto& denseRow = denseRowPerThread.local();
+
+      denseRow.clear(leftColCount);
       denseRow.addRow(toReduceLeft, row);
-      MATHICGB_ASSERT(colCountLeft == pivotCount);
+      MATHICGB_ASSERT(leftColCount == pivotCount);
 
       for (size_t pivot = 0; pivot < pivotCount; ++pivot) {
         if (denseRow[pivot] == 0)
@@ -234,27 +204,25 @@ namespace {
         denseRow.addRowMultiple(static_cast<SparseMatrix::Scalar>(entry), ++reduceByLeft.rowBegin(row), reduceByLeft.rowEnd(row));
         denseRow[pivot] = entry;
       }
-#pragma omp critical
-      {
-        for (size_t pivot = 0; pivot < pivotCount; ++pivot) {
-		  MATHICGB_ASSERT(denseRow[pivot] < std::numeric_limits<SparseMatrix::Scalar>::max());
-          if (denseRow[pivot] != 0)
-            tmp.appendEntry(rowThatReducesCol[pivot], static_cast<SparseMatrix::Scalar>(denseRow[pivot]));
-	    }
-        tmp.rowDone();
-        rowOrder[tmp.rowCount() - 1] = row;
-      }
-    }
+      tbb::mutex::scoped_lock lockGuard(lock);
+      for (size_t pivot = 0; pivot < pivotCount; ++pivot) {
+		MATHICGB_ASSERT(denseRow[pivot] < std::numeric_limits<SparseMatrix::Scalar>::max());
+        if (denseRow[pivot] != 0)
+          tmp.appendEntry(rowThatReducesCol[pivot], static_cast<SparseMatrix::Scalar>(denseRow[pivot]));
+	  }
+      tmp.rowDone();
+      rowOrder[tmp.rowCount() - 1] = row;
+    }});
 
-#pragma omp parallel for num_threads(threadCount) schedule(dynamic)
-    for (OMPIndex iOMP = 0; iOMP < static_cast<OMPIndex>(rowCount); ++iOMP) {
-      const size_t i = static_cast<size_t>(iOMP);
-#ifdef _OPENMP
-      auto& denseRow = denseRowPerThread[omp_get_thread_num()];
-#endif
-      size_t row = rowOrder[i];
+    tbb::parallel_for(tbb::blocked_range<size_t>(0, rowCount),
+      [&](const tbb::blocked_range<size_t>& range)
+      {for (auto iter = range.begin(); iter != range.end(); ++iter)
+    {
+      const size_t i = iter;
+      const size_t row = rowOrder[i];
+      auto& denseRow = denseRowPerThread.local();
 
-      denseRow.clear(colCountRight);
+      denseRow.clear(rightColCount);
       denseRow.addRow(toReduceRight, row);
       auto it = tmp.rowBegin(i);
       const auto end = tmp.rowEnd(i);
@@ -264,47 +232,47 @@ namespace {
         denseRow.addRowMultiple(it.scalar(), begin, end);
       }
 
-#pragma omp critical
-      {
-        bool zero = true;
-	    for (SparseMatrix::ColIndex col = 0; col < colCountRight; ++col) {
-          const auto entry =
-            static_cast<SparseMatrix::Scalar>(denseRow[col] % modulus);
-          if (entry != 0) {
-            reduced.appendEntry(col, entry);
-            zero = false;
-          }
+      tbb::mutex::scoped_lock lockGuard(lock);
+      bool zero = true;
+	  for (SparseMatrix::ColIndex col = 0; col < rightColCount; ++col) {
+        const auto entry =
+          static_cast<SparseMatrix::Scalar>(denseRow[col] % modulus);
+        if (entry != 0) {
+          reduced.appendEntry(col, entry);
+          zero = false;
         }
-        if (!zero)
-          reduced.rowDone();
       }
-    }
+      if (!zero)
+        reduced.rowDone();
+    }});
     return std::move(reduced);
   }
 
-  void reduceToEchelonForm
-  (SparseMatrix& toReduce, SparseMatrix::Scalar modulus, int threadCount) {
-    // making no assumptions on toReduce except no zero rows
+  SparseMatrix reduceToEchelonForm(
+    const SparseMatrix& toReduce,
+    const SparseMatrix::Scalar modulus
+  ) {
+    const auto colCount = toReduce.computeColCount();
+    const auto rowCount = toReduce.rowCount();
 
-    SparseMatrix::RowIndex const rowCount = toReduce.rowCount();
-    SparseMatrix::ColIndex const colCount = toReduce.colCount();
-
-    // dense representation 
-    std::vector<DenseRow<uint64> > dense(rowCount);
-#pragma omp parallel for num_threads(threadCount) schedule(dynamic)
-    for (OMPIndex rowOMP = 0;
-      rowOMP < static_cast<OMPIndex>(rowCount); ++rowOMP) {
-      const size_t row = static_cast<size_t>(rowOMP);
-      MATHICGB_ASSERT(!toReduce.emptyRow(row));
+    // convert to dense representation 
+    std::vector<DenseRow<uint64>> dense(rowCount);
+    tbb::parallel_for(tbb::blocked_range<size_t>(0, rowCount),
+      [&](const tbb::blocked_range<size_t>& range)
+      {for (auto it = range.begin(); it != range.end(); ++it)
+    {
+      const size_t row = it;
+      if (toReduce.emptyRow(row))
+        return;
       dense[row].clear(colCount);
       dense[row].addRow(toReduce, row);
-    }
+    }});
 
     // invariant: all columns in row to the left of leadCols[row] are zero.
     std::vector<SparseMatrix::ColIndex> leadCols(rowCount);
 
     // pivot rows get copied here before being used to reduce the matrix.
-    SparseMatrix reduced(colCount, toReduce.memoryQuantum());
+    SparseMatrix reduced(toReduce.memoryQuantum());
 
     // (col,row) in nextReducers, then use row as a pivot in column col
     // for the next iteration.
@@ -323,14 +291,16 @@ namespace {
       size_t const reducerCount = reduced.rowCount();
 
       //std::cout << "reducing " << reduced.rowCount() << " out of " << toReduce.rowCount() << std::endl;
-#pragma omp parallel for num_threads(threadCount) schedule(dynamic)
-      for (OMPIndex rowOMP = 0;
-        rowOMP < static_cast<OMPIndex>(rowCount); ++rowOMP) {
-        const size_t row = static_cast<size_t>(rowOMP);
+      tbb::mutex lock;
+      tbb::parallel_for(tbb::blocked_range<size_t>(0, rowCount),
+        [&](const tbb::blocked_range<size_t>& range)
+        {for (auto it = range.begin(); it != range.end(); ++it)
+      {
+        const size_t row = it;
         MATHICGB_ASSERT(leadCols[row] <= colCount);
         DenseRow<uint64>& denseRow = dense[row];
         if (denseRow.empty())
-          continue;
+          return;
 
         // reduce by each row of reduced.
         for (size_t reducerRow = 0; reducerRow < reducerCount; ++reducerRow) {
@@ -357,8 +327,8 @@ namespace {
         else {
           MATHICGB_ASSERT(col < colCount);
           bool isNewReducer = false;
-#pragma omp critical
           {
+            tbb::mutex::scoped_lock lockGuard(lock);
             if (!columnHasPivot[col]) {
               columnHasPivot[col] = true;
               isNewReducer = true;
@@ -368,13 +338,12 @@ namespace {
           if (isNewReducer)
             denseRow.makeUnitary(modulus, col);
         }
-      }
+      }});
       //std::cout << "done reducing that batch" << std::endl;
 
-      reduced.clear(colCount);
+      reduced.clear();
       std::sort(nextReducers.begin(), nextReducers.end());
       for (size_t i = 0; i < nextReducers.size(); ++i) {
-        MATHICGB_ASSERT(reduced.colCount() == colCount);
         size_t const row = nextReducers[i].second;
 
         MATHICGB_ASSERT(static_cast<bool>
@@ -390,17 +359,19 @@ namespace {
       nextReducers.clear();
     }
 
-#pragma omp parallel for num_threads(threadCount) schedule(dynamic)
-    for (OMPIndex rowOMP = 0;
-      rowOMP < static_cast<OMPIndex>(rowCount); ++rowOMP) {
-      const size_t row = static_cast<size_t>(rowOMP);
+    tbb::parallel_for(tbb::blocked_range<size_t>(0, rowCount),
+      [&](const tbb::blocked_range<size_t>& range)
+      {for (auto it = range.begin(); it != range.end(); ++it)
+    {
+      const size_t row = it;
       dense[row].takeModulus(modulus);
-    }
+    }});
 
-    toReduce.clear(colCount);
+    reduced.clear();
     for (size_t row = 0; row < rowCount; ++row)
       if (!dense[row].empty())
-        dense[row].appendTo(toReduce);
+        dense[row].appendTo(reduced);
+    return std::move(reduced);
   }
 }
 
@@ -600,43 +571,49 @@ void reduceToEchelonFormShrawanDelayedModulus
   }
 }
 
-SparseMatrix F4MatrixReducer::reduce(const QuadMatrix& matrix) {
-  MATHICGB_ASSERT(mThreadCount >= 1);
+SparseMatrix F4MatrixReducer::reduceToBottomRight(const QuadMatrix& matrix) {
   MATHICGB_ASSERT(matrix.debugAssertValid());
-  if (tracingLevel >= 3)
-    matrix.printSizes(std::cerr);
+  if (::logs::F4MatrixReduce.enabled())
+    matrix.printSizes(::logs::F4MatrixReduce.stream());
+  return reduce(matrix, mModulus);
+}
 
-  SparseMatrix newPivots(::reduce(matrix, mModulus, mThreadCount));
+SparseMatrix F4MatrixReducer::reducedRowEchelonForm(
+  const SparseMatrix& matrix
+) {
   const bool useShrawan = true;
   const bool useDelayedModulus = false;
   if (useShrawan) {
     if (useDelayedModulus)
-      reduceToEchelonFormShrawanDelayedModulus
-        (newPivots, mModulus, mThreadCount);
+      reduceToEchelonFormShrawanDelayedModulus(matrix, mModulus);
     else    
-      reduceToEchelonFormShrawan(newPivots, mModulus, mThreadCount);
+      reduceToEchelonFormShrawan(matrix, mModulus);
   } else
-    reduceToEchelonForm(newPivots, mModulus, mThreadCount);
-  return std::move(newPivots);
+    reduceToEchelonForm(matrix, mModulus);
+  return std::move(matrix);
+}
+
+SparseMatrix F4MatrixReducer::reducedRowEchelonFormBottomRight(
+  const QuadMatrix& matrix
+) {
+  return reducedRowEchelonForm(reduceToBottomRight(matrix));
 }
 
 namespace {
   /// this has to be a separate function that returns the scalar since signed
   /// overflow is undefine behavior so we cannot check after the cast and
-  /// we also cannot set mCharac inside the constructor since it is const.
-  SparseMatrix::Scalar checkModulus(const PolyRing& ring) {
+  /// we also cannot set the modulus field inside the constructor since it is
+  /// const.
+  SparseMatrix::Scalar checkModulus(const coefficient modulus) {
     // this assert has to be NO_ASSUME as otherwise the branch below will get
     // optimized out.
-    MATHICGB_ASSERT_NO_ASSUME(ring.charac() <=
+    MATHICGB_ASSERT_NO_ASSUME(modulus <=
       std::numeric_limits<SparseMatrix::Scalar>::max());
-    if (ring.charac() > std::numeric_limits<SparseMatrix::Scalar>::max())
-      throw std::overflow_error("Too large modulus in F4 matrix computation.");
-    return static_cast<SparseMatrix::Scalar>(ring.charac());
+    if (modulus > std::numeric_limits<SparseMatrix::Scalar>::max())
+      throw std::overflow_error("Too large modulus in F4 matrix reduction.");
+    return static_cast<SparseMatrix::Scalar>(modulus);
   }
 }
 
-F4MatrixReducer::F4MatrixReducer(const PolyRing& ring, const int threadCount):
-  mModulus(checkModulus(ring)),
-  mThreadCount(std::max(threadCount, 1)
-) {
-}
+F4MatrixReducer::F4MatrixReducer(const coefficient modulus):
+  mModulus(checkModulus(modulus)) {}

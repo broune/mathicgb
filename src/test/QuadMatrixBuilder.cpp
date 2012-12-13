@@ -26,20 +26,14 @@ namespace {
       size_t colCount = 0;
       for (Poly::iterator it = p.begin(); it != p.end(); ++it) {
         QuadMatrixBuilder::LeftRightColIndex lrCol =
-          b.createColumnLeft(it.getMonomial());
+          b.createColumnLeft(it.getMonomial()).first;
         ASSERT_TRUE(lrCol.left());
         ASSERT_FALSE(lrCol.right());
         auto col = lrCol.leftIndex();
         ASSERT_EQ(col, lrCol.index());
         ASSERT_EQ(colCount, col);
         ++colCount;
-        // not equal as pointers
-        ASSERT_TRUE(it.getMonomial().unsafeGetRepresentation() !=
-                    b.monomialOfLeftCol(col).unsafeGetRepresentation());
-        ASSERT_TRUE // equal as values
-          (b.ring().monomialEQ(it.getMonomial(), b.monomialOfLeftCol(col)));
       }
-      ASSERT_EQ(colCount, b.leftColCount());
     }
     {
       Poly p(b.ring());
@@ -48,39 +42,43 @@ namespace {
       size_t colCount = 0;
       for (Poly::iterator it = p.begin(); it != p.end(); ++it) {
         QuadMatrixBuilder::LeftRightColIndex lrCol =
-          b.createColumnRight(it.getMonomial());
+          b.createColumnRight(it.getMonomial()).first;
         ASSERT_TRUE(lrCol.right());
         ASSERT_FALSE(lrCol.left());
         auto col = lrCol.rightIndex();
         ASSERT_EQ(col, lrCol.index());
         ASSERT_EQ(colCount, col);
         ++colCount;
-        // not equal as pointers
-        ASSERT_TRUE(it.getMonomial().unsafeGetRepresentation() !=
-                    b.monomialOfRightCol(col).unsafeGetRepresentation());
-        ASSERT_TRUE // equal as values
-          (b.ring().monomialEQ(it.getMonomial(), b.monomialOfRightCol(col)));
       }
-      ASSERT_EQ(colCount, b.rightColCount());
     }
   }
 }
 
 TEST(QuadMatrixBuilder, Empty) {
+  // test a builder with no rows and no columns
   PolyRing ring(2, 0, 0);
-  QuadMatrixBuilder b(ring); // test a builder with no rows and no columns
+  QuadMatrixBuilder::Map map(ring);
+  QuadMatrixBuilder::MonomialsType monoLeft;
+  QuadMatrixBuilder::MonomialsType monoRight;
+  QuadMatrixBuilder b(ring, map, monoLeft, monoRight);
   const char* matrixStr = 
     "Left columns:\n"
     "Right columns:\n"
     "matrix with no rows | matrix with no rows\n"
     "                    |                    \n"
     "matrix with no rows | matrix with no rows\n";
-  ASSERT_EQ(matrixStr, b.toString());
+  auto matrix = b.buildMatrixAndClear();
+  matrix.leftColumnMonomials = monoLeft;
+  matrix.rightColumnMonomials = monoRight;
+  ASSERT_EQ(matrixStr, matrix.toString());
 }
 
 TEST(QuadMatrixBuilder, Construction) {
   std::unique_ptr<PolyRing> ring(ringFromString("32003 6 1\n1 1 1 1 1 1"));
-  QuadMatrixBuilder b(*ring);
+  QuadMatrixBuilder::Map map(*ring);
+  QuadMatrixBuilder::MonomialsType monoLeft;
+  QuadMatrixBuilder::MonomialsType monoRight;
+  QuadMatrixBuilder b(*ring, map, monoLeft, monoRight);
   createColumns("a<1>+<0>", "bc<0>+b<0>+c<0>", b);
 
   // top row: nothing, nothing
@@ -112,12 +110,18 @@ TEST(QuadMatrixBuilder, Construction) {
     "0: 1#4     | 0:    \n"
     "1:         | 1: 0#5\n"
     "2:         | 2:    \n";
-  ASSERT_EQ(matrixStr, b.toString());
+  auto matrix = b.buildMatrixAndClear();
+  matrix.leftColumnMonomials = monoLeft;
+  matrix.rightColumnMonomials = monoRight;
+  ASSERT_EQ(matrixStr, matrix.toString());
 }
 
 TEST(QuadMatrixBuilder, ColumnQuery) {
   std::unique_ptr<PolyRing> ring(ringFromString("32003 6 1\n1 1 1 1 1 1"));
-  QuadMatrixBuilder b(*ring);
+  QuadMatrixBuilder::Map map(*ring);
+  QuadMatrixBuilder::MonomialsType monoLeft;
+  QuadMatrixBuilder::MonomialsType monoRight;
+  QuadMatrixBuilder b(*ring, map, monoLeft, monoRight);
   createColumns("a<1>+<0>", "b<0>+c<0>+bc<0>", b);
 
   Poly p(b.ring());
@@ -126,16 +130,17 @@ TEST(QuadMatrixBuilder, ColumnQuery) {
     ("10a<1>+11<0>+20b<0>+21c<0>+22bc<0>+30ab<0>+30e<0>+10a<1>");
   p.parseDoNotOrder(in);
   for (Poly::iterator it = p.begin(); it != p.end(); ++it) {
-    QuadMatrixBuilder::LeftRightColIndex col = b.findColumn(it.getMonomial());
+    const QuadMatrixBuilder::LeftRightColIndex* col =
+      MonomialMap<QuadMatrixBuilder::LeftRightColIndex>::Reader(map).find(it.getMonomial()).first;
     if (it.getCoefficient() / 10 == 3)
-      ASSERT_FALSE(col.valid());
+      ASSERT_EQ(col, static_cast<void*>(0));
     else {
-      ASSERT_TRUE(col.valid());
-      ASSERT_EQ(it.getCoefficient() % 10, col.index());
+      ASSERT_TRUE(col != static_cast<void*>(0));
+      ASSERT_EQ(it.getCoefficient() % 10, col->index());
       if (it.getCoefficient() / 10 == 2)
-        ASSERT_TRUE(col.right());
+        ASSERT_TRUE(col->right());
       else
-        ASSERT_TRUE(col.left());
+        ASSERT_TRUE(col->left());
     }
   }
 }
@@ -148,21 +153,27 @@ TEST(QuadMatrixBuilder, SortColumns) {
   
   // one row top, no rows bottom, no columns
   {
-    QuadMatrixBuilder b(*ring);
+    QuadMatrixBuilder::Map map(*ring);
+    QuadMatrixBuilder::MonomialsType monoLeft;
+    QuadMatrixBuilder::MonomialsType monoRight;
+    QuadMatrixBuilder b(*ring, map, monoLeft, monoRight);
     b.rowDoneTopLeftAndRight();
-    b.sortColumnsLeft(*order);
-    b.sortColumnsRight(*order);
+    auto matrix = b.buildMatrixAndClear();
+    matrix.sortColumnsLeftRightParallel();
     const char* matrixStr = 
       "Left columns:\n"
       "Right columns:\n"
       "0:                  | 0:                 \n"
       "                    |                    \n"
       "matrix with no rows | matrix with no rows\n";
-    ASSERT_EQ(matrixStr, b.toString());
+    ASSERT_EQ(matrixStr, matrix.toString());
   }
 
   {
-    QuadMatrixBuilder b(*ring);
+    QuadMatrixBuilder::Map map(*ring);
+    QuadMatrixBuilder::MonomialsType monoLeft;
+    QuadMatrixBuilder::MonomialsType monoRight;
+    QuadMatrixBuilder b(*ring, map, monoLeft, monoRight);
     createColumns("<0>+a<0>", "b<0>+bcd<0>+bc<0>", b);
     b.appendEntryTopLeft(0,1);
     b.appendEntryTopLeft(1,2);
@@ -177,6 +188,9 @@ TEST(QuadMatrixBuilder, SortColumns) {
     b.appendEntryBottomRight(1,9);
     b.appendEntryBottomRight(2,10);
     b.rowDoneBottomLeftAndRight();
+    auto matrix = b.buildMatrixAndClear();
+    matrix.leftColumnMonomials = monoLeft;
+    matrix.rightColumnMonomials = monoRight;
 
     const char* matrixStr1 =
       "Left columns: 1 a\n"
@@ -184,40 +198,28 @@ TEST(QuadMatrixBuilder, SortColumns) {
       "0: 0#1 1#2 | 0: 0#3 1#4 2#5 \n"
       "           |                \n"
       "0: 0#6 1#7 | 0: 0#8 1#9 2#10\n";
-    ASSERT_EQ(matrixStr1, b.toString());
+    ASSERT_EQ(matrixStr1, matrix.toString());
 
     const char* matrixStr2 =
-      "Left columns: a 1\n"
-      "Right columns: b bcd bc\n"
-      "0: 1#1 0#2 | 0: 0#3 1#4 2#5 \n"
-      "           |                \n"
-      "0: 1#6 0#7 | 0: 0#8 1#9 2#10\n";
-    b.sortColumnsLeft(*order);
-    ASSERT_EQ(matrixStr2, b.toString());
-
-    b.sortColumnsLeft(*order); // sort when already sorted
-    ASSERT_EQ(matrixStr2, b.toString());
-
-    const char* matrixStr3 =
       "Left columns: a 1\n"
       "Right columns: bcd bc b\n"
       "0: 1#1 0#2 | 0: 2#3 0#4 1#5 \n"
       "           |                \n"
       "0: 1#6 0#7 | 0: 2#8 0#9 1#10\n";
-    b.sortColumnsRight(*order);
-    ASSERT_EQ(matrixStr3, b.toString());
+    matrix.sortColumnsLeftRightParallel();
+    ASSERT_EQ(matrixStr2, matrix.toString());
 
-    b.sortColumnsRight(*order); // sort when already sorted
-    ASSERT_EQ(matrixStr3, b.toString());
-
-    b.sortColumnsLeft(*order);
-    ASSERT_EQ(matrixStr3, b.toString());
+    matrix.sortColumnsLeftRightParallel();
+    ASSERT_EQ(matrixStr2, matrix.toString());
   }
 }
 
 TEST(QuadMatrixBuilder, BuildAndClear) {
   std::unique_ptr<PolyRing> ring(ringFromString("32003 6 1\n1 1 1 1 1 1"));
-  QuadMatrixBuilder b(*ring);
+  QuadMatrixBuilder::Map map(*ring);
+  QuadMatrixBuilder::MonomialsType monoLeft;
+  QuadMatrixBuilder::MonomialsType monoRight;
+  QuadMatrixBuilder b(*ring, map, monoLeft, monoRight);
   createColumns("a<1>+<0>", "b<0>+c<0>+bc<0>", b);
 
   b.appendEntryTopLeft(1, 1);
@@ -229,18 +231,8 @@ TEST(QuadMatrixBuilder, BuildAndClear) {
   b.rowDoneBottomLeftAndRight();
 
   QuadMatrix qm(b.buildMatrixAndClear());
-
-  // test that the matrix was really cleared
-  ASSERT_EQ(ring.get(), &b.ring()); // still same ring though
-  const char* matrixStr = 
-    "Left columns:\n"
-    "Right columns:\n"
-    "matrix with no rows | matrix with no rows\n"
-    "                    |                    \n"
-    "matrix with no rows | matrix with no rows\n";
-  ASSERT_EQ(matrixStr, b.toString());
-  ASSERT_EQ(0, b.leftColCount());
-  ASSERT_EQ(0, b.rightColCount());
+  qm.leftColumnMonomials = monoLeft;
+  qm.rightColumnMonomials = monoRight;
 
   // test that the quad matrix is right
   ASSERT_EQ("0: 1#1\n", qm.topLeft.toString());

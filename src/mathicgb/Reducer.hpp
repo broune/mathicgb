@@ -62,10 +62,6 @@ public:
     size_t basisElement,
     const GroebnerBasis& basis) = 0;
 
-  /** Sets how many parallel threads to use for reduction - if the
-    reducer supports it. */
-  virtual void setThreadCount(int threadCount) = 0;
-
   /** Sets how many bytes of memory to increase the memory use by
     at a time - if such a thing is appropriate for the reducer. */
   virtual void setMemoryQuantum(size_t quantum) = 0;
@@ -106,13 +102,13 @@ public:
   };
 
   static std::unique_ptr<Reducer> makeReducer
-  (ReducerType t, PolyRing const& ring);
+    (ReducerType t, const PolyRing& ring);
 
   static std::unique_ptr<Reducer> makeReducerNullOnUnknown
-  (ReducerType t, PolyRing const& ring);
+    (ReducerType t, const PolyRing& ring);
 
   static ReducerType reducerType(int typ);
-  static void displayReducerTypes(std::ostream &o);
+  static void displayReducerTypes(std::ostream& o);
 
 
   // ***** Obtaining statistics about the reduction process

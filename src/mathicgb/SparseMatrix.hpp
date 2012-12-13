@@ -48,15 +48,13 @@ public:
   class ConstRowIterator;
 
   /// Construct a matrix with no rows.
-  SparseMatrix(const ColIndex colCount = 0, const size_t memoryQuantum = 0):
-    mColCount(colCount),
+  SparseMatrix(const size_t memoryQuantum = 0):
     mMemoryQuantum(memoryQuantum)
   {}
 
   SparseMatrix(SparseMatrix&& matrix):
     mRows(std::move(matrix.mRows)),
     mBlock(std::move(matrix.mBlock)),
-    mColCount(matrix.mColCount),
     mMemoryQuantum(matrix.mMemoryQuantum)
   {
   }
@@ -75,7 +73,14 @@ public:
 
   SparseMatrix& operator=(const SparseMatrix&);
   void swap(SparseMatrix& matrix);
-  void clear(ColIndex newColCount = 0);
+
+  bool operator==(const SparseMatrix& matrix) const;
+  bool operator!=(const SparseMatrix& matrix) const {
+    return !(*this == matrix);
+  }
+
+  // Removes all rows from *this.
+  void clear();
 
   /// Appends the rows from matrix to this object. Avoids most of the copies
   /// that would otherwise be required for a big matrix insert by taking
@@ -83,7 +88,7 @@ public:
   void takeRowsFrom(SparseMatrix&& matrix);
 
   RowIndex rowCount() const {return mRows.size();}
-  ColIndex colCount() const {return mColCount;}
+  ColIndex computeColCount() const;
   size_t memoryQuantum() const {return mMemoryQuantum;}
 
   /// Returns the number of entries in the whole matrix. Is not constant time
@@ -180,7 +185,6 @@ public:
   /// after calling this method until rowDone has been called.
   inline void appendEntry(ColIndex colIndex, Scalar scalar) {
     MATHICGB_ASSERT(mBlock.mColIndices.size() == mBlock.mScalars.size());
-    MATHICGB_ASSERT(colIndex < colCount());
 
     MATHICGB_ASSERT(mBlock.mScalars.atCapacity() ==
       mBlock.mColIndices.atCapacity());
@@ -198,20 +202,6 @@ public:
   void appendRowAndNormalize(const SparseMatrix& matrix, RowIndex row, Scalar modulus);
   
   void appendRow(const SparseMatrix& matrix, RowIndex row);
-
-  void ensureAtLeastThisManyColumns(ColIndex count) {
-    if (count > colCount())
-      mColCount = count;
-  }
-
-  /// Adds one more column to the matrix and returns the index of the new
-  /// column.
-  ColIndex appendColumn() {
-    if (colCount() == std::numeric_limits<ColIndex>::max())
-      mathic::reportError("Too many columns in SparseMatrix.");
-    ++mColCount;
-    return mColCount - 1;
-  }
 
   void appendRowWithModulus(const std::vector<uint64>& v, Scalar modulus);
   
@@ -236,6 +226,12 @@ public:
   /// each row is weakly increasing going from top to bottom. Quite
   /// slow and it makes a copy internally.
   void sortRowsByIncreasingPivots();
+
+  // Write *this and modulus to file.
+  void write(Scalar modulus, FILE* file) const;
+
+  // Set *this to a matrix read from file and return the modulus from the file.
+  Scalar read(FILE* file);
 
   /// Iterates through the entries in a row.
   class ConstRowIterator {
@@ -285,7 +281,6 @@ public:
     const ColIndex* mColIndexIt;
     const Scalar* mScalarIt;
   };
-
 
 private:
   MATHICGB_NO_INLINE void growEntryCapacity();
@@ -349,8 +344,6 @@ private:
     bool mHasNoRows; /// true if no rows have been made from this block yet
   };
   Block mBlock;
-
-  ColIndex mColCount;
   size_t mMemoryQuantum;
 };
 

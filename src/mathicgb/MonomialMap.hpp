@@ -1,410 +1,213 @@
 #ifndef MATHICGB_MONOMIAL_MAP_GUARD
 #define MATHICGB_MONOMIAL_MAP_GUARD
 
+#include "FixedSizeMonomialMap.h"
+#include "Atomic.hpp"
 #include "PolyRing.hpp"
-#include <limits>
-
-#if defined(MATHICGB_USE_STD_HASH) && defined(MATHICGB_USE_CUSTOM_HASH)
-#error Only select one kind of hash table
-#endif
-
-// set default hash table type if nothing has been specified
-#if !defined(MATHICGB_USE_STD_HASH) && !defined(MATHICGB_USE_CUSTOM_HASH)
-#define MATHICGB_USE_CUSTOM_HASH
-#endif
-
-#ifdef MATHICGB_USE_CUSTOM_HASH
 #include <memtailor.h>
+#include <tbb/tbb.h>
+#include <limits>
 #include <vector>
 #include <algorithm>
-#elif defined(MATHICGB_USE_STD_HASH)
-#include <unordered_map>
-#else
-#include <map>
-#endif
 
-/** A mapping from monomials to MapToType. The interface is the same as
-  for STL maps. The interface is not complete. Add methods you need when
-  you need it.
-*/
-template<class MapToType>
-class MonomialMap;
+/// A concurrent hash map from monomials to T. This map can resize itself
+/// if there are too few buckets compared to entries.
+///
+/// Queries are supported through a MonomialMap::Reader object. On resize all
+/// previous readers are subject to permanent spurious misses -
+/// querying clients need to grab a fresh reader to confirm misses. Grabbing
+/// a reader incurs synchronization so do not do it for every query.
+///
+/// External synchronization with writers is required if spurious misses are
+/// not acceptable. There are no spurious hits. If misses are very rare then
+/// reads can be done with minimal overhead by following this pattern:
+///
+///  1) grab a reader X
+///  2) perform queries on X until done or there is a miss
+///  3) replace X with a fresh reader Y
+///  4) go to 2 if the miss is now a hit
+///  5) grab a lock shared with all writers
+///  6) perform the query again - a miss is now guaranteed to be accurate
+///  7) release the lock after the processing of the miss is done and go to 2
+///
+/// There is no way to avoid locking if spurious misses are not acceptable
+/// as otherwise a writer could make an insertion of the requested key at any
+/// time while processing the miss - which then makes the miss spurious
+/// after-the-fact.
+template<class T>
+class MonomialMap {
+public:
+  typedef T mapped_type;
+  typedef FixedSizeMonomialMap<mapped_type> FixedSizeMap;
+  typedef typename FixedSizeMap::value_type value_type;
 
-namespace MonomialMapInternal {
-  // The map type MapClass is defined here. This is here in
-  // this namespace to avoid cluttering the class definition with
-  // a lot of ifdef's.
+  MonomialMap(const PolyRing& ring):
+    mMap(new FixedSizeMap(InitialBucketCount, ring)),
+    mCapacityUntilGrowth
+    (maxEntries(mMap.load(std::memory_order_relaxed)->bucketCount())),
+    mRing(ring)
+  {
+    // We can load mMap as std::memory_order_relaxed because we just stored it
+    // and the constructor cannot run concurrently.
+  }
 
-#ifdef MATHICGB_USE_CUSTOM_HASH
-  template<class MTT>
-  class MapClass {
+  ~MonomialMap() {
+    delete mMap.load();
+  }
+
+  const PolyRing& ring() const {return mRing;}
+
+  /// All queries are performed through a Reader. Readers are subject to
+  /// permanent spurious misses on hash map resize. Grab a fresh reader
+  /// on misses to confirm them. Making a Reader imposes synchronization
+  /// overhead. External locking is required to guarantee that a miss is
+  /// genuine since there is no mutual exclusion between queries and
+  /// insertions.
+  ///
+  /// It is intentional that a reader does not have an update() method. The
+  /// purpose of this is to make the internal hash table pointer const inside
+  /// the class which guarantees to the compiler that it will never change.
+  /// This in turn allows the compiler to store the fields of the internal
+  /// hash table pointer such as the hash map mask. If there were an update()
+  /// method this would not be possible and the compiler might have to load
+  /// that mask for every query. I made it this way because I was seeming
+  /// a performance regression of several percent which then went away with
+  /// this solution. (well actually it's not a reference, which is the same
+  /// thing as a const pointer).
+  class Reader {
   public:
-    typedef MapClass Map;
-    typedef std::pair<const_monomial, MTT> value_type;
-    typedef MTT mapped_type;
-
-  private:
-    struct Node {
-      Node* next;
-      mapped_type value;
-      exponent mono[1];
-    };
-
-  public:
-    MapClass(const PolyRing& ring):
-      mRing(ring),
-      mTable(),
-      mNodeAlloc(sizeof(Node) - sizeof(exponent) + ring.maxMonomialByteSize())
+    Reader(const MonomialMap<T>& map):
+      mMap(*map.mMap.load(std::memory_order_seq_cst))
     {
-      mGrowWhenThisManyEntries = 0;
-      mTableSize = mTable.size();
-      mEntryCount = 0;
-      growTable();
+      // We grab the hash table pointer with std::memory_order_seq_cst in order
+      // to force a CPU cache flush - in this way we are more likely to get an
+      // up to date value.
     }
 
-    Map& map() {return *this;}
-    const Map& map() const {return *this;}
-    const PolyRing& ring() const {return mRing;}
-
-    mapped_type* find(const_monomial mono) {
-      const HashValue monoHash = mRing.monomialHashValue(mono);
-      Node* node = entry(hashToIndex(monoHash));
-      for (; node != 0; node = node->next) {
-        // To my surprise, it seems to be faster to comment out this branch.
-        // I guess the hash table has too few collisions to make it worth it.
-        //if (monoHash != mRing.monomialHashValue(node->mono))
-        //  continue;
-        if (mRing.monomialEqualHintTrue(mono, node->mono))
-          return &node->value;
-      }
-      return 0;
+    /// Returns the value that mono maps to or null if no such key has been
+    /// inserted. Also returns the internal monomial that matches mono if such
+    /// a monomial exists. Misses can be spurious! Read the comments on the parent
+    /// class.
+    std::pair<const mapped_type*, ConstMonomial>
+    find(const_monomial mono) const {
+      return mMap.find(mono);
     }
 
-    MATHICGB_INLINE mapped_type* findProduct(
+    // As find but looks for the product of a and b and also returns the
+    // monomal that is the product.
+    std::pair<const mapped_type*, ConstMonomial> findProduct(
       const const_monomial a,
       const const_monomial b
-    ) {
-      const HashValue abHash = mRing.monomialHashOfProduct(a, b);
-      Node* node = entry(hashToIndex(abHash));
-      for (; node != 0; node = node->next) {
-        // To my surprise, it seems to be faster to comment out this branch.
-        // I guess the hash table has too few collisions to make it worth it.
-        //if (abHash != mRing.monomialHashValue(node->mono))
-        //  continue;
-        if (mRing.monomialIsProductOfHintTrue(a, b, node->mono))
-          return &node->value;
-      }
-      return 0;
+    ) const {
+      return mMap.findProduct(a, b);
     }
 
-    /// As findProduct but looks for a1*b and a2*b at one time.
-    MATHICGB_INLINE std::pair<mapped_type*, mapped_type*> findTwoProducts(
+    /// As findProduct() but looks for the two products a1*b and a2*b
+    /// simultaneously. The purpose of this is similar to that of unrolling a
+    /// loop.
+    MATHICGB_INLINE
+    std::pair<const mapped_type*, const mapped_type*> findTwoProducts(
       const const_monomial a1,
       const const_monomial a2,
       const const_monomial b
-    ) {
-      const HashValue a1bHash = mRing.monomialHashOfProduct(a1, b);
-      const HashValue a2bHash = mRing.monomialHashOfProduct(a2, b);
-      Node* const node1 = entry(hashToIndex(a1bHash));
-      Node* const node2 = entry(hashToIndex(a2bHash));
-
-      if (node1 != 0 && node2 != 0 && mRing.monomialIsTwoProductsOfHintTrue
-        (a1, a2, b, node1->mono, node2->mono)
-      )
-        return std::make_pair(&node1->value, &node2->value);
-      else
-        return std::make_pair(findProduct(a1, b), findProduct(a2, b));
+    ) const {
+      return mMap.findTwoProducts(a1, a2, b);
     }
 
-    void insert(const value_type& value) {
-      Node* node = static_cast<Node*>(mNodeAlloc.alloc());
-      const size_t index = hashToIndex(mRing.monomialHashValue(value.first));
+    typedef typename FixedSizeMonomialMap<T>::const_iterator const_iterator;
+
+    /// The range [begin(), end()) contains all entries in the hash table.
+    /// Insertions invalidate all iterators. Beware that insertions can
+    /// happen concurrently.
+    const_iterator begin() const {return mMap.begin();}
+    const_iterator end() const {return mMap.end();}
+
+  private:
+    const FixedSizeMonomialMap<T>& mMap;
+  };
+
+  /// Removes all entries from the hash table. This requires mutual exclusion
+  /// from and synchronization with all readers and writers.
+  void clearNonConcurrent() {mMap.load()->clearNonConcurrent();}
+
+  /// Makes value.first map to value.second unless value.first is already
+  /// present in the map - in that case nothing is done. If p is the returned
+  /// pair then *p.first.first is the value that value.first maps to after the insert
+  /// and p.second is true if an insertion was performed. *p.first.first will not
+  /// equal value.second if an insertion was not performed - unless the
+  /// inserted value equals the already present value. p.first.second is an
+  /// internal monomial that equals value.first.
+  std::pair<std::pair<const mapped_type*, ConstMonomial>, bool>
+  insert(const value_type& value) {
+    const tbb::mutex::scoped_lock lockGuard(mInsertionMutex);
+
+    // We can load mMap as std::memory_order_relaxed because we have already
+    // synchronized with all other mutators by locking mInsertionMutex;
+    auto map = mMap.load(std::memory_order_relaxed);
+
+    // this is a loop since it is possible to set the growth factor and
+    // the initial size so low that several rounds are required. This should
+    // only happen when debugging as otherwise such low parameters are
+    // not a good idea.
+    while (mCapacityUntilGrowth == 0) {
+      // Resize the table by making a bigger one and using that instead.
+      if (map->bucketCount() > // check overflow
+        std::numeric_limits<size_t>::max() / GrowthFactor)
       {
-        Monomial nodeTmp(node->mono);
-        ring().monomialCopy(value.first, nodeTmp);
+        throw std::bad_alloc();
       }
-      new (&node->value) mapped_type(value.second);
-      node->next = entry(index);
-      mTable[index] = node;
-      ++mEntryCount;
-      MATHICGB_ASSERT(mEntryCount <= mGrowWhenThisManyEntries);
-      if (mEntryCount == mGrowWhenThisManyEntries)
-        growTable();
+      const size_t newBucketCount = map->bucketCount() * GrowthFactor;
+      auto nextMap =
+        make_unique<FixedSizeMap>(newBucketCount, std::move(*map));
+      mOldMaps.emplace_back(map);
+      mCapacityUntilGrowth =
+        maxEntries(nextMap->bucketCount()) - maxEntries(map->bucketCount());
+
+      // Store with std::memory_order_seq_cst to force a memory flush so that
+      // readers see the new table as soon as possible.
+      map = nextMap.release();
+      mMap.store(map, std::memory_order_seq_cst);
     }
+    MATHICGB_ASSERT(mCapacityUntilGrowth > 0);
 
-    void clear() {
-      std::fill(mTable.begin(), mTable.end(), static_cast<Node*>(0));
-      mNodeAlloc.freeAllBuffers();
-      mEntryCount = 0;
-    }
-
-    size_t size() const {return mEntryCount;}
-
-  private:
-    size_t hashToIndex(HashValue hash) const {
-      const auto index = hash & mHashToIndexMask;
-      MATHICGB_ASSERT(index == hash % mTable.size());
-      return index;
-    }
-
-    Node* entry(size_t index) {
-      MATHICGB_ASSERT(index < mTable.size());
-      return mTable[index];
-    }
-
-    const Node* entry(size_t index) const {
-      MATHICGB_ASSERT(index < mTable.size());
-      return mTable[index];
-    }
-
-    void growTable() {
-      // Determine parameters for larger hash table
-      const size_t initialTableSize = 1 << 16; // must be a power of two!!!
-      const float maxLoadFactor = 0.33f; // max value of size() / mTable.size()
-      const float growthFactor = 2.0f; // multiply table size by this on growth
-
-      const size_t newTableSize = mTable.empty() ?
-        initialTableSize :
-        static_cast<size_t>(mTable.size() * growthFactor + 0.5f); // round up
-      const auto newGrowWhenThisManyEntries =
-        static_cast<size_t>(newTableSize / maxLoadFactor); // round down
-
-      MATHICGB_ASSERT((newTableSize & (newTableSize - 1)) == 0); // power of two
-
-      // Move nodes from current table into new table
-      decltype(mTable) newTable(newTableSize);
-      HashValue newHashToIndexMask = static_cast<HashValue>(newTableSize - 1);
-      const auto tableEnd = mTable.end();
-      for (auto tableIt = mTable.begin(); tableIt != tableEnd; ++tableIt) {
-        Node* node = *tableIt;
-        while (node != 0) {
-          const size_t index =
-            mRing.monomialHashValue(node->mono) & newHashToIndexMask;
-          MATHICGB_ASSERT(index < newTable.size());
-          Node* const next = node->next;
-          node->next = newTable[index];
-          newTable[index] = node;
-          node = next;
-        }
-      }
-
-      // Move newly calculated table into place
-      mTableSize = newTableSize;      
-      mTable = std::move(newTable);
-      mHashToIndexMask = newHashToIndexMask;
-      mGrowWhenThisManyEntries = newGrowWhenThisManyEntries;
-
-      MATHICGB_ASSERT(mTableSize < mGrowWhenThisManyEntries);
-    }
-
-    size_t mGrowWhenThisManyEntries;
-    size_t mTableSize;
-    HashValue mHashToIndexMask;
-    size_t mEntryCount;
-    const PolyRing& mRing;
-    std::vector<Node*> mTable;
-    memt::BufferPool mNodeAlloc; // nodes are allocated from here.
-  };
-
-#elif defined(MATHICGB_USE_STD_HASH)
-  class Hash {
-  public:
-    Hash(const PolyRing& ring): mRing(ring) {}
-    size_t operator()(const_monomial m) const {
-      return mRing.monomialHashValue(m);
-    }
-    const PolyRing& ring() const {return mRing;}
-
-  private:
-    const PolyRing& mRing;
-  };
-
-  class Equal {
-  public:
-    Equal(const PolyRing& ring): mRing(ring) {}
-    size_t operator()(const_monomial a, const_monomial b) const {
-      return mRing.monomialEQ(a, b);
-    }
-    const PolyRing& ring() const {return mRing;}
-
-  private:
-    const PolyRing& mRing;
-  };
-
-  // This has to be a template to support rebind().
-  template<class T>
-  class TemplateHashAllocator {
-  public:
-    typedef T value_type;
-    typedef T* pointer;
-    typedef T& reference;
-    typedef const T* const_pointer;
-    typedef const T& const_reference;
-    typedef ::size_t size_type;
-    typedef ::ptrdiff_t difference_type;
-
-    template<class T2>
-    struct rebind {
-      typedef TemplateHashAllocator<T2> other;
-    };
-
-    TemplateHashAllocator() {}
-    TemplateHashAllocator(memt::Arena& arena): mArena(arena) {}
-    template<class X>
-    TemplateHashAllocator(const TemplateHashAllocator<X>& a):
-      mArena(a.arena()) {}
-    TemplateHashAllocator(const TemplateHashAllocator<T>& a):
-      mArena(a.arena()) {}
-
-    pointer address(reference x) {return &x;}
-    const_pointer address(const_reference x) const {return &x;}
-    pointer allocate(size_type n, void* hint = 0) {
-      return static_cast<pointer>(mArena.alloc(sizeof(T) * n));
-    }
-    void deallocate(pointer p, size_t n) {}
-    size_type max_size() const {return std::numeric_limits<size_type>::max();}
-    void construct(pointer p, const_reference val) {new (p) T(val);}
-    void destroy(pointer p) {p->~T();}
-    memt::Arena& arena() const {return mArena;}
-
-  private:
-    mutable memt::Arena& mArena;
-  };
-
-  template<class MTT>
-  class MapClass {
-  public:
-    typedef TemplateHashAllocator<std::pair<const const_monomial, MTT>>
-      HashAllocator;
-    typedef std::unordered_map<const_monomial, MTT, Hash, Equal, HashAllocator>
-      Map;
-    typedef typename Map::iterator iterator;
-    typedef typename Map::const_iterator const_iterator;
-    typedef typename Map::value_type value_type;
-
-    MapClass(const PolyRing& ring):
-      mArena(),
-      mMap(100, Hash(ring), Equal(ring), HashAllocator(mArena)),
-      mTmp(ring.allocMonomial())
-    {
-      mMap.max_load_factor(0.3f);
-    }
-
-    ~MapClass() {
-      ring().freeMonomial(mTmp);
-    }
-
-    Map& map() {return mMap;}
-    const Map& map() const {return mMap;}
-    const PolyRing& ring() const {return mMap.key_eq().ring();}
-
-    value_type* findProduct(const_monomial a, const_monomial b) {
-      ring().setGivenHash(mTmp, ring().monomialHashOfProduct(a, b));
-      size_t bucket = mMap.bucket(mTmp);
-      auto stop = mMap.end(bucket);
-      for (auto it = mMap.begin(bucket); it != stop; ++it)
-        if (ring().monomialIsProductOf(a, b, it->first))
-          return &*it;
-      return 0;
-    }
-
-  private:
-    memt::Arena mArena;
-    Map mMap;
-    monomial mTmp;
-  };
-#elif defined(MATHICGB_USE_CUSTOM_HASH)
-#else
-  /// We need SOME ordering to make std::map work.
-  class ArbitraryOrdering {
-  public:
-    ArbitraryOrdering(const PolyRing& ring): mRing(ring) {}
-    bool operator()(const_monomial a, const_monomial b) const {
-      return mRing.monomialLT(a, b);
-    }
-    const PolyRing& ring() const {return mRing;}
-
-  private:
-    const PolyRing& mRing;
-  };
-
-  template<class MTT>
-  class MapClass {
-  public:
-    typedef std::map<const_monomial, MTT, ArbitraryOrdering> Map;
-
-    MapClass(const PolyRing& ring): mMap(ArbitraryOrdering(ring)) {}
-    Map& map() {return mMap;}
-    const Map& map() const {return mMap;}
-    const PolyRing& ring() const {return mMap.key_cmp().ring();}
-
-  private:
-    Map mMap;
-  };
-#endif
-}
-
-template<class MTT>
-class MonomialMap {
-public:
-  typedef MTT mapped_type;
-  typedef MonomialMapInternal::MapClass<MTT> MapType;
-
-  //typedef typename MapType::Map::iterator iterator;
-  //typedef typename MapType::Map::const_iterator const_iterator;
-  typedef typename MapType::Map::value_type value_type;
-
-  MonomialMap(const PolyRing& ring): mMap(ring) {}
-
-/*  iterator begin() {return map().begin();}
-  const_iterator begin() const {return map().begin();}
-  iterator end() {return map().end();}
-  const_iterator end() const {return map().end();}*/
-
-  mapped_type* find(const_monomial m) {return mMap.find(m);}
-
-  mapped_type* findProduct(const_monomial a, const_monomial b) {
-    return mMap.findProduct(a, b);
+    auto p = map->insert(value);
+    if (p.second)
+      --mCapacityUntilGrowth;
+    return p;
   }
 
-  MATHICGB_INLINE std::pair<mapped_type*, mapped_type*> findTwoProducts(
-    const const_monomial a1,
-    const const_monomial a2,
-    const const_monomial b
-  ) {
-    return mMap.findTwoProducts(a1, a2, b);
+  /// Return the number of entries. This method requires locking so do not
+  /// call too much. The count may have 
+  size_t entryCount() const {
+    const tbb::mutex::scoped_lock lockGuard(mInsertionMutex);
+    // We can load with std::memory_order_relaxed because we are holding the
+    // lock.
+    auto& map = *mMap.load(std::memory_order_relaxed);
+    return maxEntries(map.bucketCount()) - mCapacityUntilGrowth;
   }
-
-  const mapped_type* find(const_monomial m) const {
-    return const_cast<MonomialMap&>(*this).find(m);
-  }
-
-  const mapped_type* findProduct(const_monomial a, const_monomial b) const {
-    return const_cast<MonomialMap&>(*this).findProduct(a, b);
-  }
-
-  MATHICGB_INLINE const std::pair<const mapped_type*, const mapped_type*>
-  findTwoProducts(
-    const const_monomial a1,
-    const const_monomial a2,
-    const const_monomial b
-  ) const {
-    return const_cast<MonomialMap&>(*this).findTwoProducts(a1, a2, b);
-  }
-
-  size_t size() const {return map().size();}
-  void clear() {map().clear();}
-  void insert(const value_type& val) {
-    map().insert(val);
-  }
-
-  inline const PolyRing& ring() const {return mMap.ring();}
 
 private:
-  typename MapType::Map& map() {return mMap.map();}
-  const typename MapType::Map& map() const {return mMap.map();}
+  static const size_t MinBucketsPerEntry = 3; // inverse of max load factor
+  static const size_t GrowthFactor = 2;
+  static const size_t InitialBucketCount = 1 << 1;
 
-  MapType mMap;
+  static size_t maxEntries(const size_t bucketCount) {
+    return (bucketCount + (MinBucketsPerEntry - 1)) / MinBucketsPerEntry;
+  }
+
+  Atomic<FixedSizeMap*> mMap;
+  const PolyRing& mRing;
+  tbb::mutex mInsertionMutex;
+
+  /// Only access this field while holding the mInsertionMutex lock.
+  size_t mCapacityUntilGrowth;
+
+  /// Only access this field while holding the mInsertionMutex lock.
+  /// Contains the old hash tables that we discarded on resize. We have to
+  /// keep these around as we have no way to determine if there are still
+  /// readers looking at them. This could be changed at the cost of
+  /// more overhead in the Reader constructor and destructor.
+  std::vector<std::unique_ptr<FixedSizeMap>> mOldMaps;
 };
 
 #endif

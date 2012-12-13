@@ -55,6 +55,28 @@ public:
   /// Shows whole matrix in a string. Useful for debugging.
   std::string toString() const;
 
+  /// Return the combined number of non-zero entries.
+  size_t entryCount() const;
+
+  /// Return the combined number of left and right columns.
+  size_t rowCount() const;
+
+  /// Return the number of left columns.
+  SparseMatrix::ColIndex computeLeftColCount() const;
+
+  /// Return the number of right columns.
+  SparseMatrix::ColIndex computeRightColCount() const;
+
+  void write(SparseMatrix::Scalar modulus, FILE* file) const;
+
+  /// Read a matrix from file into *this. Return the modulus from file.
+  /// This method clears the column monomials and the ring pointer.
+  SparseMatrix::Scalar read(FILE* file);
+
+  /// Sort the left columns to be in decreasing order according to the monomial
+  /// order from the ring. The operation is done in parallel.
+  void sortColumnsLeftRightParallel();
+
   /// Makes a copy of this matrix whose rows are sorted in some canonical way.
   /// TODO: Actually only coarsely sorts the top rows right now.
   QuadMatrix toCanonical() const;

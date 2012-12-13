@@ -155,10 +155,6 @@ void TypicalReducer::classicReducePolySet
   }  
 }
 
-void TypicalReducer::setThreadCount(int threadCount) {
-  // multithreading not supported here (yet!)
-}
-
 void TypicalReducer::setMemoryQuantum(size_t quantum) {
 }
 
