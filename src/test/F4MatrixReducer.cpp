@@ -125,3 +125,4 @@ TEST(F4MatrixReducer, Reduce) {
   reduced.sortRowsByIncreasingPivots();
   ASSERT_EQ(redStr, reduced.toString()) << "Printed reduced:\n" << reduced;
 }
+

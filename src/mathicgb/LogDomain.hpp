@@ -172,7 +172,7 @@ namespace LogDomainInternal {
 #define MATHICGB_DEFINE_LOG_DOMAIN_WITH_DEFAULTS(NAME, DESCRIPTION, DEFAULT_RUNTIME_ENABLED, DEFAULT_COMPILE_TIME_ENABLED) \
   MATHICGB_CAPTURE_LOG_ENABLED(NAME, DEFAULT_COMPILE_TIME_ENABLED); \
   namespace logs { \
-    typedef LogDomain<::LogDomainInternal::value_##NAME> Type##NAME; \
+    typedef LogDomain< ::LogDomainInternal::value_##NAME> Type##NAME; \
     Type##NAME NAME(#NAME, DESCRIPTION, DEFAULT_RUNTIME_ENABLED); \
   }
 

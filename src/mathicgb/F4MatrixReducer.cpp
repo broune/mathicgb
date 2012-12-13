@@ -82,7 +82,7 @@ namespace {
       const auto end = matrix.rowEnd(row);
       for (auto it = matrix.rowBegin(row); it != end; ++it) {
         MATHICGB_ASSERT(it.index() < colCount());
-        mEntries[it.index()] = it.scalar();
+        mEntries[it.index()] += it.scalar();
       }
     }
 
@@ -253,8 +253,6 @@ namespace {
     const SparseMatrix& toReduce,
     const SparseMatrix::Scalar modulus
   ) {
-      const char* p = STR(MATHICGB_IF_LOG(F4MatrixReduce));
-
     MATHICGB_LOG_TIME(F4MatrixReduce) <<
       "Reducing matrix to row echelon form\n";
 
@@ -381,10 +379,220 @@ namespace {
   }
 }
 
-#define STR(X) #X
+// todo: use auto instead of these typedefs where possible/reasonable
+// todo: do SparseMatrix::Scalar instead of Scalar and remove this typedef		:: DONE
+//typedef SparseMatrix::Scalar Scalar; 											:: DONE
+//typedef SparseMatrix::RowIndex RowIndex; // todo: same  						:: DONE
+//typedef SparseMatrix::ColIndex ColIndex; // todo: same  						:: DONE
+
+//Scalar modPrime = 11; // todo: remove this variable 							:: DONE
+/*
+class SharwanMatrix {
+public:
+// typedefs for scalar, row index and col index
+// typedef Row to be your representation of a row
+
+  const Scalar& operator[](RowIndex row, ColIndex col) const {return mMatrix[row][col];}
+  Scalar& operator[](RowIndex row, ColIndex col) {return mMatrix[row][col];}
+  
+  Row& operator[](RowIndex) {}
+  const Row& operator[](RowIndex) const {}
+
+  // example of setter. Do not make a setter for modulus, row index or col index. No setters, except for entries of the matrix.
+  void setX(int value) {mX = value;}  
+    
+
+// store matrix, modulus, rowCount and colCount
+// accessor for getting modulus: modulus()
+private:
+  int mX; // todo: remove, just example
+  // all member variables go here. member x is written mX.
+};
+*/
+void addRowMultipleInplace(
+  std::vector<std::vector<SparseMatrix::Scalar> >& matrix,
+  const SparseMatrix::RowIndex addRow,
+  const SparseMatrix::Scalar multiple,
+  const SparseMatrix::RowIndex row,
+  const SparseMatrix::ColIndex leadingCol,
+  const SparseMatrix::ColIndex colCount,
+  const SparseMatrix::Scalar modulus
+) {
+  assert(addRow < matrix.size());
+  assert(row < matrix.size());
+  assert(row != addRow);
+  assert(leadingCol < colCount);
+  assert(matrix[row].size() == colCount);
+  assert(matrix[addRow].size() == colCount);
+  for(auto col = leadingCol; col < colCount; ++col){
+    const auto product = modularProduct
+      (multiple, matrix[addRow][col], modulus);
+    matrix[row][col] = modularSum(matrix[row][col], product, modulus);
+  }
+}
+
+void makeRowUnitary(
+  std::vector<std::vector<SparseMatrix::Scalar>>& matrix,
+  const SparseMatrix::RowIndex row,
+  const SparseMatrix::ColIndex colCount,
+  const SparseMatrix::ColIndex leadingCol,
+  const SparseMatrix::Scalar modulus
+) {
+  assert(row<matrix.size());
+  assert(matrix[row].size() == colCount);
+  assert(leadingCol < colCount);
+  assert(modulus> 1);
+  const auto leadingScalar = matrix[row][leadingCol];
+  assert(leadingScalar != 0);
+  auto multiply = modularInverse(leadingScalar, modulus);
+  for(SparseMatrix::ColIndex col = leadingCol; col < colCount; ++col)
+    matrix[row][col] = modularProduct(matrix[row][col], multiply, modulus);
+    
+  // todo: use modularProduct on above line    									::DONE
+}
+
+// todo: make this take a parameter startAtCol 									::DONE
+SparseMatrix::ColIndex leadingColumn(
+  const std::vector<std::vector<SparseMatrix::Scalar>>& matrix,
+  const SparseMatrix::RowIndex row,
+  const SparseMatrix::ColIndex colCount,
+  SparseMatrix::ColIndex startAtCol 
+) {
+  assert(row < matrix.size());
+  assert(matrix[row].size() == colCount);
+  for(auto col = startAtCol; col < colCount; ++col){
+    if(matrix[row][col] != 0)
+      return col;
+  }
+  return colCount;
+}
+
+void rowReducedEchelonMatrix(
+  std::vector<std::vector<SparseMatrix::Scalar> >& matrix,
+  const SparseMatrix::ColIndex colCount,
+  const SparseMatrix::Scalar modulus
+) {
+  assert(matrix.empty() || matrix[0].size() == colCount);
+  const	SparseMatrix::RowIndex rowCount=matrix.size();
+  // pivotRowOfCol[i] is the pivot in column i or rowCount
+  // if we have not identified such a pivot so far.
+  std::vector<SparseMatrix::RowIndex> pivotRowOfCol(colCount, rowCount);
+  
+  // row reduce to row echelon form
+  for(SparseMatrix::RowIndex row=0; row<rowCount;++row) { 
+    SparseMatrix::ColIndex leadingCol = 0;
+    while (true) { // reduce row by previous pivots
+      leadingCol = leadingColumn(matrix, row, colCount, leadingCol);
+      if(leadingCol==colCount)
+        break; // row was zero
+      const auto pivotRow = pivotRowOfCol[leadingCol];
+      if(pivotRow == rowCount) {
+        makeRowUnitary(matrix, row, colCount, leadingCol, modulus);
+        pivotRowOfCol[leadingCol] = row;
+        break; // row is now a pivot
+      }
+      const auto multiple = modularNegative(matrix[row][leadingCol], modulus);
+	  addRowMultipleInplace
+	    (matrix, pivotRow, multiple, row, leadingCol, colCount, modulus);
+    }
+  }
+
+  // row reduce to reduced row echelon form
+  for (SparseMatrix::RowIndex row = 0; row < rowCount;++row) { 
+    const auto lead = leadingColumn(matrix, row, colCount, 0);
+    if (lead == colCount)
+      continue; // row is zero
+    for (auto col = lead + 1; col < colCount; ++col) {
+      const auto pivotRow = pivotRowOfCol[col];
+      if(pivotRow == rowCount)
+        continue; // no pivot for this column
+      const auto multiple = modularNegative(matrix[row][col], modulus);
+	  addRowMultipleInplace
+        (matrix, pivotRow, multiple, row, col, colCount, modulus);
+    }
+  }
+}   
+
+SparseMatrix reduceToEchelonFormShrawan(
+  const SparseMatrix& toReduce,
+  SparseMatrix::Scalar modulus
+) {
+  const SparseMatrix::RowIndex rowCount = toReduce.rowCount();
+  const auto colCount = toReduce.computeColCount();
+
+  // Convert input matrix to dense format
+  std::vector<std::vector<SparseMatrix::Scalar>> matrix(rowCount);
+  for (SparseMatrix::RowIndex row = 0; row < rowCount; ++row) {
+    MATHICGB_ASSERT(!toReduce.emptyRow(row));
+    matrix[row].resize(colCount);
+    const auto end = toReduce.rowEnd(row);
+    for (auto it = toReduce.rowBegin(row); it != end; ++it) {
+      MATHICGB_ASSERT(it.index() < colCount);
+      matrix[row][it.index()] = it.scalar();
+    }
+  }
+
+  // todo: make modPrime a parameter and rename it to modulus.  				:: DONE
+ // modPrime = modulus;  														:: DONE
+  rowReducedEchelonMatrix(matrix, colCount,  modulus);
+
+  // convert reduced matrix to SparseMatrix.
+  SparseMatrix reduced;
+  for (size_t row = 0; row < rowCount; ++row) {
+    bool rowIsZero = true;
+    for (SparseMatrix::ColIndex col = 0; col < colCount; ++col) {
+      if (matrix[row][col] != 0) {
+        rowIsZero = false;
+        reduced.appendEntry(col, matrix[row][col]);
+      }
+    }
+    if (!rowIsZero)
+      reduced.rowDone();
+  }
+  return std::move(reduced);
+}
+
+SparseMatrix reduceToEchelonFormShrawanDelayedModulus(
+  const SparseMatrix& toReduce,
+  SparseMatrix::Scalar modulus
+) {
+  // todo: implement delayed modulus
+  const SparseMatrix::RowIndex rowCount = toReduce.rowCount();
+  const auto colCount = toReduce.computeColCount();
+
+  // Convert input matrix to dense format
+  std::vector<std::vector<SparseMatrix::Scalar>> matrix(rowCount);
+  for (SparseMatrix::RowIndex row = 0; row < rowCount; ++row) {
+    MATHICGB_ASSERT(!toReduce.emptyRow(row));
+    matrix[row].resize(colCount);
+    const auto end = toReduce.rowEnd(row);
+    for (auto it = toReduce.rowBegin(row); it != end; ++it) {
+      MATHICGB_ASSERT(it.index() < colCount);
+      matrix[row][it.index()] = it.scalar();
+    }
+  }
+
+  rowReducedEchelonMatrix(matrix, colCount, modulus);
+
+  // convert reduced matrix to SparseMatrix.
+  SparseMatrix reduced;
+  for (size_t row = 0; row < rowCount; ++row) {
+    bool rowIsZero = true;
+    for (SparseMatrix::ColIndex col = 0; col < colCount; ++col) {
+      if (matrix[row][col] != 0) {
+        rowIsZero = false;
+        reduced.appendEntry(col, matrix[row][col]);
+      }
+    }
+    if (!rowIsZero)
+      reduced.rowDone();
+  }
+  return std::move(reduced);
+}
+
 SparseMatrix F4MatrixReducer::reduceToBottomRight(const QuadMatrix& matrix) {
   MATHICGB_ASSERT(matrix.debugAssertValid());
-  const char* p = STR(MATHICGB_IF_LOG(F4MatrixReduce));
+  //const char* p = STR(MATHICGB_IF_LOG(F4MatrixReduce));
   /*MATHICGB_IF_LOG(F4MatrixReduce) {
     matrix.printSizes(log.stream();
   };*/
@@ -394,7 +602,15 @@ SparseMatrix F4MatrixReducer::reduceToBottomRight(const QuadMatrix& matrix) {
 SparseMatrix F4MatrixReducer::reducedRowEchelonForm(
   const SparseMatrix& matrix
 ) {
-  return reduceToEchelonForm(matrix, mModulus);
+  const bool useShrawan = true;
+  const bool useDelayedModulus = false;
+  if (useShrawan) {
+    if (useDelayedModulus)
+      return reduceToEchelonFormShrawanDelayedModulus(matrix, mModulus);
+    else    
+      return reduceToEchelonFormShrawan(matrix, mModulus);
+  } else
+    return reduceToEchelonForm(matrix, mModulus);
 }
 
 SparseMatrix F4MatrixReducer::reducedRowEchelonFormBottomRight(
