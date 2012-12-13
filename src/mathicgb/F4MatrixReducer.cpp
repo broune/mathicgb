@@ -382,13 +382,7 @@ namespace {
 //typedef SparseMatrix::ColIndex ColIndex; // todo: same  						:: DONE
 
 //Scalar modPrime = 11; // todo: remove this variable 							:: DONE
-
-const SharwanMatrix m1;
-int x = m1[2,3];
-
-SharwanMatrix m2;
-m2[2,3] = 5;
-
+/*
 class SharwanMatrix {
 public:
 // typedefs for scalar, row index and col index
@@ -410,7 +404,7 @@ private:
   int mX; // todo: remove, just example
   // all member variables go here. member x is written mX.
 };
-
+*/
 void addRowMultipleInplace(
   std::vector<std::vector<SparseMatrix::Scalar> >& matrix,
   const SparseMatrix::RowIndex addRow,
@@ -498,11 +492,12 @@ void rowReducedEchelonMatrix(
   }  
 }   
 
-void reduceToEchelonFormShrawan
-  (SparseMatrix& toReduce, SparseMatrix::Scalar modulus, int threadCount)
-{
+SparseMatrix reduceToEchelonFormShrawan(
+  const SparseMatrix& toReduce,
+  SparseMatrix::Scalar modulus
+) {
   const SparseMatrix::RowIndex rowCount = toReduce.rowCount();
-  const SparseMatrix::ColIndex colCount = toReduce.colCount();
+  const auto colCount = toReduce.computeColCount();
 
   // Convert input matrix to dense format
   std::vector<std::vector<SparseMatrix::Scalar>> matrix(rowCount);
@@ -521,26 +516,28 @@ void reduceToEchelonFormShrawan
   rowReducedEchelonMatrix(matrix, colCount,  modulus);
 
   // convert reduced matrix to SparseMatrix.
-  toReduce.clear(colCount);
+  SparseMatrix reduced;
   for (size_t row = 0; row < rowCount; ++row) {
     bool rowIsZero = true;
     for (size_t col = 0; col < colCount; ++col) {
       if (matrix[row][col] != 0) {
         rowIsZero = false;
-        toReduce.appendEntry(col, matrix[row][col]);
+        reduced.appendEntry(col, matrix[row][col]);
       }
     }
     if (!rowIsZero)
-      toReduce.rowDone();
+      reduced.rowDone();
   }
+  return std::move(reduced);
 }
 
-void reduceToEchelonFormShrawanDelayedModulus
-  (SparseMatrix& toReduce, SparseMatrix::Scalar modulus, int threadCount)
-{
+SparseMatrix reduceToEchelonFormShrawanDelayedModulus(
+  const SparseMatrix& toReduce,
+  SparseMatrix::Scalar modulus
+) {
   // todo: implement delayed modulus
   const SparseMatrix::RowIndex rowCount = toReduce.rowCount();
-  const SparseMatrix::ColIndex colCount = toReduce.colCount();
+  const auto colCount = toReduce.computeColCount();
 
   // Convert input matrix to dense format
   std::vector<std::vector<SparseMatrix::Scalar>> matrix(rowCount);
@@ -557,18 +554,19 @@ void reduceToEchelonFormShrawanDelayedModulus
   rowReducedEchelonMatrix(matrix, colCount, modulus);
 
   // convert reduced matrix to SparseMatrix.
-  toReduce.clear(colCount);
+  SparseMatrix reduced;
   for (size_t row = 0; row < rowCount; ++row) {
     bool rowIsZero = true;
     for (size_t col = 0; col < colCount; ++col) {
       if (matrix[row][col] != 0) {
         rowIsZero = false;
-        toReduce.appendEntry(col, matrix[row][col]);
+        reduced.appendEntry(col, matrix[row][col]);
       }
     }
     if (!rowIsZero)
-      toReduce.rowDone();
+      reduced.rowDone();
   }
+  return std::move(reduced);
 }
 
 SparseMatrix F4MatrixReducer::reduceToBottomRight(const QuadMatrix& matrix) {
