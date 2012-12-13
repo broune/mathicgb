@@ -67,10 +67,24 @@ size_t QuadMatrix::rowCount() const {
 }
 
 SparseMatrix::ColIndex QuadMatrix::computeLeftColCount() const {
+  if (!leftColumnMonomials.empty()) {
+    MATHICGB_ASSERT(
+      leftColumnMonomials.size() <=
+      std::numeric_limits<SparseMatrix::ColIndex>::max()
+    );
+    return static_cast<SparseMatrix::ColIndex>(leftColumnMonomials.size());
+  }
   return std::max(topLeft.computeColCount(), bottomLeft.computeColCount());
 }
 
 SparseMatrix::ColIndex QuadMatrix::computeRightColCount() const {
+  if (!rightColumnMonomials.empty()) {
+    MATHICGB_ASSERT(
+      rightColumnMonomials.size() <=
+      std::numeric_limits<SparseMatrix::ColIndex>::max()
+    );
+    return static_cast<SparseMatrix::ColIndex>(rightColumnMonomials.size());
+  }
   return std::max(topRight.computeColCount(), bottomRight.computeColCount());
 }
 
@@ -106,8 +120,8 @@ void QuadMatrix::printSizes(std::ostream& out) const {
   const char* const line = "----------";
 
   pr[0] << '\n';
-  pr[1] << ColPr::commafy(leftColumnMonomials.size()) << "  \n";
-  pr[2] << ColPr::commafy(rightColumnMonomials.size()) << "  \n";
+  pr[1] << ColPr::commafy(computeLeftColCount()) << "  \n";
+  pr[2] << ColPr::commafy(computeRightColCount()) << "  \n";
 
   pr[0] << "/\n";
   pr[1] << line << "|\n";

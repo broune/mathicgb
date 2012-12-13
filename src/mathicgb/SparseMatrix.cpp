@@ -395,14 +395,14 @@ namespace {
   void writeMany(const std::vector<T>& v, FILE* file) {
     if (v.empty())
       return;
-    fwrite(&v[0], sizeof(T), v.size(), file);
+    fwrite(v.data(), sizeof(T), v.size(), file);
   }
 
   template<class T>
   void readMany(FILE* file, size_t count, std::vector<T>& v) {
     size_t const originalSize = v.size();
     v.resize(originalSize + count);
-    fread(&v[originalSize], sizeof(T), count, file);
+    fread(v.data() + originalSize, sizeof(T), count, file);
   }
 
 }
