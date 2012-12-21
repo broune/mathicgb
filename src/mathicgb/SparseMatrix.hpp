@@ -91,15 +91,14 @@ public:
   ColIndex computeColCount() const;
   size_t memoryQuantum() const {return mMemoryQuantum;}
 
+  /// Returns number of non-zero entries divide by the product of the number of
+  /// rows times the number of columns. So it is the proportion of non-zero
+  /// entries.
+  float computeDensity() const;
+
   /// Returns the number of entries in the whole matrix. Is not constant time
   /// so avoid calling too many times.
-  size_t entryCount() const {
-    size_t count = 0;
-    const Block* block = &mBlock;
-    for (; block != 0; block = block->mPreviousBlock)
-      count += block->mColIndices.size();
-    return count;
-  }
+  size_t entryCount() const;
 
   /// Returns the number of bytes of memory allocated by this object. Is not
   /// constant time so avoid calling too many times.
@@ -141,11 +140,12 @@ public:
   }
 
   /// Prints the matrix in a human readable format to out.
+  /// Useful for debugging.
   void print(std::ostream& out) const;
 
+  void printStatistics(std::ostream& out) const;
+
   std::string toString() const;
-
-
 
   /// Removes the leading trimThisMany columns. The columns are
   /// removed by replacing all column indices col by col -
@@ -159,7 +159,8 @@ public:
   /// free for this calculation.
   void reserveFreeEntries(size_t freeCount);
 
-  /// Preallocate space for at least count rows.
+  /// Preallocate space for at least count rows. This is separate from the
+  /// space to store the entries in those rows.
   void reserveRows(size_t count) {mRows.reserve(count);}
 
   /// Adds a new row that contains all terms that have been appended

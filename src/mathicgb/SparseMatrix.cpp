@@ -95,6 +95,37 @@ void SparseMatrix::print(std::ostream& out) const {
   }
 }
 
+void SparseMatrix::printStatistics(std::ostream& out) const {
+  typedef mathic::ColumnPrinter ColPr;
+
+  ColPr pr;
+  pr.addColumn(false, " ", "");
+  pr.addColumn(false, "", "");
+  pr.addColumn(true, "", "");
+
+  const auto memory = memoryUse();
+  const auto colCount = computeColCount();
+  const auto entryCount = this->entryCount();
+  const uint64 area =
+    static_cast<uint64>(rowCount()) * static_cast<uint64>(colCount);
+
+  pr[0] << "\n/\n" << ColPr::commafy(rowCount())
+    << " |\nrows |\n\\\n";
+
+  const char* const line = "------------------\n";
+  pr[1] << ColPr::commafy(colCount) << " \n"
+    << line
+    << ColPr::withSIPrefix(entryCount) << " -"
+    << ColPr::percentFixed(entryCount, area) << " \n"
+    << ColPr::bytesInUnit(memory) << " -"
+    << ColPr::percentFixed(memoryUseTrimmed(), memory) << " \n"
+    << line;
+
+  pr[2] << "  columns\n\\\n| non-zero (density)\n| memory (used)\n/\n";
+
+  out << '\n' << pr << "\n";
+}
+
 std::string SparseMatrix::toString() const {
   std::ostringstream out;
   print(out);
@@ -349,6 +380,21 @@ void SparseMatrix::growEntryCapacity() {
   }
 
   MATHICGB_ASSERT(mBlock.mColIndices.size() == mBlock.mScalars.size());
+}
+
+float SparseMatrix::computeDensity() const {
+  const auto rowCount = static_cast<float>(this->rowCount());
+  const auto colCount = static_cast<float>(computeColCount());
+  const auto entryCount = static_cast<float>(this->entryCount());
+  return entryCount / (rowCount * colCount);
+}
+
+size_t SparseMatrix::entryCount() const {
+  size_t count = 0;
+  const Block* block = &mBlock;
+  for (; block != 0; block = block->mPreviousBlock)
+    count += block->mColIndices.size();
+  return count;
 }
 
 size_t SparseMatrix::memoryUse() const {

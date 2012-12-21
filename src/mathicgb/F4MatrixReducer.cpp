@@ -253,9 +253,6 @@ namespace {
     const SparseMatrix& toReduce,
     const SparseMatrix::Scalar modulus
   ) {
-    MATHICGB_LOG_TIME(F4MatrixReduce) <<
-      "Reducing matrix to row echelon form\n";
-
     const auto colCount = toReduce.computeColCount();
     const auto rowCount = toReduce.rowCount();
 
@@ -590,18 +587,21 @@ SparseMatrix reduceToEchelonFormShrawanDelayedModulus(
   return std::move(reduced);
 }
 
-#define STR2(X) #X
-#define STR(X) STR2(X)
 SparseMatrix F4MatrixReducer::reduceToBottomRight(const QuadMatrix& matrix) {
-  std::cout << STR(MATHICGB_LOG_TIME(F4MatrixReduce)) << std::endl;
   MATHICGB_ASSERT(matrix.debugAssertValid());
-  MATHICGB_IF_LOG(F4MatrixReduce) {matrix.printSizes(log.stream());};
+  MATHICGB_LOG_TIME(F4MatrixReduce) <<
+    "\n***** Reducing QuadMatrix to bottom right matrix *****\n";
+  MATHICGB_IF_LOG(F4MatrixReduce) {matrix.printStatistics(log.stream());};
   return reduce(matrix, mModulus);
 }
 
 SparseMatrix F4MatrixReducer::reducedRowEchelonForm(
   const SparseMatrix& matrix
 ) {
+  MATHICGB_LOG_TIME(F4MatrixReduce) <<
+    "\n***** Reducing SparseMatrix to reduced row echelon form *****\n";
+  MATHICGB_IF_LOG(F4MatrixReduce) {matrix.printStatistics(log.stream());};
+
   const bool useShrawan = false;
   const bool useDelayedModulus = false;
   if (useShrawan) {
