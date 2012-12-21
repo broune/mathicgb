@@ -110,59 +110,62 @@ size_t QuadMatrix::memoryUseTrimmed() const {
 	bottomLeft.memoryUseTrimmed() + bottomRight.memoryUseTrimmed();
 }
 
-void QuadMatrix::printSizes(std::ostream& out) const {
+void QuadMatrix::printStatistics(std::ostream& out) const {
   typedef mathic::ColumnPrinter ColPr;
 
   ColPr pr;
   pr.addColumn(false, " ", "");
   pr.addColumn(false, "", "");
   pr.addColumn(false, "", "");
-  const char* const line = "----------";
+  pr.addColumn(false, "", "");
+  pr.addColumn(true, "", "");
 
-  pr[0] << '\n';
-  pr[1] << ColPr::commafy(computeLeftColCount()) << "  \n";
-  pr[2] << ColPr::commafy(computeRightColCount()) << "  \n";
+  const auto totalMemory = memoryUse();
 
-  pr[0] << "/\n";
-  pr[1] << line << "|\n";
-  pr[2] << line << "\\\n";
+  auto printDataCol = [&](
+    std::ostream& out,
+    const SparseMatrix& top,
+    const SparseMatrix& bottom,
+    const SparseMatrix::ColIndex colCount
+  ) {
+    auto printDataCell = [&](const SparseMatrix& matrix) {
+      const auto entryCount = matrix.entryCount();
+      const uint64 area =
+        static_cast<uint64>(matrix.rowCount()) * static_cast<uint64>(colCount);
+      const auto memory = matrix.memoryUse();
 
-  pr[0] << ColPr::commafy(topLeft.rowCount()) << " |\n";
-  pr[1] << ColPr::commafy(topLeft.entryCount()) << " |\n";
-  pr[2] << ColPr::commafy(topRight.entryCount()) << " |\n";
+      out << ColPr::withSIPrefix(entryCount) << " -"
+        << ColPr::percentFixed(entryCount, area) << " \n"
+        << ColPr::bytesInUnit(memory) << " -"
+        << ColPr::percentFixed(matrix.memoryUseTrimmed(), memory) << " \n"
+        << ColPr::percent(memory, totalMemory) << " \n";
+    };
 
-  pr[0] << "|\n";
-  pr[1] << ColPr::bytesInUnit(topLeft.memoryUse()) << " |\n";
-  pr[2] << ColPr::bytesInUnit(topRight.memoryUse()) << " |\n";
+    out << ColPr::commafy(colCount) << " \n";
+    const char* const line = "------------------\n";
+    out << line;
+    printDataCell(top);
+    out << line;
+    printDataCell(bottom);
+    out << line;
+  };
 
-  pr[0] << "|\n";
-  pr[1] << ColPr::percent(topLeft.memoryUse(), memoryUse()) << " |\n";
-  pr[2] << ColPr::percent(topRight.memoryUse(), memoryUse()) << " |\n";
+  pr[0] << "\n/\n" << ColPr::commafy(topLeft.rowCount())
+    << " |\nrows |\n|\n|\n"
+    << ColPr::commafy(bottomLeft.rowCount())
+    << " |\nrows |\n|\n\\\n";
+  printDataCol(pr[1], topLeft, bottomLeft, computeLeftColCount());
+  pr[2] << " \n|\n|\n|\n|\n|\n|\n|\n|\n|\n";
+  printDataCol(pr[3], topRight, bottomRight, computeRightColCount());
 
-  pr[0] << "|\n";
-  pr[1] << line << "|\n";
-  pr[2] << line << "|\n";
-
-  pr[0] << ColPr::commafy(bottomLeft.rowCount()) << " |\n";
-  pr[1] << ColPr::commafy(bottomLeft.entryCount()) << " |\n";
-  pr[2] << ColPr::commafy(bottomRight.entryCount()) << " |\n";
-
-  pr[0] << "|\n";
-  pr[1] << ColPr::bytesInUnit(bottomLeft.memoryUse()) << " |\n";
-  pr[2] << ColPr::bytesInUnit(bottomRight.memoryUse()) << " |\n";
-
-  pr[0] << "|\n";
-  pr[1] << ColPr::percent(bottomLeft.memoryUse(), memoryUse()) << " |\n";
-  pr[2] << ColPr::percent(bottomRight.memoryUse(), memoryUse()) << " |\n";
-
-  pr[0] << "\\\n";
-  pr[1] << line << "|\n";
-  pr[2] << line << "/\n";
+  const char* const legend =
+    "| non-zero (density)\n| memory (used)\n| of total memory\n";
+  pr[4] << "  columns\n\\\n" << legend << "|\n" << legend << "/\n";
 
   out << '\n' << pr
-    << "Total memory: " << ColPr::bytesInUnit(memoryUse()) << "  ("
-	<< ColPr::percent(memoryUseTrimmed(), memoryUse())
-	<< " in use)\n";
+    << "       Total memory: " << ColPr::bytesInUnit(memoryUse()) << " ("
+	<< ColPr::percent(memoryUseTrimmed(), totalMemory)
+	<< " used)\n\n";
 }
 
 QuadMatrix QuadMatrix::toCanonical() const {
