@@ -21,19 +21,42 @@ MATHICGB_DEFINE_LOG_DOMAIN(
 );
 
 namespace {
-  template<class T>
   class DenseRow {
   public:
+    typedef uint16 Scalar;
+    typedef uint32 ScalarProduct;
+    typedef uint64 ScalarProductSum;
+
+    static ScalarProduct product(const Scalar a, const Scalar b) {
+      return static_cast<ScalarProduct>(a) * b;
+    }
+
+    static void multiplyAdd(
+      const Scalar a,
+      const Scalar b,
+      ScalarProductSum& x
+    ) {
+      x += product(a, b);
+    }
+
+    static void add(const Scalar a, ScalarProductSum& sum) {
+      sum += a;
+    }
+
+    Scalar modulusOf(ScalarProductSum x, Scalar modulus) {
+      return static_cast<Scalar>(x % modulus);
+    }
+
     DenseRow() {}
     DenseRow(size_t colCount): mEntries(colCount) {}
 
     /// returns false if all entries are zero
     bool takeModulus(const SparseMatrix::Scalar modulus) {
-      T bitwiseOr = 0; // bitwise or of all entries after modulus
+      ScalarProductSum bitwiseOr = 0; // bitwise or of all entries after modulus
       const auto end = mEntries.end();
       for (auto it = mEntries.begin(); it != end; ++it) {
         if (*it >= modulus)
-          *it %= modulus;
+          *it = modulusOf(*it, modulus);
         bitwiseOr |= *it;
       }
       return bitwiseOr != 0;
@@ -47,12 +70,12 @@ namespace {
       mEntries.resize(colCount);
     }
 
-    T& operator[](size_t col) {
+    ScalarProductSum& operator[](size_t col) {
       MATHICGB_ASSERT(col < colCount());
       return mEntries[col];
     }
 
-    T const& operator[](size_t col) const {
+    ScalarProductSum const& operator[](size_t col) const {
       MATHICGB_ASSERT(col < colCount());
       return mEntries[col];
     }
@@ -69,11 +92,11 @@ namespace {
       const auto multiply = modularInverse(toInvert, modulus);
       *it = 1;
       for (++it; it != end; ++it) {
-        const auto entry = static_cast<SparseMatrix::Scalar>(*it % modulus);
+        const auto entry = modulusOf(*it, modulus);
         if (entry != 0)
-          *it = modularProduct(entry, multiply, modulus);
+          *it = modulusOf(product(entry, multiply), modulus);
         else
-          *it = entry;
+          *it = 0;
       }
     }
 
@@ -82,7 +105,7 @@ namespace {
       const auto end = matrix.rowEnd(row);
       for (auto it = matrix.rowBegin(row); it != end; ++it) {
         MATHICGB_ASSERT(it.index() < colCount());
-        mEntries[it.index()] += it.scalar();
+        add(it.scalar(), mEntries[it.index()]);
       }
     }
 
@@ -98,7 +121,7 @@ namespace {
       // none-the-less, so don't replace entries by mEntries unless you think
       // it's worth a 14% slowdown of matrix reduction (the whole computation,
       // not just this method).
-      T* const MATHICGB_RESTRICT entries = mEntries.data();
+      ScalarProductSum* const MATHICGB_RESTRICT entries = mEntries.data();
 
 #ifdef MATHICGB_DEBUG
       // These asserts are separated out since otherwise they would also need
@@ -113,17 +136,18 @@ namespace {
       // benefit. So don't undo the unrolling unless you think it's worth a 5%
       // slowdown of matrix reduction (the whole computation, not just this
       // method).
+
       auto it = begin;
       if (std::distance(begin, end) % 2 == 1) {
         // Replacing this by a goto into the middle of the following loop
         // (similar to Duff's device) made the code slower on MSVC 2012.
-        entries[it.index()] += it.scalar() * static_cast<T>(multiple);
+        multiplyAdd(it.scalar(), multiple, entries[it.index()]);
         ++it;
       }
       while (it != end) {
-        entries[it.index()] += it.scalar() * static_cast<T>(multiple);
+        multiplyAdd(it.scalar(), multiple, entries[it.index()]);
         ++it;
-        entries[it.index()] += it.scalar() * static_cast<T>(multiple);
+        multiplyAdd(it.scalar(), multiple, entries[it.index()]);
         ++it;
       }
     }
@@ -137,17 +161,21 @@ namespace {
       MATHICGB_ASSERT(modulus > 1);
 
       auto begin = matrix.rowBegin(pivotRow);
-      const SparseMatrix::ColIndex col = begin.index();
-      const SparseMatrix::Scalar entry = mEntries[col] % modulus;
+      const auto col = begin.index();
+      const auto entry = modulusOf(mEntries[col], modulus);
       mEntries[col] = 0;
       if (entry == 0)
         return;
       ++begin; // can skip first entry as we just set it to zero.
-      addRowMultiple(modulus - entry, begin, matrix.rowEnd(pivotRow));
+      addRowMultiple(
+        modularNegativeNonZero(entry, modulus),
+        begin,
+        matrix.rowEnd(pivotRow)
+      );
     }
 
   private:
-    std::vector<T> mEntries;
+    std::vector<ScalarProductSum> mEntries;
   };
 
   SparseMatrix reduce(
@@ -187,8 +215,8 @@ namespace {
 
     SparseMatrix reduced(qm.topRight.memoryQuantum());
 
-    tbb::enumerable_thread_specific<DenseRow<uint64>> denseRowPerThread([&](){
-      return DenseRow<uint64>();
+    tbb::enumerable_thread_specific<DenseRow> denseRowPerThread([&](){
+      return DenseRow();
     }); 
 
     SparseMatrix tmp(qm.topRight.memoryQuantum());
@@ -222,7 +250,11 @@ namespace {
         MATHICGB_ASSERT(!reduceByLeft.emptyRow(row));
         MATHICGB_ASSERT(reduceByLeft.leadCol(row) == pivot);
         MATHICGB_ASSERT(entry < std::numeric_limits<SparseMatrix::Scalar>::max());
-        denseRow.addRowMultiple(static_cast<SparseMatrix::Scalar>(entry), ++reduceByLeft.rowBegin(row), reduceByLeft.rowEnd(row));
+        denseRow.addRowMultiple(
+          static_cast<SparseMatrix::Scalar>(entry),
+          ++reduceByLeft.rowBegin(row),
+          reduceByLeft.rowEnd(row)
+        );
         denseRow[pivot] = entry;
       }
       tbb::mutex::scoped_lock lockGuard(lock);
@@ -277,7 +309,7 @@ namespace {
     const auto rowCount = toReduce.rowCount();
 
     // convert to dense representation 
-    std::vector<DenseRow<uint64>> dense(rowCount);
+    std::vector<DenseRow> dense(rowCount);
     tbb::parallel_for(tbb::blocked_range<size_t>(0, rowCount),
       [&](const tbb::blocked_range<size_t>& range)
       {for (auto it = range.begin(); it != range.end(); ++it)
@@ -319,7 +351,7 @@ namespace {
       {
         const size_t row = it;
         MATHICGB_ASSERT(leadCols[row] <= colCount);
-        DenseRow<uint64>& denseRow = dense[row];
+        DenseRow& denseRow = dense[row];
         if (denseRow.empty())
           return;
 

@@ -241,25 +241,6 @@ void SparseMatrix::appendRowWithModulus(
   rowDone();
 }
 
-void SparseMatrix::appendRow(
-  std::vector<uint64> const& v,
-  const ColIndex leadCol
-) {
-#ifdef MATHICGB_DEBUG
-  for (ColIndex col = leadCol; col < leadCol; ++col) {
-    MATHICGB_ASSERT(v[col] == 0);
-  }
-#endif
-
-  const auto count = static_cast<ColIndex>(v.size());
-  for (ColIndex col = leadCol; col < count; ++col) {
-	MATHICGB_ASSERT(v[col] < std::numeric_limits<Scalar>::max());
-    if (v[col] != 0)
-      appendEntry(col, static_cast<Scalar>(v[col]));
-  }
-  rowDone();
-}
-
 void SparseMatrix::appendRowWithModulusNormalized(
   std::vector<uint64> const& v,
   const Scalar modulus
