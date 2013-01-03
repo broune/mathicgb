@@ -92,19 +92,39 @@ namespace {
       const Iter begin,
       const Iter end
     ) {
-      // MATHICGB_RESTRICT on entries is important. It fixed a performance
-      // regression on MSVC 2012 which otherwise was not able to determine that
-      // entries is not an alias for anything else in this loop. I suspect that
-      // this is because MSVC 2012 does not make use of the strict aliasing
-      // rule. The regression occurred when reusing the DenseRow object instead
-      // of making a new one. I suspect that MSVC 2012 was then previously able
-      // to tell that entries is not an alias since new does not return
-      // aliases.
+      // I have a matrix reduction that goes from 2.8s to 2.4s on MSVC 2012 by
+      // using entries instead of mEntries, even after removing restrict and
+      // const from entries. That does not make sense to me, but it is a fact
+      // none-the-less, so don't replace entries by mEntries unless you think
+      // it's worth a 14% slowdown of matrix reduction (the whole computation,
+      // not just this method).
       T* const MATHICGB_RESTRICT entries = mEntries.data();
-      for (Iter it = begin; it != end; ++it) {
+
+#ifdef MATHICGB_DEBUG
+      // These asserts are separated out since otherwise they would also need
+      // to be duplicated due to the manual unrolling.
+      for (auto it = begin; it != end; ++it) {
         MATHICGB_ASSERT(it.index() < colCount());
         MATHICGB_ASSERT(entries + it.index() == &mEntries[it.index()]);
+      }
+#endif
+      // I have a matrix reduction that goes from 2.601s to 2.480s on MSVC 2012
+      // by unrolling this loop manually. Unrolling more than once was not a
+      // benefit. So don't undo the unrolling unless you think it's worth a 5%
+      // slowdown of matrix reduction (the whole computation, not just this
+      // method).
+      auto it = begin;
+      if (std::distance(begin, end) % 2 == 1) {
+        // Replacing this by a goto into the middle of the following loop
+        // (similar to Duff's device) made the code slower on MSVC 2012.
         entries[it.index()] += it.scalar() * static_cast<T>(multiple);
+        ++it;
+      }
+      while (it != end) {
+        entries[it.index()] += it.scalar() * static_cast<T>(multiple);
+        ++it;
+        entries[it.index()] += it.scalar() * static_cast<T>(multiple);
+        ++it;
       }
     }
 
