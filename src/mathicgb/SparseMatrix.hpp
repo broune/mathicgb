@@ -229,11 +229,15 @@ public:
   /// slow and it makes a copy internally.
   void sortRowsByIncreasingPivots();
 
-  // Write *this and modulus to file.
+  /// Write *this and modulus to file.
   void write(Scalar modulus, FILE* file) const;
 
-  // Set *this to a matrix read from file and return the modulus from the file.
+  /// Set *this to a matrix read from file and return the modulus from the file.
   Scalar read(FILE* file);
+
+  /// Write a 0-1 bitmap in PBM format to file. This is useful for
+  /// debugging as it allows visual inspection of large matrices.
+  void writePBM(FILE* file);
 
   /// Iterates through the entries in a row.
   class ConstRowIterator {
@@ -283,6 +287,8 @@ public:
     const ColIndex* mColIndexIt;
     const Scalar* mScalarIt;
   };
+
+  bool debugAssertValid() const;
 
 private:
   MATHICGB_NO_INLINE void growEntryCapacity();
