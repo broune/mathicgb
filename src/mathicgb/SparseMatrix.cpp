@@ -23,7 +23,7 @@ void SparseMatrix::takeRowsFrom(SparseMatrix&& matrix) {
     oldestBlock->mPreviousBlock = new Block(std::move(mBlock));
   mBlock = std::move(matrix.mBlock);
 
-  mRows.insert(mRows.begin(), matrix.mRows.begin(), matrix.mRows.end());
+  mRows.insert(mRows.end(), matrix.mRows.begin(), matrix.mRows.end());
   matrix.clear();
 }
 
@@ -45,31 +45,33 @@ void SparseMatrix::rowToPolynomial(
 
 void SparseMatrix::sortRowsByIncreasingPivots() {
   SparseMatrix ordered;
+  const auto rowCount = this->rowCount();
 
-  // compute pairs (pivot column index, row)
-  std::vector<std::pair<SparseMatrix::ColIndex, SparseMatrix::RowIndex> > order;
-  const SparseMatrix::RowIndex lRowCount = rowCount();
-  const SparseMatrix::ColIndex lColCount = computeColCount();
-  for (SparseMatrix::RowIndex row = 0; row < lRowCount; ++row) {
-    if (entryCountInRow(row) == 0)
-      order.push_back(std::make_pair(lColCount, row));
-    else
-      order.push_back(std::make_pair(rowBegin(row).index(), row));
-  }
+  std::vector<RowIndex> rows(rowCount);
+  for (size_t row = 0; row < rowCount; ++row)
+    rows[row] = row;
 
-  // sort pairs by pivot column index
-  std::sort(order.begin(), order.end());
+  const auto lexLess = [&](const size_t a, const size_t b) -> bool {
+    auto aIt = rowBegin(a);
+    auto bIt = rowBegin(b);
+    const auto aEnd = rowEnd(a);
+    const auto bEnd = rowEnd(b);
+    for (; aIt != aEnd && bIt != bEnd; ++aIt, ++bIt) {
+      if (*aIt < *bIt)
+        return true;
+      if (*aIt > *bIt)
+        return false;
+      ++aIt;
+      ++bIt;
+    }
+    return aIt == aEnd && bIt != bEnd;
+  };
+  std::sort(rows.begin(), rows.end(), lexLess);
 
-  // construct ordered with pivot columns in increaing order
+  // construct ordered with pivot columns in increasing order
   ordered.clear();
-  for (size_t i = 0; i < lRowCount; ++i) {
-    const auto row = order[i].second;
-    const auto end = rowEnd(row);
-    for (auto it = rowBegin(row); it != end; ++it)
-      ordered.appendEntry(it.index(), it.scalar());
-    ordered.rowDone();
-  }
-
+  for (size_t i = 0; i < rowCount; ++i)
+    ordered.appendRow(*this, rows[i]);
   *this = std::move(ordered);
 }
 
@@ -169,6 +171,7 @@ void SparseMatrix::appendRow(const SparseMatrix& matrix, const RowIndex row) {
 SparseMatrix& SparseMatrix::operator=(const SparseMatrix& matrix) {
   // todo: use copy-swap or copy-move.
   clear();
+  mMemoryQuantum = matrix.mMemoryQuantum;
   // A version that works on each block would be faster, but this is not
   // used anywhere time-critical right now. Improve this if it turns
   // up in profiling at some point.
@@ -507,4 +510,57 @@ SparseMatrix::Scalar SparseMatrix::read(FILE* file) {
 
   MATHICGB_ASSERT(mBlock.mPreviousBlock == 0); // still only one block
   return modulus;
+}
+
+void SparseMatrix::writePBM(FILE* file) {
+  // See http://netpbm.sourceforge.net/doc/pbm.html
+
+  const auto rowCount = this->rowCount();
+  auto colCount = this->computeColCount();
+  colCount += 8-(colCount % 8);
+
+  // Write PBM header
+  {
+    std::stringstream out;
+    out << "P1 " << colCount << ' ' << rowCount << '\n';
+    fputs(out.str().c_str(), file);
+  }
+
+  for (RowIndex row = 0; row < rowCount; ++row) {
+    const auto end = rowEnd(row);
+    auto it = rowBegin(row);
+
+    unsigned char byte = 0;
+    unsigned int bit = (1 << 8);
+    for (ColIndex col = 0; col < colCount; ++col) {
+      if (it != end && col == it.index()) {
+        fputc('1', file);
+        byte |= bit;
+        ++it;
+      } else
+        fputc('0', file);
+
+      bit >>= 1;
+      if (bit == 0) {
+//        fputc(byte, file);
+        byte = 0;
+        bit = (1 << 8);
+      }
+    }
+    fputc('\n', file);
+   // if (bit != (1 << 8))
+     // fputc(byte, file);
+  }
+}
+
+bool SparseMatrix::debugAssertValid() const {
+  for (RowIndex row = 0; row < rowCount(); ++row) {
+    for (auto it = rowBegin(row); it != rowEnd(row); ++it) {
+      // A scalar of 0 is not necessarily bad, it is just not expected
+      // at the time of writing this assert. Feel free to remove this assert
+      // if you are creating scalars that are zero on purpose.
+      MATHICGB_ASSERT(it.scalar() != 0);
+    }
+  }
+  return true;
 }

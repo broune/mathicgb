@@ -72,6 +72,8 @@ void MatrixAction::performAction() {
       if (!fileExists(lowerRightFileName)) {
         CFile file(lowerRightFileName, "wb");
         lowerRightMatrix.write(modulus, file.handle());
+        CFile pbmFile(lowerRightFileName + ".pbm", "wb");
+        lowerRightMatrix.writePBM(pbmFile.handle());
       }
     } else if (extension == LowerRightMatrixExtension) {
       inputFileName = lowerRightFileName;
@@ -89,14 +91,25 @@ void MatrixAction::performAction() {
     if (!fileExists(reducedLowerRightFileName)) {
       CFile file(reducedLowerRightFileName.c_str(), "wb");
       lowerRightMatrix.write(modulus, file.handle());
+      CFile pbmFile(reducedLowerRightFileName + ".pbm", "wb");
+      lowerRightMatrix.writePBM(pbmFile.handle());
     } else {
       SparseMatrix referenceMatrix;
       CFile file(reducedLowerRightFileName.c_str(), "rb");
       referenceMatrix.read(file.handle());
+
       if (lowerRightMatrix != referenceMatrix) {
+        const std::string wrongFile =
+          fileNameStem + ".out" + ReducedLowerRightMatrixExtension;
+        const std::string wrongFilePbm = fileNameStem + ".out.pbm";
         std::cerr << "Reducing " << inputFileName
           << " does not yield the matrix "
-          << reducedLowerRightFileName << ".\n";
+          << reducedLowerRightFileName << ".\n"
+          << "Writing computed matrix to " << wrongFile << ".\n";
+        CFile file(wrongFile, "wb");
+        lowerRightMatrix.write(modulus, file.handle());
+        CFile filePbm(wrongFilePbm, "wb");
+        lowerRightMatrix.writePBM(filePbm.handle());
       } else if (tracingLevel > 0) {
         std::cerr << "Match for " << inputFileName 
           << " -> " << ReducedLowerRightMatrixExtension << ".\n";
