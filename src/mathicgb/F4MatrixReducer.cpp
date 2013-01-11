@@ -212,6 +212,11 @@ namespace {
       MATHICGB_ASSERT(rowThatReducesCol[col] == pivotCount);
       rowThatReducesCol[col] = pivot;
     }
+#ifdef MATHICGB_DEBUG
+    for (SparseMatrix::ColIndex col = 0; col < pivotCount; ++col) {
+      MATHICGB_ASSERT(rowThatReducesCol[col] < pivotCount);
+    }
+#endif
 
     SparseMatrix reduced(qm.topRight.memoryQuantum());
 
@@ -316,7 +321,7 @@ namespace {
     {
       const size_t row = it;
       if (toReduce.emptyRow(row))
-        return;
+        continue;
       dense[row].clear(colCount);
       dense[row].addRow(toReduce, row);
     }});
@@ -353,7 +358,7 @@ namespace {
         MATHICGB_ASSERT(leadCols[row] <= colCount);
         DenseRow& denseRow = dense[row];
         if (denseRow.empty())
-          return;
+          continue;
 
         // reduce by each row of reduced.
         for (size_t reducerRow = 0; reducerRow < reducerCount; ++reducerRow) {
@@ -419,6 +424,35 @@ namespace {
       const size_t row = it;
       dense[row].takeModulus(modulus);
     }});
+
+#ifdef MATHICGB_DEBUG
+    std::vector<char> sawPivot(colCount);
+    for (SparseMatrix::RowIndex row = 0; row < rowCount; ++row) {
+      if (dense[row].empty()) {
+        MATHICGB_ASSERT(!isPivotRow[row]);
+        MATHICGB_ASSERT(leadCols[row] == colCount);
+      } else {
+        MATHICGB_ASSERT(isPivotRow[row]);
+
+        const auto leadCol = leadCols[row];
+        MATHICGB_ASSERT(leadCol < colCount);
+        MATHICGB_ASSERT(columnHasPivot[leadCol]);
+        MATHICGB_ASSERT(dense[row][leadCol] == 1);
+        MATHICGB_ASSERT(!sawPivot[leadCol]);
+        sawPivot[leadCol] = true;
+        for (size_t col = 0; col < colCount; ++col) {
+          const auto scalar = dense[row][col];
+          if (col < leadCol) {
+            MATHICGB_ASSERT(scalar == 0);
+          } else if (col == leadCol) {
+            MATHICGB_ASSERT(scalar == 1);
+          } else {
+            MATHICGB_ASSERT(scalar == 0 || !columnHasPivot[col]);
+          }
+        }
+      }
+    }
+#endif
 
     reduced.clear();
     for (size_t row = 0; row < rowCount; ++row)
