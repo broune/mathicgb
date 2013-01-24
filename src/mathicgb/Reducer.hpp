@@ -98,7 +98,8 @@ public:
     Reducer_Geobucket_Dedup_Packed,
     Reducer_Geobucket_Hashed_Packed,
 
-    Reducer_F4
+    Reducer_F4_Old,
+    Reducer_F4_New
   };
 
   static std::unique_ptr<Reducer> makeReducer

@@ -197,7 +197,7 @@ private:
 
   Atomic<FixedSizeMap*> mMap;
   const PolyRing& mRing;
-  tbb::mutex mInsertionMutex;
+  mutable tbb::mutex mInsertionMutex;
 
   /// Only access this field while holding the mInsertionMutex lock.
   size_t mCapacityUntilGrowth;

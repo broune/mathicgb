@@ -46,6 +46,7 @@ public:
   typedef uint32 ColIndex;
   typedef uint16 Scalar;
   class ConstRowIterator;
+  class RowIterator;
 
   /// Construct a matrix with no rows.
   SparseMatrix(const size_t memoryQuantum = 0):
@@ -123,10 +124,22 @@ public:
     return ConstRowIterator(r.mIndicesBegin, r.mScalarsBegin);
   }
 
+  RowIterator rowBegin(RowIndex row) {
+    MATHICGB_ASSERT(row < rowCount());
+    const Row& r = mRows[row];
+    return RowIterator(r.mIndicesBegin, r.mScalarsBegin);
+  }
+
   ConstRowIterator rowEnd(RowIndex row) const {
     MATHICGB_ASSERT(row < rowCount());
     const Row& r = mRows[row];
     return ConstRowIterator(r.mIndicesEnd, r.mScalarsEnd);
+  }
+
+  RowIterator rowEnd(RowIndex row) {
+    MATHICGB_ASSERT(row < rowCount());
+    const Row& r = mRows[row];
+    return RowIterator(r.mIndicesEnd, r.mScalarsEnd);
   }
 
   /// Returns the index of the first entry in the given row. This is
@@ -286,6 +299,58 @@ public:
 
     const ColIndex* mColIndexIt;
     const Scalar* mScalarIt;
+  };
+
+  /// Iterates through the entries in a row.
+  class RowIterator {
+  public:
+    typedef const std::pair<ColIndex, Scalar> value_type;
+	typedef ptrdiff_t difference_type;
+    typedef size_t distance_type;
+    typedef value_type* pointer;
+    typedef value_type& reference;
+    typedef std::random_access_iterator_tag iterator_category;
+
+    RowIterator& operator++() {
+      ++mScalarIt;
+      ++mColIndexIt;
+      return *this;
+    }
+
+    value_type operator*() const {return value_type(index(), scalar());}
+
+    bool operator<(const RowIterator& it) const {
+      return mColIndexIt < it.mColIndexIt;
+    }
+
+    difference_type operator-(const RowIterator& it) const {
+      return mColIndexIt - it.mColIndexIt;
+    }
+
+    bool operator==(const RowIterator& it) const {
+      return mColIndexIt == it.mColIndexIt;
+    }
+
+    bool operator!=(const RowIterator& it) const {return !(*this == it);}
+    const Scalar& scalar() const {return *mScalarIt;}
+    const ColIndex& index() const {return *mColIndexIt;}
+
+    void setScalar(const Scalar scalar) {*mScalarIt = scalar;}
+    void setIndex(const ColIndex index) {*mColIndexIt = index;}
+
+  private:
+    friend class SparseMatrix;
+    RowIterator(
+      ColIndex* const indicesIt,
+      Scalar* const scalarIt
+    ):
+      mColIndexIt(indicesIt),
+      mScalarIt(scalarIt)
+    {
+    }
+
+    ColIndex* mColIndexIt;
+    Scalar* mScalarIt;
   };
 
   bool debugAssertValid() const;

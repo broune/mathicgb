@@ -10,6 +10,10 @@ bool QuadMatrix::debugAssertValid() const {
 #ifndef MATHICGB_DEBUG
   return true;
 #else
+  MATHICGB_ASSERT(topLeft.debugAssertValid());
+  MATHICGB_ASSERT(bottomLeft.debugAssertValid());
+  MATHICGB_ASSERT(topRight.debugAssertValid());
+  MATHICGB_ASSERT(bottomRight.debugAssertValid());
   if (!leftColumnMonomials.empty() || !rightColumnMonomials.empty()) {
     MATHICGB_ASSERT(topLeft.computeColCount() <= leftColumnMonomials.size());
     MATHICGB_ASSERT(bottomLeft.computeColCount() <=

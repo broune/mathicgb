@@ -8,7 +8,12 @@ class QuadMatrix;
 
 class F4Reducer : public Reducer {
 public:
-  F4Reducer(const PolyRing& ring);
+  enum Type {
+    OldType,
+    NewType
+  };
+
+  F4Reducer(const PolyRing& ring, Type type);
 
   /// Store all future matrices to file-1.mat, file-2.mat and so on.
   /// Matrices with less than minEntries non-zero entries are not stored.
@@ -52,6 +57,7 @@ public:
 private:
   void saveMatrix(const QuadMatrix& matrix);
 
+  Type mType;
   std::unique_ptr<Reducer> mFallback;
   const PolyRing& mRing;
   size_t mMemoryQuantum;

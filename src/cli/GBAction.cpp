@@ -72,10 +72,15 @@ void GBAction::performAction() {
   // run algorithm
   const auto reducerType = Reducer::reducerType(mGBParams.mReducer.value());
   std::unique_ptr<Reducer> reducer;
-  if (reducerType != Reducer::Reducer_F4)
+  if (
+    reducerType != Reducer::Reducer_F4_Old &&
+    reducerType != Reducer::Reducer_F4_New
+  ) {
     reducer = Reducer::makeReducer(reducerType, *ring);
-  else {
-    auto f4Reducer = make_unique<F4Reducer>(*ring);
+  } else {
+    const auto type = reducerType == Reducer::Reducer_F4_Old ?
+      F4Reducer::OldType : F4Reducer::NewType;
+    auto f4Reducer = make_unique<F4Reducer>(*ring, type);
     if (mMinMatrixToStore.value() > 0)
       f4Reducer->writeMatricesTo(projectName, mMinMatrixToStore);
     reducer = std::move(f4Reducer);
