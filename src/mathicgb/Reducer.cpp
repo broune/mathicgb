@@ -102,8 +102,10 @@ std::unique_ptr<Reducer> Reducer::makeReducerNullOnUnknown(
   case Reducer_Geobucket_Hashed_Packed:
     return std::unique_ptr<Reducer>(new ReducerHashPack<mic::Geobucket>(ring));
 
-  case Reducer_F4:
-      return make_unique<F4Reducer>(ring);
+  case Reducer_F4_Old:
+    return make_unique<F4Reducer>(ring, F4Reducer::OldType);
+  case Reducer_F4_New:
+    return make_unique<F4Reducer>(ring, F4Reducer::NewType);
 
   default:
     break;
@@ -143,7 +145,8 @@ Reducer::ReducerType Reducer::reducerType(int typ)
   case 23: return Reducer_Geobucket_Dedup_Packed;
   case 24: return Reducer_Geobucket_Hashed_Packed;
 
-  case 25: return Reducer_F4;
+  case 25: return Reducer_F4_Old;
+  case 26: return Reducer_F4_New;
 
   default: return Reducer_PolyHeap;
   }
@@ -181,7 +184,8 @@ void Reducer::displayReducerTypes(std::ostream &o)
   o << "  23   Geobucket.Dedup.Packed" << std::endl;
   o << "  24   Geobucket.Hashed.Packed" << std::endl;
 
-  o << "  25   F4 reducer" << std::endl;
+  o << "  25   F4 reducer, old" << std::endl;
+  o << "  26   F4 reducer, new" << std::endl;
 }
 
 // Todo: can't this be machine generated?

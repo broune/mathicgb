@@ -2,12 +2,14 @@
 #include "F4Reducer.hpp"
 
 #include "F4MatrixBuilder.hpp"
+#include "F4MatrixBuilder2.hpp"
 #include "F4MatrixReducer.hpp"
 #include "QuadMatrix.hpp"
 #include <iostream>
 #include <limits>
 
-F4Reducer::F4Reducer(const PolyRing& ring):
+F4Reducer::F4Reducer(const PolyRing& ring, Type type):
+  mType(type),
   mFallback(Reducer::makeReducer(Reducer::Reducer_BjarkeGeo, ring)),
   mRing(ring),
   mMemoryQuantum(0),
@@ -82,15 +84,21 @@ void F4Reducer::classicReduceSPolySet(
   {
     QuadMatrix qm;
     {
-      F4MatrixBuilder builder(basis, mMemoryQuantum);
-      for (auto it = spairs.begin(); it != spairs.end(); ++it) {
-        builder.addSPolynomialToMatrix
-          (basis.poly(it->first), basis.poly(it->second));
+      if (mType == OldType) {
+        F4MatrixBuilder builder(basis, mMemoryQuantum);
+        for (auto it = spairs.begin(); it != spairs.end(); ++it) {
+          builder.addSPolynomialToMatrix
+            (basis.poly(it->first), basis.poly(it->second));
+        }
+        builder.buildMatrixAndClear(qm);
+      } else {
+        F4MatrixBuilder2 builder(basis, mMemoryQuantum);
+        for (auto it = spairs.begin(); it != spairs.end(); ++it) {
+          builder.addSPolynomialToMatrix
+            (basis.poly(it->first), basis.poly(it->second));
+        }
+        builder.buildMatrixAndClear(qm);
       }
-      builder.buildMatrixAndClear(qm);
-
-      // there has to be something to reduce
-      MATHICGB_ASSERT(qm.bottomLeft.rowCount() > 0);
     }
     saveMatrix(qm);
     reduced = F4MatrixReducer(basis.ring().charac()).
@@ -139,13 +147,17 @@ void F4Reducer::classicReducePolySet
   {
     QuadMatrix qm;
     {
-      F4MatrixBuilder builder(basis, mMemoryQuantum);
-      for (auto it = polys.begin(); it != polys.end(); ++it)
-        builder.addPolynomialToMatrix(**it);
-      builder.buildMatrixAndClear(qm);
-
-      // there has to be something to reduce
-      MATHICGB_ASSERT(qm.bottomLeft.rowCount() > 0);
+      if (mType == OldType) {
+        F4MatrixBuilder builder(basis, mMemoryQuantum);
+        for (auto it = polys.begin(); it != polys.end(); ++it)
+          builder.addPolynomialToMatrix(**it);
+        builder.buildMatrixAndClear(qm);
+      } else {
+        F4MatrixBuilder2 builder(basis, mMemoryQuantum);
+        for (auto it = polys.begin(); it != polys.end(); ++it)
+          builder.addPolynomialToMatrix(**it);
+        builder.buildMatrixAndClear(qm);
+      }
     }
     saveMatrix(qm);
     reduced = F4MatrixReducer(basis.ring().charac()).

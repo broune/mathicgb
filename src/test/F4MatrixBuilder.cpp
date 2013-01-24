@@ -80,13 +80,21 @@ TEST(F4MatrixBuilder, SPair) {
     builder.addSPolynomialToMatrix(p1, p2);
     QuadMatrix qm;
     builder.buildMatrixAndClear(qm);
-    const char* str = 
+    const char* const str1 = 
       "Left columns: c2d\n"
       "Right columns: bd 1\n"
       "0: 0#1   | 0: 1#3  \n"
       "         |         \n"
       "0: 0#100 | 0: 0#100\n";
-    ASSERT_EQ(str, qm.toString());
+    const char* const str2 = 
+      "Left columns: c2d\n"
+      "Right columns: bd 1\n"
+      "0: 0#1 | 0: 0#1\n"
+      "       |       \n"
+      "0: 0#1 | 0: 1#3\n";
+    std::string qmStr = qm.toString();
+    ASSERT_TRUE(str1 == qmStr || str2 == qmStr) <<
+      "\n** str1: " << str1 << "\n** qm: " << qmStr;
   }
 }
 
