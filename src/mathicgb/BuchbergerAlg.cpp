@@ -406,11 +406,9 @@ void BuchbergerAlg::printStats(std::ostream& out) const {
         << " of reductions\n";
 
   const unsigned long long redSteps = reducerStats.steps;
-  const double stepsRatio =
-    static_cast<double>(redSteps) / (reductions - singularReductions);
   name << "Sig reduction steps:\n";
   value << mic::ColumnPrinter::commafy(redSteps) << '\n';
-  extra << mic::ColumnPrinter::oneDecimal(stepsRatio)
+  extra << mic::ColumnPrinter::ratio(redSteps, reductions - singularReductions)
         << " steps per non-sing reduction\n";
 
   const unsigned long long longestReduction = reducerStats.maxSteps;
@@ -428,7 +426,7 @@ void BuchbergerAlg::printStats(std::ostream& out) const {
   const double clStepsRatio = static_cast<double>(clRedSteps) / clReductions;
   name << "Classic reduction steps:\n";
   value << mic::ColumnPrinter::commafy(clRedSteps) << '\n';
-  extra << mic::ColumnPrinter::oneDecimal(clStepsRatio)
+  extra << mic::ColumnPrinter::ratio(clRedSteps, clReductions)
         << " steps per reduction\n";
 
   const unsigned long long clLongestReduction = classicRedStats.maxSteps;
