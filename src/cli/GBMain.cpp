@@ -4,6 +4,7 @@
 #include "SigGBAction.hpp"
 #include "MatrixAction.hpp"
 #include "HelpAction.hpp"
+#include "mathicgb/LogDomainSet.hpp"
 #include <mathic.h>
 #include <cctype>
 #include <iostream>
@@ -33,6 +34,8 @@ int main(int argc, char **argv) {
     // reasonable about this exception, so rethrow the exception.
     throw;
   }
+
+  LogDomainSet::singleton().printReport(std::cerr);
   return 0;
 };
 

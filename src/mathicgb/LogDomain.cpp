@@ -2,7 +2,11 @@
 #include "LogDomain.hpp"
 
 #include "LogDomainSet.hpp"
+#include <mathic.h>
+#include <tbb/tbb.h>
 #include <iostream>
+
+static const auto logDomainGlobalStartTime= tbb::tick_count::now();
 
 LogDomain<true>::LogDomain(
   const char* const name,
@@ -17,20 +21,16 @@ LogDomain<true>::LogDomain(
   LogDomainSet::singleton().registerLogDomain(*this);
 }
 
-LogDomain<true>::~LogDomain() {
-  if (enabled() && mHasTime) {
-    stream() << mName << " total time:           ";
-    mInterval.print(stream());
-    stream() << '\n';
-  }
-}
-
 std::ostream& LogDomain<true>::stream() {
   return std::cerr;
 }
 
 LogDomain<true>::Timer LogDomain<true>::timer() {
   return Timer(*this);
+}
+
+double LogDomain<true>::loggedSecondsReal() const {
+  return mInterval.realSeconds;
 }
 
 void LogDomain<true>::TimeInterval::print(std::ostream& out) const {
@@ -74,7 +74,6 @@ void LogDomain<true>::Timer::stop() {
   mTimerRunning = false;
   if (!mLogger.enabled())
     return;
-  mTimerRunning = false;
   TimeInterval interval;
   interval.realSeconds = (tbb::tick_count::now() - mRealTicks).seconds();
   mLogger.recordTime(interval);

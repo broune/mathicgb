@@ -5,36 +5,27 @@
 #include <vector>
 #include <algorithm>
 #include <cstring>
+#include <ostream>
+#include <tbb/tbb.h>
 
 class LogDomainSet {
 public:
-  void registerLogDomain(LogDomain<true>& domain) {
-    mLogDomains.push_back(&domain);
-  }
+  void registerLogDomain(LogDomain<true>& domain);
+  void registerLogDomain(const LogDomain<false>& domain) {}
 
-  void registerLogDomain(const LogDomain<false>& domain) {
-  }
+  LogDomain<true>* logDomain(const char* const name);
 
-  LogDomain<true>* logDomain(const char* const name) {
-    const auto func = [&](const LogDomain<true>* const ld){
-      return std::strcmp(ld->name(), name) == 0;
-    };
-    const auto it = std::find_if(mLogDomains.begin(), mLogDomains.end(), func);
-    return it == mLogDomains.end() ? static_cast<LogDomain<true>*>(0) : *it;
-  }
+  const std::vector<LogDomain<true>*>& logDomains() const {return mLogDomains;}
 
-  const std::vector<LogDomain<true>*> logDomains() const {return mLogDomains;}
+  void printReport(std::ostream& out) const;
 
-  static LogDomainSet& singleton() {
-    static LogDomainSet set;
-    return set;
-  }
+  static LogDomainSet& singleton();
 
 private:
-  LogDomainSet() {}
+  LogDomainSet(); // private for singleton
 
   std::vector<LogDomain<true>*> mLogDomains;
+  tbb::tick_count mStartTime;
 };
-
 
 #endif
