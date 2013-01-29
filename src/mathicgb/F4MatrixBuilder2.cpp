@@ -1,7 +1,13 @@
 #include "stdinc.h"
 #include "F4MatrixBuilder2.hpp"
 
+#include "LogDomain.hpp"
 #include <tbb/tbb.h>
+
+MATHICGB_DEFINE_LOG_DOMAIN(
+  F4MatrixBuild2,
+  "Displays statistics about F4 matrix construction."
+);
 
 MATHICGB_NO_INLINE
 std::pair<F4MatrixBuilder2::ColIndex, ConstMonomial>
@@ -108,6 +114,9 @@ void F4MatrixBuilder2::addPolynomialToMatrix
 }
 
 void F4MatrixBuilder2::buildMatrixAndClear(QuadMatrix& quadMatrix) {
+  MATHICGB_LOG_TIME(F4MatrixBuild2) <<
+    "\n***** Constructing matrix *****\n";
+
   if (mTodo.empty()) {
     quadMatrix = QuadMatrix();
     quadMatrix.ring = &ring();

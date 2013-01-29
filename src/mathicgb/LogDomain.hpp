@@ -35,7 +35,6 @@ public:
     const char* const description,
     const bool enabled
   );
-  ~LogDomain();
 
   const char* name() const {return mName;}
   const char* description() const {return mDescription;}
@@ -45,11 +44,15 @@ public:
 
   std::ostream& stream();
 
-  /// Class for recording time that is logged.
+  bool hasTime() const {return mHasTime;}
+
+  /// Class for recording time that is logged. Movable.
   class Timer;
 
-  /// Returns a started timer that you can move from.
+  /// Returns a started timer.
   Timer timer();
+
+  double loggedSecondsReal() const;
 
 private:
   struct TimeInterval {
