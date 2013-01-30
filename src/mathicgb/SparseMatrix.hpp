@@ -268,6 +268,12 @@ public:
       return *this;
     }
 
+    ConstRowIterator& operator+=(difference_type i) {
+      mScalarIt += i;
+      mColIndexIt += i;
+      return *this;
+    }
+
     value_type operator*() const {return value_type(index(), scalar());}
 
     bool operator<(const ConstRowIterator& it) const {
@@ -314,6 +320,12 @@ public:
     RowIterator& operator++() {
       ++mScalarIt;
       ++mColIndexIt;
+      return *this;
+    }
+
+    RowIterator& operator+=(difference_type i) {
+      mScalarIt += i;
+      mColIndexIt += i;
       return *this;
     }
 

@@ -74,7 +74,6 @@ private:
   ///   multiply * poly - sPairMultiply * sPairPoly
   /// where sPairMultiply makes the lead terms cancel.
   struct RowTask {
-    bool addToTop; // add the row to the bottom if false
     monomial desiredLead; // multiply monomial onto poly to get this lead
     const Poly* poly;
     const Poly* sPairPoly;
@@ -92,25 +91,18 @@ private:
     TaskFeeder& feeder
   );
 
-  void appendRowTop(
+  void appendRow(
     const_monomial multiple,
-    const Poly& poly,
+    const Poly::const_iterator begin,
+    const Poly::const_iterator end,
     SparseMatrix& matrix,
     TaskFeeder& feeder
   );
-  void appendRowBottom(
+  void appendRowSPair(
     const Poly* poly,
     monomial multiply,
     const Poly* sPairPoly,
     monomial sPairMultiply,
-    SparseMatrix& matrix,
-    TaskFeeder& feeder
-  );
-  void appendRowBottom(
-    const_monomial multiple,
-    bool negate,
-    Poly::const_iterator begin,
-    Poly::const_iterator end,
     SparseMatrix& matrix,
     TaskFeeder& feeder
   );
