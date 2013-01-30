@@ -19,7 +19,6 @@ LogDomain<true>* LogDomainSet::logDomain(const char* const name) {
   return it == mLogDomains.end() ? static_cast<LogDomain<true>*>(0) : *it;
 }
 
-
 void LogDomainSet::printReport(std::ostream& out) const {
   const auto allTime = (tbb::tick_count::now() - mStartTime).seconds();
 
