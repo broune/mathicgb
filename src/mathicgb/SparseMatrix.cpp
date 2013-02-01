@@ -48,10 +48,10 @@ void SparseMatrix::sortRowsByIncreasingPivots() {
   const auto rowCount = this->rowCount();
 
   std::vector<RowIndex> rows(rowCount);
-  for (size_t row = 0; row < rowCount; ++row)
+  for (RowIndex row = 0; row < rowCount; ++row)
     rows[row] = row;
 
-  const auto lexLess = [&](const size_t a, const size_t b) -> bool {
+  const auto lexLess = [&](const RowIndex a, const RowIndex b) -> bool {
     auto aIt = rowBegin(a);
     auto bIt = rowBegin(b);
     const auto aEnd = rowEnd(a);
@@ -83,6 +83,17 @@ void SparseMatrix::applyColumnMap(const std::vector<ColIndex>& colMap) {
     for (auto it = block->mColIndices.begin(); it != end; ++it)
       *it = colMap[*it];
   }
+}
+
+void SparseMatrix::multiplyRow(
+  const RowIndex row,
+  const Scalar multiplier,
+  const Scalar modulus
+) {
+  MATHICGB_ASSERT(row < rowCount());
+  const auto end = rowEnd(row);
+  for (auto it = rowBegin(row); it != end; ++it)
+    it.setScalar(modularProduct(it.scalar(), multiplier, modulus));
 }
 
 void SparseMatrix::print(std::ostream& out) const {
@@ -175,7 +186,7 @@ SparseMatrix& SparseMatrix::operator=(const SparseMatrix& matrix) {
   // A version that works on each block would be faster, but this is not
   // used anywhere time-critical right now. Improve this if it turns
   // up in profiling at some point.
-  for (size_t row = 0; row < matrix.rowCount(); ++row)
+  for (RowIndex row = 0; row < matrix.rowCount(); ++row)
     appendRow(matrix, row);
   return *this;
 }
@@ -191,7 +202,7 @@ bool SparseMatrix::operator==(const SparseMatrix& matrix) const {
   const auto count = rowCount();
   if (count != matrix.rowCount())
     return false;
-  for (size_t row = 0; row < count; ++row) {
+  for (RowIndex row = 0; row < count; ++row) {
     if (entryCountInRow(row) != matrix.entryCountInRow(row))
       return false;
     const auto end = rowEnd(row);
@@ -208,7 +219,7 @@ SparseMatrix::ColIndex SparseMatrix::computeColCount() const {
   // Obviously this can be done faster, but there has not been a need for that
   // so far.
   ColIndex colCount = 0;
-  for (size_t row = 0; row < rowCount(); ++row) {
+  for (RowIndex row = 0; row < rowCount(); ++row) {
     const auto end = rowEnd(row);
     for (auto it = rowBegin(row); it != end; ++it)
       colCount = std::max(colCount, it.index() + 1);

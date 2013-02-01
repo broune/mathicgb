@@ -65,6 +65,8 @@ public:
 
   const PolyRing& ring() const {return mBasis.ring();}
 
+  class F4PreBlock;
+
 private:
   typedef const Map::Reader ColReader;
   typedef std::vector<monomial> Monomials;
@@ -93,9 +95,8 @@ private:
 
   void appendRow(
     const_monomial multiple,
-    const Poly::const_iterator begin,
-    const Poly::const_iterator end,
-    SparseMatrix& matrix,
+    const Poly& poly,
+    F4PreBlock& block,
     TaskFeeder& feeder
   );
   void appendRowSPair(
@@ -103,7 +104,7 @@ private:
     monomial multiply,
     const Poly* sPairPoly,
     monomial sPairMultiply,
-    SparseMatrix& matrix,
+    F4PreBlock& block,
     TaskFeeder& feeder
   );
 

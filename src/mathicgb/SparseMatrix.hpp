@@ -42,7 +42,7 @@ support a wider range of types of matrices in future.
 */
 class SparseMatrix {
 public:
-  typedef size_t RowIndex;
+  typedef uint32 RowIndex;
   typedef uint32 ColIndex;
   typedef uint16 Scalar;
   class ConstRowIterator;
@@ -88,7 +88,7 @@ public:
   /// the memory out of matrix.
   void takeRowsFrom(SparseMatrix&& matrix);
 
-  RowIndex rowCount() const {return mRows.size();}
+  RowIndex rowCount() const {return static_cast<RowIndex>(mRows.size());}
   ColIndex computeColCount() const;
   size_t memoryQuantum() const {return mMemoryQuantum;}
 
@@ -230,6 +230,8 @@ public:
 
   /// Replaces all column indices i with colMap[i].
   void applyColumnMap(const std::vector<ColIndex>& colMap);
+
+  void multiplyRow(RowIndex row, Scalar multiplier, Scalar modulus);
 
   /// Let poly be the dot product of colMonomials and the given row.
   void rowToPolynomial(

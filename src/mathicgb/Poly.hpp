@@ -105,6 +105,8 @@ public:
   iterator begin() { return iterator(*this); }
   iterator end() { return iterator(*this,1); }
 
+  const coefficient* coefficientBegin() const {return coeffs.data();}
+
 
   static Poly * add(const PolyRing *R,
                     iterator first1,
@@ -124,7 +126,9 @@ public:
   const_coefficient getLeadCoefficient() const  { return coeffs[0]; }
   exponent getLeadComponent() const  { return R->monomialGetComponent(&(monoms[0])); }
   bool isZero() const { return coeffs.empty(); }
-  size_t nTerms() const { return coeffs.size(); }
+
+  size_t nTerms() const { return coeffs.size(); } /// @todo: deprecated
+  size_t termCount() const {return coeffs.size();}
 
   size_t getMemoryUse() const;
 

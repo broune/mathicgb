@@ -176,7 +176,7 @@ QuadMatrix QuadMatrix::toCanonical() const {
   class RowComparer {
   public:
     RowComparer(const SparseMatrix& matrix): mMatrix(matrix) {}
-    bool operator()(size_t a, size_t b) const {
+    bool operator()(SparseMatrix::RowIndex a, SparseMatrix::RowIndex b) const {
       // if you need this to work for empty rows or identical leading columns
       // then update this code.
       MATHICGB_ASSERT(!mMatrix.emptyRow(a));
@@ -212,8 +212,8 @@ QuadMatrix QuadMatrix::toCanonical() const {
   // todo: eliminate left/right code duplication here
   QuadMatrix matrix;
   { // left side
-    std::vector<size_t> rows;
-    for (size_t row = 0; row < topLeft.rowCount(); ++row)
+    std::vector<SparseMatrix::RowIndex> rows;
+    for (SparseMatrix::RowIndex row = 0; row < topLeft.rowCount(); ++row)
       rows.push_back(row);
     {
       RowComparer comparer(topLeft);
@@ -222,14 +222,14 @@ QuadMatrix QuadMatrix::toCanonical() const {
 
     matrix.topLeft.clear();
     matrix.topRight.clear();
-    for (size_t i = 0; i < rows.size(); ++i) {
+    for (SparseMatrix::RowIndex i = 0; i < rows.size(); ++i) {
       matrix.topLeft.appendRow(topLeft, rows[i]);
       matrix.topRight.appendRow(topRight, rows[i]);
     }
   }
   { // right side
-    std::vector<size_t> rows;
-    for (size_t row = 0; row < bottomLeft.rowCount(); ++row)
+    std::vector<SparseMatrix::RowIndex> rows;
+    for (SparseMatrix::RowIndex row = 0; row < bottomLeft.rowCount(); ++row)
       rows.push_back(row);
     {
       RowComparer comparer(bottomLeft);
@@ -238,7 +238,7 @@ QuadMatrix QuadMatrix::toCanonical() const {
 
     matrix.bottomLeft.clear();
     matrix.bottomRight.clear();
-    for (size_t i = 0; i < rows.size(); ++i) {
+    for (SparseMatrix::RowIndex i = 0; i < rows.size(); ++i) {
       matrix.bottomLeft.appendRow(bottomLeft, rows[i]);
       matrix.bottomRight.appendRow(bottomRight, rows[i]);
     }
