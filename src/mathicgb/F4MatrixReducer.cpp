@@ -153,7 +153,7 @@ namespace {
     }
 
     void rowReduceByUnitary(
-      const size_t pivotRow,
+      const SparseMatrix::RowIndex pivotRow,
       const SparseMatrix& matrix,
       const SparseMatrix::Scalar modulus
     ) {
@@ -229,11 +229,11 @@ namespace {
     std::vector<SparseMatrix::RowIndex> rowOrder(rowCount);
 
     tbb::mutex lock;
-    tbb::parallel_for(tbb::blocked_range<size_t>(0, rowCount),
-      [&](const tbb::blocked_range<size_t>& range)
+    tbb::parallel_for(tbb::blocked_range<SparseMatrix::RowIndex>(0, rowCount),
+      [&](const tbb::blocked_range<SparseMatrix::RowIndex>& range)
       {for (auto it = range.begin(); it != range.end(); ++it)
     {
-      const size_t row = it;
+      const auto row = it;
       auto& denseRow = denseRowPerThread.local();
 
       denseRow.clear(leftColCount);
@@ -272,12 +272,12 @@ namespace {
       rowOrder[tmp.rowCount() - 1] = row;
     }});
 
-    tbb::parallel_for(tbb::blocked_range<size_t>(0, rowCount),
-      [&](const tbb::blocked_range<size_t>& range)
+    tbb::parallel_for(tbb::blocked_range<SparseMatrix::RowIndex>(0, rowCount),
+      [&](const tbb::blocked_range<SparseMatrix::RowIndex>& range)
       {for (auto iter = range.begin(); iter != range.end(); ++iter)
     {
-      const size_t i = iter;
-      const size_t row = rowOrder[i];
+      const auto i = iter;
+      const auto row = rowOrder[i];
       auto& denseRow = denseRowPerThread.local();
 
       denseRow.clear(rightColCount);
@@ -315,11 +315,11 @@ namespace {
 
     // convert to dense representation 
     std::vector<DenseRow> dense(rowCount);
-    tbb::parallel_for(tbb::blocked_range<size_t>(0, rowCount),
-      [&](const tbb::blocked_range<size_t>& range)
+    tbb::parallel_for(tbb::blocked_range<SparseMatrix::RowIndex>(0, rowCount),
+      [&](const tbb::blocked_range<SparseMatrix::RowIndex>& range)
       {for (auto it = range.begin(); it != range.end(); ++it)
     {
-      const size_t row = it;
+      const auto row = it;
       if (toReduce.emptyRow(row))
         continue;
       dense[row].clear(colCount);
@@ -350,19 +350,19 @@ namespace {
 
       //std::cout << "reducing " << reduced.rowCount() << " out of " << toReduce.rowCount() << std::endl;
       tbb::mutex lock;
-      tbb::parallel_for(tbb::blocked_range<size_t>(0, rowCount),
-        [&](const tbb::blocked_range<size_t>& range)
+      tbb::parallel_for(tbb::blocked_range<SparseMatrix::RowIndex>(0, rowCount),
+        [&](const tbb::blocked_range<SparseMatrix::RowIndex>& range)
         {for (auto it = range.begin(); it != range.end(); ++it)
       {
-        const size_t row = it;
+        const auto row = it;
         MATHICGB_ASSERT(leadCols[row] <= colCount);
         DenseRow& denseRow = dense[row];
         if (denseRow.empty())
           continue;
 
         // reduce by each row of reduced.
-        for (size_t reducerRow = 0; reducerRow < reducerCount; ++reducerRow) {
-          size_t const col = reduced.rowBegin(reducerRow).index();
+        for (SparseMatrix::RowIndex reducerRow = 0; reducerRow < reducerCount; ++reducerRow) {
+          const auto col = reduced.rowBegin(reducerRow).index();
           if (denseRow[col] == 0 || (isPivotRow[row] && col == leadCols[row]))
             continue;
           denseRow.rowReduceByUnitary(reducerRow, reduced, modulus);
@@ -556,7 +556,8 @@ void rowReducedEchelonMatrix(
   const SparseMatrix::Scalar modulus
 ) {
   assert(matrix.empty() || matrix[0].size() == colCount);
-  const	SparseMatrix::RowIndex rowCount=matrix.size();
+  const	SparseMatrix::RowIndex rowCount =
+    static_cast<SparseMatrix::RowIndex>(matrix.size());
   // pivotRowOfCol[i] is the pivot in column i or rowCount
   // if we have not identified such a pivot so far.
   std::vector<SparseMatrix::RowIndex> pivotRowOfCol(colCount, rowCount);
