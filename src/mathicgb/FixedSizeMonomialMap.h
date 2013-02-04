@@ -294,6 +294,13 @@ private:
 public:
   class const_iterator {
   public:
+    typedef std::forward_iterator_tag iterator_category;
+    typedef std::pair<mapped_type, ConstMonomial> value_type;
+    typedef ptrdiff_t difference_type;
+	typedef size_t distance_type;
+	typedef value_type* pointer;
+	typedef value_type& reference;
+
     const_iterator(): mNode(0), mBucket(0), mBucketsEnd(0) {}
 
     const_iterator& operator++() {
@@ -316,7 +323,7 @@ public:
       return !(*this == it);
     }
 
-    const std::pair<mapped_type, ConstMonomial> operator*() const {
+    const value_type operator*() const {
       MATHICGB_ASSERT(mNode != 0);
       return std::make_pair(mNode->value, mNode->mono);
     }
