@@ -131,13 +131,7 @@ private:
     TaskFeeder& feeder
   );
 
-  struct Translated {
-    ColIndex index;
-    bool left;
-  };
-  std::vector<const Translated> mTranslate;
-  ColIndex mLeftColCount;
-  ColIndex mRightColCount;
+  std::vector<const char> mIsColumnToLeft;
   const size_t mMemoryQuantum;
   tbb::mutex mCreateColumnLock;
   monomial mTmp;

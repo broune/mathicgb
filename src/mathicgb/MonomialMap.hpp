@@ -72,8 +72,8 @@ public:
   /// method this would not be possible and the compiler might have to load
   /// that mask for every query. I made it this way because I was seeming
   /// a performance regression of several percent which then went away with
-  /// this solution. (well actually it's not a reference, which is the same
-  /// thing as a const pointer).
+  /// this solution. (well actually it's a reference, which has the same
+  /// effect).
   class Reader {
   public:
     Reader(const MonomialMap<T>& map):

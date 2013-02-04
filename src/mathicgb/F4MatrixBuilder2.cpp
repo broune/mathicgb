@@ -173,9 +173,7 @@ F4MatrixBuilder2::F4MatrixBuilder2(
   mMemoryQuantum(memoryQuantum),
   mTmp(basis.ring().allocMonomial()),
   mBasis(basis),
-  mMap(basis.ring()),
-  mLeftColCount(0),
-  mRightColCount(0)
+  mMap(basis.ring())
 {
   // This assert has to be _NO_ASSUME since otherwise the compiler will assume
   // that the error checking branch here cannot be taken and optimize it away.
@@ -276,6 +274,112 @@ namespace {
 
     return std::move(permutation);
   }
+
+  class LeftRightProjection {
+  public:
+    typedef SparseMatrix::ColIndex ColIndex;
+
+    LeftRightProjection(
+      const std::vector<const char>& isColToLeft,
+      const MonomialMap<ColIndex>& map
+    ) {
+      const auto& ring = map.ring();
+
+      // record which indices go left and which go right
+      MATHICGB_ASSERT
+        (isColToLeft.size() <= std::numeric_limits<ColIndex>::max());
+      ColIndex colCount = static_cast<ColIndex>(isColToLeft.size());
+      ColIndex leftColCount = 0;
+      ColIndex rightColCount = 0;
+      for (size_t i = 0; i < colCount; ++i) {
+        if (isColToLeft[i]) {
+          Projected p = {leftColCount, true};
+          mProject.push_back(p);
+          ++leftColCount;
+        } else {
+          Projected p = {rightColCount, false};
+          mProject.push_back(p);
+          ++rightColCount;
+        }
+      }
+      MATHICGB_ASSERT(leftColCount + rightColCount == colCount);
+
+      std::vector<std::pair<monomial, ColIndex>> leftColumns(leftColCount);
+      std::vector<std::pair<monomial, ColIndex>> rightColumns(rightColCount);
+      {
+        mLeftMonomials.resize(leftColCount);
+        mRightMonomials.resize(rightColCount);
+        MonomialMap<ColIndex>::Reader reader(map);
+        const auto end = reader.end();
+        for (auto it = reader.begin(); it != end; ++it) {
+          const auto p = *it;
+          monomial copy = ring.allocMonomial();
+          ring.monomialCopy(p.second, copy);
+          const auto index = p.first;
+          auto translated = mProject[index];
+          if (translated.left) {
+            leftColumns[translated.index] = std::make_pair(copy, translated.index);
+          } else {
+            rightColumns[translated.index] = std::make_pair(copy, translated.index);
+          }
+        }
+      }
+      MATHICGB_ASSERT(leftColumns.size() + rightColumns.size() == colCount);
+
+      const auto sortColumns = [&](
+        std::vector<std::pair<monomial, ColIndex>>& columns,
+        std::vector<monomial>& sortedMonomials,
+        std::vector<ColIndex>& colPermutation
+      ) {
+        std::sort(columns.begin(), columns.end(), ColumnComparer(ring));
+        const auto colCount = columns.size();
+        colPermutation.resize(colCount);
+        sortedMonomials.resize(colCount);
+        for (ColIndex col = 0; col < colCount; ++col) {
+          sortedMonomials[col] = columns[col].first;
+          colPermutation[columns[col].second] = col;
+        }
+      };
+      std::vector<ColIndex> leftPermutation;
+      std::vector<ColIndex> rightPermutation;
+      tbb::parallel_for(0, 2, 1, [&](int i) {
+        if (i == 0)
+          sortColumns(leftColumns, mLeftMonomials, leftPermutation);
+        else
+          sortColumns(rightColumns, mRightMonomials, rightPermutation);
+      });
+
+      for (size_t i = 0; i < mProject.size(); ++i) {
+        if (mProject[i].left)
+          mProject[i].index = leftPermutation[mProject[i].index];
+        else
+          mProject[i].index = rightPermutation[mProject[i].index];
+      }
+    }
+
+    struct Projected {
+      ColIndex index;
+      bool left;
+    };
+
+    Projected project(const ColIndex index) {
+      MATHICGB_ASSERT(index < mProject.size());
+      return mProject[index];
+    }
+
+    std::vector<monomial> moveLeftMonomials() {
+      return std::move(mLeftMonomials);
+    }
+
+    std::vector<monomial> moveRightMonomials() {
+      return std::move(mRightMonomials);
+    }
+
+  private:
+    std::vector<Projected> mProject;
+    std::vector<monomial> mLeftMonomials;
+    std::vector<monomial> mRightMonomials;
+  };
 }
 
 void F4MatrixBuilder2::buildMatrixAndClear(QuadMatrix& quadMatrix) {
@@ -343,51 +447,20 @@ void F4MatrixBuilder2::buildMatrixAndClear(QuadMatrix& quadMatrix) {
       ring().freeMonomial(it->desiredLead);
   mTodo.clear();
 
-  {
-    ColReader reader(mMap);
-    quadMatrix.leftColumnMonomials.swap(Monomials(mLeftColCount));
-    quadMatrix.rightColumnMonomials.swap(Monomials(mRightColCount));
-    const auto end = reader.end();
-    for (auto it = reader.begin(); it != end; ++it) {
-      const auto p = *it;
-      monomial copy = ring().allocMonomial();
-      ring().monomialCopy(p.second, copy);
-      const auto index = p.first;
-      auto translated = mTranslate[index];
-      auto& monos = translated.left ?
-        quadMatrix.leftColumnMonomials : quadMatrix.rightColumnMonomials;
-      MATHICGB_ASSERT(translated.index < monos.size());
-      MATHICGB_ASSERT(monos[translated.index].isNull());
-      monos[translated.index] = copy;
-    }
-  }
+  // ***** Sort columns separately left/right and construct index translation.
+  // input: mIsColumnToLeft, map
+  // output: quadMatrix.left/rightColumnMonomials, translate
 
-  typedef SparseMatrix::ColIndex ColIndex;
-  std::vector<ColIndex> leftPermutation;
-  std::vector<ColIndex> rightPermutation;
-  
-  tbb::parallel_for(0, 2, 1, [&](int i) {
-    if (i == 0)
-      leftPermutation =
-        sortColumnMonomialsAndMakePermutation(quadMatrix.leftColumnMonomials, ring());
-    else 
-      rightPermutation =
-        sortColumnMonomialsAndMakePermutation(quadMatrix.rightColumnMonomials, ring());
-  });
+  LeftRightProjection projection(mIsColumnToLeft, mMap);
 
-  MATHICGB_ASSERT(leftPermutation.size() + rightPermutation.size() == mTranslate.size());
-  for (size_t i = 0; i < mTranslate.size(); ++i) {
-    if (mTranslate[i].left)
-      mTranslate[i].index = leftPermutation[mTranslate[i].index];
-    else
-      mTranslate[i].index = rightPermutation[mTranslate[i].index];
-  }
+  quadMatrix.leftColumnMonomials = projection.moveLeftMonomials();
+  quadMatrix.rightColumnMonomials = projection.moveRightMonomials();
 
   // Decide which rows are reducers (top) and which are reducees (bottom).
   const auto noReducer = std::numeric_limits<RowIndex>::max();
   F4PreBlock::Row noRow = {};
   noRow.indices = 0;
-  std::vector<F4PreBlock::Row> reducerRows(mLeftColCount, noRow);
+  std::vector<F4PreBlock::Row> reducerRows(quadMatrix.leftColumnMonomials.size(), noRow);
   std::vector<F4PreBlock::Row> reduceeRows;
 
   SparseMatrix matrix(mMemoryQuantum);
@@ -402,22 +475,16 @@ void F4MatrixBuilder2::buildMatrixAndClear(QuadMatrix& quadMatrix) {
 
       // Determine leading (minimum index) left entry.
       const auto lead = [&] {
-        MATHICGB_ASSERT(mTranslate.size() <=
-          std::numeric_limits<ColIndex>::max());
         const auto end = row.indices + row.entryCount;
         for (auto it = row.indices; it != end; ++it) {
-          MATHICGB_ASSERT(*it < mTranslate.size());
-          if (mTranslate[*it].left)
-            return mTranslate[*it].index;
+          auto const translated = projection.project(*it);
+          if (translated.left)
+            return translated.index;
         }
-        return mLeftColCount; // No left entries at all.
+        return std::numeric_limits<ColIndex>::max(); // No left entries at all.
       }();
-      if (!mTranslate[*row.indices].left) {
-        reduceeRows.push_back(row); // no left entries
-        continue; // todo: for now
-      }
       // Decide if this should be a reducer or reducee row.
-      if (lead == mLeftColCount) {
+      if (lead == std::numeric_limits<ColIndex>::max()) {
         reduceeRows.push_back(row); // no left entries
         continue;
       }
@@ -435,18 +502,18 @@ void F4MatrixBuilder2::buildMatrixAndClear(QuadMatrix& quadMatrix) {
     ring().freeMonomial(it->tmp2);
   }
 
-  MATHICGB_ASSERT(reducerRows.size() == mLeftColCount);
+  MATHICGB_ASSERT(reducerRows.size() == quadMatrix.leftColumnMonomials.size());
 #ifdef MATHICGB_DEBUG
   for (size_t  i = 0; i < reducerRows.size(); ++i) {
     const auto row = reducerRows[i];
     MATHICGB_ASSERT(row.entryCount > 0);
-    MATHICGB_ASSERT(mTranslate[*row.indices].left);
-    MATHICGB_ASSERT(mTranslate[*row.indices].index == i);
+    MATHICGB_ASSERT(projection.project(*row.indices).left);
+    MATHICGB_ASSERT(projection.project(*row.indices).index == i);
   }
 #endif
- 
+
   quadMatrix.ring = &ring();
-  auto splitLeftRight = [this](
+  auto splitLeftRight = [&](
     const std::vector<F4PreBlock::Row>& from,
     const bool makeLeftUnitary,
     SparseMatrix& left,
@@ -467,7 +534,7 @@ void F4MatrixBuilder2::buildMatrixAndClear(QuadMatrix& quadMatrix) {
         for (; indices != indicesEnd; ++indices, ++scalars) {
           const auto scalar = static_cast<Scalar>(*scalars);
           const auto index = *indices;
-          const auto translated = mTranslate[index];
+          const auto translated = projection.project(index);
           if (translated.left)
             left.appendEntry(translated.index, scalar);
           else
@@ -479,7 +546,7 @@ void F4MatrixBuilder2::buildMatrixAndClear(QuadMatrix& quadMatrix) {
         auto scalars = row.scalars;
         for (; indices != indicesEnd; ++indices, ++scalars) {
           const auto index = *indices;
-          const auto translated = mTranslate[index];
+          const auto translated = projection.project(index);
           if (translated.left)
             left.appendEntry(translated.index, *scalars);
           else
@@ -564,19 +631,12 @@ F4MatrixBuilder2::createColumn(
   const size_t reducerIndex = mBasis.divisor(mTmp);
   const bool insertLeft = (reducerIndex != static_cast<size_t>(-1));
 
-  MATHICGB_ASSERT(mLeftColCount + mRightColCount == mTranslate.size());
-
   // Create the new left or right column
-  auto& colCount = insertLeft ? mLeftColCount : mRightColCount;
-  if (colCount == std::numeric_limits<ColIndex>::max())
+  if (mIsColumnToLeft.size() >= std::numeric_limits<ColIndex>::max())
     throw std::overflow_error("Too many columns in QuadMatrix");
-  const auto newIndex = static_cast<ColIndex>(mTranslate.size());
+  const auto newIndex = static_cast<ColIndex>(mIsColumnToLeft.size());
   const auto inserted = mMap.insert(std::make_pair(mTmp, newIndex));
-  Translated translated = {colCount, insertLeft};
-  mTranslate.push_back(translated);
-  ++colCount;
-
-  MATHICGB_ASSERT(mLeftColCount + mRightColCount == mTranslate.size());
+  mIsColumnToLeft.push_back(insertLeft);
 
   // schedule new task if we found a reducer
   if (insertLeft) {
