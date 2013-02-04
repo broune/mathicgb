@@ -225,6 +225,59 @@ void F4MatrixBuilder2::addPolynomialToMatrix
   mTodo.push_back(task);
 }
 
+namespace {
+  class ColumnComparer {
+  public:
+    ColumnComparer(const PolyRing& ring): mRing(ring) {}
+
+    typedef SparseMatrix::ColIndex ColIndex;
+    typedef std::pair<monomial, ColIndex> Pair;
+    bool operator()(const Pair& a, const Pair b) const {
+      return mRing.monomialLT(b.first, a.first);
+    }
+
+  private:
+    const PolyRing& mRing;
+  };
+
+  std::vector<SparseMatrix::ColIndex> sortColumnMonomialsAndMakePermutation(
+    std::vector<monomial>& monomials,
+    const PolyRing& ring
+  ) {
+    typedef SparseMatrix::ColIndex ColIndex;
+    MATHICGB_ASSERT(monomials.size() <= std::numeric_limits<ColIndex>::max());
+    const ColIndex colCount = static_cast<ColIndex>(monomials.size());
+    // Monomial needs to be non-const as we are going to put these
+    // monomials back into the vector of monomials which is not const.
+    std::vector<std::pair<monomial, ColIndex>> columns;
+    columns.reserve(colCount);
+    for (ColIndex col = 0; col < colCount; ++col)
+      columns.push_back(std::make_pair(monomials[col], col));
+    std::sort(columns.begin(), columns.end(), ColumnComparer(ring));
+
+    // Apply sorting permutation to monomials. This is why it is necessary to
+    // copy the values in monomial out of there: in-place application of a
+    // permutation is messy.
+    MATHICGB_ASSERT(columns.size() == colCount);
+    MATHICGB_ASSERT(monomials.size() == colCount);
+    for (size_t col = 0; col < colCount; ++col) {
+      MATHICGB_ASSERT(col == 0 ||
+        ring.monomialLT(columns[col].first, columns[col - 1].first));
+      monomials[col] = columns[col].first;
+    }
+
+    // Construct permutation of indices to match permutation of monomials
+    std::vector<ColIndex> permutation(colCount);
+    for (ColIndex col = 0; col < colCount; ++col) {
+      // The monomial for column columns[col].second is now the
+      // monomial for col, so we need the inverse map for indices.
+      permutation[columns[col].second] = col;
+    }
+
+    return std::move(permutation);
+  }
+}
+
 void F4MatrixBuilder2::buildMatrixAndClear(QuadMatrix& quadMatrix) {
   MATHICGB_LOG_TIME(F4MatrixBuild2) <<
     "\n***** Constructing matrix *****\n";
@@ -309,6 +362,27 @@ void F4MatrixBuilder2::buildMatrixAndClear(QuadMatrix& quadMatrix) {
     }
   }
 
+  typedef SparseMatrix::ColIndex ColIndex;
+  std::vector<ColIndex> leftPermutation;
+  std::vector<ColIndex> rightPermutation;
+  
+  tbb::parallel_for(0, 2, 1, [&](int i) {
+    if (i == 0)
+      leftPermutation =
+        sortColumnMonomialsAndMakePermutation(quadMatrix.leftColumnMonomials, ring());
+    else 
+      rightPermutation =
+        sortColumnMonomialsAndMakePermutation(quadMatrix.rightColumnMonomials, ring());
+  });
+
+  MATHICGB_ASSERT(leftPermutation.size() + rightPermutation.size() == mTranslate.size());
+  for (size_t i = 0; i < mTranslate.size(); ++i) {
+    if (mTranslate[i].left)
+      mTranslate[i].index = leftPermutation[mTranslate[i].index];
+    else
+      mTranslate[i].index = rightPermutation[mTranslate[i].index];
+  }
+
   // Decide which rows are reducers (top) and which are reducees (bottom).
   const auto noReducer = std::numeric_limits<RowIndex>::max();
   F4PreBlock::Row noRow = {};
@@ -370,7 +444,7 @@ void F4MatrixBuilder2::buildMatrixAndClear(QuadMatrix& quadMatrix) {
     MATHICGB_ASSERT(mTranslate[*row.indices].index == i);
   }
 #endif
-  
+ 
   quadMatrix.ring = &ring();
   auto splitLeftRight = [this](
     const std::vector<F4PreBlock::Row>& from,
@@ -455,7 +529,7 @@ void F4MatrixBuilder2::buildMatrixAndClear(QuadMatrix& quadMatrix) {
 #endif
 
   // todo: do this together with left/right split
-  quadMatrix.sortColumnsLeftRightParallel();
+  //quadMatrix.sortColumnsLeftRightParallel();
 #ifdef MATHICGB_DEBUG
   MATHICGB_ASSERT(quadMatrix.debugAssertValid());
 #endif
