@@ -285,76 +285,37 @@ namespace {
     ) {
       const auto& ring = map.ring();
 
-      // record which indices go left and which go right
+      // Sort columns by monomial while keeping track of original index.
+      MonomialMap<ColIndex>::Reader reader(map);
+      typedef std::pair<ColIndex, ConstMonomial> IndexMono;
+      std::vector<IndexMono> columns(reader.begin(), reader.end());
+      const auto cmp = [&ring](const IndexMono& a, const IndexMono b) {
+        return ring.monomialLT(b.second, a.second);
+      };
+      tbb::parallel_sort(columns.begin(), columns.end(), cmp);
+
+      // Copy monomials and construct projection mapping.
       MATHICGB_ASSERT
         (isColToLeft.size() <= std::numeric_limits<ColIndex>::max());
       ColIndex colCount = static_cast<ColIndex>(isColToLeft.size());
-      ColIndex leftColCount = 0;
-      ColIndex rightColCount = 0;
+      mProject.resize(isColToLeft.size());
       for (size_t i = 0; i < colCount; ++i) {
-        if (isColToLeft[i]) {
-          Projected p = {leftColCount, true};
-          mProject.push_back(p);
-          ++leftColCount;
+        const auto indexMono = columns[i];
+        monomial mono = ring.allocMonomial();
+        ring.monomialCopy(indexMono.second, mono);
+
+        auto& projected = mProject[indexMono.first];
+        projected.left = isColToLeft[indexMono.first];
+        if (projected.left) {
+          projected.index = static_cast<ColIndex>(mLeftMonomials.size());
+          mLeftMonomials.push_back(mono);
         } else {
-          Projected p = {rightColCount, false};
-          mProject.push_back(p);
-          ++rightColCount;
+          projected.index = static_cast<ColIndex>(mRightMonomials.size());
+          mRightMonomials.push_back(mono);
         }
       }
-      MATHICGB_ASSERT(leftColCount + rightColCount == colCount);
-
-      std::vector<std::pair<monomial, ColIndex>> leftColumns(leftColCount);
-      std::vector<std::pair<monomial, ColIndex>> rightColumns(rightColCount);
-      {
-        mLeftMonomials.resize(leftColCount);
-        mRightMonomials.resize(rightColCount);
-        MonomialMap<ColIndex>::Reader reader(map);
-        const auto end = reader.end();
-        for (auto it = reader.begin(); it != end; ++it) {
-          const auto p = *it;
-          monomial copy = ring.allocMonomial();
-          ring.monomialCopy(p.second, copy);
-          const auto index = p.first;
-          auto translated = mProject[index];
-          if (translated.left) {
-            leftColumns[translated.index] = std::make_pair(copy, translated.index);
-          } else {
-            rightColumns[translated.index] = std::make_pair(copy, translated.index);
-          }
-        }
-      }
-      MATHICGB_ASSERT(leftColumns.size() + rightColumns.size() == colCount);
-
-      const auto sortColumns = [&](
-        std::vector<std::pair<monomial, ColIndex>>& columns,
-        std::vector<monomial>& sortedMonomials,
-        std::vector<ColIndex>& colPermutation
-      ) {
-        std::sort(columns.begin(), columns.end(), ColumnComparer(ring));
-        const auto colCount = columns.size();
-        colPermutation.resize(colCount);
-        sortedMonomials.resize(colCount);
-        for (ColIndex col = 0; col < colCount; ++col) {
-          sortedMonomials[col] = columns[col].first;
-          colPermutation[columns[col].second] = col;
-        }
-      };
-      std::vector<ColIndex> leftPermutation;
-      std::vector<ColIndex> rightPermutation;
-      tbb::parallel_for(0, 2, 1, [&](int i) {
-        if (i == 0)
-          sortColumns(leftColumns, mLeftMonomials, leftPermutation);
-        else
-          sortColumns(rightColumns, mRightMonomials, rightPermutation);
-      });
-
-      for (size_t i = 0; i < mProject.size(); ++i) {
-        if (mProject[i].left)
-          mProject[i].index = leftPermutation[mProject[i].index];
-        else
-          mProject[i].index = rightPermutation[mProject[i].index];
-      }
+      MATHICGB_ASSERT
+        (mLeftMonomials.size() + mRightMonomials.size() == isColToLeft.size());
     }
 
     struct Projected {
@@ -391,8 +352,6 @@ void F4MatrixBuilder2::buildMatrixAndClear(QuadMatrix& quadMatrix) {
     quadMatrix.ring = &ring();
     return;
   }
-
-  // todo: prefer sparse/old reducers among the inputs.
 
   // Process pending rows until we are done. Note that the methods
   // we are calling here can add more pending items.
@@ -447,12 +406,7 @@ void F4MatrixBuilder2::buildMatrixAndClear(QuadMatrix& quadMatrix) {
       ring().freeMonomial(it->desiredLead);
   mTodo.clear();
 
-  // ***** Sort columns separately left/right and construct index translation.
-  // input: mIsColumnToLeft, map
-  // output: quadMatrix.left/rightColumnMonomials, translate
-
   LeftRightProjection projection(mIsColumnToLeft, mMap);
-
   quadMatrix.leftColumnMonomials = projection.moveLeftMonomials();
   quadMatrix.rightColumnMonomials = projection.moveRightMonomials();
 
