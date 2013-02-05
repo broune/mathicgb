@@ -49,14 +49,14 @@ void LogDomainSet::printReport(std::ostream& out) const {
     timeSum += logTime;
     names << log.name() << '\n';
     times << logTime << '\n';
-    ratios << mathic::ColumnPrinter::percent(logTime, allTime) << '\n';
+    ratios << mathic::ColumnPrinter::percentDouble(logTime, allTime) << '\n';
   }
   if (!somethingToReport)
     return;
   pr.repeatToEndOfLine('-');
   names << "sum\n";
   times << timeSum;
-  ratios << mathic::ColumnPrinter::percent(timeSum, allTime) << '\n';
+  ratios << mathic::ColumnPrinter::percentDouble(timeSum, allTime) << '\n';
 
   const auto oldFlags = out.flags();
   const auto oldPrecision = out.precision();

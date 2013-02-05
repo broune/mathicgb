@@ -416,7 +416,8 @@ void PolyHashTable::dump(int level) const
 
   name << "max # nonempty bins:\n";
   value << mic::ColumnPrinter::commafy(mStats.n_nonempty_bins) << '\n';
-  extra << mic::ColumnPrinter::percent(mStats.n_nonempty_bins, mTableSize) << " used\n";
+  extra << mic::ColumnPrinter::
+    percentInteger(mStats.n_nonempty_bins, mTableSize) << " used\n";
 
   name << "max chain length ever:\n";
   value << mic::ColumnPrinter::commafy(mStats.max_chain_len_ever) << '\n';

@@ -139,10 +139,11 @@ void QuadMatrix::printStatistics(std::ostream& out) const {
       const auto memory = matrix.memoryUse();
 
       out << ColPr::withSIPrefix(entryCount) << " -"
-        << ColPr::percentFixed(entryCount, area) << " \n"
+        << ColPr::percentIntegerFixed(entryCount, area) << " \n"
         << ColPr::bytesInUnit(memory) << " -"
-        << ColPr::percentFixed(matrix.memoryUseTrimmed(), memory) << " \n"
-        << ColPr::percent(memory, totalMemory) << " \n";
+        << ColPr::percentIntegerFixed(matrix.memoryUseTrimmed(), memory)
+        << " \n"
+        << ColPr::percentInteger(memory, totalMemory) << " \n";
     };
 
     out << ColPr::commafy(colCount) << " \n";
@@ -168,7 +169,7 @@ void QuadMatrix::printStatistics(std::ostream& out) const {
 
   out << '\n' << pr
     << "       Total memory: " << ColPr::bytesInUnit(memoryUse()) << " ("
-	<< ColPr::percent(memoryUseTrimmed(), totalMemory)
+	<< ColPr::percentInteger(memoryUseTrimmed(), totalMemory)
 	<< " used)\n\n";
 }
 
