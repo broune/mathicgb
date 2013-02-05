@@ -423,27 +423,31 @@ namespace {
   template<class T>
   T readOne(FILE* file) {
     T t;
-    fread(&t, sizeof(T), 1, file);
+    if (fread(&t, sizeof(T), 1, file) != 1)
+      mathic::reportError("error while reading file.");
     return t;
   }
 
   template<class T>
   void writeOne(const T& t, FILE* file) {
-    fwrite(&t, sizeof(T), 1, file);
+    if (fwrite(&t, sizeof(T), 1, file) != 1)
+      mathic::reportError("error while writing to file.");
   }
 
   template<class T>
   void writeMany(const std::vector<T>& v, FILE* file) {
     if (v.empty())
       return;
-    fwrite(v.data(), sizeof(T), v.size(), file);
+    if (fwrite(v.data(), sizeof(T), v.size(), file) != v.size())
+      mathic::reportError("error while writing to file.");
   }
 
   template<class T>
   void readMany(FILE* file, size_t count, std::vector<T>& v) {
     size_t const originalSize = v.size();
     v.resize(originalSize + count);
-    fread(v.data() + originalSize, sizeof(T), count, file);
+    if (fread(v.data() + originalSize, sizeof(T), count, file) != count)
+      mathic::reportError("error while reading file.");
   }
 
 }
@@ -457,12 +461,18 @@ void SparseMatrix::write(const Scalar modulus, FILE* file) const {
   writeOne(static_cast<uint64>(entryCount()), file);
 
   // write scalars
-  for (SparseMatrix::RowIndex row = 0; row < storedRowCount; ++row)
-    fwrite(&rowBegin(row).scalar(), sizeof(uint16), entryCountInRow(row), file);
+  for (SparseMatrix::RowIndex row = 0; row < storedRowCount; ++row) {
+    const auto count = entryCountInRow(row);
+    if (fwrite(&rowBegin(row).scalar(), sizeof(uint16), count, file) != count)
+      mathic::reportError("error while writing to file.");
+  }
 
   // write indices
-  for (SparseMatrix::RowIndex row = 0; row < storedRowCount; ++row)
-    fwrite(&rowBegin(row).index(), sizeof(uint32), entryCountInRow(row), file);
+  for (SparseMatrix::RowIndex row = 0; row < storedRowCount; ++row) {
+    const auto count = entryCountInRow(row);
+    if (fwrite(&rowBegin(row).index(), sizeof(uint32), count, file) != count)
+      mathic::reportError("error while writing to file.");
+  }
 
   std::vector<uint32> entryCounts;
   for (SparseMatrix::RowIndex row = 0; row < storedRowCount; ++row)
