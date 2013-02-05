@@ -492,14 +492,14 @@ void SignatureGB::displaySomeStats(std::ostream& out) const {
   const size_t minLeadCount = GB->basis().minimalLeadCount();
   name << "Minimum lead terms:\n";
   value << mic::ColumnPrinter::commafy(minLeadCount) << '\n';
-  extra << mic::ColumnPrinter::percent(minLeadCount, basisSize)
+  extra << mic::ColumnPrinter::percentInteger(minLeadCount, basisSize)
     << " basis ele have min lead\n";
 
   const size_t lastMinLead = GB->basis().maxIndexMinimalLead() + 1;
   const size_t timeSinceLastMinLead = basisSize - lastMinLead;
   name << "Index of last min lead:\n";
   value << mic::ColumnPrinter::commafy(lastMinLead) << '\n';
-  extra << mic::ColumnPrinter::percent(timeSinceLastMinLead, basisSize)
+  extra << mic::ColumnPrinter::percentInteger(timeSinceLastMinLead, basisSize)
     << " of basis added since then\n";
 
   const size_t minSyz = Hsyz->n_elems();
@@ -531,45 +531,45 @@ void SignatureGB::displaySomeStats(std::ostream& out) const {
 
   name << "S-pairs not early elim:\n";
   value << mic::ColumnPrinter::commafy(earlyNonElim) << '\n';
-  extra << mic::ColumnPrinter::percent(earlyNonElim, considered)
+  extra << mic::ColumnPrinter::percentInteger(earlyNonElim, considered)
     << " of considered\n";
 
   name << "Syz module S-pair elim:\n";
   value << mic::ColumnPrinter::commafy(syzElim) << '\n';
-  extra << mic::ColumnPrinter::percent(syzElim, considered)
+  extra << mic::ColumnPrinter::percentInteger(syzElim, considered)
     << " of considered\n";
 
   name << "Low bdiv S-pair elim:\n";
   value << mic::ColumnPrinter::commafy(lowElim) << '\n';
-  extra << mic::ColumnPrinter::percent(lowElim, considered)
+  extra << mic::ColumnPrinter::percentInteger(lowElim, considered)
     << " of considered\n";
 
   name << "High bdiv S-pair elim:\n";
   value << mic::ColumnPrinter::commafy(highElim) << '\n';
-  extra << mic::ColumnPrinter::percent(highElim, considered)
+  extra << mic::ColumnPrinter::percentInteger(highElim, considered)
     << " of considered\n";
 
   const unsigned long long hadLow = stats.hasLowBaseDivisor;
   name << "Basis ele had low bdiv:\n";
   value << mic::ColumnPrinter::commafy(hadLow) << '\n';
-  extra << mic::ColumnPrinter::percent(hadLow, basisSize)
+  extra << mic::ColumnPrinter::percentInteger(hadLow, basisSize)
     << " of basis ele\n";
 
   const unsigned long long hadHigh = stats.hasHighBaseDivisor;
   name << "Basis ele had high bdiv:\n";
   value << mic::ColumnPrinter::commafy(hadHigh) << '\n';
-  extra << mic::ColumnPrinter::percent(hadHigh, basisSize)
+  extra << mic::ColumnPrinter::percentInteger(hadHigh, basisSize)
     << " of basis ele\n";
 
   name << "S-pairs pending:\n";
   value << mic::ColumnPrinter::commafy(pending) << '\n';
-  extra << mic::ColumnPrinter::percent(pending, considered)
+  extra << mic::ColumnPrinter::percentInteger(pending, considered)
     << " of considered\n";
 
   const size_t done = stats_sPairsDone;
   name << "S pairs done:\n";
   value << mic::ColumnPrinter::commafy(done) << '\n';
-  extra << mic::ColumnPrinter::percent(done, earlyNonElim)
+  extra << mic::ColumnPrinter::percentInteger(done, earlyNonElim)
     << " of not early elim\n";
 
   const size_t sigsDone = stats_sPairSignaturesDone;
@@ -585,38 +585,38 @@ void SignatureGB::displaySomeStats(std::ostream& out) const {
   const size_t koszulElim = stats_koszulEliminated;
   name << "Koszul sp eliminated:\n";
   value << mic::ColumnPrinter::commafy(koszulElim) << '\n';
-  extra << mic::ColumnPrinter::percent(koszulElim, sigsDone - reductions)
+  extra << mic::ColumnPrinter::percentInteger(koszulElim, sigsDone - reductions)
     << " of late eliminations\n";
 
   const size_t primeElim = stats_relativelyPrimeEliminated;
   name << "Rel.prime sp eliminated:\n";
   value << mic::ColumnPrinter::commafy(primeElim) << '\n';
-  extra << mic::ColumnPrinter::percent(primeElim, sigsDone - reductions)
+  extra << mic::ColumnPrinter::percentInteger(primeElim, sigsDone - reductions)
     << " of late eliminations\n";
 
   name << "Signature reductions:\n";
   value << mic::ColumnPrinter::commafy(reductions) << '\n';
-  extra << mic::ColumnPrinter::percent(reductions, sigsDone)
+  extra << mic::ColumnPrinter::percentInteger(reductions, sigsDone)
     << " of S-pairs are reduced\n";
 
   const unsigned long long singularReductions =
     reducerStats.singularReductions;
   name << "Singular reductions:\n";
   value << mic::ColumnPrinter::commafy(singularReductions) << '\n';
-  extra << mic::ColumnPrinter::percent(singularReductions, reductions)
+  extra << mic::ColumnPrinter::percentInteger(singularReductions, reductions)
     << " of reductions\n";
 
   const unsigned long long zeroReductions = reducerStats.zeroReductions;
   name << "Reductions to zero:\n";
   value << mic::ColumnPrinter::commafy(zeroReductions) << '\n';
-  extra << mic::ColumnPrinter::percent(zeroReductions, reductions)
+  extra << mic::ColumnPrinter::percentInteger(zeroReductions, reductions)
     << " of reductions\n";
 
   const unsigned long long newReductions =
     reductions - singularReductions - zeroReductions;
   name << "Reductions to new ele:\n";
   value << mic::ColumnPrinter::commafy(newReductions) << '\n';
-  extra << mic::ColumnPrinter::percent(newReductions, reductions)
+  extra << mic::ColumnPrinter::percentInteger(newReductions, reductions)
     << " of reductions\n";
 
   const unsigned long long redSteps = reducerStats.steps;
@@ -670,13 +670,13 @@ void SignatureGB::displayMemoryUse(std::ostream& out) const
     const size_t basisMem = GB->getMemoryUse();
     name << "Grobner basis:\n";
     value << mic::ColumnPrinter::bytesInUnit(basisMem) << '\n';
-    extra << mic::ColumnPrinter::percent(basisMem, total) << '\n';
+    extra << mic::ColumnPrinter::percentInteger(basisMem, total) << '\n';
   }
   { // Spairs
     const size_t sPairMem = SP->getMemoryUse();
     name << "S-pairs:\n";
     value << mic::ColumnPrinter::bytesInUnit(sPairMem) << '\n';
-    extra << mic::ColumnPrinter::percent(sPairMem, total) << '\n';
+    extra << mic::ColumnPrinter::percentInteger(sPairMem, total) << '\n';
 
     const size_t knownSyzygyMem = SP->getKnownSyzygyBitsMemoryUse();
     name << "  Known syzygy bits:\n";
@@ -687,25 +687,25 @@ void SignatureGB::displayMemoryUse(std::ostream& out) const
     const size_t syzMem = Hsyz->getMemoryUse();
     name << "Minimal syzygies:\n";
     value << mic::ColumnPrinter::bytesInUnit(syzMem) << '\n';
-    extra << mic::ColumnPrinter::percent(syzMem, total) << '\n';
+    extra << mic::ColumnPrinter::percentInteger(syzMem, total) << '\n';
   }
   { // Koszul queue
     const size_t syzQueueMem = mKoszuls->getMemoryUse();
     name << "Koszul queue:\n";
     value << mic::ColumnPrinter::bytesInUnit(syzQueueMem) << '\n';
-    extra << mic::ColumnPrinter::percent(syzQueueMem, total) << '\n';
+    extra << mic::ColumnPrinter::percentInteger(syzQueueMem, total) << '\n';
   }
   { // Reducer
     const size_t reducerMem = reducer->getMemoryUse();
     name << "Reducer:\n";
     value << mic::ColumnPrinter::bytesInUnit(reducerMem) << '\n';
-    extra << mic::ColumnPrinter::percent(reducerMem, total) << '\n';
+    extra << mic::ColumnPrinter::percentInteger(reducerMem, total) << '\n';
   }
   { // Signatures
     const size_t sigMem = R->getMonomialPool().getMemoryUse();
     name << "Signatures:\n";
     value << mic::ColumnPrinter::bytesInUnit(sigMem) << '\n';
-    extra << mic::ColumnPrinter::percent(sigMem, total) << '\n';
+    extra << mic::ColumnPrinter::percentInteger(sigMem, total) << '\n';
   }
   // total
   name << "-------------\n";

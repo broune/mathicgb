@@ -129,9 +129,9 @@ void SparseMatrix::printStatistics(std::ostream& out) const {
   pr[1] << ColPr::commafy(colCount) << " \n"
     << line
     << ColPr::withSIPrefix(entryCount) << " -"
-    << ColPr::percentFixed(entryCount, area) << " \n"
+    << ColPr::percentIntegerFixed(entryCount, area) << " \n"
     << ColPr::bytesInUnit(memory) << " -"
-    << ColPr::percentFixed(memoryUseTrimmed(), memory) << " \n"
+    << ColPr::percentIntegerFixed(memoryUseTrimmed(), memory) << " \n"
     << line;
 
   pr[2] << "  columns\n\\\n| non-zero (density)\n| memory (used)\n/\n";

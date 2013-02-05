@@ -350,14 +350,14 @@ void BuchbergerAlg::printStats(std::ostream& out) const {
   const size_t minLeadCount = mBasis.minimalLeadCount();
   name << "Minimum lead terms:\n";
   value << mic::ColumnPrinter::commafy(minLeadCount) << '\n';
-  extra << mic::ColumnPrinter::percent(minLeadCount, basisSize)
+  extra << mic::ColumnPrinter::percentInteger(minLeadCount, basisSize)
         << " basis ele have min lead\n";
 
   const size_t lastMinLead = mBasis.maxIndexMinimalLead() + 1;
   const size_t timeSinceLastMinLead = basisSize - lastMinLead;
   name << "Index of last min lead:\n";
   value << mic::ColumnPrinter::commafy(lastMinLead) << '\n';
-  extra << mic::ColumnPrinter::percent(timeSinceLastMinLead, basisSize)
+  extra << mic::ColumnPrinter::percentInteger(timeSinceLastMinLead, basisSize)
         << " of basis added since then\n";
 
   const unsigned long long considered =
@@ -368,7 +368,7 @@ void BuchbergerAlg::printStats(std::ostream& out) const {
 
   name << "S-pairs pending:\n";
   value << mic::ColumnPrinter::commafy(pending) << '\n';
-  extra << mic::ColumnPrinter::percent(pending, considered)
+  extra << mic::ColumnPrinter::percentInteger(pending, considered)
         << " of considered\n";
 
   unsigned long long const reductions = sPolyReductionCount();
@@ -382,27 +382,27 @@ void BuchbergerAlg::printStats(std::ostream& out) const {
   unsigned long long const primeElim = sPairStats.relativelyPrimeHits;
   name << "Rel.prime sp eliminated:\n";
   value << mic::ColumnPrinter::commafy(primeElim) << '\n';
-  extra << mic::ColumnPrinter::percent(primeElim, reductions)
+  extra << mic::ColumnPrinter::percentInteger(primeElim, reductions)
         << " of late eliminations\n";
 
   const unsigned long long singularReductions =
     reducerStats.singularReductions;
   name << "Singular reductions:\n";
   value << mic::ColumnPrinter::commafy(singularReductions) << '\n';
-  extra << mic::ColumnPrinter::percent(singularReductions, reductions)
+  extra << mic::ColumnPrinter::percentInteger(singularReductions, reductions)
         << " of reductions\n";
 
   const unsigned long long zeroReductions = reducerStats.zeroReductions;
   name << "Reductions to zero:\n";
   value << mic::ColumnPrinter::commafy(zeroReductions) << '\n';
-  extra << mic::ColumnPrinter::percent(zeroReductions, reductions)
+  extra << mic::ColumnPrinter::percentInteger(zeroReductions, reductions)
         << " of reductions\n";
 
   const unsigned long long newReductions =
     reductions - singularReductions - zeroReductions;
   name << "Reductions to new ele:\n";
   value << mic::ColumnPrinter::commafy(newReductions) << '\n';
-  extra << mic::ColumnPrinter::percent(newReductions, reductions)
+  extra << mic::ColumnPrinter::percentInteger(newReductions, reductions)
         << " of reductions\n";
 
   const unsigned long long redSteps = reducerStats.steps;
@@ -441,21 +441,21 @@ void BuchbergerAlg::printStats(std::ostream& out) const {
   unsigned long long const primeHits = sPairStats.relativelyPrimeHits;
   name << "Buchb relatively prime:\n";
   value << mic::ColumnPrinter::commafy(primeHits) << '\n';
-  extra << mic::ColumnPrinter::percent(primeHits, marginal) <<
+  extra << mic::ColumnPrinter::percentInteger(primeHits, marginal) <<
     " of S-pairs\n";
   marginal -= primeHits;
 
   unsigned long long const simpleHits = sPairStats.buchbergerLcmSimpleHits;
   name << "Buchb lcm simple hits:\n";
   value << mic::ColumnPrinter::commafy(simpleHits) << '\n';
-  extra << mic::ColumnPrinter::percent(simpleHits, marginal) <<
+  extra << mic::ColumnPrinter::percentInteger(simpleHits, marginal) <<
     " of remaining S-pairs\n";
   marginal -= simpleHits;
 
   unsigned long long const simpleHitsLate = sPairStats.buchbergerLcmSimpleHitsLate;
   name << "Buchb late lcm simple hits:\n";
   value << mic::ColumnPrinter::commafy(simpleHitsLate) << '\n';
-  extra << mic::ColumnPrinter::percent(simpleHitsLate, marginal) <<
+  extra << mic::ColumnPrinter::percentInteger(simpleHitsLate, marginal) <<
     " of remaining S-pairs\n";
   marginal -= simpleHitsLate;
 
@@ -463,19 +463,19 @@ void BuchbergerAlg::printStats(std::ostream& out) const {
     sPairStats.buchbergerLcmAdvancedHits;
   name << "Buchb lcm adv hits:\n";
   value << mic::ColumnPrinter::commafy(buchAdvHits) << '\n';
-  extra << mic::ColumnPrinter::percent(buchAdvHits, marginal) <<
+  extra << mic::ColumnPrinter::percentInteger(buchAdvHits, marginal) <<
     " of remaining S-pairs\n";
 
   const unsigned long long buchCache = sPairStats.buchbergerLcmCacheHits;
   name << "Buchb lcm cache hits:\n";
   value << mic::ColumnPrinter::commafy(buchCache) << '\n';
-  extra << mic::ColumnPrinter::percent(buchCache, simpleHits) <<
+  extra << mic::ColumnPrinter::percentInteger(buchCache, simpleHits) <<
     " of simple hits\n";
 
   const unsigned long long buchCacheLate = sPairStats.buchbergerLcmCacheHitsLate;
   name << "Buchb late lcm cache hits:\n";
   value << mic::ColumnPrinter::commafy(buchCacheLate) << '\n';
-  extra << mic::ColumnPrinter::percent(buchCacheLate, simpleHits) <<
+  extra << mic::ColumnPrinter::percentInteger(buchCacheLate, simpleHits) <<
     " of simple hits\n";
 
   out << "***** Classic Buchberger algorithm statistics *****\n"
@@ -499,25 +499,25 @@ void BuchbergerAlg::printMemoryUse(std::ostream& out) const
     const size_t basisMem = mBasis.getMemoryUse();
     name << "Grobner basis:\n";
     value << mic::ColumnPrinter::bytesInUnit(basisMem) << '\n';
-    extra << mic::ColumnPrinter::percent(basisMem, total) << '\n';
+    extra << mic::ColumnPrinter::percentInteger(basisMem, total) << '\n';
   }
   { // Spairs
     const size_t sPairMem = mSPairs.getMemoryUse();
     name << "S-pairs:\n";
     value << mic::ColumnPrinter::bytesInUnit(sPairMem) << '\n';
-    extra << mic::ColumnPrinter::percent(sPairMem, total) << '\n';
+    extra << mic::ColumnPrinter::percentInteger(sPairMem, total) << '\n';
   }
   { // Reducer
     const size_t reducerMem = mReducer.getMemoryUse();
     name << "Reducer:\n";
     value << mic::ColumnPrinter::bytesInUnit(reducerMem) << '\n';
-    extra << mic::ColumnPrinter::percent(reducerMem, total) << '\n';
+    extra << mic::ColumnPrinter::percentInteger(reducerMem, total) << '\n';
   }
   { // Signatures
     const size_t sigMem = mRing.getMonomialPool().getMemoryUse();
     name << "Monomials:\n";
     value << mic::ColumnPrinter::bytesInUnit(sigMem) << '\n';
-    extra << mic::ColumnPrinter::percent(sigMem, total) << '\n';
+    extra << mic::ColumnPrinter::percentInteger(sigMem, total) << '\n';
   }
   // total
   name << "-------------\n";
