@@ -94,7 +94,7 @@ T modularSum(T a, T b, T modulus) {
   BigT bigSum = static_cast<BigT>(a) + b;
   MATHICGB_ASSERT(bigSum - a == b);
   return static_cast<T>(bigSum % modulus);
-}
+} 
 
 /** Returns -a mod modulus. It is required that 0 <= a < modulus. */
 template<class T>
