@@ -155,7 +155,7 @@ namespace LogDomainInternal {
     return r;
   }
   template<class L, class T>
-  void operator+(LambdaRunner<L> runner, T& lambda) {lambda(runner.log);}
+  void operator+(LambdaRunner<L> runner, T&& lambda) {lambda(runner.log);}
 }
 
 /// Defines LogDomainInternal::value_##NAME to be equal to the value of
