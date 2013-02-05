@@ -344,7 +344,7 @@ void BuchbergerAlg::printStats(std::ostream& out) const {
   const size_t basisTermCount = mBasis.monomialCount();
   name << "Terms for basis:\n";
   value << mic::ColumnPrinter::commafy(basisTermCount) << '\n';
-  extra << mic::ColumnPrinter::ratio(basisTermCount, basisSize)
+  extra << mic::ColumnPrinter::ratioInteger(basisTermCount, basisSize)
         << " terms per basis ele\n";
 
   const size_t minLeadCount = mBasis.minimalLeadCount();
@@ -408,7 +408,8 @@ void BuchbergerAlg::printStats(std::ostream& out) const {
   const unsigned long long redSteps = reducerStats.steps;
   name << "Sig reduction steps:\n";
   value << mic::ColumnPrinter::commafy(redSteps) << '\n';
-  extra << mic::ColumnPrinter::ratio(redSteps, reductions - singularReductions)
+  extra << mic::ColumnPrinter::ratioInteger
+    (redSteps, reductions - singularReductions)
         << " steps per non-sing reduction\n";
 
   const unsigned long long longestReduction = reducerStats.maxSteps;
@@ -426,7 +427,7 @@ void BuchbergerAlg::printStats(std::ostream& out) const {
   const double clStepsRatio = static_cast<double>(clRedSteps) / clReductions;
   name << "Classic reduction steps:\n";
   value << mic::ColumnPrinter::commafy(clRedSteps) << '\n';
-  extra << mic::ColumnPrinter::ratio(clRedSteps, clReductions)
+  extra << mic::ColumnPrinter::ratioInteger(clRedSteps, clReductions)
         << " steps per reduction\n";
 
   const unsigned long long clLongestReduction = classicRedStats.maxSteps;
