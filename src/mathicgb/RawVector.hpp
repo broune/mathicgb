@@ -217,6 +217,18 @@ public:
 
   // **** Extra functionality not available on std::vector
 
+  // memcpy onto the end of the vector.
+  void memcpy(const T* from, size_t countOfT) {
+    MATHICGB_ASSERT(countOfT <= capacityToGo());
+    std::memcpy(mEnd, from, countOfT * sizeof(T));
+    mEnd += countOfT;
+  }
+
+  /// Unused capacity.
+  size_t capacityToGo() const {
+    return mCapacityEnd - mEnd;
+  }
+
   /// Returns true if there is no more capacity left. That is, if
   /// capacity() == size().
   bool atCapacity() const {
