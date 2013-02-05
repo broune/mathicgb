@@ -99,51 +99,6 @@ private:
   std::vector<InternalRow> mRows;
 };
 
-void toSparseMatrix(const F4MatrixBuilder2::F4PreBlock& block, SparseMatrix& matrix) {
-  typedef F4MatrixBuilder2::F4PreBlock F4PreBlock;
-  const auto rowCount = block.rowCount();
-  for (F4PreBlock::RowIndex r = 0; r < rowCount; ++r) {
-    const auto row = block.row(r);
-    const auto entryCount = row.entryCount;
-    const F4PreBlock::ColIndex* const indices = row.indices;
-    MATHICGB_ASSERT(row.scalars == 0 || row.externalScalars == 0);
-    if (row.scalars != 0) {
-      const F4PreBlock::Scalar* const scalars = row.scalars;
-      for (F4PreBlock::ColIndex col = 0; col < entryCount; ++col)
-        matrix.appendEntry(indices[col], scalars[col]);
-    } else if (row.externalScalars != 0) {
-      const F4PreBlock::ExternalScalar* const scalars = row.externalScalars;
-      for (F4PreBlock::ColIndex col = 0; col < entryCount; ++col) {
-        const auto scalar = static_cast<F4PreBlock::Scalar>(scalars[col]);
-        MATHICGB_ASSERT
-          (static_cast<F4PreBlock::ExternalScalar>(scalar) == scalar);
-        matrix.appendEntry(indices[col], scalar);
-      }
-    }
-    matrix.rowDone();
-  }
-}
-
-void splitTopBottom(
-  const std::vector<SparseMatrix::RowIndex>& topRows,
-  const std::vector<SparseMatrix::RowIndex>& bottomRows,
-  SparseMatrix&& in,
-  SparseMatrix& top,
-  SparseMatrix& bottom
-) {
-  top.clear();
-  const auto rowCountTop = static_cast<SparseMatrix::RowIndex>(topRows.size());
-  for (SparseMatrix::RowIndex toRow = 0; toRow < rowCountTop; ++toRow)
-    top.appendRow(in, topRows[toRow]);
-
-  bottom.clear();
-  const auto rowCountBottom = static_cast<SparseMatrix::RowIndex>(bottomRows.size());
-  for (SparseMatrix::RowIndex toRow = 0; toRow < rowCountBottom; ++toRow)
-    top.appendRow(in, bottomRows[toRow]);
-
-  in.clear();
-}
-
 MATHICGB_NO_INLINE
 std::pair<F4MatrixBuilder2::ColIndex, ConstMonomial>
 F4MatrixBuilder2::findOrCreateColumn(
@@ -349,12 +304,24 @@ namespace {
     }
 
     void project(
-      std::vector<F4MatrixBuilder2::F4PreBlock>&& preblocks,
+      const std::vector<F4MatrixBuilder2::F4PreBlock*>& preBlocks,
       SparseMatrix& left,
       SparseMatrix& right,
       const PolyRing& ring
     ) const {
-
+      std::vector<std::pair<SparseMatrix::Scalar,F4MatrixBuilder2::F4PreBlock::Row>> from;
+      const auto end = preBlocks.end();
+      for (auto it = preBlocks.begin(); it != end; ++it) {
+        auto& block = **it;
+        const auto rowCount = block.rowCount();
+        for (SparseMatrix::RowIndex r = 0; r < rowCount; ++r) {
+          const auto row = block.row(r);
+          if (row.entryCount == 0)
+            continue;
+          from.emplace_back(std::make_pair(1, row));
+        }
+      }
+      project(from, left, right, ring);
     }
 
     void project(
@@ -432,6 +399,105 @@ namespace {
     std::vector<monomial> mRightMonomials;
   };
 
+  class TopBottomProjectionLate {
+  public:
+    TopBottomProjectionLate(
+      const SparseMatrix& left,
+      const SparseMatrix& right,
+      const SparseMatrix::ColIndex leftColCount,
+      const PolyRing& ring
+    ):
+      mModulus(static_cast<SparseMatrix::Scalar>(ring.charac()))
+    {
+      const auto noRow = std::numeric_limits<SparseMatrix::ColIndex>::max();
+      mTopRows.resize(leftColCount, std::make_pair(0, noRow));
+
+      MATHICGB_ASSERT(left.computeColCount() == leftColCount);
+      MATHICGB_ASSERT(left.rowCount() >= leftColCount);
+      MATHICGB_ASSERT(left.rowCount() == right.rowCount());
+
+      std::vector<SparseMatrix::ColIndex> topEntryCounts(leftColCount);
+
+      const auto rowCount = left.rowCount();
+      for (SparseMatrix::RowIndex row = 0; row < rowCount; ++row) {
+        const auto leftEntryCount = left.entryCountInRow(row);
+        const auto entryCount = leftEntryCount + right.entryCountInRow(row);
+        MATHICGB_ASSERT(entryCount >= leftEntryCount); // no overflow
+        if (entryCount == 0)
+          continue; // ignore zero rows
+        if (leftEntryCount == 0) {
+          mBottomRows.push_back(std::make_pair(1, row)); //can't be top/reducer
+          continue;
+        }
+        const auto lead = left.rowBegin(row).index();
+        if (mTopRows[lead].second != noRow && topEntryCounts[lead]<entryCount)
+          mBottomRows.push_back(std::make_pair(1, row)); //other reducer better
+        else {
+          if (mTopRows[lead].second != noRow)
+            mBottomRows.push_back(std::make_pair(1, mTopRows[lead].second));
+          topEntryCounts[lead] = entryCount;
+          mTopRows[lead].second = row; // do scalar .first later
+        }
+      }
+
+      const auto modulus = static_cast<SparseMatrix::Scalar>(ring.charac());
+      for (SparseMatrix::RowIndex r = 0; r < leftColCount; ++r) {
+        const auto row = mTopRows[r].second;
+        MATHICGB_ASSERT(row != noRow);
+        MATHICGB_ASSERT(left.entryCountInRow(row) > 0);
+        MATHICGB_ASSERT(left.rowBegin(row).index() == r);
+        MATHICGB_ASSERT(left.rowBegin(row).scalar() != 0);
+        MATHICGB_ASSERT(topEntryCounts[r] ==
+          left.entryCountInRow(row) + right.entryCountInRow(row));
+
+        const auto leadScalar = left.rowBegin(row).scalar();
+        mTopRows[r].first = leadScalar == 1 ? 1 : // 1 is the common case
+          modularInverse(leadScalar, modulus);
+      }
+
+#ifdef MATHICGB_DEBUG
+      for (SparseMatrix::RowIndex r = 0; r < mBottomRows.size(); ++r) {
+        const auto row = mBottomRows[r].second;
+        MATHICGB_ASSERT(
+          left.entryCountInRow(row) + right.entryCountInRow(row) > 0);
+        MATHICGB_ASSERT(mBottomRows[r].first == 1);
+      }
+#endif
+    }
+
+    void project(
+      SparseMatrix&& in,
+      SparseMatrix& top,
+      SparseMatrix& bottom
+    ) {
+      top.clear();
+      bottom.clear();
+
+      const auto rowCountTop =
+        static_cast<SparseMatrix::RowIndex>(mTopRows.size());
+      for (SparseMatrix::RowIndex toRow = 0; toRow < rowCountTop; ++toRow) {
+        top.appendRow(in, mTopRows[toRow].second);
+        if (mTopRows[toRow].first != 1)
+          top.multiplyRow(toRow, mTopRows[toRow].first, mModulus);
+      }
+
+      const auto rowCountBottom =
+        static_cast<SparseMatrix::RowIndex>(mBottomRows.size());
+      for (SparseMatrix::RowIndex toRow = 0; toRow < rowCountBottom; ++toRow) {
+        bottom.appendRow(in, mBottomRows[toRow].second);
+        if (mBottomRows[toRow].first != 1)
+            bottom.multiplyRow(toRow, mBottomRows[toRow].first, mModulus);
+      }
+
+      in.clear();
+    }
+
+  private:
+    const SparseMatrix::Scalar mModulus;
+    std::vector<std::pair<SparseMatrix::Scalar, SparseMatrix::RowIndex>> mTopRows;
+    std::vector<std::pair<SparseMatrix::Scalar, SparseMatrix::RowIndex>> mBottomRows;
+  };
+
   class TopBottomProjection {
   public:
     TopBottomProjection(
@@ -478,9 +544,9 @@ namespace {
           if (
             reducer.entryCount != 0 && // already have a reducer and...
             reducer.entryCount < row.entryCount // ...it is sparser/better
-          ) {
+          )
             mReduceeRows.push_back(std::make_pair(1, row));
-          } else {
+          else {
             if (reducer.entryCount != 0)
               mReduceeRows.push_back(std::make_pair(1, reducer));
             const auto leadScalar = row.scalars != 0 ? row.scalars[lead.first] :
@@ -612,15 +678,25 @@ void F4MatrixBuilder2::buildMatrixAndClear(QuadMatrix& quadMatrix) {
   // Create projections
   LeftRightProjection projection(mIsColumnToLeft, mMap);
   mMap.clearNonConcurrent();
-  TopBottomProjection topBottom(blocks, projection, ring());
 
-  // Project the pre-blocks into the matrix
+  if (true) {
+    TopBottomProjection topBottom(blocks, projection, ring());
+
+    // Project the pre-blocks into the matrix
+    projection.project(topBottom.reducerRows(), quadMatrix.topLeft, quadMatrix.topRight, ring());
+    projection.project(topBottom.reduceeRows(), quadMatrix.bottomLeft, quadMatrix.bottomRight, ring());
+  } else {
+    SparseMatrix left;
+    SparseMatrix right;
+    projection.project(blocks, left, right, ring());
+    TopBottomProjectionLate topBottom(left, right, left.computeColCount(), ring());
+    topBottom.project(std::move(left), quadMatrix.topLeft, quadMatrix.bottomLeft);
+    topBottom.project(std::move(right), quadMatrix.topRight, quadMatrix.bottomRight);
+  }
+
   quadMatrix.ring = &ring();
   quadMatrix.leftColumnMonomials = projection.moveLeftMonomials();
   quadMatrix.rightColumnMonomials = projection.moveRightMonomials();
-  projection.project(topBottom.reducerRows(), quadMatrix.topLeft, quadMatrix.topRight, ring());
-  projection.project(topBottom.reduceeRows(), quadMatrix.bottomLeft, quadMatrix.bottomRight, ring());
-
   threadData.clear();
 
 #ifdef MATHICGB_DEBUG
@@ -632,6 +708,7 @@ void F4MatrixBuilder2::buildMatrixAndClear(QuadMatrix& quadMatrix) {
     }
   }
   for (RowIndex row = 0; row < quadMatrix.topLeft.rowCount(); ++row) {
+    MATHICGB_ASSERT(quadMatrix.topLeft.entryCountInRow(row) > 0);
     MATHICGB_ASSERT(quadMatrix.topLeft.leadCol(row) == row);
   }
   MATHICGB_ASSERT(quadMatrix.debugAssertValid());
