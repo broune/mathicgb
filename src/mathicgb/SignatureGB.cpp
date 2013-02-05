@@ -486,7 +486,7 @@ void SignatureGB::displaySomeStats(std::ostream& out) const {
   const size_t basisTermCount = GB->basis().monomialCount();
   name << "Terms for basis:\n";
   value << mic::ColumnPrinter::commafy(basisTermCount) << '\n';
-  extra << mic::ColumnPrinter::ratio(basisTermCount, basisSize)
+  extra << mic::ColumnPrinter::ratioInteger(basisTermCount, basisSize)
     << " terms per basis ele\n";
 
   const size_t minLeadCount = GB->basis().minimalLeadCount();
