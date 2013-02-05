@@ -300,7 +300,7 @@ namespace {
     typedef SparseMatrix::ColIndex ColIndex;
 
     LeftRightProjection(
-      const std::vector<const char>& isColToLeft,
+      const std::vector<char>& isColToLeft,
       const MonomialMap<ColIndex>& map
     ) {
       const auto& ring = map.ring();
