@@ -309,7 +309,10 @@ namespace {
       SparseMatrix& right,
       const PolyRing& ring
     ) const {
-      std::vector<std::pair<SparseMatrix::Scalar,F4MatrixBuilder2::F4PreBlock::Row>> from;
+      left.clear();
+      right.clear();
+      const auto modulus = static_cast<SparseMatrix::Scalar>(ring.charac());
+
       const auto end = preBlocks.end();
       for (auto it = preBlocks.begin(); it != end; ++it) {
         auto& block = **it;
@@ -318,10 +321,40 @@ namespace {
           const auto row = block.row(r);
           if (row.entryCount == 0)
             continue;
-          from.emplace_back(std::make_pair(1, row));
+          MATHICGB_ASSERT(row.entryCount != 0);
+          MATHICGB_ASSERT(row.scalars == 0 || row.externalScalars == 0);
+
+          if (row.externalScalars != 0) {
+            auto indices = row.indices;
+            auto indicesEnd = row.indices + row.entryCount;
+            auto scalars = row.externalScalars;
+            for (; indices != indicesEnd; ++indices, ++scalars) {
+              const auto scalar = static_cast<SparseMatrix::Scalar>(*scalars);
+              const auto index = *indices;
+              const auto translated = project(index);
+              if (translated.left)
+                left.appendEntry(translated.index, scalar);
+              else
+                right.appendEntry(translated.index, scalar);
+            }
+          } else {
+            auto indices = row.indices;
+            auto indicesEnd = row.indices + row.entryCount;
+            auto scalars = row.scalars;
+            for (; indices != indicesEnd; ++indices, ++scalars) {
+              const auto index = *indices;
+              const auto translated = project(index);
+              if (translated.left)
+                left.appendEntry(translated.index, *scalars);
+              else
+                right.appendEntry(translated.index, *scalars);
+            }
+          }
+          MATHICGB_ASSERT(left.rowCount() == right.rowCount());
+          left.rowDone();
+          right.rowDone();
         }
       }
-      project(from, left, right, ring);
     }
 
     void project(

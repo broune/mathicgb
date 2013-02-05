@@ -171,11 +171,17 @@ void SparseMatrix::appendRowAndNormalize(
 }
 
 void SparseMatrix::appendRow(const SparseMatrix& matrix, const RowIndex row) {
-  MATHICGB_ASSERT(row < matrix.rowCount());
-  auto it = matrix.rowBegin(row);
-  const auto end = matrix.rowEnd(row);
-  for (; it != end; ++it)
-    appendEntry(it.index(), it.scalar());
+  MATHICGB_ASSERT(row < matrix.rowCount()); 
+
+  const auto size = matrix.entryCountInRow(row);
+  while (mBlock.mScalars.capacityToGo() < size)
+    growEntryCapacity();
+  MATHICGB_ASSERT(mBlock.mScalars.capacityToGo() ==
+    mBlock.mColIndices.capacityToGo());
+
+  auto const data = matrix.mRows[row];
+  mBlock.mScalars.memcpy(data.mScalarsBegin, size);
+  mBlock.mColIndices.memcpy(data.mIndicesBegin, size);
   rowDone();
 }
   
@@ -360,6 +366,7 @@ void SparseMatrix::reserveFreeEntries(const size_t freeCount) {
 void SparseMatrix::growEntryCapacity() {
   MATHICGB_ASSERT(mBlock.mColIndices.size() == mBlock.mScalars.size());
   MATHICGB_ASSERT(mBlock.mColIndices.capacity() == mBlock.mScalars.capacity());
+  MATHICGB_ASSERT(mBlock.mColIndices.size() <= mBlock.mColIndices.capacity());
 
   // TODO: handle overflow of arithmetic here
   if (mMemoryQuantum != 0 &&
@@ -373,6 +380,8 @@ void SparseMatrix::growEntryCapacity() {
     // to store a single row being built.
     reserveFreeEntries(mBlock.mColIndices.capacity() * 2);
   }
+
+  MATHICGB_ASSERT(mBlock.mColIndices.size() <= mBlock.mColIndices.capacity());
 
   MATHICGB_ASSERT(mBlock.mColIndices.size() == mBlock.mScalars.size());
 }
