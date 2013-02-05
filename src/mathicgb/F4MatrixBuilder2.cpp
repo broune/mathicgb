@@ -124,6 +124,26 @@ void toSparseMatrix(const F4MatrixBuilder2::F4PreBlock& block, SparseMatrix& mat
   }
 }
 
+void splitTopBottom(
+  const std::vector<SparseMatrix::RowIndex>& topRows,
+  const std::vector<SparseMatrix::RowIndex>& bottomRows,
+  SparseMatrix&& in,
+  SparseMatrix& top,
+  SparseMatrix& bottom
+) {
+  top.clear();
+  const auto rowCountTop = static_cast<SparseMatrix::RowIndex>(topRows.size());
+  for (SparseMatrix::RowIndex toRow = 0; toRow < rowCountTop; ++toRow)
+    top.appendRow(in, topRows[toRow]);
+
+  bottom.clear();
+  const auto rowCountBottom = static_cast<SparseMatrix::RowIndex>(bottomRows.size());
+  for (SparseMatrix::RowIndex toRow = 0; toRow < rowCountBottom; ++toRow)
+    top.appendRow(in, bottomRows[toRow]);
+
+  in.clear();
+}
+
 MATHICGB_NO_INLINE
 std::pair<F4MatrixBuilder2::ColIndex, ConstMonomial>
 F4MatrixBuilder2::findOrCreateColumn(
@@ -323,9 +343,88 @@ namespace {
       bool left;
     };
 
-    Projected project(const ColIndex index) {
+    Projected project(const ColIndex index) const {
       MATHICGB_ASSERT(index < mProject.size());
       return mProject[index];
+    }
+
+    void project(
+      std::vector<F4MatrixBuilder2::F4PreBlock>&& preblocks,
+      SparseMatrix& left,
+      SparseMatrix& right,
+      const PolyRing& ring
+    ) const {
+
+    }
+
+    void project(
+      const std::vector<F4MatrixBuilder2::F4PreBlock::Row>& from,
+      const bool makeLeftUnitary,
+      SparseMatrix& left,
+      SparseMatrix& right,
+      const PolyRing& ring
+    ) const {
+      left.clear();
+      right.clear();
+      const auto fromEnd = from.end();
+      for (auto fromIt = from.begin(); fromIt != fromEnd; ++fromIt) {
+        const auto row = *fromIt;
+        MATHICGB_ASSERT(row.entryCount != 0);
+        MATHICGB_ASSERT(row.scalars == 0 || row.externalScalars == 0);
+
+        if (row.externalScalars != 0) {
+          auto indices = row.indices;
+          auto indicesEnd = row.indices + row.entryCount;
+          auto scalars = row.externalScalars;
+          for (; indices != indicesEnd; ++indices, ++scalars) {
+            const auto scalar = static_cast<SparseMatrix::Scalar>(*scalars);
+            const auto index = *indices;
+            const auto translated = project(index);
+            if (translated.left)
+              left.appendEntry(translated.index, scalar);
+            else
+              right.appendEntry(translated.index, scalar);
+          }
+        } else {
+          auto indices = row.indices;
+          auto indicesEnd = row.indices + row.entryCount;
+          auto scalars = row.scalars;
+          for (; indices != indicesEnd; ++indices, ++scalars) {
+            const auto index = *indices;
+            const auto translated = project(index);
+            if (translated.left)
+              left.appendEntry(translated.index, *scalars);
+            else
+              right.appendEntry(translated.index, *scalars);
+          }
+        }
+        const auto rowIndex = left.rowCount();
+        MATHICGB_ASSERT(rowIndex == right.rowCount());
+        left.rowDone();
+        right.rowDone();
+
+        if (
+          makeLeftUnitary &&
+          !left.emptyRow(rowIndex) &&
+          left.rowBegin(rowIndex).scalar() != 1
+        ) {
+          const auto modulus = static_cast<SparseMatrix::Scalar>(ring.charac());
+          const auto inverse =
+            modularInverse(left.rowBegin(rowIndex).scalar(), modulus);
+          left.multiplyRow(rowIndex, inverse, modulus);
+          right.multiplyRow(rowIndex, inverse, modulus);
+          MATHICGB_ASSERT(left.rowBegin(rowIndex).scalar() == 1);
+        }
+
+        MATHICGB_ASSERT(left.rowCount() == right.rowCount());
+        MATHICGB_ASSERT(!makeLeftUnitary || !left.emptyRow(left.rowCount() - 1));
+        MATHICGB_ASSERT
+          (!makeLeftUnitary || left.rowBegin(left.rowCount() - 1).scalar() == 1);
+      }
+    }
+
+    const std::vector<monomial>& leftMonomials() const {
+      return mLeftMonomials;
     }
 
     std::vector<monomial> moveLeftMonomials() {
@@ -340,6 +439,79 @@ namespace {
     std::vector<Projected> mProject;
     std::vector<monomial> mLeftMonomials;
     std::vector<monomial> mRightMonomials;
+  };
+
+  class TopBottomProjection {
+  public:
+    TopBottomProjection(
+      const std::vector<F4MatrixBuilder2::F4PreBlock*>& blocks,
+      const LeftRightProjection& leftRight
+    ):
+      mReducerRows(leftRight.leftMonomials().size())
+    {
+      typedef SparseMatrix::RowIndex RowIndex;
+      const auto noReducer = std::numeric_limits<RowIndex>::max();
+      F4PreBlock::Row noRow = {};
+      noRow.indices = 0;
+      const auto noLeftCol = std::numeric_limits<SparseMatrix::ColIndex>::max();
+
+      const auto end = blocks.end();
+      for (auto it = blocks.begin(); it != end; ++it) {
+        auto& block = **it;
+        const auto rowCount = block.rowCount();
+        for (RowIndex r = 0; r < rowCount; ++r) {
+          const auto row = block.row(r);
+          if (row.entryCount == 0)
+            continue;
+
+          // Determine leading (minimum index) left entry.
+          const auto lead = [&] {
+            const auto end = row.indices + row.entryCount;
+            for (auto it = row.indices; it != end; ++it) {
+              auto const translated = leftRight.project(*it);
+              if (translated.left)
+                return translated.index;
+            }
+            return noLeftCol;
+          }();
+          // Decide if this should be a reducer or reducee row.
+          if (lead == noLeftCol) {
+            mReduceeRows.push_back(row); // no left entries
+            continue;
+          }
+          auto& reducer = mReducerRows[lead];
+          if (reducer.entryCount == 0)
+            reducer = row; // row is first reducer with this lead
+          else if (reducer.entryCount > row.entryCount) {
+            mReduceeRows.push_back(reducer); // row sparser (=better) reducer
+            reducer = row;
+          } else
+            mReduceeRows.push_back(row);
+        }
+      }
+
+#ifdef MATHICGB_DEBUG
+  for (size_t  i = 0; i < mReducerRows.size(); ++i) {
+    const auto row = mReducerRows[i];
+    MATHICGB_ASSERT(row.entryCount > 0);
+    MATHICGB_ASSERT(leftRight.project(*row.indices).left);
+    MATHICGB_ASSERT(leftRight.project(*row.indices).index == i);
+  }
+#endif
+    }
+
+    typedef F4MatrixBuilder2::F4PreBlock F4PreBlock;
+    const std::vector<F4PreBlock::Row>& reducerRows() const {
+      return mReducerRows;
+    }
+
+    const std::vector<F4PreBlock::Row>& reduceeRows() const {
+      return mReduceeRows;
+    }
+
+  private:
+    std::vector<F4PreBlock::Row> mReducerRows;
+    std::vector<F4PreBlock::Row> mReduceeRows;
   };
 }
 
@@ -372,6 +544,7 @@ void F4MatrixBuilder2::buildMatrixAndClear(QuadMatrix& quadMatrix) {
     return std::move(data);
   });
 
+  // Construct the matrix as pre-blocks
   tbb::parallel_do(mTodo.begin(), mTodo.end(),
     [&](const RowTask& task, TaskFeeder& feeder)
   {
@@ -406,134 +579,29 @@ void F4MatrixBuilder2::buildMatrixAndClear(QuadMatrix& quadMatrix) {
       ring().freeMonomial(it->desiredLead);
   mTodo.clear();
 
-  LeftRightProjection projection(mIsColumnToLeft, mMap);
-  quadMatrix.leftColumnMonomials = projection.moveLeftMonomials();
-  quadMatrix.rightColumnMonomials = projection.moveRightMonomials();
-
-  // Decide which rows are reducers (top) and which are reducees (bottom).
-  const auto noReducer = std::numeric_limits<RowIndex>::max();
-  F4PreBlock::Row noRow = {};
-  noRow.indices = 0;
-  std::vector<F4PreBlock::Row> reducerRows(quadMatrix.leftColumnMonomials.size(), noRow);
-  std::vector<F4PreBlock::Row> reduceeRows;
-
-  SparseMatrix matrix(mMemoryQuantum);
+  // Collect pre-blocks from each thread
+  std::vector<F4PreBlock*> blocks;
+  blocks.reserve(threadData.size());
   const auto end = threadData.end();
   for (auto it = threadData.begin(); it != end; ++it) {
-    auto& block = it->block;
-    const auto rowCount = block.rowCount();
-    for (RowIndex r = 0; r < rowCount; ++r) {
-      const auto row = block.row(r);
-      if (row.entryCount == 0)
-        continue;
-
-      // Determine leading (minimum index) left entry.
-      const auto lead = [&] {
-        const auto end = row.indices + row.entryCount;
-        for (auto it = row.indices; it != end; ++it) {
-          auto const translated = projection.project(*it);
-          if (translated.left)
-            return translated.index;
-        }
-        return std::numeric_limits<ColIndex>::max(); // No left entries at all.
-      }();
-      // Decide if this should be a reducer or reducee row.
-      if (lead == std::numeric_limits<ColIndex>::max()) {
-        reduceeRows.push_back(row); // no left entries
-        continue;
-      }
-      auto& reducer = reducerRows[lead];
-      if (reducer.entryCount == 0)
-        reducer = row; // row is first reducer with this lead
-      else if (reducer.entryCount > row.entryCount) {
-        reduceeRows.push_back(reducer); // row sparser (=better) reducer
-        reducer = row;
-      } else
-        reduceeRows.push_back(row);
-    }
-
+    blocks.emplace_back(&it->block);
     ring().freeMonomial(it->tmp1);
     ring().freeMonomial(it->tmp2);
+    continue;
   }
 
-  MATHICGB_ASSERT(reducerRows.size() == quadMatrix.leftColumnMonomials.size());
-#ifdef MATHICGB_DEBUG
-  for (size_t  i = 0; i < reducerRows.size(); ++i) {
-    const auto row = reducerRows[i];
-    MATHICGB_ASSERT(row.entryCount > 0);
-    MATHICGB_ASSERT(projection.project(*row.indices).left);
-    MATHICGB_ASSERT(projection.project(*row.indices).index == i);
-  }
-#endif
+  // Create projections
+  LeftRightProjection projection(mIsColumnToLeft, mMap);
+  mMap.clearNonConcurrent();
+  TopBottomProjection topBottom(blocks, projection);
 
+  // Project the pre-blocks into the matrix
   quadMatrix.ring = &ring();
-  auto splitLeftRight = [&](
-    const std::vector<F4PreBlock::Row>& from,
-    const bool makeLeftUnitary,
-    SparseMatrix& left,
-    SparseMatrix& right
-  ) {
-    left.clear();
-    right.clear();
-    const auto fromEnd = from.end();
-    for (auto fromIt = from.begin(); fromIt != fromEnd; ++fromIt) {
-      const auto row = *fromIt;
-      MATHICGB_ASSERT(row.entryCount != 0);
-      MATHICGB_ASSERT(row.scalars == 0 || row.externalScalars == 0);
+  quadMatrix.leftColumnMonomials = projection.moveLeftMonomials();
+  quadMatrix.rightColumnMonomials = projection.moveRightMonomials();
+  projection.project(topBottom.reducerRows(), true, quadMatrix.topLeft, quadMatrix.topRight, ring());
+  projection.project(topBottom.reduceeRows(), false, quadMatrix.bottomLeft, quadMatrix.bottomRight, ring());
 
-      if (row.externalScalars != 0) {
-        auto indices = row.indices;
-        auto indicesEnd = row.indices + row.entryCount;
-        auto scalars = row.externalScalars;
-        for (; indices != indicesEnd; ++indices, ++scalars) {
-          const auto scalar = static_cast<Scalar>(*scalars);
-          const auto index = *indices;
-          const auto translated = projection.project(index);
-          if (translated.left)
-            left.appendEntry(translated.index, scalar);
-          else
-            right.appendEntry(translated.index, scalar);
-        }
-      } else {
-        auto indices = row.indices;
-        auto indicesEnd = row.indices + row.entryCount;
-        auto scalars = row.scalars;
-        for (; indices != indicesEnd; ++indices, ++scalars) {
-          const auto index = *indices;
-          const auto translated = projection.project(index);
-          if (translated.left)
-            left.appendEntry(translated.index, *scalars);
-          else
-            right.appendEntry(translated.index, *scalars);
-        }
-      }
-      const auto rowIndex = left.rowCount();
-      MATHICGB_ASSERT(rowIndex == right.rowCount());
-      left.rowDone();
-      right.rowDone();
-
-      if (
-        makeLeftUnitary &&
-        !left.emptyRow(rowIndex) &&
-        left.rowBegin(rowIndex).scalar() != 1
-      ) {
-        const auto modulus = static_cast<Scalar>(ring().charac());
-        const auto inverse =
-          modularInverse(left.rowBegin(rowIndex).scalar(), modulus);
-        left.multiplyRow(rowIndex, inverse, modulus);
-        right.multiplyRow(rowIndex, inverse, modulus);
-        MATHICGB_ASSERT(left.rowBegin(rowIndex).scalar() == 1);
-      }
-
-      MATHICGB_ASSERT(left.rowCount() == right.rowCount());
-      MATHICGB_ASSERT(!makeLeftUnitary || !left.emptyRow(left.rowCount() - 1));
-      MATHICGB_ASSERT
-        (!makeLeftUnitary || left.rowBegin(left.rowCount() - 1).scalar() == 1);
-    }
-  };
-  splitLeftRight(reducerRows, true, quadMatrix.topLeft, quadMatrix.topRight);
-  splitLeftRight
-    (reduceeRows, false, quadMatrix.bottomLeft, quadMatrix.bottomRight);
   threadData.clear();
 
 #ifdef MATHICGB_DEBUG
@@ -547,15 +615,8 @@ void F4MatrixBuilder2::buildMatrixAndClear(QuadMatrix& quadMatrix) {
   for (RowIndex row = 0; row < quadMatrix.topLeft.rowCount(); ++row) {
     MATHICGB_ASSERT(quadMatrix.topLeft.leadCol(row) == row);
   }
-#endif
-
-  // todo: do this together with left/right split
-  //quadMatrix.sortColumnsLeftRightParallel();
-#ifdef MATHICGB_DEBUG
   MATHICGB_ASSERT(quadMatrix.debugAssertValid());
 #endif
-
-  mMap.clearNonConcurrent();
 }
 
 std::pair<F4MatrixBuilder2::ColIndex, ConstMonomial>
