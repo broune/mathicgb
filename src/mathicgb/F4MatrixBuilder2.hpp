@@ -131,7 +131,7 @@ private:
     TaskFeeder& feeder
   );
 
-  std::vector<const char> mIsColumnToLeft;
+  std::vector<char> mIsColumnToLeft;
   const size_t mMemoryQuantum;
   tbb::mutex mCreateColumnLock;
   monomial mTmp;
