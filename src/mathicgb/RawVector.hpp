@@ -7,6 +7,7 @@
 #include <utility>
 #include <algorithm>
 #include <stdexcept>
+#include <cstring>
 
 /// RawVector mimics std::vector except that it does not do memory management.
 /// So you can directly access the pointers to memory and you can replace them
