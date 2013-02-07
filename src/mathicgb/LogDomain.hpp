@@ -16,8 +16,8 @@
 /// LogDomains properly have zero overhead. LogDomains can be turned on
 /// and off at compile time and at runtime individually.
 ///
-/// Compile-time enabled loggers automatically register themselves with
-/// LogDomainSet::singleton().
+/// Compile-time enabled loggers automatically register themselves at start-up
+/// with LogDomainSet::singleton().
 ///
 /// @todo: support turning all loggers off globally with a macro, regardless
 /// of their individual compile-time on/off setting.
@@ -44,15 +44,34 @@ public:
 
   std::ostream& stream();
 
-  bool hasTime() const {return mHasTime;}
-
   /// Class for recording time that is logged. Movable.
   class Timer;
 
   /// Returns a started timer.
   Timer timer();
 
+  /// Returns true if any time has been logged on this logger, even if the
+  /// duration of that time was zero (that is., less than the resolution
+  /// of the timer).
+  bool hasTime() const {return mHasTime;}
+
   double loggedSecondsReal() const;
+
+
+  typedef unsigned long long Counter;
+
+  Counter count() const {return mCount;}
+
+  void setCount(const Counter counter) {
+    if (enabled()) {
+      mCount = counter;
+      mHasCount = true;
+    }
+  }
+
+  /// Returns true if setCount has been called.
+  bool hasCount() const {return mHasCount;}
+
 
 private:
   struct TimeInterval {
@@ -69,10 +88,10 @@ private:
   const char* mDescription;
 
   TimeInterval mInterval; /// Total amount of time recorded on this log.
+  bool mHasTime; /// Whether any time has been registered (even if 0s).
 
-  /// Indicates if any period of time has been recorded, even if that period
-  /// of time was recorded as 0 seconds.
-  bool mHasTime;
+  Counter mCount;
+  bool mHasCount; /// Whether the count has been set
 };
 
 class LogDomain<true>::Timer {
@@ -95,7 +114,7 @@ public:
 
   /// Start recording time on a stopped timer.
   ///
-  /// This is a no-op is the timer is already running or if the logger is
+  /// This is a no-op if the timer is already running or if the logger is
   /// disabled.
   void start();
 
@@ -105,7 +124,10 @@ private:
   tbb::tick_count mRealTicks; // high precision
 };
 
-/// This is a compile-time disabled logger.
+/// This is a compile-time disabled logger. You are not supposed to dynamically
+/// call any non-const methods on it other than the constructor. Code that
+/// calls other code will compile but it is an error if any of those
+/// methods get called at runtime.
 template<>
 class LogDomain<false> {
 public:
@@ -119,20 +141,27 @@ public:
   public:
     Timer(LogDomain<false>&) {}
     bool running() const {return false;}
-    void stop() {}
-    void start() {}
+    void stop() {MATHICGB_ASSERT(false);}
+    void start() {MATHICGB_ASSERT(false);}
   };
-  Timer timer() {return Timer(*this);}
+  Timer timer() {
+    MATHICGB_ASSERT(false);
+    return Timer(*this);
+  }
 
   std::ostream& stream() {
     MATHICGB_ASSERT(false);
     return *static_cast<std::ostream*>(0);
   }
+
+  typedef unsigned long long Counter;
+  Counter count() const {return 0;}
+  void setCount(const Counter counter) {MATHICGB_ASSERT(false);}
+  bool hasCount() const {return false;}
 };
 
 namespace LogDomainInternal {
-  // Support code for the logging macroes
-
+  // Helpers for the logging macroes
 
   template<class Tag, bool Default>
   struct SelectValue {static const bool value = Default;};
@@ -239,5 +268,22 @@ namespace LogDomainInternal {
   (MATHICGB_LOGGER(DOMAIN).timer()); \
   MATHICGB_LOG(DOMAIN)
 
-#endif
+/// Increments the count of DOMAIN by the value of the expression BY. The
+/// expression BY is evaluated at most once and it is not evaluated if
+/// DOMAIN is disabled.
+///
+/// Example:
+///   MATHICGB_LOG_INCREMENT_BY(MyDomain, 3);
+#define MATHICGB_LOG_INCREMENT_BY(DOMAIN, BY) \
+  do { \
+    auto& MGBLOG_log = MATHICGB_LOGGER(DOMAIN); \
+    if (MGBLOG_log.enabled()) { \
+      MGBLOG_log.setCount(MGBLOG_log.count() + BY); \
+    } \
+  } while (false)
 
+/// Increments the count of DOMAIN by 1.
+#define MATHICGB_LOG_INCREMENT(DOMAIN) \
+  MATHICGB_LOG_INCREMENT_BY(DOMAIN, 1)
+
+#endif

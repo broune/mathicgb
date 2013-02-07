@@ -49,13 +49,14 @@ Poly* TypicalReducer::regularReduce(
   Poly* result = new Poly(ring);
 
   unsigned long long steps = 2; // number of steps in this reduction
-  for (const_term v; leadTerm(v); ++steps) {
+  for (const_term v; leadTerm(v);) {
     MATHICGB_ASSERT(v.coeff != 0);
     reducer = basis.regularReducer(sig, v.monom);
     if (reducer == static_cast<size_t>(-1)) { // no reducer found
       result->appendTerm(v.coeff, v.monom);
       removeLeadTerm();
     } else { // reduce by reducer
+      ++steps;
       basis.basis().usedAsReducer(reducer);
       monomial mon = ring.allocMonomial(mArena);
       ring.monomialDivide(v.monom, basis.getLeadMonomial(reducer), mon);
@@ -168,8 +169,8 @@ std::unique_ptr<Poly> TypicalReducer::classicReduce
     std::cerr << "Classic reduction begun." << std::endl;
 
   coefficient coef;
-  unsigned long long steps = 1; // number of steps in this reduction
-  for (const_term v; leadTerm(v); ++steps) {
+  unsigned long long steps = 0; // number of steps in this reduction
+  for (const_term v; leadTerm(v);) {
     if (tracingLevel > 100) {
       std::cerr << "from reducer queue: ";
       basis.ring().monomialDisplay(std::cerr, v.monom);
@@ -183,6 +184,7 @@ std::unique_ptr<Poly> TypicalReducer::classicReduce
       result->appendTerm(v.coeff, v.monom);
       removeLeadTerm();
     } else { // reduce by reducer
+      ++steps;
       basis.usedAsReducer(reducer);
       monomial mon = ring.allocMonomial(mArena);
       ring.monomialDivide(v.monom, basis.leadMonomial(reducer), mon);

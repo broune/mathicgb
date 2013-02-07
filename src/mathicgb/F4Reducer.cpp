@@ -5,8 +5,14 @@
 #include "F4MatrixBuilder2.hpp"
 #include "F4MatrixReducer.hpp"
 #include "QuadMatrix.hpp"
+#include "LogDomain.hpp"
 #include <iostream>
 #include <limits>
+
+MATHICGB_DEFINE_LOG_DOMAIN(
+  F4MatrixRows,
+  "Count number of rows in F4 matrices."
+);
 
 F4Reducer::F4Reducer(const PolyRing& ring, Type type):
   mType(type),
@@ -30,24 +36,22 @@ std::unique_ptr<Poly> F4Reducer::classicReduce
     std::cerr <<
       "F4Reducer: Using fall-back reducer for single classic reduction\n";
 
-  std::unique_ptr<Poly> p;
-  p = mFallback->classicReduce(poly, basis);
+  auto p = mFallback->classicReduce(poly, basis);
   mSigStats = mFallback->sigStats();
   mClassicStats = mFallback->classicStats();
-  return p;
+  return std::move(p);
 }
 
 std::unique_ptr<Poly> F4Reducer::classicTailReduce
 (const Poly& poly, const PolyBasis& basis) {
-  std::unique_ptr<Poly> p;
   if (tracingLevel >= 2)
     std::cerr <<
       "F4Reducer: Using fall-back reducer for single classic tail reduction\n";
 
-  p = mFallback->classicTailReduce(poly, basis);
+  auto p = mFallback->classicTailReduce(poly, basis);
   mSigStats = mFallback->sigStats();
   mClassicStats = mFallback->classicStats();
-  return p;
+  return std::move(p);
 }
 
 std::unique_ptr<Poly> F4Reducer::classicReduceSPoly(
@@ -58,7 +62,10 @@ std::unique_ptr<Poly> F4Reducer::classicReduceSPoly(
   if (tracingLevel >= 2)
     std::cerr << "F4Reducer: "
       "Using fall-back reducer for single classic S-pair reduction\n";
-  return mFallback->classicReduceSPoly(a, b, basis);
+  auto p = mFallback->classicReduceSPoly(a, b, basis);
+  mSigStats = mFallback->sigStats();
+  mClassicStats = mFallback->classicStats();
+  return std::move(p);
 }
 
 void F4Reducer::classicReduceSPolySet(
@@ -66,17 +73,19 @@ void F4Reducer::classicReduceSPolySet(
   const PolyBasis& basis,
   std::vector<std::unique_ptr<Poly> >& reducedOut
 ) {
-  if (spairs.size() <= 1) {
+  if (spairs.size() <= 1 && false) {
     if (tracingLevel >= 2)
       std::cerr << "F4Reducer: Using fall-back reducer for "
         << spairs.size() << " S-pairs.\n";
     mFallback->classicReduceSPolySet(spairs, basis, reducedOut);
+    mSigStats = mFallback->sigStats();
+    mClassicStats = mFallback->classicStats();
     return;
   }
   reducedOut.clear();
 
   MATHICGB_ASSERT(!spairs.empty());
-  if (tracingLevel >= 2)
+  if (tracingLevel >= 2 && false)
     std::cerr << "F4Reducer: Reducing " << spairs.size() << " S-polynomials.\n";
 
   SparseMatrix reduced;
@@ -100,6 +109,7 @@ void F4Reducer::classicReduceSPolySet(
         builder.buildMatrixAndClear(qm);
       }
     }
+    MATHICGB_LOG_INCREMENT_BY(F4MatrixRows, qm.rowCount());
     saveMatrix(qm);
     reduced = F4MatrixReducer(basis.ring().charac()).
       reducedRowEchelonFormBottomRight(qm);
@@ -109,7 +119,7 @@ void F4Reducer::classicReduceSPolySet(
       mRing.freeMonomial(*it);
   }
 
-  if (tracingLevel >= 2)
+  if (tracingLevel >= 2 && false)
     std::cerr << "F4Reducer: Extracted " << reduced.rowCount()
               << " non-zero rows\n";
 
@@ -128,18 +138,20 @@ void F4Reducer::classicReducePolySet
  const PolyBasis& basis,
  std::vector<std::unique_ptr<Poly> >& reducedOut)
 {
-  if (polys.size() <= 1) {
+  if (polys.size() <= 1 && false) {
     if (tracingLevel >= 2)
       std::cerr << "F4Reducer: Using fall-back reducer for "
                 << polys.size() << " polynomials.\n";
     mFallback->classicReducePolySet(polys, basis, reducedOut);
+    mSigStats = mFallback->sigStats();
+    mClassicStats = mFallback->classicStats();
     return;
   }
 
   reducedOut.clear();
 
   MATHICGB_ASSERT(!polys.empty());
-  if (tracingLevel >= 2)
+  if (tracingLevel >= 2 && false)
     std::cerr << "F4Reducer: Reducing " << polys.size() << " polynomials.\n";
 
   SparseMatrix reduced;
@@ -159,6 +171,7 @@ void F4Reducer::classicReducePolySet
         builder.buildMatrixAndClear(qm);
       }
     }
+    MATHICGB_LOG_INCREMENT_BY(F4MatrixRows, qm.rowCount());
     saveMatrix(qm);
     reduced = F4MatrixReducer(basis.ring().charac()).
       reducedRowEchelonFormBottomRight(qm);
@@ -168,7 +181,7 @@ void F4Reducer::classicReducePolySet
       mRing.freeMonomial(*it);
   }
 
-  if (tracingLevel >= 2)
+  if (tracingLevel >= 2 && false)
     std::cerr << "F4Reducer: Extracted " << reduced.rowCount()
               << " non-zero rows\n";
 
@@ -191,10 +204,10 @@ Poly* F4Reducer::regularReduce(
   if (tracingLevel >= 2)
     std::cerr <<
       "F4Reducer: Using fall-back reducer for single regular reduction\n";
-  Poly* p = mFallback->regularReduce(sig, multiple, basisElement, basis);
+  auto p = mFallback->regularReduce(sig, multiple, basisElement, basis);
   mSigStats = mFallback->sigStats();
   mClassicStats = mFallback->classicStats();
-  return p;
+  return std::move(p);
 }
 
 void F4Reducer::setMemoryQuantum(size_t quantum) {

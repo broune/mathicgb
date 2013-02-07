@@ -20,6 +20,37 @@ LogDomain<true>* LogDomainSet::logDomain(const char* const name) {
 }
 
 void LogDomainSet::printReport(std::ostream& out) const {
+  printCountReport(out);
+  printTimeReport(out);
+}
+
+void LogDomainSet::printCountReport(std::ostream& out) const {
+  mathic::ColumnPrinter pr;
+  auto& names = pr.addColumn(true);
+  auto& counts = pr.addColumn(false);
+
+  names << "Log name  \n";
+  counts << "  Count\n";
+  pr.repeatToEndOfLine('-');
+
+  bool somethingToReport = false;
+  const auto end = logDomains().cend();
+  for (auto it = logDomains().cbegin(); it != end; ++it) {
+    const auto& log = **it;
+    if (!log.enabled() || !log.hasCount())
+      continue;
+    somethingToReport = true;
+
+    names << log.name() << "  \n";
+    counts << "  " << mathic::ColumnPrinter::commafy(log.count()) << '\n';
+  }
+  if (!somethingToReport)
+    return;
+
+  out << "***** Logging count report *****\n\n" << pr << '\n';
+}
+
+void LogDomainSet::printTimeReport(std::ostream& out) const {
   const auto allTime = (tbb::tick_count::now() - mStartTime).seconds();
 
   mathic::ColumnPrinter pr;
@@ -47,7 +78,7 @@ void LogDomainSet::printReport(std::ostream& out) const {
 
     const auto logTime = log.loggedSecondsReal();
     timeSum += logTime;
-    names << log.name() << '\n';
+    names << log.name() << "  \n";
     times << logTime << '\n';
     ratios << mathic::ColumnPrinter::percentDouble(logTime, allTime) << '\n';
   }
@@ -62,7 +93,7 @@ void LogDomainSet::printReport(std::ostream& out) const {
   const auto oldPrecision = out.precision();
   out << std::fixed;
   out.precision(3);
-  out << "***** Logging report *****\nTime elapsed: "
+  out << "***** Logging time report *****\nTime elapsed: "
     << allTime << "s\n\n" << pr << '\n';
 
   // todo: restore the stream state using RAII, since the above code might

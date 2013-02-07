@@ -18,6 +18,8 @@ public:
   const std::vector<LogDomain<true>*>& logDomains() const {return mLogDomains;}
 
   void printReport(std::ostream& out) const;
+  void printTimeReport(std::ostream& out) const;
+  void printCountReport(std::ostream& out) const;
 
   static LogDomainSet& singleton();
 
