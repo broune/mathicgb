@@ -229,48 +229,48 @@ namespace {
     std::vector<SparseMatrix::RowIndex> rowOrder(rowCount);
 
     tbb::mutex lock;
-    tbb::parallel_for(tbb::blocked_range<SparseMatrix::RowIndex>(0, rowCount),
+    tbb::parallel_for(tbb::blocked_range<SparseMatrix::RowIndex>(0, rowCount, 2),
       [&](const tbb::blocked_range<SparseMatrix::RowIndex>& range)
-      {for (auto it = range.begin(); it != range.end(); ++it)
     {
-      const auto row = it;
       auto& denseRow = denseRowPerThread.local();
+      for (auto it = range.begin(); it != range.end(); ++it) {
+        const auto row = it;
+        denseRow.clear(leftColCount);
+        denseRow.addRow(toReduceLeft, row);
 
-      denseRow.clear(leftColCount);
-      denseRow.addRow(toReduceLeft, row);
-      MATHICGB_ASSERT(leftColCount == pivotCount);
-
-      for (size_t pivot = 0; pivot < pivotCount; ++pivot) {
-        if (denseRow[pivot] == 0)
-          continue;
-        auto entry = denseRow[pivot];
-        entry %= modulus;
-        if (entry == 0) {
-          denseRow[pivot] = 0;
-          continue;
+        MATHICGB_ASSERT(leftColCount == pivotCount);
+        for  (size_t pivot = 0; pivot < pivotCount; ++pivot) {
+          if (denseRow[pivot] != 0) {
+            auto entry = denseRow[pivot];
+            entry %= modulus;
+            if (entry == 0) {
+              denseRow[pivot] = 0;
+            } else {
+              entry = modulus - entry;
+              const auto row = rowThatReducesCol[pivot];
+              MATHICGB_ASSERT(row < pivotCount);
+              MATHICGB_ASSERT(!reduceByLeft.emptyRow(row));
+              MATHICGB_ASSERT(reduceByLeft.leadCol(row) == pivot);
+              MATHICGB_ASSERT(entry < std::numeric_limits<SparseMatrix::Scalar>::max());
+              denseRow.addRowMultiple(
+                static_cast<SparseMatrix::Scalar>(entry),
+                ++reduceByLeft.rowBegin(row),
+                reduceByLeft.rowEnd(row)
+              );
+              denseRow[pivot] = entry;
+            }
+          }
         }
-        entry = modulus - entry;
-        const auto row = rowThatReducesCol[pivot];
-        MATHICGB_ASSERT(row < pivotCount);
-        MATHICGB_ASSERT(!reduceByLeft.emptyRow(row));
-        MATHICGB_ASSERT(reduceByLeft.leadCol(row) == pivot);
-        MATHICGB_ASSERT(entry < std::numeric_limits<SparseMatrix::Scalar>::max());
-        denseRow.addRowMultiple(
-          static_cast<SparseMatrix::Scalar>(entry),
-          ++reduceByLeft.rowBegin(row),
-          reduceByLeft.rowEnd(row)
-        );
-        denseRow[pivot] = entry;
+        tbb::mutex::scoped_lock lockGuard(lock);
+        for (size_t pivot = 0; pivot < pivotCount; ++pivot) {
+		  MATHICGB_ASSERT(denseRow[pivot] < std::numeric_limits<SparseMatrix::Scalar>::max());
+          if (denseRow[pivot] != 0)
+            tmp.appendEntry(rowThatReducesCol[pivot], static_cast<SparseMatrix::Scalar>(denseRow[pivot]));
+	    }
+        tmp.rowDone();
+        rowOrder[tmp.rowCount() - 1] = row;
       }
-      tbb::mutex::scoped_lock lockGuard(lock);
-      for (size_t pivot = 0; pivot < pivotCount; ++pivot) {
-		MATHICGB_ASSERT(denseRow[pivot] < std::numeric_limits<SparseMatrix::Scalar>::max());
-        if (denseRow[pivot] != 0)
-          tmp.appendEntry(rowThatReducesCol[pivot], static_cast<SparseMatrix::Scalar>(denseRow[pivot]));
-	  }
-      tmp.rowDone();
-      rowOrder[tmp.rowCount() - 1] = row;
-    }});
+    });
 
     tbb::parallel_for(tbb::blocked_range<SparseMatrix::RowIndex>(0, rowCount),
       [&](const tbb::blocked_range<SparseMatrix::RowIndex>& range)
