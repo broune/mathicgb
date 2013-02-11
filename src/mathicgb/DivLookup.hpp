@@ -209,7 +209,8 @@ public:
   void displayStats(std::ostream &o) const;
 
 ///////////////////////////
-  const GroebnerBasis* basis() const {return mSigBasis;}
+  const GroebnerBasis* sigBasis() const {return mSigBasis;}
+  const PolyBasis* basis() const {return mBasis;}
   const PolyRing* getPolyRing() const {return mRing;}
   unsigned long long getExpQueryCount() const {return _expQueryCount;}
   int type() const {return _type;}
@@ -264,7 +265,7 @@ class DivLookup : public DivisorLookup {
     size_t maxDivisors,
     size_t newGenerator
   ) const {
-    const GroebnerBasis* GB = _finder.getConfiguration().basis();
+    const GroebnerBasis* GB = _finder.getConfiguration().sigBasis();
 
     const_monomial sigNew = GB->getSignature(newGenerator);
 
@@ -274,7 +275,7 @@ class DivLookup : public DivisorLookup {
   }
 
   virtual size_t highBaseDivisor(size_t newGenerator) const {
-    const GroebnerBasis* basis = _finder.getConfiguration().basis();
+    const GroebnerBasis* basis = _finder.getConfiguration().sigBasis();
     MATHICGB_ASSERT(newGenerator < basis->size());
 
     HighBaseDivisor searchObject(*basis, newGenerator);
@@ -284,9 +285,16 @@ class DivLookup : public DivisorLookup {
   }
 
   virtual size_t minimalLeadInSig(const_monomial sig) const {
-    MinimalLeadInSig searchObject(*_finder.getConfiguration().basis());
+    MinimalLeadInSig searchObject(*_finder.getConfiguration().sigBasis());
     _finder.findAllDivisors(sig, searchObject);
     return searchObject.minLeadGen();
+  }
+
+  virtual size_t classicReducer(const_monomial mon) const {
+    const auto& conf = _finder.getConfiguration();
+    ClassicReducer searchObject(*conf.basis(), conf.preferSparseReducers());
+    _finder.findAllDivisors(mon, searchObject);
+    return searchObject.reducer();
   }
 
   virtual size_t divisor(const_monomial mon) const {
@@ -464,6 +472,46 @@ private:
     const GroebnerBasis& mSigBasis;
     size_t mMinLeadGen;
   };
+
+  // Class used in ClassicReducer.
+  class ClassicReducer {
+  public:
+    ClassicReducer(const PolyBasis& basis, const bool preferSparse):
+      mBasis(basis),
+      mPreferSparse(preferSparse),
+      mReducer(static_cast<size_t>(-1)) {}
+
+    bool proceed(const Entry& entry) {
+      if (mReducer == static_cast<size_t>(-1)) {
+        mReducer = entry.index;
+        return true;
+      }
+
+      if (mPreferSparse) {
+        const auto oldTermCount = mBasis.poly(mReducer).nTerms();
+        const auto newTermCount = mBasis.poly(entry.index).nTerms();
+        if (oldTermCount > newTermCount) {
+          mReducer = entry.index; // prefer sparser
+          return true;
+        }
+        if (oldTermCount < newTermCount)
+          return true;
+        // break ties by age
+      }
+
+      if (mReducer > entry.index)
+        mReducer = entry.index; // prefer older
+      return true;
+    }
+
+    size_t reducer() const {return mReducer;}
+
+  private:
+    const PolyBasis& mBasis;
+    const bool mPreferSparse;
+    size_t mReducer;
+  };
+
   /*
   // Class used in findDivisor()
   class DO {
@@ -587,7 +635,7 @@ public:
   virtual size_t regularReducer(const_monomial sig, const_monomial mon) const
   {
     DOCheckAll out(
-      *getConfiguration().basis(),
+      *getConfiguration().sigBasis(),
       sig,
       mon,
       getConfiguration().preferSparseReducers()

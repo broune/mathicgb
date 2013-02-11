@@ -96,6 +96,16 @@ size_t PolyBasis::divisor(const_monomial mon) const {
   return index;
 }
 
+size_t PolyBasis::classicReducer(const_monomial mon) const {
+  return divisorLookup().classicReducer(mon);
+  size_t index = divisorLookup().classicReducer(mon);
+  MATHICGB_ASSERT((index == static_cast<size_t>(-1)) ==
+    (divisorSlow(mon) == static_cast<size_t>(-1)));
+  MATHICGB_ASSERT(index == static_cast<size_t>(-1) ||
+    ring().monomialIsDivisibleBy(mon, leadMonomial(index)));
+  return index;
+}
+
 size_t PolyBasis::divisorSlow(const_monomial mon) const {
   const size_t stop = size();
   for (size_t i = 0; i != stop; ++i)

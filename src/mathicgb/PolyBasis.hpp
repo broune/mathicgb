@@ -34,6 +34,10 @@ public:
   // Returns -1 if there is no such basis element.
   size_t divisor(const_monomial mon) const;
 
+  // As divisor(mon), but if there is more than one divisor then the divisor
+  // is chosen in according to a notion of which reducer is better.
+  size_t classicReducer(const_monomial mon) const;
+
   // As the non-slow version, but uses simpler and slower code.
   size_t divisorSlow(const_monomial mon) const;
 

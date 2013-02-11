@@ -772,7 +772,7 @@ F4MatrixBuilder2::createColumn(
   MATHICGB_ASSERT(ring().hashValid(mTmp));
 
   // look for a reducer of mTmp
-  const size_t reducerIndex = mBasis.divisor(mTmp);
+  const size_t reducerIndex = mBasis.classicReducer(mTmp);
   const bool insertLeft = (reducerIndex != static_cast<size_t>(-1));
 
   // Create the new left or right column
