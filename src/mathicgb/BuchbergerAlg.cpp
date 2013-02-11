@@ -90,8 +90,10 @@ void BuchbergerAlg::insertPolys
     MATHICGB_ASSERT(toRetire.empty());
 
     // reduce everything in toReduce
-    mReducer.classicReducePolySet(toReduce, mBasis, toInsert);
-    toReduce.clear();
+    if (!toReduce.empty()) {
+      mReducer.classicReducePolySet(toReduce, mBasis, toInsert);
+      toReduce.clear();
+    }
   }
 
   MATHICGB_ASSERT(toRetire.empty());
