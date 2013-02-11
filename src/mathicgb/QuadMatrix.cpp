@@ -178,10 +178,6 @@ QuadMatrix QuadMatrix::toCanonical() const {
   public:
     RowComparer(const SparseMatrix& matrix): mMatrix(matrix) {}
     bool operator()(SparseMatrix::RowIndex a, SparseMatrix::RowIndex b) const {
-      // if you need this to work for empty rows or identical leading columns
-      // then update this code.
-      MATHICGB_ASSERT(!mMatrix.emptyRow(a));
-      MATHICGB_ASSERT(!mMatrix.emptyRow(b));
       auto itA = mMatrix.rowBegin(a);
       const auto endA = mMatrix.rowEnd(a);
       auto itB = mMatrix.rowBegin(b);

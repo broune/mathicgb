@@ -266,7 +266,44 @@ void BuchbergerAlg::step() {
       return; // no more s-pairs
     std::vector<std::unique_ptr<Poly> > reduced;
     mReducer.classicReduceSPolySet(spairGroup, mBasis, reduced);
-    
+
+    // sort the elements to get deterministic behavior. The order will change
+    // arbitrarily when running multithreaded. Also, if preferring older
+    // reducers, it is of benefit to break ties by preferring the sparser
+    // reducer. Age does not have ties, since each element has a distinct
+    // index, but if they all come from the same matrix then there is
+    // really nothing to distinguish them - the relative age is arbitrarily
+    // chosen. If we order sparsest-first, we will effectively make the
+    // arbitrary choice among reducers from the same matrix in favor of sparser
+    // reducers.
+    auto& order = [&](
+      const std::unique_ptr<Poly>& a,
+      const std::unique_ptr<Poly>& b
+    ) {
+      const auto aTermCount = a->nTerms();
+      const auto bTermCount = b->nTerms();
+      if (aTermCount < bTermCount)
+        return true;
+      if (aTermCount > bTermCount)
+        return false;
+      auto bIt = b->begin();
+      const auto aEnd = a->end();
+      for (auto aIt = a->begin(); aIt != aEnd; ++aIt, ++bIt) {
+        const auto monoCmp =
+          mRing.monomialCompare(aIt.getMonomial(), bIt.getMonomial());
+        if (monoCmp == LT)
+          return true;
+        if (monoCmp == GT)
+          return false;
+        if (aIt.getCoefficient() < bIt.getCoefficient())
+          return true;
+        if (aIt.getCoefficient() > bIt.getCoefficient())
+          return false;
+      }
+      return false;
+    };
+    std::sort(reduced.begin(), reduced.end(), order);
+
     insertPolys(reduced);
     /*
     for (auto it = reduced.begin(); it != reduced.end(); ++it) {

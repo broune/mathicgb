@@ -34,6 +34,11 @@ public:
   virtual size_t regularReducer
     (const_monomial sig, const_monomial mon) const = 0;
 
+  // Returns the index of a basis element whose lead term divides mon. The
+  // strategy used to break ties is up to the implementation of the interface,
+  // but the outcome must be deterministic.
+  virtual size_t classicReducer(const_monomial mon) const = 0;
+
   virtual std::string getName() const = 0;
 
   virtual size_t getMemoryUse() const = 0;

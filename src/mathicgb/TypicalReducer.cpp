@@ -177,7 +177,7 @@ std::unique_ptr<Poly> TypicalReducer::classicReduce
       std::cerr << std::endl;
     }
 
-    size_t reducer = basis.divisor(v.monom);
+    size_t reducer = basis.classicReducer(v.monom);
     if (reducer == static_cast<size_t>(-1)) { // no reducer found
       MATHICGB_ASSERT(result->isZero() ||
         basis.order().signatureCompare(v.monom, result->backMonomial()) == LT);
