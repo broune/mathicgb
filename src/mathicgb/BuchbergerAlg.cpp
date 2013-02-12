@@ -276,7 +276,7 @@ void BuchbergerAlg::step() {
     // chosen. If we order sparsest-first, we will effectively make the
     // arbitrary choice among reducers from the same matrix in favor of sparser
     // reducers.
-    auto& order = [&](
+    auto order = [&](
       const std::unique_ptr<Poly>& a,
       const std::unique_ptr<Poly>& b
     ) {
