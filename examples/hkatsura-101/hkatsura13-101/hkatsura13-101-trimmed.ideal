@@ -1,0 +1,15 @@
+101 14 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1
+13
+a+2b+2c+2d+2e+2f+2g+2h+2i+2j+2k+2l+2m-n
+gh-3h2+fi-6gi-21hi-22i2+ej-6fj-21gj-44hj+26ij+44j2+dk-6ek-21fk-44gk+26hk-13ik+41jk-7k2+cl-6dl-21el-44fl+26gl-13hl+41il-14jl+24kl+27l2+bm-6cm-21dm-44em+26fm-13gm+41hm-14im+24jm-47km-25lm+45m2+2bn+8cn+18dn+32en+50fn-29gn-3hn+27in-40jn-2kn+40ln-15mn
+g2+2fh+7h2+2ei+14gi+44hi+45i2+2dj+14fj+44gj-11hj-50ij+14j2+2ck+14ek+44fk-11gk-50hk+28ik+21jk+15k2+2bl+14dl+44el-11fl-50gl+28hl+21il+30jl-46kl+48l2-4bm+10cm+40dm-15em+47fm+24gm+17hm+26im-50jm-9km+48lm+8m2-4bn-16cn-36dn+37en+fn-43gn+6hn+47in-21jn+4kn+21ln+31mn
+fg+eh+di+cj+bk-2bl-2cl-2dl-2el-2fl-2gl-2hl-2il-2jl-2kl-2l2+bm-2lm-50ln
+f2+2eg+2dh+2ci+2bj-4bk-4ck-4dk-4ek-4fk-4gk-4hk-4ik-4jk-4k2+2bl-4kl+2cm-4km+kn
+ef+dg+ch+bi-2bj-2cj-2dj-2ej-2fj-2gj-2hj-2ij-2j2+bk-2jk+cl-2jl+dm-2jm-50jn
+e2+2df+2cg+2bh-4bi-4ci-4di-4ei-4fi-4gi-4hi-4i2+2bj-4ij+2ck-4ik+2dl-4il+2em-4im+in
+de+cf+bg-2bh-2ch-2dh-2eh-2fh-8h2+bi+2fi-12gi-44hi-44i2+cj+2ej-12fj-42gj+11hj-49ij-13j2+3dk-12ek-42fk+13gk+50hk-26ik-19jk-14k2+2cl-12dl-41el+13fl-49gl-28hl-19il-28jl+48kl-47l2+2bm-12cm-42dm+13em-48fm-26gm-21hm-28im+48jm+7km-50lm-11m2+4bn+16cn+36dn-37en-fn+43gn+45hn-47in+21jn-4kn-21ln-30mn
+d2+2ce+2bf-4bg-4cg-4dg-4eg+2bh+4eh+8fh+16h2+2ci+4di+8ei+4fi+28gi-9hi-9i2+4cj+10dj+4ej+32fj-13gj-18hj+5ij+30j2+4bk+8ck+4dk+34ek-9fk-22gk+5hk-41ik+46jk+32k2-4cl+24dl-17el-24fl-7gl-49hl+38il-45jl+5kl-11l2-8bm+16cm-25dm-34em-11fm+42gm+30hm+48im-3jm-22km-17lm+10m2-8bn-32cn+29dn-27en+2fn+16gn+12hn-7in-42jn+8kn+44ln-37mn
+cd+be-2bf-2cf-2df+bg+2dg+4eg+3ch+4dh+2eh-2fh+2bi+4ci+3di-2fi-2cj-4dj-3ej-6fj-4gj-4hj-4ij-4j2-4bk-8ck-8dk-8ek-9fk-8gk-8hk-8ik-12jk-8k2-2cl-4dl-4el-6fl-3gl-4hl-4il-8jl-12kl-4l2+2bm+4cm+2dm-2fm+hm-4jm-8km-4lm-50fn+jn+2kn+ln
+c2+2bd-4be-4ce+2bf+4cf+8df+4bg+10cg+4dg-4eg-4ch-6dh-12eh-8fh-32h2-8bi-16ci-16di-18ei-8fi+37gi+10hi+10i2-4cj-8dj-4ej+47fj+26gj+36hj-18ij+41j2+4bk+8ck+12dk+49ek+34fk-47gk-2hk-19ik+17jk+45k2+12cl-40dl+34el-49fl+6gl-9hl+9il-19jl-10kl+14l2+8bm-48cm+38dm-45em+10fm-3gm+17hm-25im-18jm+28km+2lm-44m2+16bn-37cn+43dn-46en-4fn-30gn-22hn+18in-15jn-16kn+17ln-19mn
+bc-2bd+3be+4ce-cf-6df-4bg-8cg-5dg+2ch+2dh+9eh+8fh+16h2+6bi+12ci+12di+16ei+9fi+32gi-5hi-5i2+6cj+10dj+6ej+28fj-16gj-22hj+5ij+26j2-4dk+28ek-19fk-34gk-6hk-49ik+30jk+20k2-8cl+14dl-23el-34fl-17gl+40hl+31il+40jl-19kl-23l2-8bm+16cm-31dm-42em-21fm+32gm+20hm+40im-18jm-46km-41lm-2m2-8bn-32cn-21dn-27en+3fn+17gn+13hn-7in-40jn+12kn+48ln-33mn
+b2+2bd-2ce+2df+4bg+4cg+4dg+2eg-4eh-6fh+37h2-4ci-4di-8ei-4fi-25gi+20hi+20i2-4cj-8dj-4ej-27fj+24gj+42hj+33ij+50j2-4ck-27ek+24fk+48gk+37hk+ik+39jk+26k2+4cl-19dl+28el+48fl+45gl+7hl+43il-47jl+38kl+49l2+8bm-15cm+36dm-45em+49fm+15gm-50hm-41im+42jm-km+30lm+18m2+32bn+28cn-13dn+11en-2fn+49gn-36hn+44in-14jn-8kn-39ln-6mn
