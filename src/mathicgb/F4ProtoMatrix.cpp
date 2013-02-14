@@ -1,6 +1,22 @@
 #include "stdinc.h"
 #include "F4ProtoMatrix.hpp"
 
+auto F4ProtoMatrix::row(const RowIndex row) const -> Row {
+  MATHICGB_ASSERT(row < mRows.size());
+  const auto& r = mRows[row];
+  Row rr;
+  rr.indices = mIndices.data() + r.indicesBegin;
+  rr.entryCount = r.entryCount;
+  if (r.externalScalars == 0) {
+    rr.scalars = mScalars.data() + r.scalarsBegin;
+    rr.externalScalars = 0;
+  } else {
+    rr.scalars = 0;
+    rr.externalScalars = r.externalScalars;
+  }
+  return rr;
+}
+
 auto F4ProtoMatrix::makeRowWithTheseScalars(const Poly& scalars) -> ColIndex*
 {
   MATHICGB_ASSERT(rowCount() < std::numeric_limits<RowIndex>::max());

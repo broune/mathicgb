@@ -447,6 +447,7 @@
     <ClCompile Include="..\..\..\src\mathicgb\DivisorLookup.cpp" />
     <ClCompile Include="..\..\..\src\mathicgb\F4MatrixBuilder.cpp" />
     <ClCompile Include="..\..\..\src\mathicgb\F4MatrixBuilder2.cpp" />
+    <ClCompile Include="..\..\..\src\mathicgb\F4MatrixProjection.cpp" />
     <ClCompile Include="..\..\..\src\mathicgb\F4MatrixReducer.cpp" />
     <ClCompile Include="..\..\..\src\mathicgb\F4ProtoMatrix.cpp" />
     <ClCompile Include="..\..\..\src\mathicgb\F4Reducer.cpp" />
@@ -491,6 +492,7 @@
     <ClInclude Include="..\..\..\src\mathicgb\DivLookup.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\F4MatrixBuilder.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\F4MatrixBuilder2.hpp" />
+    <ClInclude Include="..\..\..\src\mathicgb\F4MatrixProjection.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\F4MatrixReducer.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\F4ProtoMatrix.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\F4Reducer.hpp" />
