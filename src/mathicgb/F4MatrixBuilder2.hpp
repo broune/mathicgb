@@ -7,6 +7,7 @@
 #include "PolyBasis.hpp"
 #include "QuadMatrix.hpp"
 #include "MonomialMap.hpp"
+#include "F4ProtoMatrix.hpp"
 #include <tbb/mutex.h>
 #include <vector>
 
@@ -65,8 +66,6 @@ public:
 
   const PolyRing& ring() const {return mBasis.ring();}
 
-  class F4PreBlock;
-
 private:
   typedef const Map::Reader ColReader;
   typedef std::vector<monomial> Monomials;
@@ -96,7 +95,7 @@ private:
   void appendRow(
     const_monomial multiple,
     const Poly& poly,
-    F4PreBlock& block,
+    F4ProtoMatrix& block,
     TaskFeeder& feeder
   );
   void appendRowSPair(
@@ -104,7 +103,7 @@ private:
     monomial multiply,
     const Poly* sPairPoly,
     monomial sPairMultiply,
-    F4PreBlock& block,
+    F4ProtoMatrix& block,
     TaskFeeder& feeder
   );
 
