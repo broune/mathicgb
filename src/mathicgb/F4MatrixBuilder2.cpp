@@ -9,96 +9,6 @@ MATHICGB_DEFINE_LOG_DOMAIN(
   "Displays statistics about F4 matrix construction."
 );
 
-class F4MatrixBuilder2::F4PreBlock {
-public:
-  typedef uint32 RowIndex;
-  typedef uint32 ColIndex;
-  typedef coefficient ExternalScalar;
-  typedef SparseMatrix::Scalar Scalar;
-
-  struct Row {
-    const ColIndex* indices;
-    const Scalar* scalars;
-    const ExternalScalar* externalScalars;
-    ColIndex entryCount;
-  };
-
-  RowIndex rowCount() const {return static_cast<RowIndex>(mRows.size());}
-
-  Row row(const RowIndex row) const {
-    MATHICGB_ASSERT(row < mRows.size());
-    const auto& r = mRows[row];
-    Row rr;
-    rr.indices = mIndices.data() + r.indicesBegin;
-    rr.entryCount = r.entryCount;
-    if (r.externalScalars == 0) {
-      rr.scalars = mScalars.data() + r.scalarsBegin;
-      rr.externalScalars = 0;
-    } else {
-      rr.scalars = 0;
-      rr.externalScalars = r.externalScalars;
-    }
-    return rr;
-  }
-
-  ColIndex* makeRowWithTheseScalars(const Poly& scalars) {
-    MATHICGB_ASSERT(rowCount() < std::numeric_limits<RowIndex>::max());
-    MATHICGB_ASSERT
-      (scalars.termCount() < std::numeric_limits<ColIndex>::max());
-
-    InternalRow row;
-    row.indicesBegin = mIndices.size();
-    row.scalarsBegin = std::numeric_limits<decltype(row.scalarsBegin)>::max();
-    row.entryCount = static_cast<ColIndex>(scalars.termCount());
-    row.externalScalars = scalars.coefficientBegin();
-    mRows.push_back(row);
-
-    mIndices.resize(mIndices.size() + row.entryCount);
-    return mIndices.data() + row.indicesBegin;
-  }
-
-  std::pair<ColIndex*, Scalar*> makeRow(ColIndex entryCount) {
-    MATHICGB_ASSERT(rowCount() < std::numeric_limits<RowIndex>::max());
-
-    InternalRow row;
-    row.indicesBegin = mIndices.size();
-    row.scalarsBegin = mScalars.size();
-    row.entryCount = entryCount;
-    row.externalScalars = 0;
-    mRows.push_back(row);
-
-    mIndices.resize(mIndices.size() + entryCount);
-    mScalars.resize(mScalars.size() + entryCount);
-    return std::make_pair(
-      mIndices.data() + row.indicesBegin,
-      mScalars.data() + row.scalarsBegin
-    );
-  }
-
-  void removeLastEntries(const RowIndex row, const ColIndex count) {
-    MATHICGB_ASSERT(row < rowCount());
-    MATHICGB_ASSERT(mRows[row].entryCount >= count);
-    mRows[row].entryCount -= count;
-    if (row != rowCount() - 1)
-      return;
-    mIndices.resize(mIndices.size() - count);
-    if (mRows[row].externalScalars == 0)
-      mScalars.resize(mScalars.size() - count);
-  }
-
-private:
-  struct InternalRow {
-    size_t indicesBegin;
-    size_t scalarsBegin;
-    ColIndex entryCount;
-    const ExternalScalar* externalScalars;
-  };
-
-  std::vector<ColIndex> mIndices;
-  std::vector<Scalar> mScalars;
-  std::vector<InternalRow> mRows;
-};
-
 MATHICGB_NO_INLINE
 std::pair<F4MatrixBuilder2::ColIndex, ConstMonomial>
 F4MatrixBuilder2::findOrCreateColumn(
@@ -304,7 +214,7 @@ namespace {
     }
 
     void project(
-      const std::vector<F4MatrixBuilder2::F4PreBlock*>& preBlocks,
+      const std::vector<F4ProtoMatrix*>& preBlocks,
       SparseMatrix& left,
       SparseMatrix& right,
       const PolyRing& ring
@@ -358,7 +268,7 @@ namespace {
     }
 
     void project(
-      const std::vector<std::pair<SparseMatrix::Scalar,F4MatrixBuilder2::F4PreBlock::Row>>& from,
+      const std::vector<std::pair<SparseMatrix::Scalar, F4ProtoMatrix::Row>>& from,
       SparseMatrix& left,
       SparseMatrix& right,
       const PolyRing& ring
@@ -534,7 +444,7 @@ namespace {
   class TopBottomProjection {
   public:
     TopBottomProjection(
-      const std::vector<F4MatrixBuilder2::F4PreBlock*>& blocks,
+      const std::vector<F4ProtoMatrix*>& blocks,
       const LeftRightProjection& leftRight,
       const PolyRing& ring
     ):
@@ -542,7 +452,7 @@ namespace {
     {
       typedef SparseMatrix::RowIndex RowIndex;
       const auto noReducer = std::numeric_limits<RowIndex>::max();
-      F4PreBlock::Row noRow = {};
+      F4ProtoMatrix::Row noRow = {};
       noRow.indices = 0;
       const auto noCol = std::numeric_limits<SparseMatrix::ColIndex>::max();
 
@@ -618,18 +528,17 @@ namespace {
 #endif
     }
 
-    typedef F4MatrixBuilder2::F4PreBlock F4PreBlock;
-    const std::vector<std::pair<SparseMatrix::Scalar,F4MatrixBuilder2::F4PreBlock::Row>>& reducerRows() const {
+    const std::vector<std::pair<SparseMatrix::Scalar, F4ProtoMatrix::Row>>& reducerRows() const {
       return mReducerRows;
     }
 
-    const std::vector<std::pair<SparseMatrix::Scalar,F4MatrixBuilder2::F4PreBlock::Row>>& reduceeRows() const {
+    const std::vector<std::pair<SparseMatrix::Scalar, F4ProtoMatrix::Row>>& reduceeRows() const {
       return mReduceeRows;
     }
 
   private:
-    std::vector<std::pair<SparseMatrix::Scalar,F4MatrixBuilder2::F4PreBlock::Row>> mReducerRows;
-    std::vector<std::pair<SparseMatrix::Scalar,F4MatrixBuilder2::F4PreBlock::Row>> mReduceeRows;
+    std::vector<std::pair<SparseMatrix::Scalar, F4ProtoMatrix::Row>> mReducerRows;
+    std::vector<std::pair<SparseMatrix::Scalar, F4ProtoMatrix::Row>> mReduceeRows;
   };
 }
 
@@ -647,7 +556,7 @@ void F4MatrixBuilder2::buildMatrixAndClear(QuadMatrix& quadMatrix) {
   // we are calling here can add more pending items.
 
   struct ThreadData {
-    F4PreBlock block;
+    F4ProtoMatrix block;
     monomial tmp1;
     monomial tmp2;
   };
@@ -698,7 +607,7 @@ void F4MatrixBuilder2::buildMatrixAndClear(QuadMatrix& quadMatrix) {
   mTodo.clear();
 
   // Collect pre-blocks from each thread
-  std::vector<F4PreBlock*> blocks;
+  std::vector<F4ProtoMatrix*> blocks;
   blocks.reserve(threadData.size());
   const auto end = threadData.end();
   for (auto it = threadData.begin(); it != end; ++it) {
@@ -796,7 +705,7 @@ F4MatrixBuilder2::createColumn(
 void F4MatrixBuilder2::appendRow(
   const const_monomial multiple,
   const Poly& poly,
-  F4PreBlock& block,
+  F4ProtoMatrix& block,
   TaskFeeder& feeder
 ) {
   MATHICGB_ASSERT(!multiple.isNull());
@@ -866,7 +775,7 @@ void F4MatrixBuilder2::appendRowSPair(
   monomial multiply,
   const Poly* sPairPoly,
   monomial sPairMultiply,
-  F4PreBlock& block,
+  F4ProtoMatrix& block,
   TaskFeeder& feeder
 ) {
   MATHICGB_ASSERT(!poly->isZero());
