@@ -18,6 +18,7 @@ class ostream;
 class QuadMatrix {
 public:
   QuadMatrix() {}
+
   QuadMatrix(QuadMatrix&& matrix):
     topLeft(std::move(matrix.topLeft)),
     topRight(std::move(matrix.topRight)),
@@ -27,6 +28,7 @@ public:
     rightColumnMonomials(std::move(matrix.rightColumnMonomials)),
     ring(matrix.ring)
   {}
+
   QuadMatrix& operator=(QuadMatrix&& matrix) {
     this->~QuadMatrix();
     new (this) QuadMatrix(std::move(matrix));

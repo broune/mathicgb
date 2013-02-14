@@ -21,21 +21,7 @@ public:
 
   RowIndex rowCount() const {return static_cast<RowIndex>(mRows.size());}
 
-  Row row(const RowIndex row) const {
-    MATHICGB_ASSERT(row < mRows.size());
-    const auto& r = mRows[row];
-    Row rr;
-    rr.indices = mIndices.data() + r.indicesBegin;
-    rr.entryCount = r.entryCount;
-    if (r.externalScalars == 0) {
-      rr.scalars = mScalars.data() + r.scalarsBegin;
-      rr.externalScalars = 0;
-    } else {
-      rr.scalars = 0;
-      rr.externalScalars = r.externalScalars;
-    }
-    return rr;
-  }
+  Row row(const RowIndex row) const;
 
   ColIndex* makeRowWithTheseScalars(const Poly& scalars);
 

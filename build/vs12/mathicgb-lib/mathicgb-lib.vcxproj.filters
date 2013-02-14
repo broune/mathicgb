@@ -135,6 +135,9 @@
     <ClCompile Include="..\..\..\src\mathicgb\F4ProtoMatrix.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\src\mathicgb\F4MatrixProjection.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\src\mathicgb\BjarkeGeobucket.hpp">
@@ -303,6 +306,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\src\mathicgb\F4ProtoMatrix.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\mathicgb\F4MatrixProjection.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
