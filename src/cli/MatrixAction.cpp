@@ -66,7 +66,7 @@ void MatrixAction::performAction() {
       CFile file(quadFileName, "rb");
       QuadMatrix matrix;
       modulus = matrix.read(file.handle());
-      fclose(file.handle());
+      file.close();
       lowerRightMatrix = F4MatrixReducer(modulus).reduceToBottomRight(matrix);
 
       if (!fileExists(lowerRightFileName)) {
