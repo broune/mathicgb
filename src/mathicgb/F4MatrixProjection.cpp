@@ -186,7 +186,7 @@ void F4MatrixProjection::setupRowProjectionLate(
       continue;
     }
     const auto lead = left.rowBegin(row).index();
-    if (mTopRows[lead].row != noRow && topEntryCounts[lead]<entryCount) {
+    if (mTopRows[lead].row != noRow && topEntryCounts[lead] < entryCount) {
       RowProjectFromLate p = {1, row};
       mBottomRows.push_back(p); // other reducer better
     } else {
@@ -223,139 +223,142 @@ void F4MatrixProjection::setupRowProjectionLate(
 #endif
 }
 
-void F4MatrixProjection::projectRowsLeftRight(
-  const std::vector<RowProjectFrom>& from,
-  SparseMatrix& left,
-  SparseMatrix& right
-) const {
-  left.clear();
-  right.clear();
-  const auto fromEnd = from.end();
-  for (auto fromIt = from.begin(); fromIt != fromEnd; ++fromIt) {
-    const auto row = fromIt->row;
-    MATHICGB_ASSERT(row.entryCount != 0);
+// Utility class for building a left/right projection.
+struct F4MatrixProjection::LeftRight {
+  typedef F4ProtoMatrix::ExternalScalar ExternalScalar;
+  typedef F4ProtoMatrix::Row Row;
+
+  LeftRight(
+    const std::vector<ColProjectTo>& colProjectTo,
+    const PolyRing& ring,
+    const size_t quantum
+  ):
+    mColProjectTo(colProjectTo),
+    mModulus(static_cast<Scalar>(ring.charac())),
+    mLeft(quantum),
+    mRight(quantum)
+  {
+    MATHICGB_ASSERT(ring.charac() < std::numeric_limits<Scalar>::max());
+    mLeft.clear();
+    mRight.clear();
+  }
+
+  void appendRowsPermuted(const std::vector<RowProjectFrom>& rows) {
+    const auto end = rows.end();
+    for (auto it = rows.begin(); it != end; ++it)
+      appendRow(it->row, it->multiplyBy);
+  }
+
+  void appendRows(const std::vector<F4ProtoMatrix*>& preBlocks) {
+    const auto end = preBlocks.end();
+    for (auto it = preBlocks.begin(); it != end; ++it) {
+      auto& block = **it;
+      const auto rowCount = block.rowCount();
+      for (SparseMatrix::RowIndex r = 0; r < rowCount; ++r) {
+        const auto row = block.row(r);
+        if (row.entryCount > 0)
+          appendRow(row);
+      }
+    }
+  }
+
+  void appendRow(const Row& row) {
+    MATHICGB_ASSERT(row.entryCount > 0); // could be OK, but unexpected
     MATHICGB_ASSERT(row.scalars == 0 || row.externalScalars == 0);
-    const auto modulus = static_cast<SparseMatrix::Scalar>(ring().charac());
 
-    if (row.externalScalars != 0) {
-      auto indices = row.indices;
-      auto indicesEnd = row.indices + row.entryCount;
-      auto scalars = row.externalScalars;
-      for (; indices != indicesEnd; ++indices, ++scalars) {
-        const auto scalar = static_cast<SparseMatrix::Scalar>(*scalars);
-        const auto index = *indices;
-        MATHICGB_ASSERT(index < mColProjectTo.size());
-        const auto translated = mColProjectTo[index];
-        if (translated.isLeft)
-          left.appendEntry(translated.index, scalar);
-        else
-          right.appendEntry(translated.index, scalar);
-      }
-    } else {
-      auto indices = row.indices;
-      auto indicesEnd = row.indices + row.entryCount;
-      auto scalars = row.scalars;
-      for (; indices != indicesEnd; ++indices, ++scalars) {
-        const auto index = *indices;
-        MATHICGB_ASSERT(index < mColProjectTo.size());
-        const auto translated = mColProjectTo[index];
-        if (translated.isLeft)
-          left.appendEntry(translated.index, *scalars);
-        else
-          right.appendEntry(translated.index, *scalars);
-      }
-    }
-    const auto rowIndex = left.rowCount();
-    MATHICGB_ASSERT(rowIndex == right.rowCount());
-    left.rowDone();
-    right.rowDone();
-
-    if (fromIt->multiplyBy != 1) {
-      MATHICGB_ASSERT(fromIt->multiplyBy != 0);
-      left.multiplyRow(rowIndex, fromIt->multiplyBy, modulus);
-      right.multiplyRow(rowIndex, fromIt->multiplyBy, modulus);
-      MATHICGB_ASSERT(left.rowBegin(rowIndex).scalar() == 1);
-    }
-
-    MATHICGB_ASSERT(left.rowCount() == right.rowCount());
+    const auto indicesEnd = row.indices + row.entryCount;
+    if (row.externalScalars != 0)
+      appendRow(row.indices, indicesEnd, row.externalScalars);
+    else
+      appendRow(row.indices, indicesEnd, row.scalars);
   }
-}
 
-void F4MatrixProjection::projectLeftRight(
-  const std::vector<F4ProtoMatrix*>& preBlocks,
-  SparseMatrix& left,
-  SparseMatrix& right
-) const {
-  left.clear();
-  right.clear();
-  const auto modulus = static_cast<SparseMatrix::Scalar>(ring().charac());
-
-  const auto end = preBlocks.end();
-  for (auto it = preBlocks.begin(); it != end; ++it) {
-    auto& block = **it;
-    const auto rowCount = block.rowCount();
-    for (SparseMatrix::RowIndex r = 0; r < rowCount; ++r) {
-      const auto row = block.row(r);
-      if (row.entryCount == 0)
-        continue;
-      MATHICGB_ASSERT(row.entryCount != 0);
-      MATHICGB_ASSERT(row.scalars == 0 || row.externalScalars == 0);
-
-      if (row.externalScalars != 0) {
-        auto indices = row.indices;
-        auto indicesEnd = row.indices + row.entryCount;
-        auto scalars = row.externalScalars;
-        for (; indices != indicesEnd; ++indices, ++scalars) {
-          const auto scalar = static_cast<SparseMatrix::Scalar>(*scalars);
-          const auto index = *indices;
-          MATHICGB_ASSERT(index < mColProjectTo.size());
-          const auto translated = mColProjectTo[index];
-          if (translated.isLeft)
-            left.appendEntry(translated.index, scalar);
-          else
-            right.appendEntry(translated.index, scalar);
-        }
-      } else {
-        auto indices = row.indices;
-        auto indicesEnd = row.indices + row.entryCount;
-        auto scalars = row.scalars;
-        for (; indices != indicesEnd; ++indices, ++scalars) {
-          const auto index = *indices;
-          MATHICGB_ASSERT(index < mColProjectTo.size());
-          const auto translated = mColProjectTo[index];
-          if (translated.isLeft)
-            left.appendEntry(translated.index, *scalars);
-          else
-            right.appendEntry(translated.index, *scalars);
-        }
-      }
-      MATHICGB_ASSERT(left.rowCount() == right.rowCount());
-      left.rowDone();
-      right.rowDone();
+  void appendRow(const Row& row, Scalar multiplyBy) {
+    MATHICGB_ASSERT(multiplyBy != 0);
+    appendRow(row);
+    if (multiplyBy != 1) {
+      const auto rowIndex = mLeft.rowCount() - 1;
+      mLeft.multiplyRow(rowIndex, multiplyBy, mModulus);
+      mRight.multiplyRow(rowIndex, multiplyBy, mModulus);
     }
   }
-}
+
+  template<class IndexIter, class ScalarIter>
+  void appendRow(
+    IndexIter indices,
+    const IndexIter indicesEnd,
+    ScalarIter scalars
+  ) {
+    for (; indices != indicesEnd; ++indices, ++scalars)
+      appendEntry(*indices, *scalars);
+    rowDone();
+  }
+
+  void appendEntry(const ColIndex projectMe, const Scalar scalar) {
+    MATHICGB_ASSERT(scalar < mModulus);
+    MATHICGB_ASSERT(mLeft.rowCount() == mRight.rowCount());
+    MATHICGB_ASSERT(projectMe < mColProjectTo.size());
+    const auto projected = mColProjectTo[projectMe];
+    if (projected.isLeft)
+      mLeft.appendEntry(projected.index, scalar);
+    else
+      mRight.appendEntry(projected.index, scalar);
+  }
+
+  void appendEntry(const ColIndex projectMe, const ExternalScalar scalar) {
+    MATHICGB_ASSERT(scalar <= std::numeric_limits<Scalar>::max());
+    appendEntry(projectMe, static_cast<Scalar>(scalar));
+  }
+
+  void rowDone() {
+    MATHICGB_ASSERT(mLeft.rowCount() == mRight.rowCount());
+    mLeft.rowDone();
+    mRight.rowDone();
+  };
+
+  const SparseMatrix& left() const {return mLeft;}
+  const SparseMatrix& right() const {return mRight;}
+
+  SparseMatrix moveLeft() {return std::move(mLeft);}
+  SparseMatrix moveRight() {return std::move(mRight);}
+
+private:
+  const std::vector<ColProjectTo>& mColProjectTo;
+  const Scalar mModulus;
+
+  SparseMatrix mLeft;
+  SparseMatrix mRight;
+};
 
 QuadMatrix F4MatrixProjection::makeProjectionAndClear() {
-  QuadMatrix quadMatrix;
+  QuadMatrix qm;
+
+  const size_t quantum = 0; // todo: set quantum from parameter
 
   if (true) {
     setupRowProjection();
-    projectRowsLeftRight
-      (mTopRowProjectFrom, quadMatrix.topLeft, quadMatrix.topRight);
-    projectRowsLeftRight
-      (mBottomRowProjectFrom, quadMatrix.bottomLeft, quadMatrix.bottomRight);
+    {
+      LeftRight top(mColProjectTo, ring(), 0);
+      top.appendRowsPermuted(mTopRowProjectFrom);
+      qm.topLeft = top.moveLeft();
+      qm.topRight = top.moveRight();
+    }
+    {
+      LeftRight bottom(mColProjectTo, ring(), 0);
+      bottom.appendRowsPermuted(mBottomRowProjectFrom);
+      qm.bottomLeft = bottom.moveLeft();
+      qm.bottomRight = bottom.moveRight();
+    }
   } else {
-    SparseMatrix left;
-    SparseMatrix right;
-    projectLeftRight(mMatrices, left, right);
-    setupRowProjectionLate(left, right);
-    projectRows(std::move(left), quadMatrix.topLeft, quadMatrix.bottomLeft);
-    projectRows(std::move(right), quadMatrix.topRight, quadMatrix.bottomRight);
+    LeftRight lr(mColProjectTo, ring(), 0);
+    lr.appendRows(mMatrices);
+    setupRowProjectionLate(lr.left(), lr.right());
+    projectRows(lr.moveLeft(), qm.topLeft, qm.bottomLeft);
+    projectRows(lr.moveRight(), qm.topRight, qm.bottomRight);
   }
 
-  quadMatrix.ring = &ring();
-  quadMatrix.leftColumnMonomials = std::move(mLeftMonomials);
-  quadMatrix.rightColumnMonomials = std::move(mRightMonomials);
-  return std::move(quadMatrix);
+  qm.ring = &ring();
+  qm.leftColumnMonomials = std::move(mLeftMonomials);
+  qm.rightColumnMonomials = std::move(mRightMonomials);
+  return std::move(qm);
 }
