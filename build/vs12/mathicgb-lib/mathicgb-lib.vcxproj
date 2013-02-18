@@ -531,6 +531,7 @@
     <ClInclude Include="..\..\..\src\mathicgb\ReducerNoDedup.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\ReducerPack.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\ReducerPackDedup.hpp" />
+    <ClInclude Include="..\..\..\src\mathicgb\ScopeExit.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\SignatureGB.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\SigSPairQueue.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\SigSPairs.hpp" />
