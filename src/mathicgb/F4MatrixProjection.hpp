@@ -21,56 +21,31 @@ public:
   // No reference to mono is retained.
   void addColumn(ColIndex index, const_monomial mono, const bool isLeft);
 
-  QuadMatrix makeProjectionAndClear();
+  QuadMatrix makeAndClear(const size_t quantum);
 
   const PolyRing& ring() const {return mRing;}
 
 private:
-  struct LeftRight;
+  QuadMatrix makeAndClearOneStep(const size_t quantum);
+  QuadMatrix makeAndClearTwoStep(const size_t quantum);
 
-  std::vector<F4ProtoMatrix*> mMatrices;
+  // Utility class for building a left/right projection.
+  class LeftRight;
 
-  // *** Projection of columns
+  // Utility class for building a top/bottom projection.
+  template<class Row>
+  class TopBottom;
+
+  // This is for projection of columns
   struct ColProjectTo {
     ColIndex index;
     bool isLeft;
   };
   std::vector<ColProjectTo> mColProjectTo;
 
-  // *** Projection: Simultaneously do let/right and row permutation
-  void setupRowProjection();
-  struct RowProjectFrom {
-    Scalar multiplyBy;
-    F4ProtoMatrix::Row row;
-  };
-  std::vector<RowProjectFrom> mTopRowProjectFrom;
-  std::vector<RowProjectFrom> mBottomRowProjectFrom;
-
-  // *** Projection: Do left/right, then permute rows
-  void setupRowProjectionLate(
-    const SparseMatrix& left,
-    const SparseMatrix& right
-  );
-  struct RowProjectFromLate {
-    Scalar multiplyBy;
-    RowIndex row;
-  };
-  void projectRows(
-    SparseMatrix&& in,
-    SparseMatrix& top,
-    SparseMatrix& bottom
-  );
-  std::vector<RowProjectFromLate> mTopRows;
-  std::vector<RowProjectFromLate> mBottomRows;
-
-
-
-
-
-
+  std::vector<F4ProtoMatrix*> mMatrices;
   std::vector<monomial> mLeftMonomials;
   std::vector<monomial> mRightMonomials;
-
   const PolyRing& mRing;
 };
 

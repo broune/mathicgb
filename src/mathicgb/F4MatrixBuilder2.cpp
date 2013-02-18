@@ -198,7 +198,7 @@ void F4MatrixBuilder2::buildMatrixAndClear(QuadMatrix& quadMatrix) {
     projection.addColumn(p.first, p.second, mIsColumnToLeft[p.first]);
   }
 
-  quadMatrix = projection.makeProjectionAndClear();
+  quadMatrix = projection.makeAndClear(mMemoryQuantum);
   threadData.clear();
 
 #ifdef MATHICGB_DEBUG
