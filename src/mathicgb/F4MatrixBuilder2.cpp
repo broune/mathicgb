@@ -173,18 +173,32 @@ void F4MatrixBuilder2::buildMatrixAndClear(QuadMatrix& quadMatrix) {
       ring().freeMonomial(it->desiredLead);
   mTodo.clear();
 
-  // Collect pre-blocks from each thread
-  std::vector<F4ProtoMatrix*> blocks;
-  blocks.reserve(threadData.size());
+  // Move the proto-matrices across all threads into the projection.
+  F4MatrixProjection projection
+    (ring(), static_cast<ColIndex>(mMap.entryCount()));
   const auto end = threadData.end();
   for (auto it = threadData.begin(); it != end; ++it) {
-    blocks.emplace_back(&it->block);
+    projection.addProtoMatrix(std::move(it->block));
     ring().freeMonomial(it->tmp1);
     ring().freeMonomial(it->tmp2);
-    continue;
   }
 
-  quadMatrix = F4MatrixProjection().project(std::move(mIsColumnToLeft), std::move(mMap), std::move(blocks)); 
+  // Sort columns by monomial and tell the projection of the resulting order
+  MonomialMap<ColIndex>::Reader reader(mMap);
+  typedef std::pair<ColIndex, ConstMonomial> IndexMono;
+  std::vector<IndexMono> columns(reader.begin(), reader.end());
+  const auto cmp = [&](const IndexMono& a, const IndexMono b) {
+    return ring().monomialLT(b.second, a.second);
+  };
+  tbb::parallel_sort(columns.begin(), columns.end(), cmp);
+
+  const auto colEnd = columns.end();
+  for (auto it = columns.begin(); it != colEnd; ++it) {
+    const auto p = *it;
+    projection.addColumn(p.first, p.second, mIsColumnToLeft[p.first]);
+  }
+
+  quadMatrix = projection.makeProjectionAndClear();
   threadData.clear();
 
 #ifdef MATHICGB_DEBUG

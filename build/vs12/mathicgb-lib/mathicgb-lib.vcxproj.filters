@@ -311,5 +311,8 @@
     <ClInclude Include="..\..\..\src\mathicgb\F4MatrixProjection.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\src\mathicgb\ScopeExit.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
