@@ -26,6 +26,8 @@ public:
   const PolyRing& ring() const {return mRing;}
 
 private:
+  struct LeftRight;
+
   std::vector<F4ProtoMatrix*> mMatrices;
 
   // *** Projection of columns
@@ -41,11 +43,6 @@ private:
     Scalar multiplyBy;
     F4ProtoMatrix::Row row;
   };
-  void projectRowsLeftRight(
-    const std::vector<RowProjectFrom>& from,
-    SparseMatrix& left,
-    SparseMatrix& right
-  ) const;
   std::vector<RowProjectFrom> mTopRowProjectFrom;
   std::vector<RowProjectFrom> mBottomRowProjectFrom;
 
@@ -58,11 +55,6 @@ private:
     Scalar multiplyBy;
     RowIndex row;
   };
-  void projectLeftRight(
-    const std::vector<F4ProtoMatrix*>& preblocks,
-    SparseMatrix& left,
-    SparseMatrix& right
-  ) const;
   void projectRows(
     SparseMatrix&& in,
     SparseMatrix& top,
