@@ -255,7 +255,9 @@ QuadMatrix F4MatrixProjection::makeAndClearOneStep(const size_t quantum) {
 done:;
     }
   }
+#ifdef MATHICGB_DEBUG
   tb.debugAssertValid();
+#endif
 
   // Split left/right and top/bottom simultaneously
   LeftRight top(mColProjectTo, ring(), quantum);
@@ -340,7 +342,9 @@ QuadMatrix F4MatrixProjection::makeAndClearTwoStep(const size_t quantum) {
       tb.addRow(r, entry.index(), entry.scalar());
     }
   }
+#ifdef MATHICGB_DEBUG
   tb.debugAssertValid();
+#endif
 
   QuadMatrix qm;
   auto left = projectRows(tb, quantum, lr.moveLeft());
