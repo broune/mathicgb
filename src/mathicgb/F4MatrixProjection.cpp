@@ -85,17 +85,17 @@ public:
     }
   }
 
-#ifdef MATHICGB_DEBUG
   bool debugAssertValid() {
+#ifdef MATHICGB_DEBUG
     auto check = [](RowMultiple r) {
       MATHICGB_ASSERT(r.first.entryCount > 0);
       MATHICGB_ASSERT(r.second != 0);
     };
     std::for_each(mTopRows.begin(), mTopRows.end(), check);
     std::for_each(mBottomRows.begin(), mBottomRows.end(), check);
+#endif MATHICGB_DEBUG
     return true;
   }
-#endif
 
   Scalar modulus() const {return mModulus;}
   const RowVector& top() const {return mTopRows;}
@@ -255,9 +255,7 @@ QuadMatrix F4MatrixProjection::makeAndClearOneStep(const size_t quantum) {
 done:;
     }
   }
-#ifdef MATHICGB_DEBUG
-  tb.debugAssertValid();
-#endif
+  MATHICGB_ASSERT(tb.debugAssertValid());
 
   // Split left/right and top/bottom simultaneously
   LeftRight top(mColProjectTo, ring(), quantum);
@@ -342,9 +340,7 @@ QuadMatrix F4MatrixProjection::makeAndClearTwoStep(const size_t quantum) {
       tb.addRow(r, entry.index(), entry.scalar());
     }
   }
-#ifdef MATHICGB_DEBUG
-  tb.debugAssertValid();
-#endif
+  MATHICGB_ASSERT(tb.debugAssertValid());
 
   QuadMatrix qm;
   auto left = projectRows(tb, quantum, lr.moveLeft());
