@@ -24,7 +24,7 @@ BuchbergerAlg::BuchbergerAlg(
     *ideal.getPolyRing(),
     divisorLookupType)->create(preferSparseReducers, true)
   ),
-  mSPairs(mBasis, queueType),
+  mSPairs(mBasis, preferSparseReducers),
   mSPolyReductionCount(0)
 {
   // Reduce and insert the generators of the ideal into the starting basis

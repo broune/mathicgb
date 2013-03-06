@@ -1,7 +1,7 @@
 #ifndef _s_pairs_h_
 #define _s_pairs_h_
 
-#include "PairTriangle.hpp"
+#include "PolyBasis.hpp"
 #include <utility>
 #include <mathic.h>
 #include <memory>
@@ -12,13 +12,13 @@ class PolyBasis;
 // algorithm. Also eliminates useless S-pairs and orders the S-pairs.
 class SPairs {
 public:
-  SPairs(const PolyBasis& basis, size_t queueType);
+  SPairs(const PolyBasis& basis, bool preferSparseSPairs);
 
   // Returns the number of S-pairs in the data structure.
-  size_t pairCount() const {return mTri.pairCount();}
+  size_t pairCount() const {return mQueue.pairCount();}
 
-  // Returns true if there all S-pairs have been eliminated or popped.
-  bool empty() const {return mTri.empty();}
+  // Returns true if no pending S-pairs remain.
+  bool empty() const {return mQueue.empty();}
 
   // Removes the minimal S-pair from the data structure and return it.
   // The S-polynomial of that pair is assumed to reduce to zero, either
@@ -90,22 +90,23 @@ public:
 
 private:
   // Returns true if Buchberger's second criterion for eliminating useless
-  // S-pairs applies to the pair (a,b). Let
+  // S-pairs applies to the pair (a,b). Define
   //   l(a,b) = lcm(lead(a), lead(b)).
   // The criterion says that if there is some other basis element c such that
   //   lead(c)|l(a,b)
   // and
-  //   l(a,c) reduces to zero, and
-  //   l(b,c) reduces to zero
-  // then (a,b) will reduce to zero (using classic non-signature reduction).
+  //   l(a,c) has a representation and
+  //   l(b,c) has a representation
+  // then (a,b) has a representation too, so we do not need to reduce it.
   //
-  // This criterion is less straight forward to apply in case for example
+  // This criterion is easy to get wrong in cases where
   //   l(a,b) = l(a,c) = l(b,c)
   // since then there is the potential to erroneously eliminate all the three
   // pairs among a,b,c on the assumption that the other two pairs will reduce
-  // to zero. In such cases, we eliminate the pair with the lowest indexes.
-  // This allows removing generators that get non-minimal lead term without
-  // problems.
+  // to zero. In fact only one of the pairs should be eliminated. We leave such
+  // cases to the advanced criterion, except if an S-pair has already been
+  // eliminated - in that case we do not check to see if the lcm's are the same
+  // as it is not necessary to do so.
   bool simpleBuchbergerLcmCriterion
     (size_t a, size_t b, const_monomial lcmAB) const;
 
@@ -120,22 +121,58 @@ private:
   // Each vertex of G represents a basis element whose lead monomial divides
   // lcmAB. There is an edge (c,d) if lcm(c,d) != lcm(a,b) or if (c,d) has
   // been eliminated. It is a theorem that if there is a path from a to b
-  // in G then (a,b) is a useless S-pair and so can be eliminated.
+  // in G then (a,b) is a useless S-pair that can be eliminated.
   bool advancedBuchbergerLcmCriterion
     (size_t a, size_t b, const_monomial lcmAB) const;
 
   // As the non-slow version, but uses simpler and slower code.
   bool advancedBuchbergerLcmCriterionSlow(size_t a, size_t b) const;
 
-  class ClassicPairTriangle : public PairTriangle {
+  class QueueConfiguration {
   public:
-    ClassicPairTriangle(const PolyBasis& basis, size_t queueType);
-  protected:
-    virtual bool calculateOrderBy(size_t a, size_t b, monomial orderBy) const;
+    QueueConfiguration(const PolyBasis& basis, const bool preferSparseSPairs):
+      mBasis(basis), mPreferSparseSPairs(preferSparseSPairs) {}
+
+    typedef monomial PairData;
+	void computePairData(size_t col, size_t row, monomial m) const;
+
+	typedef bool CompareResult;
+	bool compare(size_t colA, size_t rowA, const_monomial a,
+				 size_t colB, size_t rowB, const_monomial b) const
+    {
+      const auto cmp = mBasis.ring().monomialCompare(a, b);
+      if (cmp == GT)
+        return true;
+      if (cmp == LT)
+        return false;
+
+      if (mPreferSparseSPairs) {
+        const auto termCountA =
+          mBasis.basisElement(colA).termCount() +
+          mBasis.basisElement(rowA).termCount();
+        const auto termCountB =
+          mBasis.basisElement(colB).termCount() +
+          mBasis.basisElement(rowB).termCount();
+        if (termCountA > termCountB)
+          return true;
+        if (termCountA < termCountB)
+          return false;
+      }
+      return colA + rowA > colB + rowB;
+	}
+	bool cmpLessThan(bool v) const {return v;}
+
+	// these are not required for a configuration but we will use
+	// them from this code. TODO
+	monomial allocPairData() {return mBasis.ring().allocMonomial();}
+	void freePairData(monomial m) {return mBasis.ring().freeMonomial(m);}
+
   private:
-    const PolyBasis& mBasis;
+	const PolyBasis& mBasis;
+    const bool mPreferSparseSPairs;
   };
-  ClassicPairTriangle mTri;
+  typedef mathic::PairQueue<QueueConfiguration> Queue;
+  Queue mQueue;
 
   // The bit at (i,j) is set to true if it is known that the S-pair between
   // basis element i and j does not have to be reduced. This can be due to a
@@ -157,6 +194,32 @@ private:
   // Variable used only inside advancedBuchbergerLcmCriterion().
   mutable std::vector<std::pair<size_t, Connection> >
     mAdvancedBuchbergerLcmCriterionGraph;
+
+  friend void mathic::PairQueueNamespace::constructPairData<QueueConfiguration>
+    (void*, Index, Index, QueueConfiguration&);
+  friend void mathic::PairQueueNamespace::destructPairData<QueueConfiguration>
+    (monomial*, Index, Index, QueueConfiguration&);
 };
+
+namespace mathic {
+  namespace PairQueueNamespace {
+	template<>
+	inline void constructPairData<SPairs::QueueConfiguration>
+	(void* memory, Index col, Index row, SPairs::QueueConfiguration& conf) {
+	  MATHICGB_ASSERT(memory != 0);
+	  MATHICGB_ASSERT(col > row);
+	  monomial* pd = new (memory) monomial(conf.allocPairData());
+	  conf.computePairData(col, row, *pd);
+	}
+
+	template<>
+	inline void destructPairData
+	(monomial* pd, Index col, Index row, SPairs::QueueConfiguration& conf) {
+	  MATHICGB_ASSERT(pd != 0);
+	  MATHICGB_ASSERT(col > row);
+	  conf.freePairData(*pd);
+	}	
+  }
+}
 
 #endif

@@ -5,8 +5,9 @@
 
 #include <iostream>
 
-SPairs::SPairs(const PolyBasis& basis, size_t queueType):
-  mTri(basis, queueType),
+// todo: queueType ignored?
+SPairs::SPairs(const PolyBasis& basis, bool preferSparseSPairs):
+  mQueue(QueueConfiguration(basis, preferSparseSPairs)),
   mBasis(basis),
   mRing(basis.ring()) {}
 
@@ -14,24 +15,24 @@ std::pair<size_t, size_t> SPairs::pop() {
   // Must call addPairs for new elements before popping.
   MATHICGB_ASSERT(mEliminated.columnCount() == mBasis.size());
 
-  while (!mTri.empty()) {
+  while (!mQueue.empty()) {
     std::pair<size_t, size_t> p;
-    p = mTri.topPair();
+    p = mQueue.topPair();
     if (mBasis.retired(p.first) || mBasis.retired(p.second)) {
-      mTri.pop();
+      mQueue.pop();
       continue;
     }
-    const_monomial lcm = mTri.topOrderBy();
+    const_monomial lcm = mQueue.topPairData();
     MATHICGB_ASSERT(mRing.monomialIsLeastCommonMultiple
       (mBasis.leadMonomial(p.first),
       mBasis.leadMonomial(p.second), lcm));
     // Can't pop before done with lcm as popping overwrites lcm.
     if (!advancedBuchbergerLcmCriterion(p.first, p.second, lcm)) {
-      mTri.pop();
+      mQueue.pop();
       mEliminated.setBit(p.first, p.second, true);
       return p;
     }
-    mTri.pop();
+    mQueue.pop();
   }
   return std::make_pair(static_cast<size_t>(-1), static_cast<size_t>(-1));
 }
@@ -40,27 +41,27 @@ std::pair<size_t, size_t> SPairs::pop(exponent& w) {
   // Must call addPairs for new elements before popping.
   MATHICGB_ASSERT(mEliminated.columnCount() == mBasis.size());
 
-  while (!mTri.empty()) {
+  while (!mQueue.empty()) {
     std::pair<size_t, size_t> p;
-    p = mTri.topPair();
+    p = mQueue.topPair();
     if (mBasis.retired(p.first) || mBasis.retired(p.second)) {
-      mTri.pop();
+      mQueue.pop();
       continue;
     }
-    const_monomial lcm = mTri.topOrderBy();
+    const_monomial lcm = mQueue.topPairData();
     MATHICGB_ASSERT(mRing.monomialIsLeastCommonMultiple
       (mBasis.leadMonomial(p.first),
       mBasis.leadMonomial(p.second), lcm));
     // Can't pop before done with lcm as popping overwrites lcm.
     if (advancedBuchbergerLcmCriterion(p.first, p.second, lcm)) {
-      mTri.pop();
+      mQueue.pop();
       continue;
     }
     if (w == 0)
       w = mRing.weight(lcm);
     else if (w != mRing.weight(lcm))
       break;
-    mTri.pop();
+    mQueue.pop();
     mEliminated.setBit(p.first, p.second, true);
     return p;
   }
@@ -107,7 +108,7 @@ void SPairs::addPairsAssumeAutoReduce(
   size_t newGen,
   std::vector<size_t>& toRetireAndReduce
 ) {
-  MATHICGB_ASSERT(mTri.columnCount() == newGen);
+  MATHICGB_ASSERT(mQueue.columnCount() == newGen);
 
   MATHICGB_ASSERT(newGen < mBasis.size());
   MATHICGB_ASSERT(!mBasis.retired(newGen));
@@ -125,12 +126,44 @@ void SPairs::addPairsAssumeAutoReduce(
   addPairs(newGen);
 }
 
+namespace {
+  template<class PairIterator>
+  class SecondIterator {
+  public:
+	typedef typename PairIterator::iterator_category iterator_category;
+    typedef decltype(reinterpret_cast<typename PairIterator::value_type*>(0)->second) value_type;
+	typedef typename PairIterator::difference_type difference_type;
+	typedef value_type* pointer;
+	typedef value_type& reference;
+
+	SecondIterator(PairIterator pairIterator): mIterator(pairIterator) {}
+	SecondIterator& operator++() {++mIterator; return *this;}
+    const value_type operator*() const {return mIterator->second;}
+	difference_type operator-(const SecondIterator<PairIterator>& it) const {
+	  return mIterator - it.mIterator;
+	}
+	bool operator==(const SecondIterator<PairIterator>& it) const {
+	  return mIterator == it.mIterator;
+	}
+	bool operator!=(const SecondIterator<PairIterator>& it) const {
+	  return mIterator != it.mIterator;
+	}
+
+  private:
+	PairIterator mIterator;
+  };
+  template<class Iter>
+  SecondIterator<Iter> makeSecondIterator(Iter it) {
+    return SecondIterator<Iter>(it);
+  }
+}
+
 void SPairs::addPairs(size_t newGen) {
   // Must call addPairs with newGen parameter in the sequence 0, 1, ...
-  // newGen could be implicitly picked up from mTri.columnCount(), but
+  // newGen could be implicitly picked up from mQueue.columnCount(), but
   // doing it this way ensures that what happens is what the client thinks
   // is happening and offers an ASSERT to inform mistaken client code.
-  MATHICGB_ASSERT(mTri.columnCount() == newGen);
+  MATHICGB_ASSERT(mQueue.columnCount() == newGen);
 
   MATHICGB_ASSERT(newGen < mBasis.size());
   MATHICGB_ASSERT(!mBasis.retired(newGen));
@@ -143,7 +176,15 @@ void SPairs::addPairs(size_t newGen) {
     mEliminated.addColumn();
   }
 
-  mTri.beginColumn();
+
+  typedef std::pair<monomial, Queue::Index> PrePair;
+  std::vector<PrePair> prePairs;
+
+  MATHICGB_ASSERT(prePairs.empty());
+  if (newGen == std::numeric_limits<Queue::Index>::max())
+    throw std::overflow_error
+      ("Too large basis element index in constructing S-pairs.");
+
   const_monomial const newLead = mBasis.leadMonomial(newGen);
   monomial lcm = mBasis.ring().allocMonomial();
   for (size_t oldGen = 0; oldGen < newGen; ++oldGen) {
@@ -161,20 +202,28 @@ void SPairs::addPairs(size_t newGen) {
       continue;
     }
     mRing.setWeightsOnly(lcm);
-    mTri.addPair(oldGen, lcm);
+
+    prePairs.emplace_back(lcm, static_cast<Queue::Index>(oldGen));
     lcm = mBasis.ring().allocMonomial();
   }
   mBasis.ring().freeMonomial(lcm);
-  mTri.endColumn();
+
+  std::sort(prePairs.begin(), prePairs.end(),
+    [&](const PrePair& a, const PrePair& b)
+  {
+    return mQueue.configuration().compare
+      (b.second, newGen, b.first, a.second, newGen, a.first);
+  });
+  mQueue.addColumnDescending
+	(makeSecondIterator(prePairs.begin()), makeSecondIterator(prePairs.end()));
+
+  for (auto it = prePairs.begin(); it != prePairs.end(); ++it)
+    mRing.freeMonomial(it->first);
 }
 
 size_t SPairs::getMemoryUse() const {
-  return mTri.getMemoryUse();
+  return mQueue.getMemoryUse();
 }
-
-SPairs::ClassicPairTriangle::ClassicPairTriangle(const PolyBasis& basis, size_t queueType):
-  PairTriangle(basis.order(), basis.ring(), queueType),
-  mBasis(basis) {}
 
 bool SPairs::simpleBuchbergerLcmCriterion
 (size_t a, size_t b, const_monomial lcmAB) const
@@ -373,10 +422,10 @@ bool SPairs::advancedBuchbergerLcmCriterion
   }
   mStats.late = false;
 
-  // *** Build the graph vertices
+  // *** Determine the graph vertices
   // graph contains pairs (index, state). index is the index of a basis
-  // that is a node in G. state indicates which of a and b that the node
-  // in question is so far known to be connected to.
+  // element that is a node in G. state indicates which of a and b that the
+  // node in question is so far known to be connected to, if any.
 
   typedef std::vector<std::pair<size_t, Connection> > Graph;
   class GraphBuilder : public DivisorLookup::EntryOutput {
@@ -543,16 +592,16 @@ bool SPairs::advancedBuchbergerLcmCriterionSlow(size_t a, size_t b) const {
 }
 
 SPairs::Stats SPairs::stats() const {
-  size_t const columnCount = mTri.columnCount();
+  size_t const columnCount = mQueue.columnCount();
   mStats.sPairsConsidered = columnCount * (columnCount - 1) / 2;
   return mStats;
 }
 
 std::string SPairs::name() const {
-  return mTri.name();
+  return mQueue.name();
 }
 
-bool SPairs::ClassicPairTriangle::calculateOrderBy(
+void SPairs::QueueConfiguration::computePairData(
   size_t a,
   size_t b,
   monomial orderBy
@@ -561,10 +610,12 @@ bool SPairs::ClassicPairTriangle::calculateOrderBy(
   MATHICGB_ASSERT(a != b);
   MATHICGB_ASSERT(a < mBasis.size());
   MATHICGB_ASSERT(b < mBasis.size());
-  if (mBasis.retired(a) || mBasis.retired(b))
-    return false;
+  if (mBasis.retired(a) || mBasis.retired(b)) {
+    // todo: do something special here?
+    return; //return false;
+  }
   const_monomial const leadA = mBasis.leadMonomial(a);
   const_monomial const leadB = mBasis.leadMonomial(b);
   mBasis.ring().monomialLeastCommonMultiple(leadA, leadB, orderBy);
-  return true;
+  return; //todo: return true;
 }

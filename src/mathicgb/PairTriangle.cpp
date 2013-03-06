@@ -3,7 +3,6 @@
 
 #include <limits>
 #include <stdexcept>
-#include "FreeModuleOrder.hpp"
 
 PairTriangle::PairTriangle(const FreeModuleOrder& order, const PolyRing& ring, size_t queueType):
   mColumnCount(0),
