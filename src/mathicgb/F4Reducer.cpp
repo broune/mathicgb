@@ -24,6 +24,11 @@ MATHICGB_DEFINE_LOG_DOMAIN(
   "Count number of bottom (reducee) rows in F4 matrices."
 );
 
+MATHICGB_DEFINE_LOG_DOMAIN(
+  F4MatrixEntries,
+  "Count number of non-zero entries in F4 matrices."
+);
+
 F4Reducer::F4Reducer(const PolyRing& ring, Type type):
   mType(type),
   mFallback(Reducer::makeReducer(Reducer::Reducer_BjarkeGeo, ring)),
@@ -122,6 +127,7 @@ void F4Reducer::classicReduceSPolySet(
     MATHICGB_LOG_INCREMENT_BY(F4MatrixRows, qm.rowCount());
     MATHICGB_LOG_INCREMENT_BY(F4MatrixTopRows, qm.topLeft.rowCount());
     MATHICGB_LOG_INCREMENT_BY(F4MatrixBottomRows, qm.bottomLeft.rowCount());
+    MATHICGB_LOG_INCREMENT_BY(F4MatrixEntries, qm.entryCount());
     saveMatrix(qm);
     reduced = F4MatrixReducer(basis.ring().charac()).
       reducedRowEchelonFormBottomRight(qm);
@@ -186,6 +192,7 @@ void F4Reducer::classicReducePolySet
     MATHICGB_LOG_INCREMENT_BY(F4MatrixRows, qm.rowCount());
     MATHICGB_LOG_INCREMENT_BY(F4MatrixTopRows, qm.topLeft.rowCount());
     MATHICGB_LOG_INCREMENT_BY(F4MatrixBottomRows, qm.bottomLeft.rowCount());
+    MATHICGB_LOG_INCREMENT_BY(F4MatrixEntries, qm.entryCount());
     saveMatrix(qm);
     reduced = F4MatrixReducer(basis.ring().charac()).
       reducedRowEchelonFormBottomRight(qm);

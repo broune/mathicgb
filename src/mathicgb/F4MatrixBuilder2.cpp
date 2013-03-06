@@ -81,6 +81,11 @@ void F4MatrixBuilder2::addSPolynomialToMatrix(
   RowTask task;
   task.poly = &polyA;
   task.sPairPoly = &polyB;
+  task.desiredLead = ring().allocMonomial();
+  ring().monomialLeastCommonMultiple(
+    task.poly->getLeadMonomial(),
+    task.sPairPoly->getLeadMonomial(),
+    task.desiredLead);
   mTodo.push_back(task);
 }
 
@@ -119,6 +124,68 @@ void F4MatrixBuilder2::buildMatrixAndClear(QuadMatrix& quadMatrix) {
     return;
   }
 
+  // Use halves of S-pairs as reducers to decrease the number of entries that
+  // need to be looked up.
+  tbb::parallel_sort(mTodo.begin(), mTodo.end(),
+    [&](const RowTask& a, const RowTask& b)
+  {
+    if (a.sPairPoly == 0)
+      return b.sPairPoly != 0;
+    else
+      return ring().monomialLT(a.desiredLead, b.desiredLead);
+  });
+  const auto size = mTodo.size();
+  for (size_t i = 0; i < size;) {
+    if (mTodo[i].sPairPoly == 0) {
+      ++i;
+      continue;
+    }
+    MATHICGB_ASSERT(!mTodo[i].desiredLead.isNull());
+    MATHICGB_ASSERT(ColReader(mMap).find(mTodo[i].desiredLead).first == 0);
+
+    // Create column for the lead term that cancels in the S-pair
+    if (mIsColumnToLeft.size() >= std::numeric_limits<ColIndex>::max())
+      throw std::overflow_error("Too many columns in QuadMatrix");
+    const auto newIndex = static_cast<ColIndex>(mIsColumnToLeft.size());
+    const auto inserted =
+      mMap.insert(std::make_pair(mTodo[i].desiredLead, newIndex));
+    mIsColumnToLeft.push_back(true);
+    const auto& mono = inserted.first.second;
+
+    // Schedule the two parts of the S-pair as separate rows. This adds a row
+    // while creating the column in the hash table without adding a reducer
+    // removes a row, effectively making this operation equivalent to taking
+    // half of the S-pair and using it as a reducer.
+    RowTask newTask = {};
+    newTask.sPairPoly = 0;
+    newTask.poly = mTodo[i].sPairPoly;
+    newTask.desiredLead = ring().allocMonomial();
+    ring().monomialCopy(mono, newTask.desiredLead);
+
+    // Now we can strip off any part of an S-pair with the same cancelling lead
+    // term that equals a or b since those rows are in the matrix.
+    const Poly* const a = mTodo[i].poly;
+    const Poly* const b = mTodo[i].sPairPoly;
+
+    mTodo[i].sPairPoly = 0;
+
+    mTodo.push_back(newTask);
+    for (++i; i < size; ++i) {
+      if (mTodo[i].sPairPoly == 0)
+        continue;
+      MATHICGB_ASSERT(!mTodo[i].desiredLead.isNull());
+      if (!ring().monomialEQ(mTodo[i].desiredLead, mono))
+        break;
+      if (mTodo[i].poly == a || mTodo[i].poly == b) {
+        mTodo[i].poly = mTodo[i].sPairPoly;
+        mTodo[i].sPairPoly = 0;
+      } else if (mTodo[i].sPairPoly == a || mTodo[i].sPairPoly == b) {
+        mTodo[i].sPairPoly = 0;
+      } else
+        MATHICGB_ASSERT(false);
+    }
+  }
+
   // Process pending rows until we are done. Note that the methods
   // we are calling here can add more pending items.
 
@@ -144,6 +211,16 @@ void F4MatrixBuilder2::buildMatrixAndClear(QuadMatrix& quadMatrix) {
   {
     auto& data = threadData.local();
     const auto& poly = *task.poly;
+
+    // It is perfectly permissible for task.sPairPoly to be non-null. The
+    // assert is there because of an interaction between S-pair
+    // elimination/choice and the use of halves of S-pairs as reducers. The
+    // current effect of these is that *all* S-pairs have a component split
+    // off so that sPairPoly is always null (this is non-trivial to
+    // realize). So if this assert goes off, you've messed that interaction
+    // up somehow or you are using this class in some new way. So you can
+    // remove the assert if necessary.
+    MATHICGB_ASSERT(task.sPairPoly == 0);
 
     if (task.sPairPoly != 0) {
       ring().monomialColons(

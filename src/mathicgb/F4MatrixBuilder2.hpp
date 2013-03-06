@@ -73,12 +73,12 @@ private:
   /// Represents the task of adding a row to the matrix. If sPairPoly is null
   /// then the row to add is multiply * poly. Otherwise, the row to add is
   ///   multiply * poly - sPairMultiply * sPairPoly
-  /// where sPairMultiply makes the lead terms cancel.
+  /// where multiply and sPairMultiply are such that the leading terms become
+  /// desiredLead.
   struct RowTask {
     monomial desiredLead; // multiply monomial onto poly to get this lead
     const Poly* poly;
     const Poly* sPairPoly;
-    monomial sPairMultiply;
   };
   typedef tbb::parallel_do_feeder<RowTask> TaskFeeder;
 
