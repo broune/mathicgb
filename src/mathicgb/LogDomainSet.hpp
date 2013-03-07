@@ -21,13 +21,15 @@ public:
   ///   A       a prefix
   ///   B       a suffix
   /// The possible values of A are
-  ///           enabled X (this is the empty string)
-  ///   +       enabled X
+  ///           enable X (this is the empty string)
+  ///   +       enable X
   ///   -       disable X
+  ///   0       do nothing
   /// The possible values of B are
-  ///           leaving sub-state as-is (this is the empty string)
+  ///           do nothing (this is the empty string)
   ///   +       stream-enabled X
   ///   -       stream-disable X
+  ///   0       do nothing
   ///
   /// No white-space is allowed.
   /// If the command cannot be parsed then you will get an exception.
@@ -41,10 +43,12 @@ public:
   ///   "+MyLog" will enabled MyLog. Since the streaming state was enabled
   ///     before, we now get streaming.
   ///
-  void performLogCommand(std::string cmd);
+  void performLogCommand(std::string cmd)
+    {performLogCommandInternal(' ', std::move(cmd), ' ');}
 
   /// Performs a comma-seperated list of commands. No white-space is allowed.
-  void performLogCommands(const std::string& cmds);
+  void performLogCommands(const std::string& cmds)
+    {performLogCommandsInternal(' ', cmds, ' ');}
 
   LogDomain<true>* logDomain(const char* const name);
 
@@ -61,6 +65,16 @@ public:
   static LogDomainSet& singleton();
 
 private:
+  void performLogCommandInternal(
+    char prefix,
+    std::string name,
+    char suffix
+  );
+  void performLogCommandsInternal(
+    const char prefix,
+    const std::string& cmds,
+    const char suffix
+  );
   LogDomainSet(); // private for singleton
 
   std::vector<LogDomain<true>*> mLogDomains;

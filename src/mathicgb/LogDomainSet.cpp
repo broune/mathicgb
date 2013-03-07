@@ -8,6 +8,8 @@ LogDomainSet::LogDomainSet():
 }
 
 void LogDomainSet::registerLogDomain(LogDomain<true>& domain) {
+  MATHICGB_ASSERT(std::strcmp(domain.name(), "none") != 0);
+  MATHICGB_ASSERT(std::strcmp(domain.name(), "all") != 0);
   mLogDomains.push_back(&domain);
 }
 
@@ -32,53 +34,82 @@ void LogDomainSet::registerLogAlias(const char* alias, const char* of) {
   mAliases.push_back(std::make_pair(alias, of));
 }
 
-void LogDomainSet::performLogCommand(std::string cmd) {
-  if (cmd.empty())
-    return;
-
-  // This could be more efficient, but this is not supposed to be a
-  // method that is called very often.
-  const auto isSign = [](const char c) {return c == '+' || c == '-';};
-  char prefix = ' ';
-  if (isSign(cmd.front())) {
-    prefix = cmd.front();
-    cmd.erase(cmd.begin());
-  }
-
-  char suffix = ' ';
-  if (!cmd.empty() && isSign(cmd.back())) {
-    suffix = cmd.back();
-    cmd.erase(cmd.end() - 1);
-  }
-
-  auto log = logDomain(cmd.c_str());
-  if (log != 0) {
-    log->setEnabled(prefix != '-');
-    if (suffix != ' ')
-      log->setStreamEnabled(suffix == '+');
-    return;
-  }
-
-  auto aliasOf = this->alias(cmd.c_str());
-  if (aliasOf != 0) {
-    performLogCommands(aliasOf);
-    return;
-  }
-
-  mathic::reportError("Unknown log \"" + cmd + "\".\n");
-}
-
-void LogDomainSet::performLogCommands(const std::string& cmds) {
+void LogDomainSet::performLogCommandsInternal(
+  const char prefix,
+  const std::string& cmds,
+  const char suffix
+) {
   size_t offset = 0;
   while (offset < cmds.size()) {
     const size_t next = cmds.find(',', offset);
-    performLogCommand(cmds.substr(offset, next - offset));
+    performLogCommandInternal
+      (prefix, cmds.substr(offset, next - offset), suffix);
     offset = next;
     if (offset < cmds.size()) {
       MATHICGB_ASSERT(cmds[offset] == ',');
       ++offset;
     }
   }
+}
+
+void LogDomainSet::performLogCommandInternal(
+  char prefix,
+  std::string cmd,
+  char suffix
+) {
+  const auto isSign =
+    [](const char c) {return c == '+' || c == '-' || c == '0';};
+  MATHICGB_ASSERT(prefix == ' ' || isSign(prefix));
+  MATHICGB_ASSERT(suffix == ' ' || isSign(suffix));
+
+  if (cmd.empty())
+    return;
+
+  // This could be more efficient, but this is not supposed to be a
+  // method that is called very often.
+
+  if (isSign(cmd.front())) {
+    if (prefix == ' ')
+      prefix = cmd.front();
+    cmd.erase(cmd.begin());
+  }
+
+  if (!cmd.empty() && isSign(cmd.back())) {
+    if (suffix == ' ')
+      suffix = cmd.back();
+    cmd.erase(cmd.end() - 1);
+  }
+
+  if (cmd == "none")
+    return;
+
+  if (cmd == "all") {
+    for (auto it = mLogDomains.begin(); it != mLogDomains.end(); ++it)
+      performLogCommandInternal(prefix, (*it)->name(), suffix);
+    return;
+  }
+
+  auto aliasOf = alias(cmd.c_str());
+  if (aliasOf != 0) {
+    performLogCommandsInternal(prefix, aliasOf, suffix);
+    return;
+  }
+
+  // The default modifiers are +X0.
+  if (prefix == ' ')
+    prefix = '+';
+  if (suffix == ' ')
+    suffix = '0';
+  auto log = logDomain(cmd.c_str());
+  if (log != 0) {
+    if (prefix != '0')
+      log->setEnabled(prefix != '-');
+    if (suffix != '0')
+      log->setStreamEnabled(suffix == '+');
+    return;
+  }
+
+  mathic::reportError("Unknown log \"" + cmd + "\".\n");
 }
 
 void LogDomainSet::printReport(std::ostream& out) const {

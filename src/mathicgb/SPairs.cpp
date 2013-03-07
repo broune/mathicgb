@@ -17,6 +17,11 @@ MATHICGB_DEFINE_LOG_DOMAIN_WITH_DEFAULTS(
   0, 0, 1
 );
 
+MATHICGB_DEFINE_LOG_ALIAS(
+  "SPairs",
+  "SPairEarly,SPairLate"
+);
+
 SPairs::SPairs(const PolyBasis& basis, bool preferSparseSPairs):
   mQueue(QueueConfiguration(basis, preferSparseSPairs)),
   mBasis(basis),

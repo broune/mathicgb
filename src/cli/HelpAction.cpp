@@ -39,7 +39,8 @@ void HelpAction::performAction() {
     "\n"
     "A prefix of - disables the log while no prefix or a prefix of + enables "
     "it. A suffix of - turns off streaming while a suffix of + turns it on. "
-    "If there is no suffix then the setting for streaming is unchanged.\n"
+    "If there is no suffix then the setting for streaming is unchanged. A "
+    "prefix or suffix of 0 means do nothing.\n"
     "\n"
     "The following is a list of all compile-time enabled logs. The prefixes "
     "and suffixes indicate the default state of the log.\n";
@@ -58,9 +59,22 @@ void HelpAction::performAction() {
 
   const char* aliasDescription =
     "\nA log alias is a short-hand where one name stands for several log "
-    "specifications. The following is a list of all aliases.\n";
+    "specifications. Prefixes and Suffixes also apply to aliases. If X "
+    "expands to A+,-B,C then +X- expands to +A-,+B-,+C-. 0all- turns off "
+    "all streaming output without enabling or disabling any logs.\n"
+    "\n"
+    "The following is a list of all aliases.\n";
   mathic::display(aliasDescription);
   auto& aliases = LogDomainSet::singleton().aliases();
-  for (auto it = aliases.begin(); it != aliases.end(); ++it)
-    std::cerr << "\n " << it->first << "\n   " << it->second << "\n\n";
+  for (auto it = aliases.begin(); it != aliases.end(); ++it) {
+    std::cerr << "\n " << it->first << " expands to\n";
+    std::string str = it->second;
+    std::replace(str.begin(), str.end(), ',', ' ');
+    mathic::display(str, "   ");
+  }
+  std::cerr <<
+    "\n none expands to nothing\n"
+    "\n"
+    " all expands to all log names\n";
+    "\n";
 }

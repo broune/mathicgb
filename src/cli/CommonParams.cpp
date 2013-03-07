@@ -16,9 +16,11 @@ CommonParams::CommonParams(size_t minDirectParams, size_t maxDirectParams):
     1),
 
   mLogs("log",
-    "Enable the specified log. Do \"help logs\" to see all available logs. "
-    "To enable logs X, Y and Z, do \"-log X,Y,Z\".",
-    ""),
+    "Enable the specified log. Do \"help logs\" to see all available logs and "
+    "the details of how to configure what kind of logging you want. "
+    "To enable logs X, Y and Z, do \"-log X,Y,Z\". "
+    "To enabled all logs, do \"-log\" or \"-log all\".",
+    "none"),
 
   mMinDirectParams(minDirectParams),
   mMaxDirectParams(maxDirectParams)
@@ -45,7 +47,8 @@ void CommonParams::pushBackParameters(
 }
 
 void CommonParams::perform() {
-  LogDomainSet::singleton().performLogCommands(mLogs.value());
+  const std::string logs = mLogs.value().empty() ? "all" : mLogs.value();
+  LogDomainSet::singleton().performLogCommands(logs);
   tracingLevel = mTracingLevel.value();
 
   // delete the old init object first to make the new one take control.
