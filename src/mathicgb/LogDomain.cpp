@@ -91,3 +91,6 @@ void LogDomain<true>::Timer::start() {
   mRealTicks = tbb::tick_count::now();
 }
 
+LogDomainInternal::LogAliasRegisterer::LogAliasRegisterer(const char* alias, const char* of) {
+  LogDomainSet::singleton().registerLogAlias(alias, of);
+}

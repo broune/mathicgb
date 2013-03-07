@@ -55,4 +55,12 @@ void HelpAction::performAction() {
       << '\n';
     mathic::display((*it)->description(), "   ");
   }
+
+  const char* aliasDescription =
+    "\nA log alias is a short-hand where one name stands for several log "
+    "specifications. The following is a list of all aliases.\n";
+  mathic::display(aliasDescription);
+  auto& aliases = LogDomainSet::singleton().aliases();
+  for (auto it = aliases.begin(); it != aliases.end(); ++it)
+    std::cerr << "\n " << it->first << "\n   " << it->second << "\n\n";
 }

@@ -14,6 +14,8 @@ public:
   void registerLogDomain(LogDomain<true>& domain);
   void registerLogDomain(const LogDomain<false>& domain) {}
 
+  void registerLogAlias(const char* alias, const char* of);
+
   /// A log command has the format AXB, where
   ///   X       the name of a compile-time enabled log domain
   ///   A       a prefix
@@ -46,7 +48,11 @@ public:
 
   LogDomain<true>* logDomain(const char* const name);
 
+  const char* alias(const char* name);
+
   const std::vector<LogDomain<true>*>& logDomains() const {return mLogDomains;}
+  const std::vector<std::pair<const char*, const char*>>& aliases() const
+    {return mAliases;}
 
   void printReport(std::ostream& out) const;
   void printTimeReport(std::ostream& out) const;
@@ -58,6 +64,7 @@ private:
   LogDomainSet(); // private for singleton
 
   std::vector<LogDomain<true>*> mLogDomains;
+  std::vector<std::pair<const char*, const char*>> mAliases;
   tbb::tick_count mStartTime;
 };
 

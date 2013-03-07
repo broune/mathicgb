@@ -19,6 +19,19 @@ LogDomain<true>* LogDomainSet::logDomain(const char* const name) {
   return it == mLogDomains.end() ? static_cast<LogDomain<true>*>(0) : *it;
 }
 
+const char* LogDomainSet::alias(const char* name) {
+  const auto func = [&](const std::pair<const char*, const char*> p){
+    return std::strcmp(p.first, name) == 0;
+  };
+  const auto it = std::find_if(mAliases.begin(), mAliases.end(), func);
+  return it == mAliases.end() ? static_cast<const char*>(0) : it->second;
+}
+
+void LogDomainSet::registerLogAlias(const char* alias, const char* of) {
+  MATHICGB_ASSERT(this->alias(alias) == 0);
+  mAliases.push_back(std::make_pair(alias, of));
+}
+
 void LogDomainSet::performLogCommand(std::string cmd) {
   if (cmd.empty())
     return;
@@ -26,7 +39,7 @@ void LogDomainSet::performLogCommand(std::string cmd) {
   // This could be more efficient, but this is not supposed to be a
   // method that is called very often.
   const auto isSign = [](const char c) {return c == '+' || c == '-';};
-  char prefix = '+';
+  char prefix = ' ';
   if (isSign(cmd.front())) {
     prefix = cmd.front();
     cmd.erase(cmd.begin());
@@ -39,11 +52,20 @@ void LogDomainSet::performLogCommand(std::string cmd) {
   }
 
   auto log = logDomain(cmd.c_str());
-  if (log == 0)
-    mathic::reportError("Unknown log domain \"" + cmd + "\".\n");
-  log->setEnabled(prefix == '+');
-  if (suffix != ' ')
-    log->setStreamEnabled(suffix == '+');
+  if (log != 0) {
+    log->setEnabled(prefix != '-');
+    if (suffix != ' ')
+      log->setStreamEnabled(suffix == '+');
+    return;
+  }
+
+  auto aliasOf = this->alias(cmd.c_str());
+  if (aliasOf != 0) {
+    performLogCommands(aliasOf);
+    return;
+  }
+
+  mathic::reportError("Unknown log \"" + cmd + "\".\n");
 }
 
 void LogDomainSet::performLogCommands(const std::string& cmds) {

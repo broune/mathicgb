@@ -190,6 +190,10 @@ namespace LogDomainInternal {
   }
   template<class L, class T>
   void operator+(LambdaRunner<L> runner, T&& lambda) {lambda(runner.log);}
+
+  struct LogAliasRegisterer {
+    LogAliasRegisterer(const char* alias, const char* of);
+  };
 }
 
 /// Defines LogDomainInternal::value_##NAME to be equal to the value of
@@ -236,6 +240,12 @@ namespace LogDomainInternal {
 ///  runtime streaming: enabled (only takes effect if also enabled)
 #define MATHICGB_DEFINE_LOG_DOMAIN(NAME, DESCRIPTION) \
   MATHICGB_DEFINE_LOG_DOMAIN_WITH_DEFAULTS(NAME, DESCRIPTION, 0, 1, 1);
+
+#define MATHICGB_DEFINE_LOG_ALIAS(ALIAS, OF) \
+  namespace LogDomainInternal { \
+    LogAliasRegisterer MATHICGB_CONCATENATE_AFTER_EXPANSION(reg_, __LINE__) \
+      (ALIAS, OF); \
+  }
 
 /// This expression yields an l-value reference to the indicated logger.
 ///

@@ -15,9 +15,9 @@ CommonParams::CommonParams(size_t minDirectParams, size_t maxDirectParams):
     "Specifies how many threads to use at a time.",
     1),
 
-  mLogs("logs",
+  mLogs("log",
     "Enable the specified log. Do \"help logs\" to see all available logs. "
-    "To enable logs X, Y and Z, do \"-logs x,y,z\".",
+    "To enable logs X, Y and Z, do \"-log X,Y,Z\".",
     ""),
 
   mMinDirectParams(minDirectParams),

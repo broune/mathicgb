@@ -29,6 +29,11 @@ MATHICGB_DEFINE_LOG_DOMAIN(
   "Count number of non-zero entries in F4 matrices."
 );
 
+MATHICGB_DEFINE_LOG_ALIAS(
+  "F4",
+  "F4MatrixEntries-,F4MatrixBottomRows-,F4MatrixTopRows-" ",F4MatrixRows-,F4MatrixBuild+,F4MatrixBuild2+,F4MatrixReduce+"
+);
+
 F4Reducer::F4Reducer(const PolyRing& ring, Type type):
   mType(type),
   mFallback(Reducer::makeReducer(Reducer::Reducer_BjarkeGeo, ring)),
