@@ -40,7 +40,8 @@ public:
   const char* name() const {return mName;}
   const char* description() const {return mDescription;}
   bool enabled() const {return mEnabled;}
-  bool streamEnabled() const {return enabled() && mStreamEnabled;}
+  bool streamEnabledPure() const {return mStreamEnabled;}
+  bool streamEnabled() const {return enabled() && streamEnabledPure();}
 
   void setEnabled(const bool enabled) {mEnabled = enabled;}
   void setStreamEnabled(const bool enabled) {mStreamEnabled = enabled;}
