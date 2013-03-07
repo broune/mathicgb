@@ -11,9 +11,11 @@ static const auto logDomainGlobalStartTime= tbb::tick_count::now();
 LogDomain<true>::LogDomain(
   const char* const name,
   const char* const description,
-  const bool enabled
+  const bool enabled,
+  const bool streamEnabled
 ):
   mEnabled(enabled),
+  mStreamEnabled(streamEnabled),
   mName(name),
   mDescription(description),
   mInterval()
@@ -50,10 +52,12 @@ void LogDomain<true>::recordTime(TimeInterval interval) {
   mInterval.realSeconds += interval.realSeconds;
   mHasTime = true;
 
-  MATHICGB_ASSERT(mName != 0);
-  stream() << mName << " time recorded:        ";
-  interval.print(stream());
-  stream() << std::endl;
+  if (streamEnabled()) {
+    MATHICGB_ASSERT(mName != 0);
+    stream() << mName << " time recorded:        ";
+    interval.print(stream());
+    stream() << std::endl;
+  }
 }
 
 LogDomain<true>::Timer::Timer(LogDomain<true>& logger):

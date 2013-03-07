@@ -45,25 +45,7 @@ void CommonParams::pushBackParameters(
 }
 
 void CommonParams::perform() {
-  size_t offset = 0;
-  const auto& logStr = mLogs.value();
-  auto& logs = LogDomainSet::singleton();
-  while (offset < logStr.size()) {
-    size_t next = logStr.find(',', offset);
-    const auto name = logStr.substr(offset, next - offset);
-    auto log = logs.logDomain(name.c_str());
-    if (log == 0) {
-      std::ostringstream out;
-      out << "Unknown log domain \"" << name <<
-        "\" extracted from -log param \"" << logStr << "\".\n";
-      mathic::reportError(out.str());
-    }
-    log->setEnabled(true);
-    if (next < logStr.size())
-      ++next;
-    offset = next;
-  }
-
+  LogDomainSet::singleton().performLogCommands(mLogs.value());
   tracingLevel = mTracingLevel.value();
 
   // delete the old init object first to make the new one take control.

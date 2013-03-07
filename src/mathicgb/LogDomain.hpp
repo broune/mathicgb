@@ -33,14 +33,17 @@ public:
   LogDomain(
     const char* const name,
     const char* const description,
-    const bool enabled
+    const bool enabled,
+    const bool streamEnabled
   );
 
   const char* name() const {return mName;}
   const char* description() const {return mDescription;}
   bool enabled() const {return mEnabled;}
+  bool streamEnabled() const {return enabled() && mStreamEnabled;}
 
   void setEnabled(const bool enabled) {mEnabled = enabled;}
+  void setStreamEnabled(const bool enabled) {mStreamEnabled = enabled;}
 
   std::ostream& stream();
 
@@ -72,7 +75,6 @@ public:
   /// Returns true if setCount has been called.
   bool hasCount() const {return mHasCount;}
 
-
 private:
   struct TimeInterval {
     // todo: support user time too. clock() doesn't seem to sum the time
@@ -84,6 +86,7 @@ private:
   void recordTime(TimeInterval interval);
 
   bool mEnabled;
+  bool mStreamEnabled;
   const char* mName;
   const char* mDescription;
 
@@ -136,6 +139,7 @@ public:
   LogDomain(const char* const, const char* const, const bool) {}
 
   bool enabled() const {return false;}
+  bool streamEnabled() const {return false;}
 
   class Timer {
   public:
@@ -203,19 +207,34 @@ namespace LogDomainInternal {
 ///
 /// The logger is default compile-time enabled depending on MATHICGB_LOG_##NAME
 /// (see MATHICGB_CAPTURE_LOG_ENABLED) and it is initially runtime
-/// enabled depending on the value of DEFAULT_RUNTIME_ENABLED.
-#define MATHICGB_DEFINE_LOG_DOMAIN_WITH_DEFAULTS(NAME, DESCRIPTION, DEFAULT_RUNTIME_ENABLED, DEFAULT_COMPILE_TIME_ENABLED) \
+/// enabled depending on the value of DEFAULT_RUNTIME_ENABLED. It is default
+/// runtime enabled for streaming (when also enabled in general) depending on
+/// DEFAULT_RUNTIME_STREAM_ENABLED.
+#define MATHICGB_DEFINE_LOG_DOMAIN_WITH_DEFAULTS( \
+  NAME, DESCRIPTION, \
+  DEFAULT_RUNTIME_ENABLED, \
+  DEFAULT_RUNTIME_STREAM_ENABLED, \
+  DEFAULT_COMPILE_TIME_ENABLED \
+) \
   MATHICGB_CAPTURE_LOG_ENABLED(NAME, DEFAULT_COMPILE_TIME_ENABLED); \
   namespace logs { \
     typedef LogDomain< ::LogDomainInternal::value_##NAME> Type##NAME; \
-    Type##NAME NAME(#NAME, DESCRIPTION, DEFAULT_RUNTIME_ENABLED); \
+    Type##NAME NAME( \
+      #NAME, \
+      DESCRIPTION, \
+      DEFAULT_RUNTIME_ENABLED, \
+      DEFAULT_RUNTIME_STREAM_ENABLED \
+    ); \
   }
 
 /// Defines a LogDomain with the given name and description.
 ///
-/// By default, the logger is compile-time enabled and runtime disabled.
+/// The defaults for the logger are as follows.
+///       compile-time: enabled,
+///            runtime: disabled,
+///  runtime streaming: enabled (only takes effect if also enabled)
 #define MATHICGB_DEFINE_LOG_DOMAIN(NAME, DESCRIPTION) \
-  MATHICGB_DEFINE_LOG_DOMAIN_WITH_DEFAULTS(NAME, DESCRIPTION, 0, 1);
+  MATHICGB_DEFINE_LOG_DOMAIN_WITH_DEFAULTS(NAME, DESCRIPTION, 0, 1, 1);
 
 /// This expression yields an l-value reference to the indicated logger.
 ///
@@ -230,30 +249,30 @@ namespace LogDomainInternal {
 ///     std::ostream << "MyDomain is compiled time enabled";
 #define MATHICGB_LOGGER_TYPE(DOMAIN) ::logs::Type##DOMAIN
 
-/// Runs the code in the following scope delimited by braces {} if the indicated
-/// logger is enabled - otherwise does nothing. Within the following scope
-/// there is a local reference variable log that refers to the indicated
-/// logger.
+/// Runs the code in the following scope delimited by braces {} if the
+/// indicated logger is enabled for streaming - otherwise does nothing.
+/// Within the following scope there is a local reference variable log
+/// that refers to the indicated logger.
 ///
 /// Example:
-///   MATHICGB_IF_LOG(MyDomain) {
+///   MATHICGB_IF_STREAM_LOG(MyDomain) {
 ///     std::string msg;
 ///     expensiveFunction(msg);
 ///     log << msg;
 ///   }
-#define MATHICGB_IF_LOG(DOMAIN) \
-  if (MATHICGB_LOGGER(DOMAIN).enabled()) \
+#define MATHICGB_IF_STREAM_LOG(DOMAIN) \
+  if (MATHICGB_LOGGER(DOMAIN).streamEnabled()) \
     LogDomainInternal::lambdaRunner(MATHICGB_LOGGER(DOMAIN)) + \
       [&](MATHICGB_LOGGER_TYPE(DOMAIN)& log)
 
 /// Display information to the log using <<.
-/// If domain is not enabled then the log message is not displayed and the
-/// code after << is not executed.
+/// If domain is not enabled and stream enabled then the log message is not
+/// displayed and the code after << is not executed.
 ///
 /// Example: (f() only called if logger is enabled)
 ///   MATHICGB_LOG(domain) << "f() = " << f();
 #define MATHICGB_LOG(DOMAIN) \
-  if (MATHICGB_LOGGER(DOMAIN).enabled()) MATHICGB_LOGGER(DOMAIN).stream()
+  if (MATHICGB_LOGGER(DOMAIN).streamEnabled()) MATHICGB_LOGGER(DOMAIN).stream()
 
 /// Will log the time to execute the remaining code in the current scope
 /// to the indicated domain. Also supports printing a message using <<.

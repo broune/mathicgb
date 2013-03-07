@@ -2,16 +2,29 @@
 #include "SPairs.hpp"
 
 #include "GroebnerBasis.hpp"
-
+#include "LogDomain.hpp"
 #include <iostream>
 
-// todo: queueType ignored?
+MATHICGB_DEFINE_LOG_DOMAIN_WITH_DEFAULTS(
+  SPairEarly,
+  "Time early S-pair construction, elimination and ordering.",
+  0, 0, 1
+);
+
+MATHICGB_DEFINE_LOG_DOMAIN_WITH_DEFAULTS(
+  SPairLate,
+  "Time late S-pair elimination and ordering",
+  0, 0, 1
+);
+
 SPairs::SPairs(const PolyBasis& basis, bool preferSparseSPairs):
   mQueue(QueueConfiguration(basis, preferSparseSPairs)),
   mBasis(basis),
   mRing(basis.ring()) {}
 
 std::pair<size_t, size_t> SPairs::pop() {
+  MATHICGB_LOG_TIME(SPairLate);
+
   // Must call addPairs for new elements before popping.
   MATHICGB_ASSERT(mEliminated.columnCount() == mBasis.size());
 
@@ -38,6 +51,8 @@ std::pair<size_t, size_t> SPairs::pop() {
 }
 
 std::pair<size_t, size_t> SPairs::pop(exponent& w) {
+  MATHICGB_LOG_TIME(SPairLate);
+
   // Must call addPairs for new elements before popping.
   MATHICGB_ASSERT(mEliminated.columnCount() == mBasis.size());
 
@@ -108,21 +123,24 @@ void SPairs::addPairsAssumeAutoReduce(
   size_t newGen,
   std::vector<size_t>& toRetireAndReduce
 ) {
-  MATHICGB_ASSERT(mQueue.columnCount() == newGen);
+  {
+    MATHICGB_LOG_TIME(SPairEarly);
 
-  MATHICGB_ASSERT(newGen < mBasis.size());
-  MATHICGB_ASSERT(!mBasis.retired(newGen));
+    MATHICGB_ASSERT(mQueue.columnCount() == newGen);
+    MATHICGB_ASSERT(newGen < mBasis.size());
+    MATHICGB_ASSERT(!mBasis.retired(newGen));
 
-  while (mEliminated.columnCount() < mBasis.size()) {
-    if (mUseBuchbergerLcmHitCache) {
-      MATHICGB_ASSERT(mEliminated.columnCount() == mBuchbergerLcmHitCache.size());
-      mBuchbergerLcmHitCache.push_back(0);
+    while (mEliminated.columnCount() < mBasis.size()) {
+      if (mUseBuchbergerLcmHitCache) {
+        MATHICGB_ASSERT(mEliminated.columnCount() == mBuchbergerLcmHitCache.size());
+        mBuchbergerLcmHitCache.push_back(0);
+      }
+      mEliminated.addColumn();
     }
-    mEliminated.addColumn();
-  }
 
-  RecordIndexes indexes(newGen, mEliminated, toRetireAndReduce);
-  mBasis.divisorLookup().multiples(mBasis.leadMonomial(newGen), indexes);
+    RecordIndexes indexes(newGen, mEliminated, toRetireAndReduce);
+    mBasis.divisorLookup().multiples(mBasis.leadMonomial(newGen), indexes);
+  }
   addPairs(newGen);
 }
 
@@ -159,6 +177,8 @@ namespace {
 }
 
 void SPairs::addPairs(size_t newGen) {
+  MATHICGB_LOG_TIME(SPairEarly);
+
   // Must call addPairs with newGen parameter in the sequence 0, 1, ...
   // newGen could be implicitly picked up from mQueue.columnCount(), but
   // doing it this way ensures that what happens is what the client thinks

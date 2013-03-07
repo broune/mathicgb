@@ -19,6 +19,46 @@ LogDomain<true>* LogDomainSet::logDomain(const char* const name) {
   return it == mLogDomains.end() ? static_cast<LogDomain<true>*>(0) : *it;
 }
 
+void LogDomainSet::performLogCommand(std::string cmd) {
+  if (cmd.empty())
+    return;
+
+  // This could be more efficient, but this is not supposed to be a
+  // method that is called very often.
+  const auto isSign = [](const char c) {return c == '+' || c == '-';};
+  char prefix = '+';
+  if (isSign(cmd.front())) {
+    prefix = cmd.front();
+    cmd.erase(cmd.begin());
+  }
+
+  char suffix = ' ';
+  if (!cmd.empty() && isSign(cmd.back())) {
+    suffix = cmd.back();
+    cmd.erase(cmd.end() - 1);
+  }
+
+  auto log = logDomain(cmd.c_str());
+  if (log == 0)
+    mathic::reportError("Unknown log domain \"" + cmd + "\".\n");
+  log->setEnabled(prefix == '+');
+  if (suffix != ' ')
+    log->setStreamEnabled(suffix == '+');
+}
+
+void LogDomainSet::performLogCommands(const std::string& cmds) {
+  size_t offset = 0;
+  while (offset < cmds.size()) {
+    const size_t next = cmds.find(',', offset);
+    performLogCommand(cmds.substr(offset, next - offset));
+    offset = next;
+    if (offset < cmds.size()) {
+      MATHICGB_ASSERT(cmds[offset] == ',');
+      ++offset;
+    }
+  }
+}
+
 void LogDomainSet::printReport(std::ostream& out) const {
   printCountReport(out);
   printTimeReport(out);

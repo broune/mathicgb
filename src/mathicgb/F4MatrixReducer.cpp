@@ -678,7 +678,8 @@ SparseMatrix F4MatrixReducer::reduceToBottomRight(const QuadMatrix& matrix) {
   MATHICGB_ASSERT(matrix.debugAssertValid());
   MATHICGB_LOG_TIME(F4MatrixReduce) <<
     "\n***** Reducing QuadMatrix to bottom right matrix *****\n";
-  MATHICGB_IF_LOG(F4MatrixReduce) {matrix.printStatistics(log.stream());};
+  MATHICGB_IF_STREAM_LOG(F4MatrixReduce)
+    {matrix.printStatistics(log.stream());};
   return reduce(matrix, mModulus);
 }
 
@@ -687,7 +688,8 @@ SparseMatrix F4MatrixReducer::reducedRowEchelonForm(
 ) {
   MATHICGB_LOG_TIME(F4MatrixReduce) <<
     "\n***** Reducing SparseMatrix to reduced row echelon form *****\n";
-  MATHICGB_IF_LOG(F4MatrixReduce) {matrix.printStatistics(log.stream());};
+  MATHICGB_IF_STREAM_LOG(F4MatrixReduce)
+    {matrix.printStatistics(log.stream());};
 
   const bool useShrawan = false;
   const bool useDelayedModulus = false;

@@ -20,7 +20,7 @@ public:
   // Returns true if no pending S-pairs remain.
   bool empty() const {return mQueue.empty();}
 
-  // Removes the minimal S-pair from the data structure and return it.
+  // Removes the minimal S-pair from the data structure and returns it.
   // The S-polynomial of that pair is assumed to reduce to zero, either
   // because it already does, or because it did not reduce to zero and then
   // that caused the addition of another basis element. If this assumption
