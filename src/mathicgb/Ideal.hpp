@@ -5,6 +5,8 @@
 
 #include <memory>
 #include <algorithm>
+#include <vector>
+#include "Poly.hpp"
 #include "PolyRing.hpp"
 
 class Poly;
@@ -30,7 +32,9 @@ public:
   const PolyRing *getPolyRing() const { return &mRing; }
   const std::vector<Poly *>& viewGenerators() { return mGenerators; }
   const Poly *getPoly(size_t i) const { return mGenerators[i]; }
-  size_t size() const { return mGenerators.size(); }
+  size_t size() const {return mGenerators.size();}
+  bool empty() const {return mGenerators.empty();}
+  void reserve(size_t size) {mGenerators.reserve(size);}
 
   void sort(FreeModuleOrder& order);
 

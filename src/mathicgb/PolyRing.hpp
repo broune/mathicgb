@@ -217,10 +217,7 @@ struct term {
 
 class PolyRing {
 public:
-  PolyRing(coefficient charac,
-           int nvars,
-           int nweights
-           );
+  PolyRing(coefficient charac, int nvars, int nweights);
   ~PolyRing() {}
 
   memt::BufferPool &getMonomialPool() const { return mMonomialPool; }
@@ -345,6 +342,19 @@ public:
   ///////////////////////////////////////////
 
   HashValue monomialHashValue(ConstMonomial m) const {return static_cast<HashValue>(m[mHashIndex]);}
+
+  void monomialSetExponent(Monomial m, size_t var, exponent c) const {
+    m[var+1] = c;
+  }
+
+  void monomialSetExponents(Monomial m, exponent* exponents) const {
+    std::memcpy(
+      m.unsafeGetRepresentation() + 1,
+      exponents,
+      mNumVars * sizeof(exponent)
+    );
+    setWeightsAndHash(m);
+  }
 
   exponent monomialExponent(ConstMonomial m, size_t var) const {
     return m[var+1];

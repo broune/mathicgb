@@ -439,6 +439,7 @@
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\..\src\mathicgb.cpp" />
     <ClCompile Include="..\..\..\src\mathicgb\BjarkeGeobucket.cpp" />
     <ClCompile Include="..\..\..\src\mathicgb\BjarkeGeobucket2.cpp" />
     <ClCompile Include="..\..\..\src\mathicgb\BuchbergerAlg.cpp" />
@@ -482,6 +483,7 @@
     <ClCompile Include="..\..\..\src\mathicgb\TypicalReducer.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\..\src\mathicgb.h" />
     <ClInclude Include="..\..\..\src\mathicgb\Atomic.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\BjarkeGeobucket.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\BjarkeGeobucket2.hpp" />
