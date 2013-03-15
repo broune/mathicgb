@@ -26,11 +26,11 @@ PolyRing::PolyRing(coefficient p0,
     mMaxMonomialSize(nvars + nweights + 2),
     mMaxMonomialByteSize(mMaxMonomialSize * sizeof(exponent)),
     mMonomialPool(mMaxMonomialByteSize),
-    mTotalDegreeGradedOnly(false)
+    mTotalDegreeGradedOnly(nweights == 1)
 {
-  // set weights to the default value 1
+  // set weights to the default value -1
   mWeights.resize(mNumVars * mNumWeights);
-  std::fill(mWeights.begin(), mWeights.end(), 1);
+  std::fill(mWeights.begin(), mWeights.end(), static_cast<exponent>(-1));
 
   resetCoefficientStats();
   srand(0);

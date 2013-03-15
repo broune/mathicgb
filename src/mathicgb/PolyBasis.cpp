@@ -87,6 +87,24 @@ void PolyBasis::insert(std::unique_ptr<Poly> poly) {
   MATHICGB_ASSERT(mEntries.back().poly != 0);
 }
 
+std::unique_ptr<Poly> PolyBasis::retire(size_t index) {
+  MATHICGB_ASSERT(index < size());
+  MATHICGB_ASSERT(!retired(index));
+  mDivisorLookup->remove(leadMonomial(index));
+  std::unique_ptr<Poly> poly(mEntries[index].poly);
+  mEntries[index].poly = 0;
+  mEntries[index].retired = true;
+  return poly;
+}
+
+std::unique_ptr<Ideal> PolyBasis::toIdealAndRetireAll() {
+  auto ideal = make_unique<Ideal>(ring());
+  for (size_t i = 0; i < size(); ++i)
+    if (!retired(i))
+      ideal->insert(retire(i));
+  return ideal;
+}
+
 size_t PolyBasis::divisor(const_monomial mon) const {
   size_t index = divisorLookup().divisor(mon);
   MATHICGB_ASSERT((index == static_cast<size_t>(-1)) ==

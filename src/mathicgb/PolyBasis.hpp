@@ -114,16 +114,12 @@ public:
 
   // Retires the basis element at index, which frees the memory associated
   // to it, including the basis element polynomial, and marks it as retired. 
-  // todo: implement
-  std::unique_ptr<Poly> retire(size_t index) {
-    MATHICGB_ASSERT(index < size());
-    MATHICGB_ASSERT(!retired(index));
-    mDivisorLookup->remove(leadMonomial(index));
-    std::unique_ptr<Poly> poly(mEntries[index].poly);
-    mEntries[index].poly = 0;
-    mEntries[index].retired = true;
-    return poly;
-  }
+  std::unique_ptr<Poly> retire(size_t index);
+
+  /// Returns an ideal containing all non-retired basis elements and
+  /// retires all those basis elements. The point of the simultaneous
+  /// retirement is that this way no polynomials need be copied.
+  std::unique_ptr<Ideal> toIdealAndRetireAll();
 
   // Returns true of the basis element at index has been retired.
   bool retired(size_t index) const {

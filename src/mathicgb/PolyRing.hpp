@@ -348,6 +348,7 @@ public:
   }
 
   void monomialSetExponents(Monomial m, exponent* exponents) const {
+    *m = 0;
     std::memcpy(
       m.unsafeGetRepresentation() + 1,
       exponents,
@@ -701,6 +702,9 @@ inline bool PolyRing::monomialIsProductOfHintTrue(
 
   uint64 orOfXor = 0;
   for (size_t i = mNumVars / 2; i != static_cast<size_t>(-1); --i) {
+    MATHICGB_ASSERT(a[i*2] >= 0);
+    MATHICGB_ASSERT(i == mNumVars / 2 || a[i*2+1] >= 0);
+
     uint64 A, B, AB;
     // We have to use std::memcpy here because just casting to a int64 breaks
     // the strict aliasing rule which implies undefined behavior. Both MSVC and
@@ -781,7 +785,7 @@ inline void PolyRing::setWeightsOnly(Monomial& a1) const
 {
   exponent *a = a1.unsafeGetRepresentation();
   a++;
-  auto wts = &mWeights[0];
+  auto wts = mWeights.data();
   for (size_t i = 0; i < mNumWeights; ++i)
     {
       exponent result = 0;
@@ -1034,7 +1038,7 @@ inline bool PolyRing::monomialHasStrictlyLargerExponent(
 inline void PolyRing::setWeightsOnly(monomial a) const
 {
   a++;
-  auto wts = &mWeights[0];
+  auto wts = mWeights.data();
   for (size i = 0; i < mNumWeights; ++i) {
     exponent result = 0;
     for (size_t j=0; j<mNumVars; ++j)
