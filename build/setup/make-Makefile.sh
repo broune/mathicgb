@@ -155,6 +155,7 @@ function makeTarget {
   targetLDFLAGS="${targetsLDFLAGS[targetIndex]}";
   targetMakeArgs="${targetsMakeArgs[targetIndex]}";
   targetDefault="${targetsDefault[targetIndex]}";
+  projectConfigureArgs="--prefix=\"$prefix\" \${${projectName}_conf}";
 
   dependencies="";
   for depProject in $projectDependencies; do
@@ -174,7 +175,7 @@ function makeTarget {
   echo $'\t'"  export CXXFLAGS=\"$targetCXXFLAGS\"; \\";
   echo $'\t'"  export CPPFLAGS=\"$targetCPPFLAGS\"; \\";
   echo $'\t'"  export LDFLAGS=\"$targetLDFLAGS\"; \\";
-  echo $'\t'"  ../configure --prefix=\"$prefix\"; \\"
+  echo $'\t'"  ../configure $projectConfigureArgs; \\"
   echo $'\t'"  make $targetMakeArgs install; \\"
   echo $'\t'");"
   echo "$targetName: $name";

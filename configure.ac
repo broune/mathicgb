@@ -1,8 +1,26 @@
 dnl AC_INIT sets up autoconf and must be first macro.
 AC_INIT([mathicgb], [1.0]) # package, version, bug-report-email
 
-# Check that mathicgb is installed and locate it
-PKG_CHECK_MODULES([DEPS], [memtailor-1.0] [mathic-1.0] [tbb])
+# Check availability and location of dependencies
+PKG_CHECK_MODULES([MEMTAILOR], [memtailor-1.0])
+PKG_CHECK_MODULES([MATHIC], [mathic-1.0])
+
+AC_ARG_WITH([tbb],
+  AS_HELP_STRING(
+    [--disable-tbb],
+	[Do not use TBB. Removes support for parallel execution and precise timing.]
+  )
+)
+
+AS_IF(
+  [test "x$with_tbb" == "xno"], [TBB_CFLAGS=-DMATHICGB_NO_TBB],
+  [PKG_CHECK_MODULES([TBB], [tbb])]
+)
+
+DEPS_CFLAGS="$MEMTAILOR_CFLAGS $MATHIC_CFLAGS $TBB_CFLAGS"
+DEPS_LIBS="$MEMTAILOR_LIBS $MATHIC_LIBS $TBB_LIBS"
+AC_SUBST(DEPS_CFLAGS)
+AC_SUBST(DEPS_LIBS)
 
 # set up information about directories
 AC_CONFIG_MACRO_DIR([build/autotools/m4]) # directory of extra autoconf macroes
@@ -13,7 +31,7 @@ dnl  if autoconf is told the source code is in a directory that does not
 dnl  contain this file then it knows that the directory is wrong.
 AC_CONFIG_SRCDIR([src/cli/GBMain.cpp])
 
-# Enable optional maintainer mode (off by default)
+# Enable maintainer mode
 dnl AM_MAINTAINER_MODE turns off automatic reconstruction of the build
 dnl files if the source build files have changed. A developer will want
 dnl those automatic reconstructions to happen so that changes to the
