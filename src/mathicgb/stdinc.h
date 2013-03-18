@@ -114,6 +114,10 @@
 
 #endif
 
+#if defined(__CYGWIN__) && !defined(MATHICGB_NO_TBB)
+#define MATHICGB_NO_TBB
+#endif
+
 #include <cstddef>
 #include <memory>
 

@@ -1,7 +1,7 @@
 #ifndef MATHICGB_TBB_GUARD
 #define MATHICGB_TBB_GUARD
 
-//#define MATHICGB_NO_TBB
+#define MATHICGB_NO_TBB
 
 #ifndef MATHICGB_NO_TBB
 #include <tbb/tbb.h>
@@ -24,6 +24,7 @@ namespace mgb {
 #include <functional>
 #include <vector>
 #include <ctime>
+#include <algorithm>
 
 namespace mgb {
   namespace tbb {
@@ -139,7 +140,7 @@ namespace mgb {
 
       size_type size() const {return end() - begin();}
       bool empty() const {return mBegin == mEnd;}
-      size_type grainsize() const {return grainSize;}
+      size_type grainsize() const {return mGrainSize;}
       bool is_divisible() const {return false;}
 
       const_iterator begin() const {return mBegin;}
@@ -176,7 +177,7 @@ namespace mgb {
 
     template<class InputIterator, class Body>
     void parallel_do(InputIterator begin, InputIterator end, Body body) {
-      typedef std::remove_reference<decltype(*begin)>::type Task;
+      typedef typename std::remove_reference<decltype(*begin)>::type Task;
       std::vector<Task> tasks;
       parallel_do_feeder<Task> feeder(tasks);
       for (; begin != end; ++begin) {
