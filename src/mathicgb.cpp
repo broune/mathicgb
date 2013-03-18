@@ -342,7 +342,7 @@ namespace mgb {
 #ifdef MATHICGB_DEBUG
       hasBeenDestroyed(false),
       checker(conf.modulus(), conf.varCount()),
-#endif MATHICGB_DEBUG
+#endif
       // @todo: varCount should not be int. Fix PolyRing constructor,
       // then remove this static_cast.
       ring(conf.modulus(), static_cast<int>(conf.varCount()), 1),

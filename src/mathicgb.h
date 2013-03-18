@@ -132,6 +132,8 @@ namespace mgb { // Part of the public interface of MathicGB
     OutputStream& output
   );
 
+  class NullIdealStream;
+
   /// Passes on all method calls to an inner ideal stream while printing out
   /// what methods get called to an std::ostream.
   template<class Stream = NullIdealStream>

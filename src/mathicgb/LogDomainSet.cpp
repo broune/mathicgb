@@ -68,15 +68,15 @@ void LogDomainSet::performLogCommandInternal(
   // This could be more efficient, but this is not supposed to be a
   // method that is called very often.
 
-  if (isSign(cmd.front())) {
+  if (isSign(cmd[0])) {
     if (prefix == ' ')
-      prefix = cmd.front();
+      prefix = cmd[0];
     cmd.erase(cmd.begin());
   }
 
-  if (!cmd.empty() && isSign(cmd.back())) {
+  if (!cmd.empty() && isSign(*cmd.rbegin())) {
     if (suffix == ' ')
-      suffix = cmd.back();
+      suffix = *cmd.rbegin();
     cmd.erase(cmd.end() - 1);
   }
 

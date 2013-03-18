@@ -348,7 +348,7 @@ void F4MatrixBuilder2::appendRow(
 
   const auto begin = poly.begin();
   const auto end = poly.end();
-  const auto count = std::distance(begin, end);
+  const auto count = static_cast<size_t>(std::distance(begin, end));
   MATHICGB_ASSERT(count < std::numeric_limits<ColIndex>::max());
   auto indices = block.makeRowWithTheseScalars(poly);
 

@@ -685,12 +685,11 @@ void PolyRing::write(std::ostream &o) const
 {
   o << mCharac << " " << mNumVars << " " << mNumWeights << std::endl;
   auto wts = &mWeights[0];
-  for (int i=0; i<mNumWeights; i++)
-    {
-      for (size_t j=0; j<mNumVars; j++)
-        o << " " << - *wts++;
-      o << std::endl;
-    }
+  for (size_t i = 0; i < mNumWeights; ++i) {
+    for (size_t j = 0; j < mNumVars; ++j)
+      o << " " << - *wts++;
+    o << std::endl;
+  }
 }
 
 // Local Variables:
