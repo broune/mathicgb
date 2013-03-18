@@ -1,8 +1,8 @@
 #ifndef MATHICGB_COMMON_PARAMS_GUARD
 #define MATHICGB_COMMON_PARAMS_GUARD
 
+#include "mathicgb/mtbb.hpp"
 #include <mathic.h>
-#include <tbb/tbb.h>
 #include <vector>
 
 class CommonParams {
@@ -41,8 +41,10 @@ private:
   mathic::IntegerParameter mThreadCount;
   mathic::StringParameter mLogs;
 
-  std::vector<std::string> mExtensions; // to recognize file type
-  std::unique_ptr<tbb::task_scheduler_init> mTbbInit; // to set thread count
+  std::vector<std::string> mExtensions; /// to recognize file type
+
+  /// to set thread count
+  std::unique_ptr<mgb::tbb::task_scheduler_init> mTbbInit;
   std::size_t mMinDirectParams;
   std::size_t mMaxDirectParams;
   std::vector<std::string> mDirectParameters;

@@ -11,6 +11,7 @@
 #include "mathicgb/GroebnerBasis.hpp"
 #include "mathicgb/SignatureGB.hpp"
 #include "mathicgb/BuchbergerAlg.hpp"
+#include "mathicgb/mtbb.hpp"
 #include "test/ideals.hpp"
 
 #include <cstdio>
@@ -19,7 +20,6 @@
 #include <sstream>
 #include <memory>
 #include <gtest/gtest.h>
-#include <tbb/tbb.h>
 
 TEST(IO, ideal) {
   const char* idealA_fromStr_format = 
@@ -290,7 +290,7 @@ spairQueue	reducerType	divLookup	monTable	buchberger	postponeKoszul	useBaseDivis
     MATHICGB_ASSERT
       (Reducer::makeReducerNullOnUnknown(red, I->ring()).get() != 0);
 
-    tbb::task_scheduler_init scheduler(threadCount);
+    mgb::tbb::task_scheduler_init scheduler(threadCount);
     if (buchberger) {
       const auto reducer = Reducer::makeReducer
         (Reducer::reducerType(reducerType), I->ring());

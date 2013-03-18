@@ -2,12 +2,12 @@
 #define MATHICGB_LOG_DOMAIN_SET_GUARD
 
 #include "LogDomain.hpp"
+#include "mtbb.hpp"
 #include <string>
 #include <vector>
 #include <algorithm>
 #include <cstring>
 #include <ostream>
-#include <tbb/tbb.h>
 
 class LogDomainSet {
 public:
@@ -79,7 +79,7 @@ private:
 
   std::vector<LogDomain<true>*> mLogDomains;
   std::vector<std::pair<const char*, const char*>> mAliases;
-  tbb::tick_count mStartTime;
+  mgb::tbb::tick_count mStartTime;
 };
 
 #endif

@@ -6,7 +6,7 @@
 #include "PolyRing.hpp"
 #include "PolyBasis.hpp"
 #include "QuadMatrix.hpp"
-#include <tbb/mutex.h>
+#include "mtbb.hpp"
 #include <vector>
 
 /** Class for constructing an F4 matrix. This class is reponsible for
@@ -81,7 +81,7 @@ private:
     const Poly* sPairPoly;
     monomial sPairMultiply;
   };
-  typedef tbb::parallel_do_feeder<RowTask> TaskFeeder;
+  typedef ::mgb::tbb::parallel_do_feeder<RowTask> TaskFeeder;
 
   /// Creates a column with monomial label x and schedules a new row to
   /// reduce that column if possible. Here x is monoA if monoB is
@@ -142,7 +142,7 @@ private:
     TaskFeeder& feeder
   );
 
-  tbb::mutex mCreateColumnLock;
+  mgb::tbb::mutex mCreateColumnLock;
   ColIndex mLeftColCount;
   ColIndex mRightColCount;
   monomial mTmp;

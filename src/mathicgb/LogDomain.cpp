@@ -3,10 +3,9 @@
 
 #include "LogDomainSet.hpp"
 #include <mathic.h>
-#include <tbb/tbb.h>
 #include <iostream>
 
-static const auto logDomainGlobalStartTime= tbb::tick_count::now();
+static const auto logDomainGlobalStartTime = mgb::tbb::tick_count::now();
 
 LogDomain<true>::LogDomain(
   const char* const name,
@@ -79,7 +78,7 @@ void LogDomain<true>::Timer::stop() {
   if (!mLogger.enabled())
     return;
   TimeInterval interval;
-  interval.realSeconds = (tbb::tick_count::now() - mRealTicks).seconds();
+  interval.realSeconds = (mgb::tbb::tick_count::now() - mRealTicks).seconds();
   mLogger.recordTime(interval);
   return;
 }
@@ -88,7 +87,7 @@ void LogDomain<true>::Timer::start() {
   if (!mLogger.enabled() || mTimerRunning)
     return;
   mTimerRunning = true;
-  mRealTicks = tbb::tick_count::now();
+  mRealTicks = mgb::tbb::tick_count::now();
 }
 
 LogDomainInternal::LogAliasRegisterer::LogAliasRegisterer(const char* alias, const char* of) {

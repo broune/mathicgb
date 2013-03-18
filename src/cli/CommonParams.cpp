@@ -53,9 +53,9 @@ void CommonParams::perform() {
 
   // delete the old init object first to make the new one take control.
   mTbbInit.reset();
-  mTbbInit = make_unique<tbb::task_scheduler_init>(
+  mTbbInit = make_unique<mgb::tbb::task_scheduler_init>(
     mThreadCount.value() == 0 ?
-      tbb::task_scheduler_init::automatic :
+      mgb::tbb::task_scheduler_init::automatic :
       mThreadCount.value()
   );
 }

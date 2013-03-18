@@ -227,7 +227,7 @@ QuadMatrix F4MatrixProjection::makeAndClear(const size_t quantum) {
 
 QuadMatrix F4MatrixProjection::makeAndClearOneStep(const size_t quantum) {
   // Construct top/bottom row permutation
-  TopBottom<F4ProtoMatrix::Row> tb(mLeftMonomials.size(), ring());
+   TopBottom<F4ProtoMatrix::Row> tb(mLeftMonomials.size(), ring());
   const auto end = mMatrices.end();
   for (auto it = mMatrices.begin(); it != end; ++it) {
     const auto& matrix = **it;

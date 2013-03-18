@@ -2,7 +2,7 @@
 #include "F4MatrixBuilder.hpp"
 
 #include "LogDomain.hpp"
-#include <tbb/tbb.h>
+#include "mtbb.hpp"
 
 MATHICGB_DEFINE_LOG_DOMAIN(
   F4MatrixBuild,
@@ -136,19 +136,19 @@ void F4MatrixBuilder::buildMatrixAndClear(QuadMatrix& matrix) {
     monomial tmp2;
   };
 
-  tbb::enumerable_thread_specific<ThreadData> threadData([&](){  
+  mgb::tbb::enumerable_thread_specific<ThreadData> threadData([&](){  
     ThreadData data = {QuadMatrixBuilder(
       ring(), mMap, mMonomialsLeft, mMonomialsRight, mBuilder.memoryQuantum()
     )};
     {
-      tbb::mutex::scoped_lock guard(mCreateColumnLock);
+      mgb::tbb::mutex::scoped_lock guard(mCreateColumnLock);
       data.tmp1 = ring().allocMonomial();
       data.tmp2 = ring().allocMonomial();
     }
     return std::move(data);
   });
 
-  tbb::parallel_do(mTodo.begin(), mTodo.end(),
+  mgb::tbb::parallel_do(mTodo.begin(), mTodo.end(),
     [&](const RowTask& task, TaskFeeder& feeder)
   {
     auto& data = threadData.local();
@@ -238,7 +238,7 @@ F4MatrixBuilder::createColumn(
   MATHICGB_ASSERT(!monoA.isNull());
   MATHICGB_ASSERT(!monoB.isNull());
 
-  tbb::mutex::scoped_lock lock(mCreateColumnLock);
+  mgb::tbb::mutex::scoped_lock lock(mCreateColumnLock);
   // see if the column exists now after we have synchronized
   {
     const auto found(ColReader(mMap).findProduct(monoA, monoB));

@@ -7,9 +7,9 @@
 #include "mathicgb/Ideal.hpp"
 #include "mathicgb/PolyBasis.hpp"
 #include "mathicgb/io-util.hpp"
+#include "mathicgb/mtbb.hpp"
 
 #include <gtest/gtest.h>
-#include <tbb/tbb.h>
 #include <memory>
 
 namespace {
@@ -53,7 +53,7 @@ namespace {
 
 TEST(F4MatrixBuilder, Empty) {
   for (int threadCount = 1; threadCount < 4; ++threadCount) {
-    tbb::task_scheduler_init scheduler(threadCount);
+    mgb::tbb::task_scheduler_init scheduler(threadCount);
     BuilderMaker maker;
     F4MatrixBuilder& builder = maker.create();
 
@@ -70,7 +70,7 @@ TEST(F4MatrixBuilder, Empty) {
 
 TEST(F4MatrixBuilder, SPair) {
   for (int threadCount = 1; threadCount < 4; ++threadCount) {
-    tbb::task_scheduler_init scheduler(threadCount);
+    mgb::tbb::task_scheduler_init scheduler(threadCount);
     BuilderMaker maker;
     const Poly& p1 = maker.addBasisElement("a4c2-d");
     const Poly& p2 = maker.addBasisElement("a4b+d");
@@ -100,7 +100,7 @@ TEST(F4MatrixBuilder, SPair) {
 
 TEST(F4MatrixBuilder, OneByOne) {
   for (int threadCount = 1; threadCount < 4; ++threadCount) {
-    tbb::task_scheduler_init scheduler(threadCount);
+    mgb::tbb::task_scheduler_init scheduler(threadCount);
     BuilderMaker maker;
     const Poly& p = maker.addBasisElement("a");
     F4MatrixBuilder& builder = maker.create();

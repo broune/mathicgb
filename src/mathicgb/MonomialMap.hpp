@@ -4,8 +4,8 @@
 #include "FixedSizeMonomialMap.h"
 #include "Atomic.hpp"
 #include "PolyRing.hpp"
+#include "mtbb.hpp"
 #include <memtailor.h>
-#include <tbb/tbb.h>
 #include <limits>
 #include <vector>
 #include <algorithm>
@@ -139,7 +139,7 @@ public:
   /// internal monomial that equals value.first.
   std::pair<std::pair<const mapped_type*, ConstMonomial>, bool>
   insert(const value_type& value) {
-    const tbb::mutex::scoped_lock lockGuard(mInsertionMutex);
+    const mgb::tbb::mutex::scoped_lock lockGuard(mInsertionMutex);
 
     // We can load mMap as std::memory_order_relaxed because we have already
     // synchronized with all other mutators by locking mInsertionMutex;
@@ -179,7 +179,7 @@ public:
   /// Return the number of entries. This method requires locking so do not
   /// call too much. The count may have 
   size_t entryCount() const {
-    const tbb::mutex::scoped_lock lockGuard(mInsertionMutex);
+    const mgb::tbb::mutex::scoped_lock lockGuard(mInsertionMutex);
     // We can load with std::memory_order_relaxed because we are holding the
     // lock.
     auto& map = *mMap.load(std::memory_order_relaxed);
@@ -197,7 +197,7 @@ private:
 
   Atomic<FixedSizeMap*> mMap;
   const PolyRing& mRing;
-  mutable tbb::mutex mInsertionMutex;
+  mutable mgb::tbb::mutex mInsertionMutex;
 
   /// Only access this field while holding the mInsertionMutex lock.
   size_t mCapacityUntilGrowth;

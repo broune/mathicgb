@@ -513,6 +513,7 @@
     <ClInclude Include="..\..\..\src\mathicgb\MonTableKDTree.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\MonTableNaive.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\MTArray.hpp" />
+    <ClInclude Include="..\..\..\src\mathicgb\mtbb.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\PairTriangle.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\Poly.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\PolyBasis.hpp" />

@@ -320,5 +320,8 @@
     <ClInclude Include="..\..\..\src\mathicgb.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\src\mathicgb\mtbb.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

@@ -1,8 +1,8 @@
 #include "stdinc.h"
 #include "QuadMatrix.hpp"
 
+#include "mtbb.hpp"
 #include <mathic.h>
-#include <tbb/tbb.h>
 #include <ostream>
 #include <sstream>
 
@@ -311,7 +311,7 @@ void QuadMatrix::sortColumnsLeftRightParallel() {
   std::vector<ColIndex> leftPermutation;
   std::vector<ColIndex> rightPermutation;
   
-  tbb::parallel_for(0, 2, 1, [&](int i) {
+  mgb::tbb::parallel_for(0, 2, 1, [&](int i) {
     if (i == 0)
       leftPermutation =
         sortColumnMonomialsAndMakePermutation(leftColumnMonomials, *ring);
@@ -320,7 +320,7 @@ void QuadMatrix::sortColumnsLeftRightParallel() {
         sortColumnMonomialsAndMakePermutation(rightColumnMonomials, *ring);
   });
 
-  tbb::parallel_for(0, 4, 1, [&](int i) {
+  mgb::tbb::parallel_for(0, 4, 1, [&](int i) {
     if (i == 0)
       topRight.applyColumnMap(rightPermutation);
     else if (i == 1)

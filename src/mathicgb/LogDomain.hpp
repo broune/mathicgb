@@ -1,7 +1,7 @@
 #ifndef MATHICGB_LOG_DOMAIN_GUARD
 #define MATHICGB_LOG_DOMAIN_GUARD
 
-#include <tbb/tbb.h>
+#include "mtbb.hpp"
 #include <ostream>
 #include <ctime>
 #include <sstream>
@@ -125,7 +125,7 @@ public:
 private:
   LogDomain<true>& mLogger;
   bool mTimerRunning;
-  tbb::tick_count mRealTicks; // high precision
+  mgb::tbb::tick_count mRealTicks; // high precision
 };
 
 /// This is a compile-time disabled logger. You are not supposed to dynamically

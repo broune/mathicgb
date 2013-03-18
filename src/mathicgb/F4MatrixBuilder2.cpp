@@ -3,7 +3,6 @@
 
 #include "LogDomain.hpp"
 #include "F4MatrixProjection.hpp"
-#include <tbb/tbb.h>
 
 MATHICGB_DEFINE_LOG_DOMAIN(
   F4MatrixBuild2,
@@ -126,7 +125,7 @@ void F4MatrixBuilder2::buildMatrixAndClear(QuadMatrix& quadMatrix) {
 
   // Use halves of S-pairs as reducers to decrease the number of entries that
   // need to be looked up.
-  tbb::parallel_sort(mTodo.begin(), mTodo.end(),
+  mgb::tbb::parallel_sort(mTodo.begin(), mTodo.end(),
     [&](const RowTask& a, const RowTask& b)
   {
     if (a.sPairPoly == 0)
@@ -195,10 +194,10 @@ void F4MatrixBuilder2::buildMatrixAndClear(QuadMatrix& quadMatrix) {
     monomial tmp2;
   };
 
-  tbb::enumerable_thread_specific<ThreadData> threadData([&](){  
+  mgb::tbb::enumerable_thread_specific<ThreadData> threadData([&](){  
     ThreadData data;
     {
-      tbb::mutex::scoped_lock guard(mCreateColumnLock);
+      mgb::tbb::mutex::scoped_lock guard(mCreateColumnLock);
       data.tmp1 = ring().allocMonomial();
       data.tmp2 = ring().allocMonomial();
     }
@@ -206,7 +205,7 @@ void F4MatrixBuilder2::buildMatrixAndClear(QuadMatrix& quadMatrix) {
   });
 
   // Construct the matrix as pre-blocks
-  tbb::parallel_do(mTodo.begin(), mTodo.end(),
+  mgb::tbb::parallel_do(mTodo.begin(), mTodo.end(),
     [&](const RowTask& task, TaskFeeder& feeder)
   {
     auto& data = threadData.local();
@@ -267,7 +266,7 @@ void F4MatrixBuilder2::buildMatrixAndClear(QuadMatrix& quadMatrix) {
   const auto cmp = [&](const IndexMono& a, const IndexMono b) {
     return ring().monomialLT(b.second, a.second);
   };
-  tbb::parallel_sort(columns.begin(), columns.end(), cmp);
+  mgb::tbb::parallel_sort(columns.begin(), columns.end(), cmp);
 
   const auto colEnd = columns.end();
   for (auto it = columns.begin(); it != colEnd; ++it) {
@@ -303,7 +302,7 @@ F4MatrixBuilder2::createColumn(
   MATHICGB_ASSERT(!monoA.isNull());
   MATHICGB_ASSERT(!monoB.isNull());
 
-  tbb::mutex::scoped_lock lock(mCreateColumnLock);
+  mgb::tbb::mutex::scoped_lock lock(mCreateColumnLock);
   // see if the column exists now after we have synchronized
   {
     const auto found(ColReader(mMap).findProduct(monoA, monoB));

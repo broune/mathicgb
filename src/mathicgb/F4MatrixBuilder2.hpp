@@ -8,7 +8,7 @@
 #include "QuadMatrix.hpp"
 #include "MonomialMap.hpp"
 #include "F4ProtoMatrix.hpp"
-#include <tbb/mutex.h>
+#include "mtbb.hpp"
 #include <vector>
 
 /** Class for constructing an F4 matrix.
@@ -80,7 +80,7 @@ private:
     const Poly* poly;
     const Poly* sPairPoly;
   };
-  typedef tbb::parallel_do_feeder<RowTask> TaskFeeder;
+  typedef mgb::tbb::parallel_do_feeder<RowTask> TaskFeeder;
 
   /// Creates a column with monomial label x and schedules a new row to
   /// reduce that column if possible. Here x is monoA if monoB is
@@ -132,7 +132,7 @@ private:
 
   std::vector<char> mIsColumnToLeft;
   const size_t mMemoryQuantum;
-  tbb::mutex mCreateColumnLock;
+  mgb::tbb::mutex mCreateColumnLock;
   monomial mTmp;
   const PolyBasis& mBasis;
   Map mMap;

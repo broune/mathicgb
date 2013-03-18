@@ -5,8 +5,8 @@
 #include "SparseMatrix.hpp"
 #include "PolyRing.hpp"
 #include "LogDomain.hpp"
+#include "mtbb.hpp"
 
-#include <tbb/tbb.h>
 #include <algorithm>
 #include <vector>
 #include <stdexcept>
@@ -220,7 +220,7 @@ namespace {
 
     SparseMatrix reduced(qm.topRight.memoryQuantum());
 
-    tbb::enumerable_thread_specific<DenseRow> denseRowPerThread([&](){
+    mgb::tbb::enumerable_thread_specific<DenseRow> denseRowPerThread([&](){
       return DenseRow();
     }); 
 
@@ -228,9 +228,9 @@ namespace {
 
     std::vector<SparseMatrix::RowIndex> rowOrder(rowCount);
 
-    tbb::mutex lock;
-    tbb::parallel_for(tbb::blocked_range<SparseMatrix::RowIndex>(0, rowCount, 2),
-      [&](const tbb::blocked_range<SparseMatrix::RowIndex>& range)
+    mgb::tbb::mutex lock;
+    mgb::tbb::parallel_for(mgb::tbb::blocked_range<SparseMatrix::RowIndex>(0, rowCount, 2),
+      [&](const mgb::tbb::blocked_range<SparseMatrix::RowIndex>& range)
     {
       auto& denseRow = denseRowPerThread.local();
       for (auto it = range.begin(); it != range.end(); ++it) {
@@ -261,7 +261,7 @@ namespace {
             }
           }
         }
-        tbb::mutex::scoped_lock lockGuard(lock);
+        mgb::tbb::mutex::scoped_lock lockGuard(lock);
         for (size_t pivot = 0; pivot < pivotCount; ++pivot) {
 		  MATHICGB_ASSERT(denseRow[pivot] < std::numeric_limits<SparseMatrix::Scalar>::max());
           if (denseRow[pivot] != 0)
@@ -272,8 +272,8 @@ namespace {
       }
     });
 
-    tbb::parallel_for(tbb::blocked_range<SparseMatrix::RowIndex>(0, rowCount),
-      [&](const tbb::blocked_range<SparseMatrix::RowIndex>& range)
+    mgb::tbb::parallel_for(mgb::tbb::blocked_range<SparseMatrix::RowIndex>(0, rowCount),
+      [&](const mgb::tbb::blocked_range<SparseMatrix::RowIndex>& range)
       {for (auto iter = range.begin(); iter != range.end(); ++iter)
     {
       const auto i = iter;
@@ -290,7 +290,7 @@ namespace {
         denseRow.addRowMultiple(it.scalar(), begin, end);
       }
 
-      tbb::mutex::scoped_lock lockGuard(lock);
+      mgb::tbb::mutex::scoped_lock lockGuard(lock);
       bool zero = true;
 	  for (SparseMatrix::ColIndex col = 0; col < rightColCount; ++col) {
         const auto entry =
@@ -315,8 +315,8 @@ namespace {
 
     // convert to dense representation 
     std::vector<DenseRow> dense(rowCount);
-    tbb::parallel_for(tbb::blocked_range<SparseMatrix::RowIndex>(0, rowCount),
-      [&](const tbb::blocked_range<SparseMatrix::RowIndex>& range)
+    mgb::tbb::parallel_for(mgb::tbb::blocked_range<SparseMatrix::RowIndex>(0, rowCount),
+      [&](const mgb::tbb::blocked_range<SparseMatrix::RowIndex>& range)
       {for (auto it = range.begin(); it != range.end(); ++it)
     {
       const auto row = it;
@@ -349,9 +349,9 @@ namespace {
       size_t const reducerCount = reduced.rowCount();
 
       //std::cout << "reducing " << reduced.rowCount() << " out of " << toReduce.rowCount() << std::endl;
-      tbb::mutex lock;
-      tbb::parallel_for(tbb::blocked_range<SparseMatrix::RowIndex>(0, rowCount),
-        [&](const tbb::blocked_range<SparseMatrix::RowIndex>& range)
+      mgb::tbb::mutex lock;
+      mgb::tbb::parallel_for(mgb::tbb::blocked_range<SparseMatrix::RowIndex>(0, rowCount),
+        [&](const mgb::tbb::blocked_range<SparseMatrix::RowIndex>& range)
         {for (auto it = range.begin(); it != range.end(); ++it)
       {
         const auto row = it;
@@ -386,7 +386,7 @@ namespace {
           MATHICGB_ASSERT(col < colCount);
           bool isNewReducer = false;
           {
-            tbb::mutex::scoped_lock lockGuard(lock);
+            mgb::tbb::mutex::scoped_lock lockGuard(lock);
             if (!columnHasPivot[col]) {
               columnHasPivot[col] = true;
               isNewReducer = true;
@@ -417,8 +417,8 @@ namespace {
       nextReducers.clear();
     }
 
-    tbb::parallel_for(tbb::blocked_range<size_t>(0, rowCount),
-      [&](const tbb::blocked_range<size_t>& range)
+    mgb::tbb::parallel_for(mgb::tbb::blocked_range<size_t>(0, rowCount),
+      [&](const mgb::tbb::blocked_range<size_t>& range)
       {for (auto it = range.begin(); it != range.end(); ++it)
     {
       const size_t row = it;

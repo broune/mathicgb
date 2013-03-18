@@ -378,7 +378,7 @@ namespace mgb {
     MATHICGB_ASSERT(debugAssertValid());
     MATHICGB_ASSERT(mExponents != 0);
     MATHICGB_ASSERT(mPimpl != 0);
-    MATHICGB_ASSERT(!mPimpl->hasBeenDestroyed);
+    MATHICGB_ASSERT_NO_ASSUME(!mPimpl->hasBeenDestroyed);
     MATHICGB_IF_DEBUG(mPimpl->hasBeenDestroyed = true);
     delete mPimpl;
     delete[] mExponents;
@@ -463,7 +463,7 @@ namespace mgb {
     MATHICGB_ASSERT(this != 0);
     MATHICGB_ASSERT(mExponents != 0);
     MATHICGB_ASSERT(mPimpl != 0);
-    MATHICGB_ASSERT(!mPimpl->hasBeenDestroyed);
+    MATHICGB_ASSERT_NO_ASSUME(!mPimpl->hasBeenDestroyed);
     MATHICGB_ASSERT(!mPimpl->monomial.isNull());
     MATHICGB_ASSERT(&mPimpl->ideal.ring() == &mPimpl->ring);
     MATHICGB_ASSERT(&mPimpl->poly.ring() == &mPimpl->ring);

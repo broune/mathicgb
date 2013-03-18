@@ -4,7 +4,7 @@
 #include <mathic.h>
 
 LogDomainSet::LogDomainSet():
-  mStartTime(tbb::tick_count::now()) {
+  mStartTime(mgb::tbb::tick_count::now()) {
 }
 
 void LogDomainSet::registerLogDomain(LogDomain<true>& domain) {
@@ -144,7 +144,7 @@ void LogDomainSet::printCountReport(std::ostream& out) const {
 }
 
 void LogDomainSet::printTimeReport(std::ostream& out) const {
-  const auto allTime = (tbb::tick_count::now() - mStartTime).seconds();
+  const auto allTime = (mgb::tbb::tick_count::now() - mStartTime).seconds();
 
   mathic::ColumnPrinter pr;
   auto& names = pr.addColumn(true);
