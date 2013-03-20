@@ -155,7 +155,6 @@ function makeTarget {
   targetLDFLAGS="${targetsLDFLAGS[targetIndex]}";
   targetMakeArgs="${targetsMakeArgs[targetIndex]}";
   targetDefault="${targetsDefault[targetIndex]}";
-  projectConfigureArgs="--prefix=\"$prefix\" \${${projectName}_conf}";
 
   dependencies="";
   for depProject in $projectDependencies; do
@@ -165,6 +164,7 @@ function makeTarget {
   name="$projectName$targetName"
   targetDir="$projectName/$targetName";
   prefix="\${PWD}/installed/$targetName";
+  projectConfigureArgs="--prefix=\"$prefix\" \${${projectName}_conf}";
 
   echo "$name: ${projectName}BasicSetup $dependencies"
   echo $'\t'"rm -rf \"$targetDir\""

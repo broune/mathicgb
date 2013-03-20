@@ -93,7 +93,7 @@ public:
     };
     std::for_each(mTopRows.begin(), mTopRows.end(), check);
     std::for_each(mBottomRows.begin(), mBottomRows.end(), check);
-#endif MATHICGB_DEBUG
+#endif
     return true;
   }
 
