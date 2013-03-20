@@ -87,7 +87,7 @@ mgb_SOURCES = src/cli/GBMain.cpp src/cli/CommonParams.hpp				\
   src/cli/MatrixAction.cpp src/cli/MatrixAction.hpp						\
   src/cli/SigGBAction.hpp src/cli/SigGBAction.cpp						\
   src/cli/HelpAction.hpp src/cli/HelpAction.cpp
-mgb_LDADD = $(top_builddir)/libmathicgb.la
+mgb_LDADD = $(top_builddir)/libmathicgb.la $(DEPS_LIBS)
 
 # set up tests to run on "make check"
 TESTS=unittest
@@ -98,7 +98,7 @@ unittest_CXXFLAGS=\
   -I$(top_srcdir)/libs/gtest/include\
   -I$(top_srcdir)/libs/gtest/\
   -I$(top_srcdir)/src/ -std=gnu++0x
-unittest_LDADD = $(DEPS_LIBS) libmathicgb.la
+unittest_LDADD = $(DEPS_LIBS) libmathicgb.la $(DEPS_LIBS)
 
 test_LIBS=
 unittest_SOURCES=src/test/FreeModuleOrderTest.cpp						\
