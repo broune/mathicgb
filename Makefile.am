@@ -113,6 +113,7 @@ unittest_SOURCES=src/test/FreeModuleOrderTest.cpp						\
 else
 
 check:
-	echo "configure did not locate gtest, so unittests cannot be run."
+	@echo
+	@echo "Configure did not locate gtest, so unittests cannot be run."
 
 endif
