@@ -74,7 +74,7 @@ libmathicgb_la_SOURCES = src/mathicgb/BjarkeGeobucket2.cpp		\
 # When making a distribution file, Automake knows to include all files
 # that are necessary to build the project. EXTRA_DIST specifies files
 # to include beyond those used in the build process.
-EXTRA_DIST = autogen.sh libs/gtest
+EXTRA_DIST = autogen.sh
 
 bin_PROGRAMS = mgb
 
@@ -96,10 +96,7 @@ TESTS=unittest
 check_PROGRAMS=$(TESTS)
 
 unittest_CPPFLAGS = $(DEPS_CFLAGS)
-unittest_CXXFLAGS=\
-  -I$(top_srcdir)/libs/gtest/include\
-  -I$(top_srcdir)/libs/gtest/\
-  -I$(top_srcdir)/src/ -std=gnu++0x
+unittest_CXXFLAGS= -I$(top_srcdir)/src/ -std=gnu++0x
 unittest_LDADD = $(DEPS_LIBS) libmathicgb.la $(DEPS_LIBS)
 
 test_LIBS=

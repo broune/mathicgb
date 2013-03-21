@@ -13,10 +13,10 @@ AC_ARG_WITH([gtest], AS_HELP_STRING(
       gtest if a gtest source directory cannot be found. Per the recommendation
       of the gtest documentation, gtest is compiled with the tests, so an
       installed gtest is not usable - you need the gtest source. GTEST_PATH
-      indicates where to look for gtest and it is also where GTEST_PATH
-      will be downloaded to if not found. The default path is \$srcdir/libs so
-      that gtest needs to be at \$srcdir/libs/gtest/ where \$srcdir is the
-      directory that contains configure.ac.]
+      indicates where to look for gtest and it is also where gtest
+      will be downloaded to if not found. The default path is srcdir/libs so
+      that gtest needs to be at srcdir/libs/gtest/ where srcdir is the
+      base of the directory being configured from.]
 ))
 
 AC_MSG_CHECKING([for gtest])
@@ -30,12 +30,18 @@ AS_IF([test "x$with_gtest" == "xdownload"],
     (
       cd $GTEST_PATH;
       rm -rf gtest-$GTEST_VERSION.zip
-      wget http://googletest.googlecode.com/files/gtest-$GTEST_VERSION.zip;
+      wget http://googletest.googlfecode.com/files/gtest-$GTEST_VERSION.zip;
       unzip gtest-$GTEST_VERSION.zip;
       rm gtest-$GTEST_VERSION.zip
       rm -rf gtest/
       mv gtest-$GTEST_VERSION/ gtest/
     );
+    if test ! -e "$GTEST_PATH/gtest/src/gtest-all.cc"; then
+      AC_MSG_WARN([Failed to download or extract gtest.]);
+      with_gtest="no";
+    else
+      with_gtest="yes";
+    fi
   ])],
   [test "x$with_gtest" == "xyes"], [
     AC_CHECK_FILE([$GTEST_PATH/gtest/src/gtest-all.cc], [], [
@@ -45,7 +51,9 @@ AS_IF([test "x$with_gtest" == "xdownload"],
   [test "x$with_gtest" == "xno"], [],
   [AC_MSG_ERROR([invalid value $with_gtest for with_gtest.])]
 )
-AM_CONDITIONAL(with_gtest, test "x$with_gtest" != "xno")
+AS_IF([test "x$with_gtest" == "xyes"],
+  [GTEST_CFLAGS="-I`cd $GTEST_PATH/gtest/include; echo $PWD` -I`cd $GTEST_PATH/gtest/; echo $PWD`"]);
+AM_CONDITIONAL(with_gtest, test "x$with_gtest" == "xyes")
 
 dnl ----- The TBB dependency
 AC_ARG_WITH([tbb], AS_HELP_STRING(
@@ -65,9 +73,9 @@ AS_IF(
   [test "x$with_tbb" == "xno"], [TBB_CFLAGS="-DMATHICGB_NO_TBB"],
   [AC_MSG_ERROR([invalid value $with_tbb for with_tbb.])]
 )
- 
-DEPS_CFLAGS="$MEMTAILOR_CFLAGS $MATHIC_CFLAGS $TBB_CFLAGS"
-DEPS_LIBS="$MEMTAILOR_LIBS $MATHIC_LIBS $TBB_LIBS -lrt"
+
+DEPS_CFLAGS="$MEMTAILOR_CFLAGS $MATHIC_CFLAGS $TBB_CFLAGS $GTEST_CFLAGS"
+DEPS_LIBS="$MEMTAILOR_LIBS $MATHIC_LIBS $TBB_LIBS $GTEST_LIBS -lrt"
 AC_SUBST(DEPS_CFLAGS)
 AC_SUBST(DEPS_LIBS)
 
