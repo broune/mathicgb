@@ -90,6 +90,8 @@ mgb_SOURCES = src/cli/GBMain.cpp src/cli/CommonParams.hpp				\
 mgb_LDADD = $(top_builddir)/libmathicgb.la $(DEPS_LIBS)
 
 # set up tests to run on "make check"
+if with_gtest
+
 TESTS=unittest
 check_PROGRAMS=$(TESTS)
 
@@ -107,3 +109,10 @@ unittest_SOURCES=src/test/FreeModuleOrderTest.cpp						\
   src/test/SparseMatrix.cpp src/test/QuadMatrixBuilder.cpp				\
   src/test/F4MatrixBuilder.cpp src/test/F4MatrixReducer.cpp             \
   src/test/mathicgb.cpp
+
+else
+
+check:
+	echo "configure did not locate gtest, so unittests cannot be run."
+
+endif
