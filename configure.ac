@@ -30,7 +30,7 @@ AS_IF([test "x$with_gtest" == "xdownload"],
     (
       cd $GTEST_PATH;
       rm -rf gtest-$GTEST_VERSION.zip
-      wget http://googletest.googlfecode.com/files/gtest-$GTEST_VERSION.zip;
+      wget http://googletest.googlecode.com/files/gtest-$GTEST_VERSION.zip;
       unzip gtest-$GTEST_VERSION.zip;
       rm gtest-$GTEST_VERSION.zip
       rm -rf gtest/
@@ -86,9 +86,9 @@ AC_CONFIG_AUX_DIR([build/autotools]) # directory for auxiliary build tools (inst
 # check that source directory is correct
 dnl  if autoconf is told the source code is in a directory that does not
 dnl  contain this file then it knows that the directory is wrong.
-AC_CONFIG_SRCDIR([src/cli/GBMain.cpp])
+AC_CONFIG_SRCDIR([src/mathicgb.h])
 
-# Enable maintainer mode
+# Enable optional maintainer mode (off by default)
 dnl AM_MAINTAINER_MODE turns off automatic reconstruction of the build
 dnl files if the source build files have changed. A developer will want
 dnl those automatic reconstructions to happen so that changes to the
@@ -134,9 +134,15 @@ AC_PROG_CXX
 # Set up LibTool
 LT_INIT
 
+dnl Set the version for the library -- this concerns compatibility of the
+dnl source and binary interface of the library and is not the same as the
+dnl version of the project.
+AC_SUBST([MATHICGB_SO_VERSION], [0:0:0])
+
 dnl Set up AC_OUTPUT to create each file by copying an input file
 dnl while substituting the output variable values.
-AC_CONFIG_FILES([Makefile])
+AC_CONFIG_FILES([Makefile
+  build/autotools/mathicgb.pc:build/autotools/mathicgb.pc.in])
 
 dnl Macro that is required to be at the end of any Autoconf script.
 dnl Creates config.status and launches it.

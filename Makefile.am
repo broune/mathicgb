@@ -7,11 +7,10 @@ AM_CPPFLAGS = -I${top_srcdir}/
 libmathicgb_la_CPPFLAGS = $(DEPS_CFLAGS)
 
 # tell Libtool what the name of the library is.
-noinst_LTLIBRARIES = libmathicgb.la
+lib_LTLIBRARIES = libmathicgb.la
 
 # set the C++ compiler to include src/
 AM_CXXFLAGS=-I$(top_srcdir)/src/ -std=gnu++0x
-AM_LDFLAGS=
 
 # libraries that are needed by this library
 libmathicgb_la_LIBADD= $(DEPS_LIBS)
@@ -71,6 +70,16 @@ libmathicgb_la_SOURCES = src/mathicgb/BjarkeGeobucket2.cpp		\
   src/mathicgb/F4MatrixProjection.cpp src/mathicgb/ScopeExit.hpp \
   src/mathicgb.cpp src/mathicgb.h src/mathicgb/mtbb.hpp
 
+
+# The headers that libmathicgb installs.
+mathicgbA_include_HEADERS = src/mathicgb.h
+mathicgbA_includedir = $(includedir)
+
+pkgconfigdir = $(libdir)/pkgconfig
+pkgconfig_DATA = build/autotools/mathicgb.pc
+
+
+
 # When making a distribution file, Automake knows to include all files
 # that are necessary to build the project. EXTRA_DIST specifies files
 # to include beyond those used in the build process.
@@ -78,8 +87,8 @@ EXTRA_DIST = autogen.sh
 
 bin_PROGRAMS = mgb
 
-# set up the tests. Listing the headers in sources ensure that those
-# files are included in distributions.
+# set up the console program. Listing the headers in sources ensure that
+# those files are included in distributions.
 mgb_CPPFLAGS = $(DEPS_CFLAGS)
 mgb_SOURCES = src/cli/GBMain.cpp src/cli/CommonParams.hpp				\
   src/cli/CommonParams.cpp src/cli/GBAction.hpp src/cli/GBAction.cpp	\
@@ -96,8 +105,9 @@ TESTS=unittest
 check_PROGRAMS=$(TESTS)
 
 unittest_CPPFLAGS = $(DEPS_CFLAGS)
-unittest_CXXFLAGS= -I$(top_srcdir)/src/ -std=gnu++0x
-unittest_LDADD = $(DEPS_LIBS) libmathicgb.la $(DEPS_LIBS)
+unittest_CXXFLAGS = -I$(top_srcdir)/src/ -std=gnu++0x
+unittest_LDADD = $(DEPS_LIBS)
+unittest_LDFLAGS= $(top_builddir)/libmathicgb.la
 
 test_LIBS=
 unittest_SOURCES=src/test/FreeModuleOrderTest.cpp						\
