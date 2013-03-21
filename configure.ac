@@ -2,8 +2,8 @@ dnl AC_INIT sets up autoconf and must be first macro.
 AC_INIT([mathicgb], [1.0]) # package, version, bug-report-email
 
 # Check availability and location of dependencies
-PKG_CHECK_MODULES([MEMTAILOR], [memtailor-1.0])
-PKG_CHECK_MODULES([MATHIC], [mathic-1.0])
+PKG_CHECK_MODULES([MEMTAILOR], [memtailor])
+PKG_CHECK_MODULES([MATHIC], [mathic])
 
 dnl ----- The gtest dependency
 
