@@ -175,6 +175,7 @@ function makeTarget {
   echo $'\t'"  export CXXFLAGS=\"$targetCXXFLAGS\"; \\";
   echo $'\t'"  export CPPFLAGS=\"$targetCPPFLAGS\"; \\";
   echo $'\t'"  export LDFLAGS=\"$targetLDFLAGS\"; \\";
+  echo $'\t'"  export GTEST_PATH=\"../..\"; \\";
   echo $'\t'"  ../configure $projectConfigureArgs; \\"
   echo $'\t'"  make $targetMakeArgs install; \\"
   echo $'\t'");"
@@ -184,6 +185,21 @@ function makeTarget {
   fi
 }
 
+function makeGTest {
+  version="1.6.0";
+  zipFile="gtest-$version.zip";
+  url="http://googletest.googlecode.com/files/$zipFile";
+  extractDir="gtest-$version/";
+
+  echo "gtest:";
+  echo $'\t'"rm -rf $zipFile";
+  echo $'\t'"wget $url;";
+  echo $'\t'"unzip $zipFile;";
+  echo $'\t'"rm $zipFile;";
+  echo $'\t'"rm -rf gtest;";
+  echo $'\t'"mv $extractDir/ gtest;";
+}
+
 function makeProject {
   projectIndex="$1";
   name="${projectsName[projectIndex]}";
@@ -191,7 +207,7 @@ function makeProject {
 
   dep="$3";
   echo "all: $name";
-  echo "${name}BasicSetup:"
+  echo "${name}BasicSetup: gtest"
   echo $'\t'"if [ ! -e \"$name/\" ]; then git clone $gitUrl; fi;"
   echo $'\t'"if [ ! -e \"$name/configure\" ]; then (cd $name/; ./autogen.sh;); fi;"
 
@@ -201,7 +217,9 @@ function makeProject {
 }
 
 function makeMakefile {
+  echo "all:";
   makeHelpComment;
+  makeGTest;
 
   # -j8: Causes 8 parallel tasks including within called makefiles. User
   # setting overwrites this if the user has specified -jX on the command line.
