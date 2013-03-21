@@ -1,0 +1,12 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@
+
+Name: mathicgb
+Description: C++ library for Groebner basis computation
+URL: https://github.com/broune/mathicgb
+Requires: memtailor mathic
+Version: @PACKAGE_VERSION@
+Libs: -L${libdir} -lmathicgb
+Cflags: -I${includedir}/
