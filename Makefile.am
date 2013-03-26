@@ -68,7 +68,7 @@ libmathicgb_la_SOURCES = src/mathicgb/BjarkeGeobucket2.cpp				\
   src/mathicgb/F4ProtoMatrix.cpp src/mathicgb/F4MatrixProject.hpp		\
   src/mathicgb/F4MatrixProjection.cpp src/mathicgb/ScopeExit.hpp		\
   src/mathicgb.cpp src/mathicgb.h src/mathicgb/mtbb.hpp					\
-  src/mathicgb/PrimeField.hpp src/mathicgb/PrimeField.cpp
+  src/mathicgb/PrimeField.hpp
 
 
 # The headers that libmathicgb installs.
