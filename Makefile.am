@@ -68,7 +68,7 @@ libmathicgb_la_SOURCES = src/mathicgb/BjarkeGeobucket2.cpp				\
   src/mathicgb/F4ProtoMatrix.cpp src/mathicgb/F4MatrixProject.hpp		\
   src/mathicgb/F4MatrixProjection.cpp src/mathicgb/ScopeExit.hpp		\
   src/mathicgb.cpp src/mathicgb.h src/mathicgb/mtbb.hpp					\
-  src/mathicgb/PrimeField.hpp
+  src/mathicgb/PrimeField.hpp src/mathicgb/MonoMonoid.hpp
 
 
 # The headers that libmathicgb installs.
@@ -115,7 +115,7 @@ unittest_SOURCES=src/test/FreeModuleOrderTest.cpp						\
   src/test/ideals.cpp src/test/poly-test.cpp src/test/ideals.hpp		\
   src/test/SparseMatrix.cpp src/test/QuadMatrixBuilder.cpp				\
   src/test/F4MatrixBuilder.cpp src/test/F4MatrixReducer.cpp             \
-  src/test/mathicgb.cpp src/test/PrimeField.cpp
+  src/test/mathicgb.cpp src/test/PrimeField.cpp src/test/MonoMonoid.cpp
 
 else
 
