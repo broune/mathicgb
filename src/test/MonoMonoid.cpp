@@ -58,15 +58,15 @@ uint32 expect(size_t mono, size_t var, size_t varCount) {
 };
 
 TEST(MonoMonoid, VarCount) {
-  ASSERT_EQ(0, MonoMonoid<uint8>(0).varCount());
-  ASSERT_EQ(1000 * 1000, MonoMonoid<uint8>(1000 * 1000).varCount());
-  ASSERT_EQ(1, MonoMonoid<uint16>(1).varCount());
-  ASSERT_EQ(2, MonoMonoid<uint32>(2).varCount());
-  ASSERT_EQ(12, MonoMonoid<uint64>(12).varCount());
+  ASSERT_EQ(0, MonoMonoid<int8>(0).varCount());
+  ASSERT_EQ(1000 * 1000, MonoMonoid<int8>(1000 * 1000).varCount());
+  ASSERT_EQ(1, MonoMonoid<int16>(1).varCount());
+  ASSERT_EQ(2, MonoMonoid<int32>(2).varCount());
+  ASSERT_EQ(12, MonoMonoid<int64>(12).varCount());
 }
 
 TEST(MonoMonoid, MonoVector) {
-  typedef MonoMonoid<uint32> Monoid;
+  typedef MonoMonoid<int32> Monoid;
   typedef Monoid::VarIndex VarIndex;
   typedef Monoid::MonoVector MonoVector;
 
@@ -170,7 +170,7 @@ TEST(MonoMonoid, MonoVector) {
 }
 
 TEST(MonoMonoid, MonoPool) {
-  typedef MonoMonoid<uint32> Monoid;
+  typedef MonoMonoid<int32> Monoid;
   typedef Monoid::VarIndex VarIndex;
   typedef Monoid::Mono Mono;
 
@@ -229,5 +229,103 @@ TEST(MonoMonoid, MonoPool) {
       }
     }
     // everything should be free'd now. Let's do all that again.
+  }
+}
+
+namespace {
+  template<class M>
+  typename M::MonoVector parseVector(M& monoid, const char* str) {
+    typename M::MonoVector v(monoid);
+    std::istringstream in(str);
+    v.parseM2(in);
+    return v;
+  }
+}
+
+TEST(MonoMonoid, ParsePrintM2) {
+  MonoMonoid<int32> m(100);
+  const char* str = "1 a z A Z ab a2 a2b ab2 a20b30 1<1> a<2> a2<3> ab<11>\n";
+  auto v2 = parseVector(m, str);
+  std::ostringstream v2Out;
+  v2.printM2(v2Out);
+  ASSERT_EQ(str, v2Out.str());
+
+  decltype(v2) v(m);
+  v.push_back(); // 1
+
+  v.push_back(); // a
+  m.setExponent(0, 1, v.back());
+ 
+  v.push_back(); // z
+  m.setExponent(25, 1, v.back());
+
+  v.push_back(); // A
+  m.setExponent(26, 1, v.back());
+
+  v.push_back(); // Z
+  m.setExponent(51, 1, v.back());
+
+  v.push_back(); // ab
+  m.setExponent(0, 1, v.back());
+  m.setExponent(1, 1, v.back());
+
+  v.push_back(); // a2
+  m.setExponent(0, 2, v.back());
+
+  v.push_back(); // a2b
+  m.setExponent(0, 2, v.back());
+  m.setExponent(1, 1, v.back());
+
+  v.push_back(); // ab2
+  m.setExponent(0, 1, v.back());
+  m.setExponent(1, 2, v.back());
+
+  v.push_back(); // a20b30
+  m.setExponent(0, 20, v.back());
+  m.setExponent(1, 30, v.back());
+
+  v.push_back(); // 1<1>
+  m.setComponent(1, v.back());
+
+  v.push_back(); // a<2>
+  m.setComponent(2, v.back());
+  m.setExponent(0, 1, v.back());
+
+  v.push_back(); // a2<3>
+  m.setComponent(3, v.back());
+  m.setExponent(0, 2, v.back());
+
+  v.push_back(); // ab<11>
+  m.setComponent(11, v.back());
+  m.setExponent(0, 1, v.back());
+  m.setExponent(1, 1, v.back());
+
+  std::ostringstream vOut;
+  v.printM2(vOut);
+  ASSERT_EQ(str, vOut.str());
+  
+  ASSERT_EQ(v, v2);
+}
+
+TEST(MonoMonoid, Order) {
+  typedef MonoMonoid<int32> Monoid;
+  Monoid m(100);
+  auto v = parseVector(m, "1 Z A z c b a c2 bc ac b2 ab a2 c3 abc b3 a3");
+
+  for (auto greater = v.begin(); greater != v.end(); ++greater) {
+    ASSERT_EQ(m.compare(*greater, *greater), Monoid::EqualTo);
+    ASSERT_TRUE(m.equal(*greater, *greater));
+    ASSERT_FALSE(m.lessThan(*greater, *greater));
+
+    for (auto lesser = v.begin(); lesser != greater; ++lesser) {
+      //m.printM2(*lesser, std::cout); std::cout<<' ';
+      //m.printM2(*greater, std::cout); std::cout<<std::endl;
+      
+      ASSERT_FALSE(m.equal(*lesser, *greater));
+      ASSERT_TRUE(m.lessThan(*lesser, *greater));
+      ASSERT_FALSE(m.lessThan(*greater, *lesser));
+      ASSERT_EQ(m.compare(*lesser, *greater), Monoid::LessThan);
+      ASSERT_EQ(m.compare(*greater, *lesser), Monoid::GreaterThan);
+    }
   }
 }

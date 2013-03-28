@@ -4,6 +4,10 @@
 #include <vector>
 #include <algorithm>
 #include <memtailor.h>
+#include <type_traits>
+#include <istream>
+#include <ostream>
+#include <mathic.h>
 
 /// Implements the monoid of (monic) monomials with integer
 /// non-negative exponents. T must be an unsigned integer type that is
@@ -13,6 +17,9 @@
 template<class E>
 class MonoMonoid {
 public:
+  static_assert(std::numeric_limits<E>::is_signed, "");
+
+
   // *** Types
 
   // Integer index representing a variable. Indices start at 0 and go
@@ -21,6 +28,13 @@ public:
 
   /// The type of each exponent of a monomial.
   typedef E Exponent;
+
+  /// Type used to indicate the component of a module monomial. For example,
+  /// the component of xe_3 is 3.
+  typedef typename std::make_unsigned<E>::type Component;
+
+  /// Type used to store hash values of monomials.
+  //typedef typename std::make_unsigned<E>::type HashValue;
 
   /// Iterator for the exponents in a monomial.
   typedef const Exponent* const_iterator;
@@ -65,10 +79,22 @@ public:
   /// break these restrictions, but first try to find an alternative.
   class MonoVector;
 
+  /// For indicating the result of comparing one monomial to another.
+  enum CompareResult {
+    LessThan = -1,
+    EqualTo = 0,
+    GreaterThan = 1
+  };
+
 
   // *** Constructors and accessors
 
-  MonoMonoid(const VarIndex varCount): mVarCount(varCount) {}
+  MonoMonoid(const VarIndex varCount):
+    mVarCount(varCount),
+    mOrderEntryCount(1),
+    mOrderIndexBegin(1 + varCount),
+    mOrderIndexEnd(2 + varCount)
+  {}
 
   bool operator==(const MonoMonoid& monoid) const {
     return this == &monoid;
@@ -86,17 +112,19 @@ public:
   // *** Monomial accessors and queries
 
   /// Returns iterator to the first exponent.
-  const_iterator begin(ConstMonoRef mono) const {return mono.rawPtr();}
+  const_iterator begin(ConstMonoRef mono) const {
+    return mono.rawPtr() + exponentsIndexBegin();
+  }
 
   /// Returns iterator to one-past-the-end of the range of exponents.
   const_iterator end(ConstMonoRef mono) const {
-    return mono.rawPtr() + entriesPerMono();
+    return mono.rawPtr() + exponentsIndexEnd();
   }
 
   /// Returns the exponent of var in mono.
   Exponent exponent(ConstMonoRef mono, const VarIndex var) const {
     MATHICGB_ASSERT(var < varCount());
-    return mono.rawPtr()[var];
+    return begin(mono)[var];
   } 
 
   bool equal(ConstMonoRef a, ConstMonoRef b) const {
@@ -110,21 +138,143 @@ public:
     return std::all_of(begin(mono), end(mono), [](Exponent e) {return e == 0;});
   }
 
+  Component component(ConstMonoRef mono) const {
+    return *(mono.rawPtr() + componentIndex());
+  }
+
+  // Graded reverse lexicographic order. The grading is total degree.
+  CompareResult compare(ConstMonoRef a, ConstMonoRef b) const {
+    MATHICGB_ASSERT(debugOrderValid(a));
+    MATHICGB_ASSERT(debugOrderValid(b));
+
+    const auto rawA = rawPtr(a);
+    const auto rawB = rawPtr(b);
+    const auto stop = exponentsIndexBegin() - 1;
+    for (auto var = orderIndexEnd() - 1; var != stop; --var) {
+      const auto cmp = rawA[var] - rawB[var];
+      if (cmp < 0) return GreaterThan;
+      if (cmp > 0) return LessThan;
+    }
+    return EqualTo;
+  }
+
+  bool lessThan(ConstMonoRef a, ConstMonoRef b) const {
+    return compare(a, b) == LessThan;
+  }
+
 
   // *** Monomial mutating computations
 
   void copy(ConstMonoRef from, MonoRef to) const {
-    std::copy_n(from.rawPtr(), entriesPerMono(), to.rawPtr());
+    std::copy_n(from.rawPtr(), entryCount(), to.rawPtr());
   }
 
   void setExponent(const VarIndex var, const Exponent e, MonoRef mono) const {
     MATHICGB_ASSERT(var < varCount());
-    mono.rawPtr()[var] = e;
+    auto& exponent = (rawPtr(mono) + exponentsIndexBegin())[var];
+    const auto oldExponent = exponent;
+    exponent = e;
+    updateOrderInformation(var, oldExponent, exponent, mono);
   }
 
   void setIdentity(MonoRef mono) const {
-    std::fill_n(mono.rawPtr(), entriesPerMono(), static_cast<Exponent>(0));
+    std::fill_n(mono.rawPtr(), entryCount(), static_cast<Exponent>(0));
     MATHICGB_ASSERT(isIdentity(mono));
+  }
+
+  void setComponent(Component comp, MonoRef mono) const {
+    *(mono.rawPtr() + componentIndex()) = comp;
+  }
+
+  /// Parses a monomial out of a string. Valid examples: 1 abc a2bc
+  /// aA. Variable names are case sensitive. Whitespace terminates the
+  /// parse as does any other character that is not a letter or a
+  /// digit.  The monomial must not include a coefficient, not even 1,
+  /// except for the special case of a 1 on its own. An input like 1a
+  /// will be parsed as two separate monomials. A suffix like <2> puts
+  /// the monomial in component 2, so a5<2> is a^5e_2. The default
+  /// component is 0.
+  void parseM2(std::istream& in, MonoRef mono) const {
+    setIdentity(mono);
+
+    bool sawSome = false;
+    while (true) {
+      const char next = in.peek();
+      if (!sawSome && next == '1') {
+	in.get();
+	break;
+      }
+
+      VarIndex var;
+      const auto letterCount = 'z' - 'a' + 1;
+      if ('a' <= next && next <= 'z')
+	var = next - 'a';
+      else if ('A' <= next && next <= 'Z')
+	var = (next - 'A') + letterCount;
+      else if (sawSome)
+	break;
+      else {
+	mathic::reportError("Could not parse monomial.");
+	return;
+      }
+      MATHICGB_ASSERT(var < 2 * letterCount);
+      if (var >= varCount()) {
+	mathic::reportError("Unknown variable.");
+	return;
+      }
+      in.get();
+      auto& exponent = rawPtr(mono)[exponentsIndexBegin() + var];
+      if (isdigit(in.peek()))
+	in >> exponent;
+      else
+	exponent = 1;
+      sawSome = true;
+    }
+
+    if (in.peek() == '<') {
+      in.get();
+      if (!isdigit(in.peek())) {
+	mathic::reportError("Component was not integer.");
+	return;
+      }
+      in >> rawPtr(mono)[componentIndex()];
+      if (in.peek() != '>') {
+	mathic::reportError("Component < was not matched by >.");
+	return;
+      }
+      in.get();
+    }
+
+    setOrderData(mono);
+  }
+
+  // Inverse of parseM2().
+  void printM2(ConstMonoRef mono, std::ostream& out) const {
+    const auto letterCount = 'z' - 'a' + 1;
+
+    bool printedSome = false;
+    for (VarIndex var = 0; var < varCount(); ++var) {
+      const auto exponent = begin(mono)[var];
+      if (exponent == 0)
+	continue;
+      char letter;
+      if (var < letterCount)
+	letter = 'a' + var;
+      else if (var < 2 * letterCount)
+	letter = 'A' + (var - letterCount);
+      else {
+	mathic::reportError("Not enough letters in alphabet to print variable.");
+	return;
+      }
+      printedSome = true;
+      out << letter;
+      if (exponent != 1)
+	out << exponent;    
+    }
+    if (!printedSome)
+      out << '1';
+    if (component(mono) != 0)
+      out << '<' << component(mono) << '>';
   }
 
 
@@ -273,7 +423,7 @@ public:
   public:
     MonoPool(const MonoMonoid& monoid):
       mMonoid(monoid),
-      mPool(sizeof(Exponent) * mMonoid.entriesPerMono()) {}
+      mPool(sizeof(Exponent) * mMonoid.entryCount()) {}
 
     Mono alloc() {
       const auto ptr = static_cast<Exponent*>(mPool.alloc());
@@ -344,8 +494,8 @@ public:
 
       const_iterator(
         typename RawVector::const_iterator it,
-	size_t entriesPerMono
-      ): mIt(it), mEntriesPerMono(entriesPerMono) {}
+	size_t entryCount
+      ): mIt(it), mEntriesPerMono(entryCount) {}
       
       typename RawVector::const_iterator mIt;
       size_t mEntriesPerMono;		     
@@ -371,18 +521,18 @@ public:
 
     // ** Iterators
     const_iterator begin() const {
-      return const_iterator(mMonos.begin(), mMonoid.entriesPerMono());
+      return const_iterator(mMonos.begin(), mMonoid.entryCount());
     }
 
     const_iterator end() const {
-      return const_iterator(mMonos.end(), mMonoid.entriesPerMono());
+      return const_iterator(mMonos.end(), mMonoid.entryCount());
     }
 
     const_iterator cbegin() const {return begin();}
     const_iterator cend() const {return end();}
 
     // ** Capacity
-    size_t size() const {return mMonos.size() / monoid().entriesPerMono();}
+    size_t size() const {return mMonos.size() / monoid().entryCount();}
     bool empty() const {return mMonos.empty();}
 
     // ** Element access
@@ -393,27 +543,27 @@ public:
 
     MonoRef back() {
       MATHICGB_ASSERT(!empty());
-      const auto offset = mMonos.size() - monoid().entriesPerMono();
+      const auto offset = mMonos.size() - monoid().entryCount();
       return *MonoPtr(mMonos.data() + offset);
     }
 
     ConstMonoRef back() const {
       MATHICGB_ASSERT(!empty());
-      const auto offset = mMonos.size() - monoid().entriesPerMono();
+      const auto offset = mMonos.size() - monoid().entryCount();
       return *ConstMonoPtr(mMonos.data() + offset);
     }
 
     // ** Modifiers
     void push_back(ConstMonoRef mono) {
       const auto offset = mMonos.size();
-      mMonos.resize(offset + monoid().entriesPerMono());
+      mMonos.resize(offset + monoid().entryCount());
       monoid().copy(mono, *MonoPtr(mMonos.data() + offset));
     }
 
     /// Appends the identity.
     void push_back() {
       const auto offset = mMonos.size();
-      mMonos.resize(offset + monoid().entriesPerMono());      
+      mMonos.resize(offset + monoid().entryCount());      
     }
 
     void swap(MonoVector& v) {
@@ -435,6 +585,29 @@ public:
       return mMonos.capacity() * sizeof(mMonos[0]);
     }
 
+    /// As parseM2 on monoid, but accepts a non-empty space-separated
+    /// list of monomials. The monomials are appended to the end of
+    /// the vector.
+    void parseM2(std::istream& in) {
+      while(true) {
+	push_back();
+	monoid().parseM2(in, back());
+	if (in.peek() != ' ')
+	  break;
+	in.get();
+      }
+    }
+
+    /// The inverse of parseM2.
+    void printM2(std::ostream& out) const {
+      for (auto it = begin(); it != end(); ++it) {
+	if (it != begin())
+	  out << ' ';
+	monoid().printM2(*it, out);
+      }
+      out << '\n';
+    }
+
     const MonoMonoid& monoid() const {return mMonoid;}
 
   private:
@@ -444,9 +617,76 @@ public:
 
 
 private:
-  size_t entriesPerMono() const {return varCount();}
+  template<class M>
+  static auto rawPtr(M&& m) -> decltype(m.rawPtr()) {return m.rawPtr();}
+
+  // *** Implementation of monomial ordering
+  bool debugOrderValid(ConstMonoRef mono) const {
+#ifdef MATHICGB_DEBUG
+    // Check assumptions for layout in memory.
+    MATHICGB_ASSERT(orderIndexBegin() == exponentsIndexEnd());
+    MATHICGB_ASSERT(orderIndexBegin() + orderEntryCount() == orderIndexEnd());
+    MATHICGB_ASSERT(orderEntryCount() == 1);
+
+    // Check the order data of mono
+    MATHICGB_ASSERT
+      (rawPtr(mono)[orderIndexBegin()] == -computeTotalDegree(mono));
+#endif
+    return true;
+  }
+
+  void setOrderData(MonoRef mono) const {
+    rawPtr(mono)[orderIndexBegin()] = -computeTotalDegree(mono);      
+    MATHICGB_ASSERT(debugOrderValid(mono));
+  }
+
+  void updateOrderInformation(
+    const VarIndex var,
+    const Exponent oldExponent,
+    const Exponent newExponent,
+    MonoRef mono
+  ) const {
+    rawPtr(mono)[orderIndexBegin()] += oldExponent - newExponent;
+    MATHICGB_ASSERT(debugOrderValid(mono));
+  }
+
+
+  Exponent computeTotalDegree(ConstMonoRef mono) const {
+    Exponent degree = 0;
+    const auto end = this->end(mono);
+    for (auto it = begin(mono); it != end; ++it)
+      degree += *it;
+    return degree;
+  }
+
+  // *** Code describing the layout of monomials in memory
+  // Layout in memory:
+  //   [component] [exponents...] [order data...] [hash]
+
+  /// Returns how many Exponents are necessary to store a
+  /// monomial. This can include other information than the exponents,
+  /// so this number can be larger than varCount().
+  size_t entryCount() const {return mOrderIndexEnd;}
+
+  /// Returns how many Exponents are necessary to store the extra data
+  /// used to compare monomials quickly.
+  size_t orderEntryCount() const {return mOrderEntryCount;}
+
+  VarIndex componentIndex() const {return 0;}
+  VarIndex exponentsIndexBegin() const {return 1;}
+  VarIndex exponentsIndexEnd() const {return varCount() + 1;}
+  VarIndex orderIndexBegin() const {return mOrderIndexBegin;}
+  VarIndex orderIndexEnd() const {return mOrderIndexEnd;}
+  //VarIndex hashIndex() const {return mOrderIndexEnd;
 
   const VarIndex mVarCount;
+  const VarIndex mOrderEntryCount;
+  const VarIndex mOrderIndexBegin;
+  const VarIndex mOrderIndexEnd;
+
+  /// Take dot product of exponents with this vector to get hash value.
+  //std::vector<HashValue> mHashVals;
+
 };
 
 #endif
