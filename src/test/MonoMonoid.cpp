@@ -91,6 +91,7 @@ TEST(MonoMonoid, MonoVector) {
     ASSERT_FALSE(v.empty()); // empty
     ASSERT_EQ(i + 1, v.size()); // size
 
+
     ASSERT_TRUE(monoid.isIdentity(v.back())); // isIdentity true, back non-const
     bool allZero = true;
     for (VarIndex var = 0; var < varCount; ++var) {

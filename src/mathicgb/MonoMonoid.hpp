@@ -7,6 +7,7 @@
 #include <type_traits>
 #include <istream>
 #include <ostream>
+#include <cstdlib>
 #include <mathic.h>
 
 /// Implements the monoid of (monic) monomials with integer
@@ -34,7 +35,7 @@ public:
   typedef typename std::make_unsigned<E>::type Component;
 
   /// Type used to store hash values of monomials.
-  //typedef typename std::make_unsigned<E>::type HashValue;
+  typedef typename std::make_unsigned<E>::type HashValue;
 
   /// Iterator for the exponents in a monomial.
   typedef const Exponent* const_iterator;
@@ -93,8 +94,13 @@ public:
     mVarCount(varCount),
     mOrderEntryCount(1),
     mOrderIndexBegin(1 + varCount),
-    mOrderIndexEnd(2 + varCount)
-  {}
+    mOrderIndexEnd(2 + varCount),
+    mHashCoefficients(varCount)
+  {
+    std::srand(0); // To use the same hash coefficients every time.
+    for (VarIndex var = 0; var < varCount; ++var)
+      mHashCoefficients[var] = static_cast<HashValue>(std::rand());      
+  }
 
   bool operator==(const MonoMonoid& monoid) const {
     return this == &monoid;
@@ -127,6 +133,29 @@ public:
     return begin(mono)[var];
   } 
 
+  /// Returns the component of the monomial. Monomials not from a
+  /// module have component zero. In a module mono*e_i has component
+  /// i. @todo: Have different monoids for module monomials and
+  /// monomials and only offer this method for the module monomials.
+  Component component(ConstMonoRef mono) const {
+    return mono.rawPtr()[componentIndex()];
+  }
+
+  /// Returns a hash value for the monomial. These are not guaranteed
+  /// to be unique.
+  HashValue hash(ConstMonoRef mono) const {
+    MATHICGB_ASSERT(debugHashValid(mono));
+    return static_cast<HashValue>(rawPtr(mono)[hashIndex()]);
+  }
+
+  /// Returns the hash of the product of a and b.
+  HashValue hashOfProduct(ConstMonoRef a, ConstMonoRef b) const {
+    // See computeHash() for an explanation of all the casts.
+    const auto hashA = static_cast<HashValue>(hash(a));
+    const auto hashB = static_cast<HashValue>(hash(b));
+    return static_cast<HashValue>(static_cast<Exponent>(hashA + hashB));
+  }
+
   bool equal(ConstMonoRef a, ConstMonoRef b) const {
     return std::equal(begin(a), end(a), begin(b));
   }
@@ -136,10 +165,6 @@ public:
   /// of monomials.
   bool isIdentity(ConstMonoRef mono) const {
     return std::all_of(begin(mono), end(mono), [](Exponent e) {return e == 0;});
-  }
-
-  Component component(ConstMonoRef mono) const {
-    return *(mono.rawPtr() + componentIndex());
   }
 
   // Graded reverse lexicographic order. The grading is total degree.
@@ -166,24 +191,38 @@ public:
   // *** Monomial mutating computations
 
   void copy(ConstMonoRef from, MonoRef to) const {
+    MATHICGB_ASSERT(debugValid(from));
     std::copy_n(from.rawPtr(), entryCount(), to.rawPtr());
+    MATHICGB_ASSERT(debugValid(to));
   }
 
-  void setExponent(const VarIndex var, const Exponent e, MonoRef mono) const {
+  void setExponent(
+    const VarIndex var,
+    const Exponent newExponent,
+    MonoRef mono
+  ) const {
     MATHICGB_ASSERT(var < varCount());
-    auto& exponent = (rawPtr(mono) + exponentsIndexBegin())[var];
+    auto& exponent = rawPtr(mono)[exponentsIndexBegin() + var];
     const auto oldExponent = exponent;
-    exponent = e;
-    updateOrderInformation(var, oldExponent, exponent, mono);
+    exponent = newExponent;
+
+    updateOrderData(var, oldExponent, newExponent, mono);
+    updateHashExponent(var, oldExponent, newExponent, mono);
+    MATHICGB_ASSERT(debugValid(mono));
   }
 
   void setIdentity(MonoRef mono) const {
-    std::fill_n(mono.rawPtr(), entryCount(), static_cast<Exponent>(0));
+    std::fill_n(rawPtr(mono), entryCount(), static_cast<Exponent>(0));
+    MATHICGB_ASSERT(debugValid(mono));
     MATHICGB_ASSERT(isIdentity(mono));
   }
 
-  void setComponent(Component comp, MonoRef mono) const {
-    *(mono.rawPtr() + componentIndex()) = comp;
+  void setComponent(Component newComponent, MonoRef mono) const {
+    auto& component = mono.rawPtr()[componentIndex()];
+    const auto oldComponent = component;
+    component = newComponent;
+    updateHashComponent(oldComponent, newComponent, mono);
+    MATHICGB_ASSERT(debugValid(mono));
   }
 
   /// Parses a monomial out of a string. Valid examples: 1 abc a2bc
@@ -246,6 +285,8 @@ public:
     }
 
     setOrderData(mono);
+    setHash(mono);
+    MATHICGB_ASSERT(debugValid(mono));
   }
 
   // Inverse of parseM2().
@@ -555,6 +596,7 @@ public:
 
     // ** Modifiers
     void push_back(ConstMonoRef mono) {
+      MATHICGB_ASSERT(monoid().debugValid(mono));
       const auto offset = mMonos.size();
       mMonos.resize(offset + monoid().entryCount());
       monoid().copy(mono, *MonoPtr(mMonos.data() + offset));
@@ -563,7 +605,9 @@ public:
     /// Appends the identity.
     void push_back() {
       const auto offset = mMonos.size();
-      mMonos.resize(offset + monoid().entryCount());      
+      mMonos.resize(offset + monoid().entryCount());
+      MATHICGB_ASSERT(monoid().isIdentity(back()));
+      MATHICGB_ASSERT(monoid().debugValid(back()));
     }
 
     void swap(MonoVector& v) {
@@ -620,12 +664,19 @@ private:
   template<class M>
   static auto rawPtr(M&& m) -> decltype(m.rawPtr()) {return m.rawPtr();}
 
+  bool debugValid(ConstMonoRef mono) const {
+    MATHICGB_ASSERT(debugOrderValid(mono));
+    MATHICGB_ASSERT(debugHashValid(mono));
+    return true;
+  }
+
   // *** Implementation of monomial ordering
   bool debugOrderValid(ConstMonoRef mono) const {
 #ifdef MATHICGB_DEBUG
     // Check assumptions for layout in memory.
     MATHICGB_ASSERT(orderIndexBegin() == exponentsIndexEnd());
     MATHICGB_ASSERT(orderIndexBegin() + orderEntryCount() == orderIndexEnd());
+    MATHICGB_ASSERT(orderIndexEnd() < entryCount());
     MATHICGB_ASSERT(orderEntryCount() == 1);
 
     // Check the order data of mono
@@ -640,7 +691,7 @@ private:
     MATHICGB_ASSERT(debugOrderValid(mono));
   }
 
-  void updateOrderInformation(
+  void updateOrderData(
     const VarIndex var,
     const Exponent oldExponent,
     const Exponent newExponent,
@@ -650,7 +701,6 @@ private:
     MATHICGB_ASSERT(debugOrderValid(mono));
   }
 
-
   Exponent computeTotalDegree(ConstMonoRef mono) const {
     Exponent degree = 0;
     const auto end = this->end(mono);
@@ -659,14 +709,64 @@ private:
     return degree;
   }
 
-  // *** Code describing the layout of monomials in memory
+
+  // *** Implementation of hash value computation
+
+  bool debugHashValid(ConstMonoRef mono) const {
+    // We cannot call hash() here since it calls this method.
+    MATHICGB_ASSERT(hashIndex() < entryCount());
+    MATHICGB_ASSERT(rawPtr(mono)[hashIndex()] == computeHash(mono));
+    return true;
+  }
+
+  HashValue computeHash(ConstMonoRef mono) const {
+    HashValue hash = component(mono);
+    const auto exponents = begin(mono);
+    for (VarIndex var = 0; var < varCount(); ++var)
+      hash += static_cast<HashValue>(exponents[var]) * mHashCoefficients[var];
+
+    // Hash values are stored as exponents. If the cast to an exponent
+    // changes the value, then we need computeHashValue to match that
+    // change by casting to an exponent and back. Otherwise the computed
+    // hash value will not match a hash value that has been stored.
+    return static_cast<HashValue>(static_cast<Exponent>(hash));
+  }
+
+  void setHash(MonoRef mono) const {
+    rawPtr(mono)[hashIndex()] = computeHash(mono);
+    MATHICGB_ASSERT(debugHashValid(mono));
+  }
+
+  void updateHashComponent(
+    const Exponent oldComponent,
+    const Exponent newComponent,
+    MonoRef mono
+  ) const {
+    rawPtr(mono)[hashIndex()] += newComponent - oldComponent;
+    MATHICGB_ASSERT(debugHashValid(mono));
+  }
+
+  void updateHashExponent(
+    const VarIndex var,
+    const Exponent oldExponent,
+    const Exponent newExponent,
+    MonoRef mono
+  ) const {
+    MATHICGB_ASSERT(var < varCount());
+    rawPtr(mono)[hashIndex()] +=
+      (newExponent - oldExponent) * mHashCoefficients[var];
+    MATHICGB_ASSERT(debugHashValid(mono));
+  }
+
+
+  // *** Code determining the layout of monomials in memory
   // Layout in memory:
   //   [component] [exponents...] [order data...] [hash]
 
   /// Returns how many Exponents are necessary to store a
-  /// monomial. This can include other information than the exponents,
-  /// so this number can be larger than varCount().
-  size_t entryCount() const {return mOrderIndexEnd;}
+  /// monomial. This can include other data than the exponents, so
+  /// this number can be larger than varCount().
+  size_t entryCount() const {return mOrderIndexEnd + 1;}
 
   /// Returns how many Exponents are necessary to store the extra data
   /// used to compare monomials quickly.
@@ -677,7 +777,7 @@ private:
   VarIndex exponentsIndexEnd() const {return varCount() + 1;}
   VarIndex orderIndexBegin() const {return mOrderIndexBegin;}
   VarIndex orderIndexEnd() const {return mOrderIndexEnd;}
-  //VarIndex hashIndex() const {return mOrderIndexEnd;
+  VarIndex hashIndex() const {return mOrderIndexEnd;}
 
   const VarIndex mVarCount;
   const VarIndex mOrderEntryCount;
@@ -685,8 +785,7 @@ private:
   const VarIndex mOrderIndexEnd;
 
   /// Take dot product of exponents with this vector to get hash value.
-  //std::vector<HashValue> mHashVals;
-
+  std::vector<HashValue> mHashCoefficients;
 };
 
 #endif
