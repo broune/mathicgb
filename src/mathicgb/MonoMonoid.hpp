@@ -17,6 +17,15 @@
 /// TODO: support grading and comparison.
 template<class E>
 class MonoMonoid {
+private:
+  friend class Mono;
+  friend class MonoRef;
+  friend class ConstMonoRef;
+  friend class MonoPtr;
+  friend class ConstMonoPtr;
+  friend class MonoVector;
+  friend class MonoPool;
+
 public:
   static_assert(std::numeric_limits<E>::is_signed, "");
 
@@ -119,12 +128,12 @@ public:
 
   /// Returns iterator to the first exponent.
   const_iterator begin(ConstMonoRef mono) const {
-    return mono.rawPtr() + exponentsIndexBegin();
+    return ptr(mono, exponentsIndexBegin());
   }
 
   /// Returns iterator to one-past-the-end of the range of exponents.
   const_iterator end(ConstMonoRef mono) const {
-    return mono.rawPtr() + exponentsIndexEnd();
+    return ptr(mono, exponentsIndexEnd());
   }
 
   /// Returns the exponent of var in mono.
@@ -138,14 +147,14 @@ public:
   /// i. @todo: Have different monoids for module monomials and
   /// monomials and only offer this method for the module monomials.
   Component component(ConstMonoRef mono) const {
-    return mono.rawPtr()[componentIndex()];
+    return access(mono, componentIndex());
   }
 
   /// Returns a hash value for the monomial. These are not guaranteed
   /// to be unique.
   HashValue hash(ConstMonoRef mono) const {
     MATHICGB_ASSERT(debugHashValid(mono));
-    return static_cast<HashValue>(rawPtr(mono)[hashIndex()]);
+    return static_cast<HashValue>(access(mono, hashIndex()));
   }
 
   /// Returns the hash of the product of a and b.
@@ -172,11 +181,9 @@ public:
     MATHICGB_ASSERT(debugOrderValid(a));
     MATHICGB_ASSERT(debugOrderValid(b));
 
-    const auto rawA = rawPtr(a);
-    const auto rawB = rawPtr(b);
     const auto stop = exponentsIndexBegin() - 1;
-    for (auto var = orderIndexEnd() - 1; var != stop; --var) {
-      const auto cmp = rawA[var] - rawB[var];
+    for (auto i = orderIndexEnd() - 1; i != stop; --i) {
+      const auto cmp = access(a, i) - access(b, i);
       if (cmp < 0) return GreaterThan;
       if (cmp > 0) return LessThan;
     }
@@ -192,7 +199,7 @@ public:
 
   void copy(ConstMonoRef from, MonoRef to) const {
     MATHICGB_ASSERT(debugValid(from));
-    std::copy_n(from.rawPtr(), entryCount(), to.rawPtr());
+    std::copy_n(rawPtr(from), entryCount(), rawPtr(to));
     MATHICGB_ASSERT(debugValid(to));
   }
 
@@ -202,7 +209,7 @@ public:
     MonoRef mono
   ) const {
     MATHICGB_ASSERT(var < varCount());
-    auto& exponent = rawPtr(mono)[exponentsIndexBegin() + var];
+    auto& exponent = access(mono, exponentsIndexBegin() + var);
     const auto oldExponent = exponent;
     exponent = newExponent;
 
@@ -218,7 +225,7 @@ public:
   }
 
   void setComponent(Component newComponent, MonoRef mono) const {
-    auto& component = mono.rawPtr()[componentIndex()];
+    auto& component = access(mono, componentIndex());
     const auto oldComponent = component;
     component = newComponent;
     updateHashComponent(oldComponent, newComponent, mono);
@@ -262,7 +269,7 @@ public:
 	return;
       }
       in.get();
-      auto& exponent = rawPtr(mono)[exponentsIndexBegin() + var];
+      auto& exponent = access(mono, exponentsIndexBegin() + var);
       if (isdigit(in.peek()))
 	in >> exponent;
       else
@@ -276,7 +283,7 @@ public:
 	mathic::reportError("Component was not integer.");
 	return;
       }
-      in >> rawPtr(mono)[componentIndex()];
+      in >> access(mono, componentIndex());
       if (in.peek() != '>') {
 	mathic::reportError("Component < was not matched by >.");
 	return;
@@ -295,8 +302,7 @@ public:
 
     bool printedSome = false;
     for (VarIndex var = 0; var < varCount(); ++var) {
-      const auto exponent = begin(mono)[var];
-      if (exponent == 0)
+      if (exponent(mono, var) == 0)
 	continue;
       char letter;
       if (var < letterCount)
@@ -304,13 +310,13 @@ public:
       else if (var < 2 * letterCount)
 	letter = 'A' + (var - letterCount);
       else {
-	mathic::reportError("Not enough letters in alphabet to print variable.");
+	mathic::reportError("Too few letters in alphabet to print variable.");
 	return;
       }
       printedSome = true;
       out << letter;
-      if (exponent != 1)
-	out << exponent;    
+      if (exponent(mono, var) != 1)
+	out << exponent(mono, var);
     }
     if (!printedSome)
       out << '1';
@@ -324,7 +330,7 @@ public:
   class ConstMonoPtr {
   public:
     ConstMonoPtr(): mMono(0) {}
-    ConstMonoPtr(const ConstMonoPtr& mono): mMono(mono.rawPtr()) {}
+    ConstMonoPtr(const ConstMonoPtr& mono): mMono(rawPtr(mono)) {}
 
     ConstMonoPtr operator=(const ConstMonoPtr& mono) {
       mMono = mono.mMono;
@@ -337,11 +343,12 @@ public:
     void toNull() {mMono = 0;}
 
   private:
+    friend class MonoMonoid;
     friend class MonoVector;
     friend class MonoPtr;
     friend class ConstMonoRef;
 
-    const Exponent* rawPtr() const {return mMono;}
+    const Exponent* internalRawPtr() const {return mMono;}
     ConstMonoPtr(const Exponent* mono): mMono(mono) {}
 
     const Exponent* mMono;
@@ -349,8 +356,13 @@ public:
 
   class MonoPtr {
   public:
+    friend class Mono;
+    friend class MonoRef;
+    friend class MonoVector;
+    friend class MonoPool;
     MonoPtr(): mMono(0) {}
-    MonoPtr(const MonoPtr& mono): mMono(mono.rawPtr()) {}
+    MonoPtr(const MonoPtr& mono): mMono(mono.mMono) {}
+    // todo: xxx
 
     MonoPtr operator=(const MonoPtr& mono) {
       mMono = mono.mMono;
@@ -365,12 +377,9 @@ public:
     operator ConstMonoPtr() const {return ConstMonoPtr(mMono);}
 
   private:
-    friend class Mono;
-    friend class MonoRef;
-    friend class MonoVector;
-    friend class MonoPool;
+    friend class MonoMonoid;
 
-    Exponent* rawPtr() const {return mMono;}
+    Exponent* internalRawPtr() const {return mMono;}
     MonoPtr(Exponent* mono): mMono(mono) {}
 
     Exponent* mMono;
@@ -408,6 +417,8 @@ public:
     }
 
   private:
+    friend class MonoMonoid;
+
     Mono(const Mono&); // not available
     void operator=(const Mono&); // not available
     friend class MonoPool;
@@ -415,7 +426,7 @@ public:
     Mono(const MonoPtr mono, MonoPool& pool):
       mMono(mono), mPool(&pool) {}
 
-    Exponent* rawPtr() const {return mMono.rawPtr();}
+    Exponent* internalRawPtr() const {return rawPtr(mMono);}
 
     MonoPtr mMono;
     MonoPool* mPool;
@@ -433,7 +444,7 @@ public:
     friend class MonoPtr;
 
     MonoRef(MonoPtr mono): mMono(mono) {}
-    Exponent* rawPtr() const {return mMono.rawPtr();}
+    Exponent* internalRawPtr() const {return rawPtr(mMono);}
 
     const MonoPtr mMono;
   };
@@ -452,7 +463,7 @@ public:
     friend class ConstMonoPtr;
 
     ConstMonoRef(ConstMonoPtr mono): mMono(mono) {}
-    const Exponent* rawPtr() const {return mMono.rawPtr();}
+    const Exponent* internalRawPtr() const {return rawPtr(mMono);}
 
     const ConstMonoPtr mMono;
   };
@@ -477,7 +488,7 @@ public:
     void free(Mono&& mono) {
       if (mono.isNull())
 	return;
-      mPool.free(mono.rawPtr());
+      mPool.free(rawPtr(mono));
       mono.mMono = 0;
       mono.mPool = 0;
     }
@@ -661,13 +672,36 @@ public:
 
 
 private:
-  template<class M>
-  static auto rawPtr(M&& m) -> decltype(m.rawPtr()) {return m.rawPtr();}
-
   bool debugValid(ConstMonoRef mono) const {
     MATHICGB_ASSERT(debugOrderValid(mono));
     MATHICGB_ASSERT(debugHashValid(mono));
     return true;
+  }
+
+  // *** Accessing fields of a monomial
+  template<class M>
+  static auto rawPtr(M&& m) -> decltype(m.internalRawPtr()) {
+    return m.internalRawPtr();
+  }
+
+  Exponent* ptr(MonoRef& m, const VarIndex index) const {
+    MATHICGB_ASSERT(index <= entryCount());
+    return rawPtr(m) + index;
+  }
+
+  const Exponent* ptr(ConstMonoRef& m, const VarIndex index) const {
+    MATHICGB_ASSERT(index <= entryCount());
+    return rawPtr(m) + index;
+  }
+
+  Exponent& access(MonoRef& m, const VarIndex index) const {
+    MATHICGB_ASSERT(index < entryCount());
+    return rawPtr(m)[index];
+  }
+
+  const Exponent& access(ConstMonoRef& m, const VarIndex index) const {
+    MATHICGB_ASSERT(index < entryCount());
+    return rawPtr(m)[index];
   }
 
   // *** Implementation of monomial ordering
