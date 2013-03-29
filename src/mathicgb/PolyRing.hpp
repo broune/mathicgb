@@ -3,8 +3,6 @@
 #ifndef _polyRing_h_
 #define _polyRing_h_
 
-#define NEWMONOMIALS 1
-
 #include <assert.h>
 #include <string>
 #include <vector>
@@ -190,13 +188,8 @@ inline const Monomial& ConstMonomial::castAwayConst() const
   return reinterpret_cast<const Monomial&>(*this);
 }
 
-#ifdef NEWMONOMIALS
-  typedef Monomial monomial;
-  typedef ConstMonomial const_monomial;
-#else
-  typedef exponent *monomial; // a power product in the ring
-  typedef const exponent * const_monomial;
-#endif
+typedef Monomial monomial;
+typedef ConstMonomial const_monomial;
 
 struct const_term {
   const_coefficient coeff;
@@ -287,18 +280,8 @@ public:
   // Only call this method for monomials returned by allocMonomial().
   void freeMonomial(Monomial m) const {mMonomialPool.free(m.unsafeGetRepresentation());}
 
-#ifdef NEWMONOMIALS
-  // Free monomials allocated here by calling freeMonomial().
-  monomial allocMonomial() const { return allocMonomial(mMonomialPool); }
-#else
-  // Free monomials allocated here by calling freeMonomial().
-  monomial allocMonomial() const {
-    return static_cast<monomial>(mMonomialPool.alloc());
-  }
-
-  // Only call this method for monomials returned by allocMonomial().
-  void freeMonomial(monomial m) const {mMonomialPool.free(m);}
-#endif
+// Free monomials allocated here by calling freeMonomial().
+monomial allocMonomial() const { return allocMonomial(mMonomialPool); }
 
 
 
@@ -531,88 +514,6 @@ public:
 
   ///////////////////////////////////////////
   ///////////////////////////////////////////
-
-#ifndef NEWMONOMIALS
-  int monomialCompare(const_monomial a, const_monomial b) const; // returns LT, EQ or GT
-  int monomialCompare(const_monomial sig, const_monomial m2, const_monomial sig2) const;
-  // returns LT, EQ, or GT, depending on sig ? (m2 * sig2).
-  bool monomialLT(const_monomial a, const_monomial b) const {
-    for (size_t i = mTopIndex; i != static_cast<size_t>(-1); --i)
-      {
-        auto cmp = a[i] - b[i];
-        if (cmp == 0) continue;
-        if (cmp < 0) return false;
-        return true;
-      }
-    return false;
-  }
-  bool monomialEQ(const_monomial a, const_monomial b) const;
-
-  size_t monomialSize(const_monomial) const { return mMaxMonomialSize; }
-  int monomialGetComponent(const_monomial a) const { return *a; }
-  void monomialChangeComponent(monomial a, int x) const {
-    a[mHashIndex] -= *a;
-    a[mHashIndex] += x;
-    *a = x;
-  }
-
-  void monomialSetIdentity(monomial& result) const;
-  void monomialEi(size_t i, monomial &result) const;
-  void monomialMult(const_monomial a, const_monomial b, monomial &result) const;
-  bool monomialDivide(const_monomial a, const_monomial b, monomial &result) const;
-  // returns truue if b divides a, in this case, result is set to b//a.
-  void monomialDivideToNegative(const_monomial a, const_monomial b, monomial result) const;
-  // sets result to a/b, even if that produces negative exponents.
-
-  bool monomialIsDivisibleBy(const_monomial a, const_monomial b) const;
-  // returns true if b divides a.  Components are ignored.
-
-  void monomialMultTo(monomial a, const_monomial b) const; // a *= b
-  void monomialCopy(const_monomial a, monomial &result) const;
-  void monomialQuotientAndMult(const_monomial a, const_monomial b, const_monomial c, monomial result) const;
-  // result is set to (a//b) * c
-
-  inline bool monomialRelativelyPrime(const_monomial a, const_monomial b) const;
-  void monomialFindSignatures(const_monomial v1,
-                              const_monomial v2,
-                              const_monomial u1,
-                              const_monomial u2,
-                              monomial t1,
-                              monomial t2) const;  // answer into the already allocated t1,t2
-  // t1 := (v2:v1) u1
-  // t2 := (v1:v2) u2
-  void monomialFindSignature(const_monomial v1,
-                              const_monomial v2,
-                              const_monomial u1,
-                              monomial t1) const; // answer into the already allocated t1
-
-  size_t monomialSizeOfSupport(const_monomial m) const;
-
-  void monomialGreatestCommonDivisor(const_monomial a, const_monomial b, monomial g) const;
-  inline void monomialLeastCommonMultiple(const_monomial a, const_monomial b, monomial l) const;
-  inline void monomialLeastCommonMultipleNoWeights(const_monomial a, const_monomial b, monomial l) const;
-  bool monomialIsLeastCommonMultiple(const_monomial a, const_monomial b, const_monomial l) const;
-  bool monomialIsLeastCommonMultipleNoWeights(const_monomial a, const_monomial b, const_monomial l) const;
-
-  // Returns true if there is a variable var such that hasLarger raises var to
-  // a strictly greater exponent than both smaller1 and smaller2 does.
-  inline bool monomialHasStrictlyLargerExponent(
-    const_monomial hasLarger,
-    const_monomial smaller1,
-    const_monomial smaller2) const;
-
-  void monomialRead(std::istream &i, monomial &result) const;
-  void monomialWrite(std::ostream &o, const_monomial a) const;
-
-  void monomialParse(std::istream &i, monomial &result) const;
-  void monomialDisplay(std::ostream&o, const_monomial a, bool print_comp=true, bool print_one=true) const;
-
-  void printMonomialFrobbyM2Format(std::ostream& out, const_monomial m) const;
-
-  void setWeightsAndHash(monomial a) const;
-  inline void setWeightsOnly(monomial a) const;
-  bool weightsCorrect(const_monomial a) const;
-#endif
 
   struct coefficientStats {
     size_t n_addmult;
@@ -935,127 +836,6 @@ inline bool PolyRing::monomialHasStrictlyLargerExponent(
 ////////////////////////////////////////////////
 // Old Monomial Routines ///////////////////////
 ////////////////////////////////////////////////
-
-#ifndef NEWMONOMIALS
-inline bool PolyRing::monomialIsDivisibleBy(const_monomial a, const_monomial b) const
-{
-  // returns truue if b divides a, in this case, result is set to b//a.
-  //  for (int i = mNumVars; i >= 1; --i)
-  //    {
-  //      int c = a[i] - b[i];
-  //      if (c < 0) return false;
-  //    }
-  for (size_t i = 1; i<= mNumVars; i++)
-    if (a[i] < b[i])
-      return false;
-
-  return true;
-}
-
-inline void PolyRing::monomialDivideToNegative(const_monomial a, const_monomial b, monomial result) const {
-  for (size_t i = 0; i <= this->mTopIndex; ++i)
-    result[i] = a[i] - b[i];
-}
-
-inline bool PolyRing::monomialDivide(const_monomial a, const_monomial b, monomial &result) const
-{
-  //// returns true if b divides a, in this case, result is set to b//a.
-  //  for (int i = mNumVars; i >= 1; --i)
-  //    {
-  //      int c = a[i] - b[i];
-  //      if (c >= 0)
-  //    result[i] = c;
-  //      else
-  //    return false;
-  //    }
-  //// at this point we have divisibility, so need to fill in the rest of the monomial
-  //  *result = *a - *b;  // component
-  //  for (int i=mHashIndex; i>mNumVars; --i)
-  //    result[i] = a[i] - b[i];
-  //  return true;
-
-  size_t i;
-  for (i = 1; i <= mNumVars; i++)
-    {
-      auto c = a[i] - b[i];
-      if (c >= 0)
-        result[i] = c;
-      else
-        return false;
-    }
-  // at this point we have divisibility, so need to fill in the rest of the monomial
-  *result = *a - *b;  // component
-  for ( ; i<=mHashIndex; i++)
-    result[i] = a[i] - b[i];
-  return true;
-}
-
-inline int PolyRing::monomialCompare(const_monomial a, const_monomial b) const
-// returns LT, EQ or GT
-{
-  for (size_t i = mTopIndex; i != static_cast<size_t>(-1); --i)
-    {
-      //      if (a[i] == b[i]) continue;
-      //      if (a[i] < b[i]) return GT;
-      //      return LT;
-      //      if (a[i] > b[i]) return LT;
-            auto cmp = a[i] - b[i];
-            if (cmp < 0) return GT;
-            if (cmp > 0) return LT;
-    }
-  return EQ;
-}
-
-inline void PolyRing::monomialLeastCommonMultiple(
-  const_monomial a,
-  const_monomial b,
-  monomial l) const
-{
-  monomialLeastCommonMultipleNoWeights(a, b, l);
-  setWeightsAndHash(l);
-}
-
-inline void PolyRing::monomialLeastCommonMultipleNoWeights(
-  const_monomial a,
-  const_monomial b,
-  monomial l) const
-{
-  *l = 0;
-  for (size_t i = 1; i <= mNumVars; ++i)
-    l[i] = std::max(a[i], b[i]);
-}
-
-inline bool PolyRing::monomialHasStrictlyLargerExponent(
-  const_monomial hasLarger,
-  const_monomial smaller1,
-  const_monomial smaller2) const {
-  for (size_t i = 1; i <= mNumVars; ++i)
-    if (hasLarger[i] > smaller1[i] && hasLarger[i] > smaller2[i])
-      return true;
-  return false;
-}
-
-inline void PolyRing::setWeightsOnly(monomial a) const
-{
-  a++;
-  auto wts = mWeights.data();
-  for (size i = 0; i < mNumWeights; ++i) {
-    exponent result = 0;
-    for (size_t j=0; j<mNumVars; ++j)
-      result += *wts++ * a[j];
-    a[mNumVars+i] = result;
-  }
-}
-
-inline bool PolyRing::monomialRelativelyPrime(const_monomial a, const_monomial b) const
-{
-  for (size_t i = 1; i <= mNumVars; ++i)
-    if (a[i] > 0 && b[i] > 0)
-      return false;
-  return true;
-}
-
-#endif
 
 inline bool PolyRing::monomialIsLeastCommonMultiple(
   ConstMonomial a,

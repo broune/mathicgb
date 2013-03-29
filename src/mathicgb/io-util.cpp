@@ -60,25 +60,6 @@ std::string monomialToString(const PolyRing *R, const Monomial& mon)
   return o.str();
 }
 
-///////// Which of the following do we need/use? /////////////
-#ifndef NEWMONOMIALS
-monomial monomialFromString(const PolyRing *R, std::string mon)
-{
-  // This is poor code, to only be used for testing!
-  monomial result = new int[R->maxMonomialSize()];
-  std::stringstream ifil(mon);
-  R->monomialRead(ifil, result);
-  return result;
-}
-
-std::string monomialToString(const PolyRing *R, const_monomial mon)
-{
-  std::ostringstream o;
-  R->monomialWrite(o,mon);
-  return o.str();
-}
-#endif
-
 monomial monomialParseFromString(const PolyRing *R, std::string mon)
 {
   // This is poor code, to only be used for testing!
