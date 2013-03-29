@@ -375,6 +375,20 @@ TEST(MonoMonoid, MultiplyDivide) {
       ASSERT_TRUE(m.compare(a, mono) == Monoid::EqualTo);
       ASSERT_TRUE(m.divides(mono, a));
     }
+
+    // Check that aliased parameters work.
+    m.multiply(mono, mono, mono);
+    m.divide(mono, mono, mono);
+    MATHICGB_ASSERT(m.isIdentity(mono));
+
+    // Check that negative exponents work
+    m.divideToNegative(a, b, mono);
+    m.multiply(a, mono, mono);
+    ASSERT_TRUE(m.equal(mono, b));
+    
+    m.divideToNegative(b, a, mono);
+    m.multiply(b, mono, mono);
+    ASSERT_TRUE(m.equal(mono, a));
   };
   check("1 1 1");
   check("a 1 a");

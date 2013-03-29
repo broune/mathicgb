@@ -196,12 +196,14 @@ public:
 
   // *** Monomial mutating computations
 
+  /// Copes the parameter from to the parameter to.
   void copy(ConstMonoRef from, MonoRef to) const {
     MATHICGB_ASSERT(debugValid(from));
     std::copy_n(rawPtr(from), entryCount(), rawPtr(to));
     MATHICGB_ASSERT(debugValid(to));
   }
 
+  /// Set the exponent of var to newExponent in mono.
   void setExponent(
     const VarIndex var,
     const Exponent newExponent,
@@ -217,12 +219,14 @@ public:
     MATHICGB_ASSERT(debugValid(mono));
   }
 
+  /// Sets mono to 1, which is the identity for multiplication.
   void setIdentity(MonoRef mono) const {
     std::fill_n(rawPtr(mono), entryCount(), static_cast<Exponent>(0));
     MATHICGB_ASSERT(debugValid(mono));
     MATHICGB_ASSERT(isIdentity(mono));
   }
 
+  /// Sets the component of mono to newComponent.
   void setComponent(Component newComponent, MonoRef mono) const {
     auto& component = access(mono, componentIndex());
     const auto oldComponent = component;
@@ -231,6 +235,7 @@ public:
     MATHICGB_ASSERT(debugValid(mono));
   }
 
+  /// Sets prod to a*b.
   void multiply(ConstMonoRef a, ConstMonoRef b, MonoRef prod) const {
     MATHICGB_ASSERT(debugValid(a));
     MATHICGB_ASSERT(debugValid(b));
@@ -238,10 +243,10 @@ public:
     for (auto i = 0; i < entryCount(); ++i)
       access(prod, i) = access(a, i) + access(b, i);
 
-    MATHICGB_ASSERT(hashOfProduct(a, b) == hash(prod));
     MATHICGB_ASSERT(debugValid(prod));
   }
 
+  /// Sets prod to a*prod.
   void multiplyInPlace(ConstMonoRef a, MonoRef prod) const {
     MATHICGB_ASSERT(debugValid(a));
     MATHICGB_ASSERT(debugValid(prod));
@@ -252,6 +257,7 @@ public:
     MATHICGB_ASSERT(debugValid(prod));      
   }
 
+  /// Sets quo to num/by. by must divide num.
   void divide(ConstMonoRef by, ConstMonoRef num, MonoRef quo) const {
     MATHICGB_ASSERT(divides(by, num));
     MATHICGB_ASSERT(debugValid(num));
@@ -263,6 +269,7 @@ public:
     MATHICGB_ASSERT(debugValid(quo));
   }
 
+  /// Sets num to num/by. by must divide num.
   void divideInPlace(ConstMonoRef by, MonoRef num) const {
     MATHICGB_ASSERT(divides(by, num));
     MATHICGB_ASSERT(debugValid(by));
@@ -272,6 +279,18 @@ public:
       access(num, i) -= access(by, i);
 
     MATHICGB_ASSERT(debugValid(num));
+  }
+
+  /// Sets quo to num/by. If by does not divide num then quo will have
+  /// negative exponents.
+  void divideToNegative(ConstMonoRef by, ConstMonoRef num, MonoRef quo) const {
+    MATHICGB_ASSERT(debugValid(num));
+    MATHICGB_ASSERT(debugValid(by));
+
+    for (auto i = 0; i < entryCount(); ++i)
+      access(quo, i) = access(num, i) - access(by, i);
+
+    MATHICGB_ASSERT(debugValid(quo));
   }
 
   /// Parses a monomial out of a string. Valid examples: 1 abc a2bc
