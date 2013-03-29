@@ -11,6 +11,8 @@
 #include <cstring>
 #include <limits>
 
+#define MATHICGB_USE_MONOID
+
 #define LT (-1)
 #define EQ 0
 #define GT 1
@@ -544,6 +546,11 @@ private:
   mutable coefficientStats mStats;
 
   bool mTotalDegreeGradedOnly;
+
+#ifdef MATHICGB_USE_MONOID
+  const MonoMonoid& monoid() const {return mMonoid;}
+  MonoMonoid mMonoid;
+#endif
 };
 
 inline exponent PolyRing::weight(ConstMonomial a) const {
