@@ -308,12 +308,12 @@ TEST(MonoMonoid, ParsePrintM2) {
   ASSERT_EQ(v, v2);
 }
 
-TEST(MonoMonoid, Product) {
+TEST(MonoMonoid, MultiplyDivide) {
   typedef MonoMonoid<int32> Monoid;
   Monoid m(49);
   Monoid::MonoPool pool(m);
   auto mono = pool.alloc();
-  auto checkProd = [&](const char* str) {
+  auto check = [&](const char* str) {
     auto v = parseVector(m, str);
     MATHICGB_ASSERT(v.size() == 3);
     const auto& a = v.front();
@@ -322,34 +322,68 @@ TEST(MonoMonoid, Product) {
     ASSERT_EQ(m.hashOfProduct(a, b), m.hash(c));
     ASSERT_EQ(m.hashOfProduct(a, b), m.hashOfProduct(b, a));
 
+    // a*b == c using multiply
     m.multiply(a, b, mono);
     ASSERT_TRUE(m.equal(c, mono));
     ASSERT_TRUE(m.compare(c, mono) == Monoid::EqualTo);
     ASSERT_EQ(m.hash(c), m.hash(mono));
 
-    m.multiply(b, a, mono);
+    // c/a == b using divide
+    m.divide(a, c, mono);
+    ASSERT_TRUE(m.equal(b, mono));
+    ASSERT_TRUE(m.compare(b, mono) == Monoid::EqualTo);
+    ASSERT_EQ(m.hash(b), m.hash(mono));
+
+    // c/b == a using divideInPlace
+    m.copy(c, mono);
+    m.divideInPlace(b, mono);
+    ASSERT_TRUE(m.equal(a, mono));
+    ASSERT_TRUE(m.compare(a, mono) == Monoid::EqualTo);
+    ASSERT_EQ(m.hash(a), m.hash(mono));
+
+    // a*b == c using multiplyInPlace
+    m.copy(a, mono);
+    m.multiplyInPlace(b, mono);
     ASSERT_TRUE(m.equal(c, mono));
     ASSERT_TRUE(m.compare(c, mono) == Monoid::EqualTo);
     ASSERT_EQ(m.hash(c), m.hash(mono));
 
-    if (!m.isIdentity(a))
-      ASSERT_TRUE(m.lessThan(b, mono));
-    else
-      ASSERT_TRUE(m.compare(b, mono) == Monoid::EqualTo);
+    // check properties that mono=a*b should have
+    ASSERT_TRUE(m.divides(mono, c));
+    ASSERT_TRUE(m.divides(c, mono));
+    ASSERT_TRUE(m.divides(a, mono));
+    ASSERT_TRUE(m.divides(b, mono));
 
-    if (!m.isIdentity(b))
+    if (!m.isIdentity(a)) {
+      ASSERT_TRUE(m.lessThan(b, mono));
+      ASSERT_FALSE(m.lessThan(mono, b));
+      ASSERT_TRUE(m.compare(mono, b) == Monoid::GreaterThan);
+      ASSERT_FALSE(m.divides(mono, b));
+    } else {
+      ASSERT_TRUE(m.equal(b, mono));
+      ASSERT_TRUE(m.compare(b, mono) == Monoid::EqualTo);
+      ASSERT_TRUE(m.divides(mono, b));
+    }
+
+    if (!m.isIdentity(b)) {
       ASSERT_TRUE(m.lessThan(a, mono));
-    else
+      ASSERT_FALSE(m.lessThan(mono, a));
+      ASSERT_TRUE(m.compare(mono, a) == Monoid::GreaterThan);
+      ASSERT_FALSE(m.divides(mono, a));
+    } else {
+      ASSERT_TRUE(m.equal(a, mono));
       ASSERT_TRUE(m.compare(a, mono) == Monoid::EqualTo);
+      ASSERT_TRUE(m.divides(mono, a));
+    }
   };
-  checkProd("1 1 1");
-  checkProd("a 1 a");
-  checkProd("1 Vx Vx");
-  checkProd("aV bx abxV");
-  checkProd("a a2 a3");
-  checkProd("V V2 V3");
-  checkProd("arlgh svug arlg2hsvu");
-  checkProd("abcdefghiV ab2c3d4e5f6g7h8i9V11 a2b3c4d5e6f7g8h9i10V12");
+  check("1 1 1");
+  check("a 1 a");
+  check("1 Vx Vx");
+  check("aV bx abxV");
+  check("a a2 a3");
+  check("V V2 V3");
+  check("arlgh svug arlg2hsvu");
+  check("abcdefghiV ab2c3d4e5f6g7h8i9V11 a2b3c4d5e6f7g8h9i10V12");
 }
 
 TEST(MonoMonoid, Order) {

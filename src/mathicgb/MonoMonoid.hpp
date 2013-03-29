@@ -167,6 +167,14 @@ public:
     return std::all_of(begin(mono), end(mono), [](Exponent e) {return e == 0;});
   }
 
+  /// Returns true if a divides b. Equal monomials divide each other.
+  bool divides(ConstMonoRef a, ConstMonoRef b) const {
+    for (auto var = 0; var < varCount(); ++var)
+      if (exponent(a, var) > exponent(b, var))
+	return false;
+    return true;
+  }
+
   // Graded reverse lexicographic order. The grading is total degree.
   CompareResult compare(ConstMonoRef a, ConstMonoRef b) const {
     MATHICGB_ASSERT(debugOrderValid(a));
@@ -232,6 +240,38 @@ public:
 
     MATHICGB_ASSERT(hashOfProduct(a, b) == hash(prod));
     MATHICGB_ASSERT(debugValid(prod));
+  }
+
+  void multiplyInPlace(ConstMonoRef a, MonoRef prod) const {
+    MATHICGB_ASSERT(debugValid(a));
+    MATHICGB_ASSERT(debugValid(prod));
+
+    for (auto i = 0; i < entryCount(); ++i)
+      access(prod, i) += access(a, i);
+
+    MATHICGB_ASSERT(debugValid(prod));      
+  }
+
+  void divide(ConstMonoRef by, ConstMonoRef num, MonoRef quo) const {
+    MATHICGB_ASSERT(divides(by, num));
+    MATHICGB_ASSERT(debugValid(num));
+    MATHICGB_ASSERT(debugValid(by));
+
+    for (auto i = 0; i < entryCount(); ++i)
+      access(quo, i) = access(num, i) - access(by, i);
+
+    MATHICGB_ASSERT(debugValid(quo));
+  }
+
+  void divideInPlace(ConstMonoRef by, MonoRef num) const {
+    MATHICGB_ASSERT(divides(by, num));
+    MATHICGB_ASSERT(debugValid(by));
+    MATHICGB_ASSERT(debugValid(num));
+
+    for (auto i = 0; i < entryCount(); ++i)
+      access(num, i) -= access(by, i);
+
+    MATHICGB_ASSERT(debugValid(num));
   }
 
   /// Parses a monomial out of a string. Valid examples: 1 abc a2bc
