@@ -17,15 +17,6 @@
 /// TODO: support grading and comparison.
 template<class E>
 class MonoMonoid {
-private:
-  friend class Mono;
-  friend class MonoRef;
-  friend class ConstMonoRef;
-  friend class MonoPtr;
-  friend class ConstMonoPtr;
-  friend class MonoVector;
-  friend class MonoPool;
-
 public:
   static_assert(std::numeric_limits<E>::is_signed, "");
 
@@ -157,16 +148,16 @@ public:
     return static_cast<HashValue>(access(mono, hashIndex()));
   }
 
+  bool equal(ConstMonoRef a, ConstMonoRef b) const {
+    return std::equal(begin(a), end(a), begin(b));
+  }
+
   /// Returns the hash of the product of a and b.
   HashValue hashOfProduct(ConstMonoRef a, ConstMonoRef b) const {
     // See computeHash() for an explanation of all the casts.
     const auto hashA = static_cast<HashValue>(hash(a));
     const auto hashB = static_cast<HashValue>(hash(b));
     return static_cast<HashValue>(static_cast<Exponent>(hashA + hashB));
-  }
-
-  bool equal(ConstMonoRef a, ConstMonoRef b) const {
-    return std::equal(begin(a), end(a), begin(b));
   }
 
   /// Returns true if all the exponents of mono are zero. In other
@@ -230,6 +221,17 @@ public:
     component = newComponent;
     updateHashComponent(oldComponent, newComponent, mono);
     MATHICGB_ASSERT(debugValid(mono));
+  }
+
+  void multiply(ConstMonoRef a, ConstMonoRef b, MonoRef prod) const {
+    MATHICGB_ASSERT(debugValid(a));
+    MATHICGB_ASSERT(debugValid(b));
+
+    for (auto i = 0; i < entryCount(); ++i)
+      access(prod, i) = access(a, i) + access(b, i);
+
+    MATHICGB_ASSERT(hashOfProduct(a, b) == hash(prod));
+    MATHICGB_ASSERT(debugValid(prod));
   }
 
   /// Parses a monomial out of a string. Valid examples: 1 abc a2bc
@@ -344,9 +346,6 @@ public:
 
   private:
     friend class MonoMonoid;
-    friend class MonoVector;
-    friend class MonoPtr;
-    friend class ConstMonoRef;
 
     const Exponent* internalRawPtr() const {return mMono;}
     ConstMonoPtr(const Exponent* mono): mMono(mono) {}
@@ -356,10 +355,6 @@ public:
 
   class MonoPtr {
   public:
-    friend class Mono;
-    friend class MonoRef;
-    friend class MonoVector;
-    friend class MonoPool;
     MonoPtr(): mMono(0) {}
     MonoPtr(const MonoPtr& mono): mMono(mono.mMono) {}
     // todo: xxx
@@ -417,11 +412,9 @@ public:
     }
 
   private:
-    friend class MonoMonoid;
-
     Mono(const Mono&); // not available
     void operator=(const Mono&); // not available
-    friend class MonoPool;
+    friend class MonoMonoid;
 
     Mono(const MonoPtr mono, MonoPool& pool):
       mMono(mono), mPool(&pool) {}
@@ -441,7 +434,6 @@ public:
   private:
     void operator=(const MonoRef&); // not available
     friend class MonoMonoid;
-    friend class MonoPtr;
 
     MonoRef(MonoPtr mono): mMono(mono) {}
     Exponent* internalRawPtr() const {return rawPtr(mMono);}
@@ -460,7 +452,6 @@ public:
   private:
     void operator=(const MonoRef&); // not available
     friend class MonoMonoid;
-    friend class ConstMonoPtr;
 
     ConstMonoRef(ConstMonoPtr mono): mMono(mono) {}
     const Exponent* internalRawPtr() const {return rawPtr(mMono);}
@@ -672,6 +663,14 @@ public:
 
 
 private:
+  friend class Mono;
+  friend class MonoRef;
+  friend class ConstMonoRef;
+  friend class MonoPtr;
+  friend class ConstMonoPtr;
+  friend class MonoVector;
+  friend class MonoPool;
+
   bool debugValid(ConstMonoRef mono) const {
     MATHICGB_ASSERT(debugOrderValid(mono));
     MATHICGB_ASSERT(debugHashValid(mono));

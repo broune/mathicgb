@@ -308,9 +308,53 @@ TEST(MonoMonoid, ParsePrintM2) {
   ASSERT_EQ(v, v2);
 }
 
+TEST(MonoMonoid, Product) {
+  typedef MonoMonoid<int32> Monoid;
+  Monoid m(49);
+  Monoid::MonoPool pool(m);
+  auto mono = pool.alloc();
+  auto checkProd = [&](const char* str) {
+    auto v = parseVector(m, str);
+    MATHICGB_ASSERT(v.size() == 3);
+    const auto& a = v.front();
+    const auto& b = *++v.begin();
+    const auto& c = v.back();
+    ASSERT_EQ(m.hashOfProduct(a, b), m.hash(c));
+    ASSERT_EQ(m.hashOfProduct(a, b), m.hashOfProduct(b, a));
+
+    m.multiply(a, b, mono);
+    ASSERT_TRUE(m.equal(c, mono));
+    ASSERT_TRUE(m.compare(c, mono) == Monoid::EqualTo);
+    ASSERT_EQ(m.hash(c), m.hash(mono));
+
+    m.multiply(b, a, mono);
+    ASSERT_TRUE(m.equal(c, mono));
+    ASSERT_TRUE(m.compare(c, mono) == Monoid::EqualTo);
+    ASSERT_EQ(m.hash(c), m.hash(mono));
+
+    if (!m.isIdentity(a))
+      ASSERT_TRUE(m.lessThan(b, mono));
+    else
+      ASSERT_TRUE(m.compare(b, mono) == Monoid::EqualTo);
+
+    if (!m.isIdentity(b))
+      ASSERT_TRUE(m.lessThan(a, mono));
+    else
+      ASSERT_TRUE(m.compare(a, mono) == Monoid::EqualTo);
+  };
+  checkProd("1 1 1");
+  checkProd("a 1 a");
+  checkProd("1 Vx Vx");
+  checkProd("aV bx abxV");
+  checkProd("a a2 a3");
+  checkProd("V V2 V3");
+  checkProd("arlgh svug arlg2hsvu");
+  checkProd("abcdefghiV ab2c3d4e5f6g7h8i9V11 a2b3c4d5e6f7g8h9i10V12");
+}
+
 TEST(MonoMonoid, Order) {
   typedef MonoMonoid<int32> Monoid;
-  Monoid m(100);
+  Monoid m(52);
   auto v = parseVector(m, "1 Z A z c b a c2 bc ac b2 ab a2 c3 abc b3 a3");
 
   for (auto greater = v.begin(); greater != v.end(); ++greater) {
