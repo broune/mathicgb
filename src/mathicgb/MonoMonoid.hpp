@@ -8,6 +8,7 @@
 #include <istream>
 #include <ostream>
 #include <cstdlib>
+#include <cstring>
 #include <mathic.h>
 
 /// Implements the monoid of (monic) monomials with integer
@@ -187,8 +188,103 @@ public:
     return static_cast<HashValue>(access(mono, hashIndex()));
   }
 
+  /// Returns true if a and b are equal. Includes check for component.
   bool equal(ConstMonoRef a, ConstMonoRef b) const {
-    return std::equal(begin(a), end(a), begin(b));
+    for (auto i = componentIndex(); i != exponentsIndexEnd(); ++i)
+      if (access(a, i) != access(b, i))
+        return false;
+    return true;
+  }
+
+  /// As equal(), but optimized for the case where true is returned.
+  bool equalHintTrue(ConstMonoRef a, ConstMonoRef b) const {
+    // if a[i] != b[i] then a[i] ^ b[i] != 0, so the or of all xors is zero
+    // if and only if a equals b. This way we avoid having a branch to check
+    // equality for every iteration of the loop, which is a win in the case
+    // that none of the early-exit branches are taken - that is, when a equals
+    // b.
+    Exponent orOfXor = 0;
+    for (VarIndex i = lastExponentIndex(); i != beforeComponentIndex(); --i)
+      orOfXor |= access(a, i) ^ access(b, i);
+    MATHICGB_ASSERT((orOfXor == 0) == equal(a, b));
+    return orOfXor == 0;
+  }
+
+  bool isProductOf(
+    ConstMonoRef a,
+    ConstMonoRef b,
+    ConstMonoRef ab
+  ) const {
+    for (VarIndex i = componentIndex(); i != exponentsIndexEnd(); ++i)
+      if (access(ab, i) != access(a, i) + access(b, i))
+        return false;
+    return true;
+  }
+
+  bool isProductOfHintTrue(
+    ConstMonoRef a, 
+    ConstMonoRef b, 
+    ConstMonoRef ab
+  ) const {
+    // We compare more than one exponent at a time using 64 bit integers. This 
+    // might go one 32 bit value at the end too far, but since that space is
+    // either a degree or a hash value that is fine --- those values will also
+    // match if the monomials are equal. This does not work for negative
+    // exponents since the overflowing bit will go into the next word.
+    // It is OK that the degree field can be negative (a field we might go
+    // into without caring about it because it shares a 64 bit field with
+    // the last exponent), because it is at the end so the overflowing
+    // bit will not interfere.
+    
+    // todo: ensure 8 byte alignment. Though there seem to be no ill effects
+    // for unaligned access. Performance seems to be no worse than for using
+    // 32 bit integers directly.
+
+    if (sizeof(Exponent) != 4)
+      return isProductOf(a, b, ab);
+
+    uint64 orOfXor = 0;
+    for (VarIndex i = varCount() / 2; i != beforeComponentIndex(); --i) {
+      MATHICGB_ASSERT(access(a, i*2) >= 0);
+      MATHICGB_ASSERT(i == varCount() / 2 || access(a, i*2+1) >= 0);
+      
+      uint64 A, B, AB;
+      // We have to use std::memcpy here because just casting to a int64 breaks
+      // the strict aliasing rule which implies undefined behavior. Both MSVC and
+      // gcc don't actually call memcpy here. MSVC is a tiny bit slower for this
+      // code than for casting while GCC seems to be exactly the same speed.
+      std::memcpy(&A, ptr(a, i*2), 8);
+      std::memcpy(&B, ptr(b, i*2), 8);
+      std::memcpy(&AB, ptr(ab, i*2), 8);
+      orOfXor |= AB ^ (A + B);
+    }
+    MATHICGB_ASSERT((orOfXor == 0) == isProductOf(a, b, ab));
+    return orOfXor == 0; 
+  }
+
+  MATHICGB_INLINE bool isTwoProductsOfHintTrue(
+    ConstMonoRef a1,
+    ConstMonoRef a2,
+    ConstMonoRef b,
+    ConstMonoRef a1b,
+    ConstMonoRef a2b
+  ) const {
+    if (sizeof(Exponent) != 4)
+      return (isProductOf(a1, b, a1b) && isProductOf(a2, b, a2b));
+
+    uint64 orOfXor = 0;
+    for (VarIndex i = varCount() / 2; i != beforeComponentIndex(); --i) {
+      uint64 A1, A2, B, A1B, A2B;
+      std::memcpy(&A1, ptr(a1, i*2), 8);
+      std::memcpy(&A2, ptr(a2, i*2), 8);
+      std::memcpy(&B, ptr(b, i*2), 8);
+      std::memcpy(&A1B, ptr(a1b, i*2), 8);
+      std::memcpy(&A2B, ptr(a2b, i*2), 8);
+      orOfXor |= (A1B ^ (A1 + B)) | (A2B ^ (A2 + B));
+    }
+    MATHICGB_ASSERT
+      ((orOfXor == 0) == (isProductOf(a1, b, a1b) && isProductOf(a2, b, a2b)));
+    return orOfXor == 0;
   }
 
   /// Returns the hash of the product of a and b.
@@ -931,6 +1027,8 @@ private:
 
   VarIndex lastEntryIndex() const {return hashIndex();}
   VarIndex beforeFirstIndex() const {return static_cast<VarIndex>(-1);}
+  VarIndex lastExponentIndex() const {return orderIndexEnd() - 1;}
+  VarIndex beforeComponentIndex() const {return componentIndex() - 1;}
 
   const VarIndex mVarCount;
   const VarIndex mOrderEntryCount;

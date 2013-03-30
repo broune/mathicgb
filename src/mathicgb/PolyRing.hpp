@@ -583,16 +583,23 @@ inline exponent PolyRing::weight(ConstMonomial a) const {
 
 inline bool PolyRing::monomialEQ(ConstMonomial a, ConstMonomial b) const
 {
+#ifdef MATHICGB_USE_MONOID
+  return monoid().equal(a, b);
+#else
   for (size_t i = 0; i <= mNumVars; ++i)
     if (a[i] != b[i])
       return false;
   return true;
+#endif
 }
 
 inline bool PolyRing::monomialEqualHintTrue(
   const ConstMonomial a,
   const ConstMonomial b
 ) const {
+#ifdef MATHICGB_USE_MONOID
+  return monoid().equalHintTrue(a, b);
+#else
   // if a[i] != b[i] then a[i] ^ b[i] != 0, so the or of all xors is zero
   // if and only if a equals b. This way we avoid having a branch to check
   // equality for every iteration of the loop, which is a win in the case
@@ -603,6 +610,7 @@ inline bool PolyRing::monomialEqualHintTrue(
   const bool areEqual = (orOfXor == 0);
   MATHICGB_ASSERT(areEqual == monomialEQ(a, b));
   return areEqual;
+#endif
 }
 
 inline bool PolyRing::monomialIsProductOfHintTrue(
@@ -610,6 +618,9 @@ inline bool PolyRing::monomialIsProductOfHintTrue(
   const ConstMonomial b, 
   const ConstMonomial ab
 ) const {
+#ifdef MATHICGB_USE_MONOID
+  return monoid().isProductOfHintTrue(a, b, ab);
+#else
   // We compare more than one exponent at a time using 64 bit integers. This 
   // might go one 32 bit value at the end too far, but since that space is
   // either a degree or a hash value that is fine --- those values will also
@@ -645,6 +656,7 @@ inline bool PolyRing::monomialIsProductOfHintTrue(
   MATHICGB_ASSERT((orOfXor == 0) == monomialIsProductOf(a, b, ab));
 
   return orOfXor == 0; 
+#endif
 }
 
 MATHICGB_INLINE bool PolyRing::monomialIsTwoProductsOfHintTrue(
@@ -654,6 +666,9 @@ MATHICGB_INLINE bool PolyRing::monomialIsTwoProductsOfHintTrue(
   const ConstMonomial a1b,
   const ConstMonomial a2b
 ) const {
+#ifdef MATHICGB_USE_MONOID
+  return monoid().isTwoProductsOfHintTrue(a1, a2, b, a1b, a2b);
+#else
   if (sizeof(exponent) < 4)
     return (monomialIsProductOf(a1, b, a1b) &&
       monomialIsProductOf(a2, b, a2b));
@@ -672,6 +687,7 @@ MATHICGB_INLINE bool PolyRing::monomialIsTwoProductsOfHintTrue(
     (monomialIsProductOf(a1, b, a1b) && monomialIsProductOf(a2, b, a2b)));
 
   return orOfXor == 0;
+#endif
 }
 
 inline bool PolyRing::monomialIsProductOf(
@@ -679,10 +695,14 @@ inline bool PolyRing::monomialIsProductOf(
   ConstMonomial b, 
   ConstMonomial ab
 ) const {
+#ifdef MATHICGB_USE_MONOID
+  return monoid().isProductOf(a, b, ab);
+#else
   for (size_t i = 0; i <= mNumVars; ++i)
     if (ab[i] != a[i] + b[i])
       return false;
   return true;
+#endif
 }
 
 inline void PolyRing::monomialMult(ConstMonomial a, 

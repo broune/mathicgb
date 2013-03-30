@@ -322,6 +322,12 @@ TEST(MonoMonoid, MultiplyDivide) {
     ASSERT_EQ(m.hashOfProduct(a, b), m.hash(c));
     ASSERT_EQ(m.hashOfProduct(a, b), m.hashOfProduct(b, a));
 
+    // isProductOf
+    ASSERT_TRUE(m.isProductOf(a, b, c));
+    ASSERT_TRUE(m.isProductOfHintTrue(a, b, c));
+    ASSERT_TRUE(m.isTwoProductsOfHintTrue(a, a, b, c, c));
+    
+
     // a*b == c using multiply
     m.multiply(a, b, mono);
     ASSERT_TRUE(m.equal(c, mono));
@@ -359,6 +365,12 @@ TEST(MonoMonoid, MultiplyDivide) {
       ASSERT_FALSE(m.lessThan(mono, b));
       ASSERT_TRUE(m.compare(mono, b) == Monoid::GreaterThan);
       ASSERT_FALSE(m.divides(mono, b));
+
+      ASSERT_FALSE(m.isProductOf(a, c, b));
+      ASSERT_FALSE(m.isProductOfHintTrue(a, c, b));
+      ASSERT_FALSE(m.isTwoProductsOfHintTrue(c, c, a, b, b));
+      ASSERT_FALSE(m.isTwoProductsOfHintTrue(b, c, a, c, b));
+      ASSERT_FALSE(m.isTwoProductsOfHintTrue(c, b, a, b, c));
     } else {
       ASSERT_TRUE(m.equal(b, mono));
       ASSERT_TRUE(m.compare(b, mono) == Monoid::EqualTo);
@@ -370,6 +382,12 @@ TEST(MonoMonoid, MultiplyDivide) {
       ASSERT_FALSE(m.lessThan(mono, a));
       ASSERT_TRUE(m.compare(mono, a) == Monoid::GreaterThan);
       ASSERT_FALSE(m.divides(mono, a));
+
+      ASSERT_FALSE(m.isProductOf(c, b, a));
+      ASSERT_FALSE(m.isProductOfHintTrue(b, c, a));
+      ASSERT_FALSE(m.isTwoProductsOfHintTrue(c, c, b, a, a));
+      ASSERT_FALSE(m.isTwoProductsOfHintTrue(a, c, b, c, a));
+      ASSERT_FALSE(m.isTwoProductsOfHintTrue(c, a, b, a, c));
     } else {
       ASSERT_TRUE(m.equal(a, mono));
       ASSERT_TRUE(m.compare(a, mono) == Monoid::EqualTo);
@@ -391,13 +409,13 @@ TEST(MonoMonoid, MultiplyDivide) {
     ASSERT_TRUE(m.equal(mono, a));
   };
   check("1 1 1");
-  check("a 1 a");
+  check("a<5> 1 a<5>");
   check("1 Vx Vx");
   check("aV bx abxV");
   check("a a2 a3");
-  check("V V2 V3");
+  check("V<2> V2 V3<2>");
   check("arlgh svug arlg2hsvu");
-  check("abcdefghiV ab2c3d4e5f6g7h8i9V11 a2b3c4d5e6f7g8h9i10V12");
+  check("abcdefghiV<7> ab2c3d4e5f6g7h8i9V11 a2b3c4d5e6f7g8h9i10V12<7>");
 }
 
 TEST(MonoMonoid, Order) {
