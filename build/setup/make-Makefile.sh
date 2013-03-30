@@ -38,6 +38,16 @@ targetsLDFLAGS+=("");
 targetsMakeArgs+=("");
 targetsDefault+=("yes");
 
+# new release
+relnIndex=${#targetsName[@]};
+targetsName+=("reln");
+targetsDescription+=("New release build. Optimized, no debug symbols, no asserts.");
+targetsCPPFLAGS+=("-O2 -DMATHICGB_USE_MONOID");
+targetsCXXFLAGS+=("");
+targetsLDFLAGS+=("");
+targetsMakeArgs+=("");
+targetsDefault+=("no");
+
 # optimized with asserts
 relassIndex=${#targetsName[@]};
 targetsName+=("relass");
@@ -48,11 +58,21 @@ targetsLDFLAGS+=("");
 targetsMakeArgs+=("");
 targetsDefault+=("yes");
 
-# debug with asserts
-debIndex=${#targetsName[@]};
-targetsName+=("deb");
-targetsDescription+=("Debug build with asserts. Not optimized.");
-targetsCPPFLAGS+=("-g -DMEMTAILOR_DEBUG -DMATHIC_DEBUG -DMATHICGB_DEBUG $mildWarn");
+# optimized with asserts
+relassnIndex=${#targetsName[@]};
+targetsName+=("relassn");
+targetsDescription+=("Optimized build with asserts. No debug symbols.");
+targetsCPPFLAGS+=("-DMATHICGB_USE_MONOID -O2 -DMEMTAILOR_DEBUG -DMATHIC_DEBUG -DMATHICGB_DEBUG $mildWarn");
+targetsCXXFLAGS+=("");
+targetsLDFLAGS+=("");
+targetsMakeArgs+=("");
+targetsDefault+=("no");
+
+# optimized with asserts
+relassIndex=${#targetsName[@]};
+targetsName+=("relass");
+targetsDescription+=("Optimized build with asserts. No debug symbols.");
+targetsCPPFLAGS+=("-O2 -DMEMTAILOR_DEBUG -DMATHIC_DEBUG -DMATHICGB_DEBUG $mildWarn");
 targetsCXXFLAGS+=("");
 targetsLDFLAGS+=("");
 targetsMakeArgs+=("");

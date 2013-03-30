@@ -3,6 +3,10 @@
 #ifndef _polyRing_h_
 #define _polyRing_h_
 
+#ifdef MATHICGB_USE_MONOID
+#include "MonoMonoid.hpp"
+#endif
+
 #include <assert.h>
 #include <string>
 #include <vector>
@@ -11,7 +15,6 @@
 #include <cstring>
 #include <limits>
 
-#define MATHICGB_USE_MONOID
 
 #define LT (-1)
 #define EQ 0
@@ -115,6 +118,9 @@ T modularNegativeNonZero(T a, T modulus) {
 typedef int32 exponent ;
 typedef uint32 HashValue;
 typedef long coefficient;
+#ifdef MATHICGB_USE_MONOID
+typedef MonoMonoid<exponent> Monoid;
+#endif
 
 typedef exponent* vecmonomial; // includes a component
 typedef coefficient const_coefficient;
@@ -146,6 +152,12 @@ public:
 
   exponent component() const { return *mValue; }
 
+#ifdef MATHICGB_USE_MONOID
+  operator Monoid::ConstMonoRef() const {
+    return Monoid::toRef(mValue);
+  }
+#endif
+
 private:
   const exponent& operator[](size_t index) const { return mValue[index]; }
   const exponent& operator*() const { return *mValue; }
@@ -176,6 +188,12 @@ public:
 
   exponent * unsafeGetRepresentation() { return const_cast<exponent *>(mValue); }
   exponent const * unsafeGetRepresentation() const { return mValue; }
+
+#ifdef MATHICGB_USE_MONOID
+  operator Monoid::MonoRef() {
+    return Monoid::toRef(unsafeGetRepresentation());
+  }
+#endif
 
 private:
   const exponent& operator[](size_t index) const { return mValue[index]; }
@@ -212,6 +230,7 @@ struct term {
 
 class PolyRing {
 public:
+  PolyRing(coefficient charac, int nvars, const std::vector<exponent>& weights);
   PolyRing(coefficient charac, int nvars, int nweights);
   ~PolyRing() {}
 
@@ -548,8 +567,8 @@ private:
   bool mTotalDegreeGradedOnly;
 
 #ifdef MATHICGB_USE_MONOID
-  const MonoMonoid& monoid() const {return mMonoid;}
-  MonoMonoid mMonoid;
+  const Monoid& monoid() const {return mMonoid;}
+  Monoid mMonoid;
 #endif
 };
 
@@ -670,6 +689,9 @@ inline void PolyRing::monomialMult(ConstMonomial a,
                                    ConstMonomial b, 
                                    Monomial &result) const
 {
+#ifdef MATHICGB_USE_MONOID
+  monoid().multiply(a, b, result);
+#else
   for (size_t i = mHashIndex; i != static_cast<size_t>(-1); --i)
     result[i] = a[i] + b[i];
   MATHICGB_ASSERT(computeHashValue(result) ==
@@ -686,6 +708,7 @@ inline void PolyRing::monomialMult(ConstMonomial a,
     //  for (size_t i = mHashIndex; i != static_cast<size_t>(-1); --i)
     *presult++ = *pa++ + *pb++;
   //    result[i] = a[i] + b[i];
+#endif
 #endif
 }
 
@@ -704,6 +727,9 @@ inline void PolyRing::setWeightsOnly(Monomial& a1) const
 }
 
 inline HashValue PolyRing::computeHashValue(const_monomial a1) const {
+#ifdef MATHICGB_USE_MONOID
+  return monoid().computeHash(a1);
+#else
   const exponent* a = a1.unsafeGetRepresentation();
   HashValue hash = static_cast<HashValue>(*a);
   a++;
@@ -713,6 +739,7 @@ inline HashValue PolyRing::computeHashValue(const_monomial a1) const {
   // when storing a hash value as an exponent. Otherwise the hash
   // value that is computed will not match the stored hash value.
   return static_cast<exponent>(hash);
+#endif
 }
 
 inline void PolyRing::setHashOnly(Monomial& a1) const
@@ -724,6 +751,9 @@ inline void PolyRing::setHashOnly(Monomial& a1) const
 inline int PolyRing::monomialCompare(ConstMonomial a, ConstMonomial b) const
 // returns LT, EQ or GT
 {
+#ifdef MATHICGB_USE_MONOID
+  return monoid().compare(a, b);
+#else
   for (size_t i = mTopIndex; i != static_cast<size_t>(-1); --i)
     {
       auto cmp = a[i] - b[i];
@@ -731,22 +761,20 @@ inline int PolyRing::monomialCompare(ConstMonomial a, ConstMonomial b) const
       if (cmp > 0) return LT;
     }
   return EQ;
+#endif
 }
 
 inline bool PolyRing::monomialIsDivisibleBy(ConstMonomial a,
                                             ConstMonomial b) const
 {
-  // returns truue if b divides a, in this case, result is set to b//a.
-  //  for (int i = mNumVars; i >= 1; --i)
-  //    {
-  //      int c = a[i] - b[i];
-  //      if (c < 0) return false;
-  //    }
+#ifdef MATHICGB_USE_MONOID
+  return monoid().divides(b, a);
+#else
   for (size_t i = 1; i<= mNumVars; i++)
     if (a[i] < b[i])
       return false;
-
   return true;
+#endif
 }
 
 inline bool PolyRing::monomialDivide(ConstMonomial a, 

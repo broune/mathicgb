@@ -381,7 +381,7 @@ TEST(MonoMonoid, MultiplyDivide) {
     m.divide(mono, mono, mono);
     MATHICGB_ASSERT(m.isIdentity(mono));
 
-    // Check that negative exponents work
+    // Check that negative exponents work.
     m.divideToNegative(a, b, mono);
     m.multiply(a, mono, mono);
     ASSERT_TRUE(m.equal(mono, b));

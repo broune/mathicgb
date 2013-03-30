@@ -15,6 +15,39 @@ bool PolyRing::hashValid(const_monomial m) const {
   return monomialHashValue(m) == computeHashValue(m);
 }
 
+PolyRing::PolyRing(
+  coefficient p0,
+  int nvars,
+  const std::vector<exponent>& weights
+):
+  mCharac(p0),
+  mNumVars(nvars),
+  mNumWeights(1),
+  mTopIndex(nvars + mNumWeights),
+  mHashIndex(nvars + mNumWeights + 1),
+  mMaxMonomialSize(nvars + mNumWeights + 2),
+  mMaxMonomialByteSize(mMaxMonomialSize * sizeof(exponent)),
+  mMonomialPool(mMaxMonomialByteSize),
+  mTotalDegreeGradedOnly(false)
+#ifdef MATHICGB_USE_MONOID
+  , mMonoid(weights)
+#endif
+{
+  MATHICGB_ASSERT(weights.size() == nvars);
+  mTotalDegreeGradedOnly = true;
+  for (size_t i = 0; i < nvars; ++i)
+    if (weights[i] != 1)
+      mTotalDegreeGradedOnly = false;
+  mWeights.resize(nvars);
+  for (size_t i = 0; i < nvars; ++i)
+    mWeights[i] = -weights[i];
+
+  resetCoefficientStats();
+  srand(0);
+  for (size_t i=0; i<mNumVars; i++)
+    mHashVals.push_back(static_cast<HashValue>(rand()));
+}
+
 PolyRing::PolyRing(coefficient p0,
                    int nvars,
                    int nweights)
@@ -27,7 +60,12 @@ PolyRing::PolyRing(coefficient p0,
     mMaxMonomialByteSize(mMaxMonomialSize * sizeof(exponent)),
     mMonomialPool(mMaxMonomialByteSize),
     mTotalDegreeGradedOnly(nweights == 1)
+#ifdef MATHICGB_USE_MONOID
+    , mMonoid(nvars)
+#endif
 {
+  MATHICGB_ASSERT(nweights == 1);
+
   // set weights to the default value -1
   mWeights.resize(mNumVars * mNumWeights);
   std::fill(mWeights.begin(), mWeights.end(), static_cast<exponent>(-1));
@@ -108,9 +146,13 @@ void PolyRing::monomialEi(size_t i, Monomial &result) const
 
 void PolyRing::monomialMultTo(Monomial &a, ConstMonomial b) const
 {
+#ifdef MATHICGB_USE_MONOID
+  monoid().multiplyInPlace(b, a);
+#else
   // a *= b
   for (size_t i = mHashIndex; i != static_cast<size_t>(-1); --i)
     a[i] += b[i];
+#endif
 }
 
 
@@ -354,20 +396,17 @@ PolyRing *PolyRing::read(std::istream &i)
   charac = static_cast<exponent>(characInt);
   i >> mNumVars;
   i >> mNumWeights;
-  PolyRing* R = new PolyRing(charac, mNumVars, mNumWeights);
+  MATHICGB_ASSERT(mNumWeights == 1);
+
+  std::vector<exponent> weights(mNumWeights);
   int wtlen = mNumVars * mNumWeights;
-  R->mWeights.resize(wtlen);
-  R->mTotalDegreeGradedOnly = (mNumWeights == 1);
-  for (int j=0; j <mNumVars * mNumWeights; j++) {
-    exponent a;
+  weights.resize(wtlen);
+  for (int j=0; j < mNumVars * mNumWeights; j++) {
     int64 aInt;
     i >> aInt;
-    a = static_cast<exponent>(aInt);
-    R->mWeights[j] = -a;
-    if (R->mWeights[j] != -1)
-      R->mTotalDegreeGradedOnly = false;
+    weights[j] = static_cast<exponent>(aInt);
   }
-  return R;
+  return new PolyRing(charac, mNumVars, weights);
 }
 
 void PolyRing::write(std::ostream &o) const
