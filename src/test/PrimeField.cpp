@@ -171,3 +171,54 @@ TEST(PrimeField, Inverse) {
   ASSERT_EQ(pf32.toElement(-1), pf32.inverse(pf32.toElement(-1)));
   ASSERT_EQ(pf32.toElement(3015615332u), pf32.inverse(pf32.toElement(47)));
 }
+
+TEST(PrimeField, Quotient) {
+  const PrimeField<unsigned char> pf2(2);
+  ASSERT_EQ(pf2.one(), pf2.quotient(pf2.one(), pf2.one()));
+  ASSERT_EQ(pf2.zero(), pf2.quotient(pf2.zero(), pf2.one()));
+
+  const PrimeField<unsigned char> pf251(251);
+  ASSERT_EQ(pf251.one(), pf2.quotient(pf251.one(), pf251.one()));
+  ASSERT_EQ
+    (pf251.toElement(-1), pf251.quotient(pf251.one(), pf251.toElement(-1)));
+  ASSERT_EQ
+    (pf251.toElement(-1), pf251.quotient(pf251.toElement(-1), pf251.one()));
+  ASSERT_EQ(
+    pf251.one(),
+    pf251.quotient(pf251.toElement(-1), pf251.toElement(-1))
+  );
+  ASSERT_EQ(
+    pf251.toElement(203),
+    pf251.quotient(pf251.toElement(3), pf251.toElement(47))
+  );
+
+  const PrimeField<uint16> pf16(65521);
+  ASSERT_EQ(
+    pf16.toElement(20911),
+    pf16.quotient(pf16.toElement(2), pf16.toElement(47))
+  );
+
+  const PrimeField<uint32> pf32(4294967291u);
+  ASSERT_EQ(
+    pf32.toElement(3015615332u),
+    pf32.quotient(pf32.toElement(1), pf32.toElement(47))
+  );
+}
+
+TEST(PrimeField, PlusOne) {
+  const PrimeField<unsigned char> pf2(2);
+  ASSERT_EQ(pf2.zero(), pf2.plusOne(pf2.one()));
+  ASSERT_EQ(pf2.one(), pf2.plusOne(pf2.zero()));
+
+  const PrimeField<unsigned char> pf251(251);
+  ASSERT_EQ(pf251.one(), pf251.plusOne(pf251.zero()));
+  ASSERT_EQ(pf251.zero(), pf251.plusOne(pf251.toElement(-1)));
+  ASSERT_EQ(pf251.toElement(250), pf251.plusOne(pf251.toElement(249)));
+
+  const PrimeField<uint16> pf16(65521);
+  ASSERT_EQ(pf16.toElement(20911), pf16.plusOne(pf16.toElement(20910)));
+
+  const PrimeField<uint32> pf32(4294967291u);
+  ASSERT_EQ
+    (pf32.toElement(3015615332u), pf32.plusOne(pf32.toElement(3015615331u)));
+}

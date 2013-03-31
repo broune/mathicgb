@@ -363,9 +363,12 @@ public:
   bool hasAmpleCapacity(ConstMonoRef mono) const {
     const auto halfMin = std::numeric_limits<Exponent>::min() / 2;
     const auto halfMax = std::numeric_limits<Exponent>::max() / 2;
-    for (VarIndex i = exponentsIndexBegin(); i != exponentsIndexEnd(); ++i) {
+    MATHICGB_ASSERT(halfMin <= 0);
+    const auto limit = std::min(-halfMin, halfMax);
+
+    for (VarIndex i = exponentsIndexBegin(); i != orderIndexEnd(); ++i) {
       const auto value = access(mono, i);
-      if (!(halfMin <= value && value <= halfMax))
+      if (!(-limit <= value && value <= limit))
         return false;
     }
     return true;
@@ -537,89 +540,10 @@ public:
   /// will be parsed as two separate monomials. A suffix like <2> puts
   /// the monomial in component 2, so a5<2> is a^5e_2. The default
   /// component is 0.
-  void parseM2(std::istream& in, MonoRef mono) const {
-    setIdentity(mono);
-
-    bool sawSome = false;
-    while (true) {
-      const char next = in.peek();
-      if (!sawSome && next == '1') {
-	in.get();
-	break;
-      }
-
-      VarIndex var;
-      const auto letterCount = 'z' - 'a' + 1;
-      if ('a' <= next && next <= 'z')
-	var = next - 'a';
-      else if ('A' <= next && next <= 'Z')
-	var = (next - 'A') + letterCount;
-      else if (sawSome)
-	break;
-      else {
-	mathic::reportError("Could not parse monomial.");
-	return;
-      }
-      MATHICGB_ASSERT(var < 2 * letterCount);
-      if (var >= varCount()) {
-	mathic::reportError("Unknown variable.");
-	return;
-      }
-      in.get();
-      auto& exponent = access(mono, exponentsIndexBegin() + var);
-      if (isdigit(in.peek()))
-	in >> exponent;
-      else
-	exponent = 1;
-      sawSome = true;
-    }
-
-    if (in.peek() == '<') {
-      in.get();
-      if (!isdigit(in.peek())) {
-	mathic::reportError("Component was not integer.");
-	return;
-      }
-      in >> access(mono, componentIndex());
-      if (in.peek() != '>') {
-	mathic::reportError("Component < was not matched by >.");
-	return;
-      }
-      in.get();
-    }
-
-    setOrderData(mono);
-    setHash(mono);
-    MATHICGB_ASSERT(debugValid(mono));
-  }
+  void parseM2(std::istream& in, MonoRef mono) const;
 
   // Inverse of parseM2().
-  void printM2(ConstMonoRef mono, std::ostream& out) const {
-    const auto letterCount = 'z' - 'a' + 1;
-
-    bool printedSome = false;
-    for (VarIndex var = 0; var < varCount(); ++var) {
-      if (exponent(mono, var) == 0)
-	continue;
-      char letter;
-      if (var < letterCount)
-	letter = 'a' + var;
-      else if (var < 2 * letterCount)
-	letter = 'A' + (var - letterCount);
-      else {
-	mathic::reportError("Too few letters in alphabet to print variable.");
-	return;
-      }
-      printedSome = true;
-      out << letter;
-      if (exponent(mono, var) != 1)
-	out << exponent(mono, var);
-    }
-    if (!printedSome)
-      out << '1';
-    if (component(mono) != 0)
-      out << '<' << component(mono) << '>';
-  }
+  void printM2(ConstMonoRef mono, std::ostream& out) const;
 
 
   // *** Classes for holding and referring to monomials
@@ -1148,5 +1072,118 @@ private:
   /// mGrading is empty but implicitly it is a vector of ones.
   std::vector<Exponent> mGrading;
 };
+
+namespace MonoMonoidHelper {
+  /// ostream and istream handle characters differently from other
+  /// integers. Use unchar to cast chars to a different type that get
+  /// handled as other integers do.
+  template<class T>
+  struct unchar {typedef int type;};
+
+  // Yes: char, signed char and unsigned char are 3 distinct types.
+  template<>
+  struct unchar<char> {typedef short type;};
+  template<>
+  struct unchar<signed char> {typedef short type;};
+  template<>
+  struct unchar<unsigned char> {typedef unsigned short type;};
+}
+
+template<class E>
+void MonoMonoid<E>::parseM2(std::istream& in, MonoRef mono) const {
+  using MonoMonoidHelper::unchar;
+  // todo: signal error on exponent overflow
+
+  setIdentity(mono);
+
+  bool sawSome = false;
+  while (true) {
+    const char next = in.peek();
+    if (!sawSome && next == '1') {
+      in.get();
+      break;
+    }
+
+    VarIndex var;
+    const auto letterCount = 'z' - 'a' + 1;
+    if ('a' <= next && next <= 'z')
+      var = next - 'a';
+    else if ('A' <= next && next <= 'Z')
+      var = (next - 'A') + letterCount;
+    else if (sawSome)
+      break;
+    else {
+      mathic::reportError("Could not parse monomial.");
+      return;
+    }
+    MATHICGB_ASSERT(var < 2 * letterCount);
+    if (var >= varCount()) {
+      mathic::reportError("Unknown variable.");
+      return;
+    }
+
+    in.get();
+    auto& exponent = access(mono, exponentsIndexBegin() + var);
+    if (isdigit(in.peek())) {
+      typename unchar<Exponent>::type e;
+      in >> e;
+      exponent = e;
+    } else
+      exponent = 1;
+    sawSome = true;
+  }
+
+  if (in.peek() == '<') {
+    in.get();
+    if (!isdigit(in.peek())) {
+      mathic::reportError("Component was not integer.");
+      return;
+    }
+    typename unchar<Exponent>::type e;
+    in >> e;
+    access(mono, componentIndex()) = e;
+    if (in.peek() != '>') {
+      mathic::reportError("Component < was not matched by >.");
+      return;
+    }
+    in.get();
+  }
+
+  setOrderData(mono);
+  setHash(mono);
+  MATHICGB_ASSERT(debugValid(mono));
+}
+
+template<class E>
+void MonoMonoid<E>::printM2(ConstMonoRef mono, std::ostream& out) const {
+  using MonoMonoidHelper::unchar;
+  const auto letterCount = 'z' - 'a' + 1;
+
+  bool printedSome = false;
+  for (VarIndex var = 0; var < varCount(); ++var) {
+    if (exponent(mono, var) == 0)
+      continue;
+    char letter;
+    if (var < letterCount)
+      letter = 'a' + var;
+    else if (var < 2 * letterCount)
+      letter = 'A' + (var - letterCount);
+    else {
+      mathic::reportError("Too few letters in alphabet to print variable.");
+      return;
+    }
+    printedSome = true;
+    out << letter;
+    if (exponent(mono, var) != 1)
+      out << static_cast<typename unchar<Exponent>::type>(exponent(mono, var));
+  }
+  if (!printedSome)
+    out << '1';
+  if (component(mono) != 0) {
+    out << '<'
+        << static_cast<typename unchar<Exponent>::type>(component(mono))
+        << '>';
+  }
+}
 
 #endif
