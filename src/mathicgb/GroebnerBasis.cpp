@@ -1,5 +1,6 @@
 // Copyright 2011 Michael E. Stillman
 
+#define MATHICGB_SLOW_DEBUG
 #include "stdinc.h"
 #include <iostream>
 #include <iomanip>
@@ -173,7 +174,8 @@ size_t GroebnerBasis::regularReducer(
     MATHICGB_SLOW_ASSERT(debugValue != static_cast<size_t>(-1));
     monomial m = ring().allocMonomial();
     MATHICGB_SLOW_ASSERT
-      (ring().monomialDivide(term, getLeadMonomial(reducer), m));
+      (ring().monomialIsDivisibleBy(term, getLeadMonomial(reducer)));
+    ring().monomialDivide(term, getLeadMonomial(reducer), m);
     ring().monomialMultTo(m, getSignature(reducer));
     MATHICGB_SLOW_ASSERT(order().signatureCompare(sig, m) == GT);
     ring().freeMonomial(m);
@@ -189,8 +191,9 @@ size_t GroebnerBasis::regularReducerSlow(
   monomial m = ring().allocMonomial();
   const size_t stop = size();
   for (size_t be = 0; be < stop; ++be) {
-    if (!ring().monomialDivide(term, getLeadMonomial(be), m))
+    if (!ring().monomialIsDivisibleBy(term, getLeadMonomial(be)))
       continue;
+    ring().monomialDivide(term, getLeadMonomial(be), m);
     ring().monomialMultTo(m, getSignature(be));
     if (order().signatureCompare(sig, m) == GT) {
       ring().freeMonomial(m);
@@ -308,8 +311,9 @@ size_t GroebnerBasis::minimalLeadInSigSlow(const_monomial sig) const {
   for (size_t gen = 0; gen < genCount; ++gen) {
     if (ring().monomialGetComponent(getSignature(gen)) != sigComponent)
       continue;
-    if (!ring().monomialDivide(sig, getSignature(gen), multiplier))
+    if (!ring().monomialIsDivisibleBy(sig, getSignature(gen)))
       continue;
+    ring().monomialDivide(sig, getSignature(gen), multiplier);
     if (minLeadGen != static_cast<size_t>(-1)) {
       const_monomial genLead = getLeadMonomial(gen);
       int leadCmp = order().signatureCompare(minLead, multiplier, genLead);
@@ -345,8 +349,8 @@ size_t GroebnerBasis::minimalLeadInSigSlow(const_monomial sig) const {
   return minLeadGen;
 }
 
-bool GroebnerBasis::isSingularTopReducible
-  (const Poly& poly, const_monomial sig) const {
+bool GroebnerBasis::isSingularTopReducibleSlow
+(const Poly& poly, const_monomial sig) const {
   MATHICGB_ASSERT( ! sig.isNull() );
   if (poly.isZero())
     return false;
@@ -355,8 +359,9 @@ bool GroebnerBasis::isSingularTopReducible
   const size_t genCount = size();
   const_monomial polyLead = poly.getLeadMonomial();
   for (size_t i = 0; i < genCount; ++i) {
-    if (!ring().monomialDivide(polyLead, getLeadMonomial(i), multiplier))
+    if (!ring().monomialIsDivisibleBy(polyLead, getLeadMonomial(i)))
       continue;
+    ring().monomialDivide(polyLead, getLeadMonomial(i), multiplier);
     if (order().signatureCompare(sig, multiplier, getSignature(i)) == EQ)
       return true;
   }

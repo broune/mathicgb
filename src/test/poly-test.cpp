@@ -155,7 +155,7 @@ TEST(Monomial,mult) {
   Monomial m2 = stringToMonomial(R.get(), "a2b<0>");
   Monomial m3ans = stringToMonomial(R.get(), "a3b3<0>");
 
-  Monomial m3 = R->allocMonomial1();
+  Monomial m3 = R->allocMonomial();
   R->monomialMult(m1,m2,m3);
   EXPECT_TRUE(R->monomialEQ(m3ans,m3));
 
@@ -186,8 +186,8 @@ TEST(Monomial, divide) {
   Monomial m1 = stringToMonomial(R.get(), "ab2<0>");
   Monomial m2 = stringToMonomial(R.get(), "a2b<0>");
   Monomial m3ans = stringToMonomial(R.get(), "a3b3<0>");
-  Monomial m3 = R->allocMonomial1();
-  Monomial m1a = R->allocMonomial1();
+  Monomial m3 = R->allocMonomial();
+  Monomial m1a = R->allocMonomial();
 
   R->monomialMult(m1,m2,m3);
   EXPECT_TRUE(R->monomialIsDivisibleBy(m3,m2));
@@ -210,9 +210,9 @@ TEST(Monomial, monomialQuotientAndMult) {
   Monomial m2 = stringToMonomial(R.get(), "af<0>");
   Monomial m3 = stringToMonomial(R.get(), "<2>");
 
-  Monomial n = R->allocMonomial1();
-  Monomial n1 = R->allocMonomial1();
-  Monomial na = R->allocMonomial1();
+  Monomial n = R->allocMonomial();
+  Monomial n1 = R->allocMonomial();
+  Monomial na = R->allocMonomial();
 
   R->monomialQuotientAndMult(m1,m2,m3,n);
   R->monomialDivide(m1,m2,n1);  // m1//m2
@@ -236,15 +236,15 @@ void testMonomialOps(const PolyRing* R, std::string s1, std::string s2)
 
   // m1 * m2 == lcm(m1,m2) * gcd(m1,m2)
   
-  Monomial m4 = R->allocMonomial1();
-  Monomial lcm = R->allocMonomial1();
-  Monomial gcd = R->allocMonomial1();
-  Monomial m7 = R->allocMonomial1();
-  Monomial m8 = R->allocMonomial1();
-  Monomial m1a = R->allocMonomial1();
-  Monomial m2a = R->allocMonomial1();
-  Monomial m1b = R->allocMonomial1();
-  Monomial m2b = R->allocMonomial1();
+  Monomial m4 = R->allocMonomial();
+  Monomial lcm = R->allocMonomial();
+  Monomial gcd = R->allocMonomial();
+  Monomial m7 = R->allocMonomial();
+  Monomial m8 = R->allocMonomial();
+  Monomial m1a = R->allocMonomial();
+  Monomial m2a = R->allocMonomial();
+  Monomial m1b = R->allocMonomial();
+  Monomial m2b = R->allocMonomial();
 
   R->monomialMult(m1,m2,m4);
   R->monomialLeastCommonMultiple(m1,m2,lcm);
@@ -254,15 +254,21 @@ void testMonomialOps(const PolyRing* R, std::string s1, std::string s2)
   EXPECT_TRUE(R->monomialEQ(m4, m7));
 
   // lcm(m1,m2)/m1, lcm(m1,m2)/m2:  relatively prime
-  EXPECT_TRUE(R->monomialDivide(lcm, m1, m1a));
-  EXPECT_TRUE(R->monomialDivide(lcm, m2, m2a));
+  EXPECT_TRUE(R->monomialIsDivisibleBy(lcm, m1));
+  EXPECT_TRUE(R->monomialIsDivisibleBy(lcm, m2));
+  R->monomialDivide(lcm, m1, m1a);
+  R->monomialDivide(lcm, m2, m2a);
   EXPECT_TRUE(R->monomialRelativelyPrime(m1a,m2a));
 
-  EXPECT_TRUE(R->monomialDivide(lcm, m1a, m1b));
-  EXPECT_TRUE(R->monomialDivide(lcm, m2a, m2b));
+  EXPECT_TRUE(R->monomialIsDivisibleBy(lcm, m1a));
+  EXPECT_TRUE(R->monomialIsDivisibleBy(lcm, m2a));
+  R->monomialDivide(lcm, m1a, m1b);
+  R->monomialDivide(lcm, m2a, m2b);
   EXPECT_TRUE(R->monomialEQ(m1, m1b));
   EXPECT_TRUE(R->monomialEQ(m2, m2b));
-  EXPECT_TRUE(R->monomialDivide(lcm,gcd,m8));
+
+  EXPECT_TRUE(R->monomialIsDivisibleBy(lcm,gcd));
+  R->monomialDivide(lcm,gcd,m8);
 
   size_t supp1 = R->monomialSizeOfSupport(m1a);
   size_t supp2 = R->monomialSizeOfSupport(m2a);
@@ -290,7 +296,7 @@ TEST(Monomial, ei)
   std::unique_ptr<PolyRing> R(ringFromString("32003 6 1\n1 1 1 1 1 1"));
 
   Monomial m1 = stringToMonomial(R.get(), "<1>");
-  Monomial m1a = R->allocMonomial1();
+  Monomial m1a = R->allocMonomial();
   R->monomialEi(1, m1a);
   EXPECT_TRUE(R->monomialEQ(m1,m1a));
 
@@ -327,9 +333,9 @@ TEST(Monomial, divideToNegative)
 
   Monomial m1 = stringToMonomial(R.get(), "ab100<0>");
   Monomial m2 = stringToMonomial(R.get(), "ab2c3d4<0>");
-  Monomial m3 = R->allocMonomial1();
-  Monomial m4 = R->allocMonomial1();
-  Monomial m5 = R->allocMonomial1();
+  Monomial m3 = R->allocMonomial();
+  Monomial m4 = R->allocMonomial();
+  Monomial m5 = R->allocMonomial();
   Monomial mone = stringToMonomial(R.get(), "<0>");
 
   R->monomialDivideToNegative(m1,m2,m3);
@@ -352,7 +358,7 @@ TEST(Monomial, findSignature)
   Monomial v1 = stringToMonomial(R.get(), "abef");
   Monomial v2 = stringToMonomial(R.get(), "acdf2");
   Monomial u1 = stringToMonomial(R.get(), "f5<13>");
-  Monomial t1 = R->allocMonomial1();
+  Monomial t1 = R->allocMonomial();
   Monomial t1ans = stringToMonomial(R.get(), "cdf6<13>");
 
   R->monomialFindSignature(v1,v2,u1,t1);

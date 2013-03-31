@@ -158,7 +158,7 @@ bool SignatureGB::processSPair
   }
 
   // new basis element
-  MATHICGB_ASSERT(!GB->isSingularTopReducible(*f, sig));
+  MATHICGB_ASSERT(!GB->isSingularTopReducibleSlow(*f, sig));
   {
     std::unique_ptr<Poly> autoF(f);
     GB->insert(sig, std::move(autoF));

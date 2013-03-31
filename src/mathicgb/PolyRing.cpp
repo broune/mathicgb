@@ -32,6 +32,9 @@ PolyRing::PolyRing(
 #ifdef MATHICGB_USE_MONOID
   , mMonoid(weights)
 #endif
+#ifdef MATHICGB_USE_FIELD
+    , mField(p0)
+#endif
 {
   MATHICGB_ASSERT(weights.size() == nvars);
   mTotalDegreeGradedOnly = true;
@@ -62,6 +65,9 @@ PolyRing::PolyRing(coefficient p0,
     mTotalDegreeGradedOnly(nweights == 1)
 #ifdef MATHICGB_USE_MONOID
     , mMonoid(nvars)
+#endif
+#ifdef MATHICGB_USE_FIELD
+    , mField(p0)
 #endif
 {
   MATHICGB_ASSERT(nweights == 1);

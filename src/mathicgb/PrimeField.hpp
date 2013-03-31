@@ -95,10 +95,19 @@ public:
     // The sum overflowed if and only if a.value() > s. In that case
     // subtraction of charac() will overflow again in the other direction,
     // leaving us with the correct result.
+    // @todo: extend precision to rule out overflow without a branch.
     if (a.value() > s || s >= charac()) {
       MATHICGB_ASSERT(s - charac() < charac());
       return Element(s - charac());
     } else
+      return Element(s);
+  }
+
+  Element plusOne(const Element a) const {
+    const auto s = a.value() + 1;
+    if (s == charac())
+      return Element(0);
+    else
       return Element(s);
   }
 
@@ -123,6 +132,11 @@ public:
   }
 
   Element product(const Element a, const Element b) const;
+
+  /// Returns a times the inverse of b.
+  Element quotient(const Element a, const Element b) const {
+    return product(a, inverse(b));
+  }
 
   /// Returns the multiplicative inverse a^-1 mod charac(). a must not be zero.
   Element inverse(const Element a) const;

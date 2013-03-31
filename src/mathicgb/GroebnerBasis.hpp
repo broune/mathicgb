@@ -86,10 +86,12 @@ public:
   size_t minimalLeadInSig(const_monomial sig) const;
 
   // Returns true if poly can be singular reduced in signature sig.
-  // In other words, returns true if there is a basis element with lead
-  // term M and signature S such that M divides the lead term N of
-  // poly and such that N/M*S == sig. 
-  bool isSingularTopReducible(const Poly& poly, const_monomial sig) const;
+  // In other words, returns true if there is a basis element with
+  // lead term M and signature S such that M divides the lead term N
+  // of poly and such that N/M*S == sig. This is slow because it is
+  // currently only used for asserts - implement a fast version if
+  // that changes.
+  bool isSingularTopReducibleSlow(const Poly& poly, const_monomial sig) const;
 
   void display(std::ostream &o) const;
   void displayBrief(std::ostream &o) const;

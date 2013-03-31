@@ -47,7 +47,7 @@ std::unique_ptr<PolyRing> ringFromString(std::string ringinfo)
 
 Monomial stringToMonomial(const PolyRing *R, std::string mon)
 {
-  Monomial result = R->allocMonomial1();
+  Monomial result = R->allocMonomial();
   std::stringstream ifil(mon);
   R->monomialParse(ifil, result);
   return result;

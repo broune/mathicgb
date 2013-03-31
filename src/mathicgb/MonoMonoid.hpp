@@ -310,6 +310,27 @@ public:
     return true;
   }
 
+  /// Returns true if div divides lcm(a, b).
+  bool dividesLcm(ConstMonoRef div, ConstMonoRef a, ConstMonoRef b) const {
+    for (auto i = exponentsIndexBegin(); i != exponentsIndexEnd(); ++i) {
+      const auto dive = access(div, i);
+      if (access(div, i) > access(a, i) && access(div, i) > access(b, i))
+	return false;
+    }
+    return true;
+  }
+
+  /// Returns true if lcm(a,b) == lcmAB.
+  bool isLcm(ConstMonoRef a, ConstMonoRef b, ConstMonoRef lcmAB) const {
+    MATHICGB_ASSERT(component(a) == component(b));
+
+    // Loop also checks component.
+    for (auto i = componentIndex(); i != exponentsIndexEnd(); ++i)
+      if (access(lcmAB, i) != std::max(access(a, i), access(b, i)))
+        return false;
+    return true;
+  }
+
   // Graded reverse lexicographic order. The grading is total degree.
   CompareResult compare(ConstMonoRef a, ConstMonoRef b) const {
     MATHICGB_ASSERT(debugOrderValid(a));
@@ -326,6 +347,34 @@ public:
 
   bool lessThan(ConstMonoRef a, ConstMonoRef b) const {
     return compare(a, b) == LessThan;
+  }
+
+  /// Returns true if gcd(a, b) == 1.
+  bool relativelyPrime(ConstMonoRef a, ConstMonoRef b) const {
+    for (auto i = exponentsIndexBegin(); i != exponentsIndexEnd(); ++i)
+      if (access(a, i) > 0 && access(b, i) > 0)
+        return false;
+    return true;
+  }
+
+  // If this method returns true for monomials a and b then it is
+  // guaranteed that multiplying a and b together will not overflow
+  // the integers in the representation.
+  bool hasAmpleCapacity(ConstMonoRef mono) const {
+    const auto halfMin = std::numeric_limits<Exponent>::min() / 2;
+    const auto halfMax = std::numeric_limits<Exponent>::max() / 2;
+    for (VarIndex i = exponentsIndexBegin(); i != exponentsIndexEnd(); ++i) {
+      const auto value = access(mono, i);
+      if (!(halfMin <= value && value <= halfMax))
+        return false;
+    }
+    return true;
+  }
+
+  /// Returns the degree of mono using the grading on the monoid.
+  Exponent degree(ConstMonoRef mono) const {
+    MATHICGB_ASSERT(debugOrderValid(mono));
+    return access(mono, orderIndexBegin());
   }
 
 
@@ -351,6 +400,17 @@ public:
 
     updateOrderData(var, oldExponent, newExponent, mono);
     updateHashExponent(var, oldExponent, newExponent, mono);
+    MATHICGB_ASSERT(debugValid(mono));
+  }
+
+  /// Sets all the exponents of mono. exponents must point to an array
+  /// of size varCount().
+  void setExponents(const Exponent* exponents, MonoRef mono) const {
+    MATHICGB_ASSERT(exponents != 0);
+    access(mono, componentIndex()) = 0;
+    std::copy_n(exponents, varCount(), ptr(mono, exponentsIndexBegin()));
+    setOrderData(mono);
+    setHash(mono);
     MATHICGB_ASSERT(debugValid(mono));
   }
 
@@ -426,6 +486,47 @@ public:
       access(quo, i) = access(num, i) - access(by, i);
 
     MATHICGB_ASSERT(debugValid(quo));
+  }
+
+  /// Sets aColonB to a:b and bColonA to b:a.
+  void colons(
+    ConstMonoRef a,
+    ConstMonoRef b,
+    MonoRef aColonB,
+    MonoRef bColonA
+  ) const {
+    MATHICGB_ASSERT(debugValid(a));
+    MATHICGB_ASSERT(debugValid(b));
+    MATHICGB_ASSERT(component(a) == component(b));
+
+    access(aColonB, componentIndex()) = 0;
+    access(bColonA, componentIndex()) = 0;
+    for (auto i = exponentsIndexBegin(); i != exponentsIndexEnd(); ++i) {
+      const auto ae = access(a, i);
+      const auto be = access(b, i);
+      const auto max = std::max(ae, be);
+      access(aColonB, i) = max - be;
+      access(bColonA, i) = max - ae;
+    }
+    setOrderData(aColonB);
+    setHash(aColonB);
+    setOrderData(bColonA);
+    setHash(bColonA);
+
+    MATHICGB_ASSERT(debugValid(aColonB));
+    MATHICGB_ASSERT(debugValid(bColonA));
+  }
+
+  void lcm(ConstMonoRef a, ConstMonoRef b, MonoRef lcmAB) const {
+    MATHICGB_ASSERT(component(a) == component(b));
+
+    // Loop also sets component.
+    for (auto i = componentIndex(); i != exponentsIndexEnd(); ++i)
+      access(lcmAB, i) = std::max(access(a, i), access(b, i));
+    setOrderData(lcmAB);
+    setHash(lcmAB);
+
+    MATHICGB_ASSERT(debugValid(lcmAB));
   }
 
   /// Parses a monomial out of a string. Valid examples: 1 abc a2bc

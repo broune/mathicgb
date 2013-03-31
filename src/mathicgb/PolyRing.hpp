@@ -174,6 +174,9 @@ typedef long coefficient;
 #ifdef MATHICGB_USE_MONOID
 typedef MonoMonoid<exponent> Monoid;
 #endif
+#ifdef MATHICGB_USE_FIELD
+typedef PrimeField<unsigned long> Field;
+#endif
 
 typedef exponent* vecmonomial; // includes a component
 typedef coefficient const_coefficient;
@@ -351,18 +354,13 @@ public:
     P.free(m.unsafeGetRepresentation());
   }
 
-
-
-  // Free monomials allocated here by calling freeMonomial().
-  Monomial allocMonomial1() const {
-    return static_cast<exponent *>(mMonomialPool.alloc());
+  // Only call this method for monomials returned by allocMonomial().
+  void freeMonomial(Monomial m) const {
+    mMonomialPool.free(m.unsafeGetRepresentation());
   }
 
-  // Only call this method for monomials returned by allocMonomial().
-  void freeMonomial(Monomial m) const {mMonomialPool.free(m.unsafeGetRepresentation());}
-
-// Free monomials allocated here by calling freeMonomial().
-monomial allocMonomial() const { return allocMonomial(mMonomialPool); }
+  // Free monomials allocated here by calling freeMonomial().
+  monomial allocMonomial() const { return allocMonomial(mMonomialPool); }
 
 
 
@@ -405,13 +403,26 @@ monomial allocMonomial() const { return allocMonomial(mMonomialPool); }
   // Monomial Routines //////////////////////
   ///////////////////////////////////////////
 
-  HashValue monomialHashValue(ConstMonomial m) const {return static_cast<HashValue>(m[mHashIndex]);}
+  HashValue monomialHashValue(ConstMonomial m) const {
+#ifdef MATHICGB_USE_MONOID
+    return monoid().hash(m);
+#else
+    return static_cast<HashValue>(m[mHashIndex]);
+#endif
+  }
 
   void monomialSetExponent(Monomial m, size_t var, exponent c) const {
+#ifdef MATHICGB_USE_MONOID
+    monoid().setExponent(var, c, m);
+#else
     m[var+1] = c;
+#endif
   }
 
   void monomialSetExponents(Monomial m, exponent* exponents) const {
+#ifdef MATHICGB_USE_MONOID
+    monoid().setExponents(exponents, m);
+#else
     *m = 0;
     std::memcpy(
       m.unsafeGetRepresentation() + 1,
@@ -419,10 +430,15 @@ monomial allocMonomial() const { return allocMonomial(mMonomialPool); }
       mNumVars * sizeof(exponent)
     );
     setWeightsAndHash(m);
+#endif
   }
 
   exponent monomialExponent(ConstMonomial m, size_t var) const {
+#ifdef MATHICGB_USE_MONOID
+    return monoid().exponent(m, var);
+#else
     return m[var+1];
+#endif
   }
 
   // This function only sets component and the monomial itself. NOT weights, degree, or hash value
@@ -443,8 +459,6 @@ monomial allocMonomial() const { return allocMonomial(mMonomialPool); }
 
   inline void setHashOnly(Monomial& a) const;
 
-  void setGivenHash(Monomial& a, HashValue hash) const {a[mHashIndex] = static_cast<exponent>(hash);}
-
   bool hashValid(const_monomial m) const;
 
   bool weightsCorrect(ConstMonomial a) const;
@@ -463,6 +477,9 @@ monomial allocMonomial() const { return allocMonomial(mMonomialPool); }
   bool monomialHasAmpleCapacity(ConstMonomial mono) const;
 
   bool monomialLT(ConstMonomial a, ConstMonomial b) const {
+#ifdef MATHICGB_USE_MONOID
+    return monoid().lessThan(a, b);
+#else
     for (size_t i = mTopIndex; i != static_cast<size_t>(-1); --i)
       {
         exponent cmp = a[i] - b[i];
@@ -471,6 +488,7 @@ monomial allocMonomial() const { return allocMonomial(mMonomialPool); }
         return true;
       }
     return false;
+#endif
   }
 
   bool monomialEQ(ConstMonomial a, ConstMonomial b) const;
@@ -483,9 +501,13 @@ monomial allocMonomial() const { return allocMonomial(mMonomialPool); }
   exponent monomialGetComponent(ConstMonomial a) const { return *a.mValue; }
 
   void monomialChangeComponent(Monomial a, int x) const {
+#ifdef MATHICGB_USE_MONOID
+    monoid().setComponent(x, a);
+#else
     a[mHashIndex] -= static_cast<HashValue>(*a.mValue);
     a[mHashIndex] += static_cast<HashValue>(x);
     *a = x;
+#endif
   }
 
   void monomialSetIdentity(Monomial& result) const;
@@ -496,8 +518,8 @@ monomial allocMonomial() const { return allocMonomial(mMonomialPool); }
 
   void monomialMultTo(Monomial &a, ConstMonomial b) const; // a *= b
 
-  /// returns true if b divides a, in this case, result is set to b//a.
-  bool monomialDivide(ConstMonomial a, ConstMonomial b, Monomial &result) const;
+  /// Result is set to b/a. a must divide b.
+  void monomialDivide(ConstMonomial a, ConstMonomial b, Monomial &result) const;
 
   /// sets result to a/b, even if that produces negative exponents.
   void monomialDivideToNegative(ConstMonomial a, ConstMonomial b, Monomial &result) const;
@@ -630,11 +652,19 @@ private:
   const Monoid& monoid() const {return mMonoid;}
   Monoid mMonoid;
 #endif
+#ifdef MATHICGB_USE_FIELD
+  const Field field() const {return mField;}
+  Field mField;
+#endif
 };
 
 inline exponent PolyRing::weight(ConstMonomial a) const {
+#ifdef MATHICGB_USE_MONOID
+  monoid().degree(a);
+#else
   MATHICGB_ASSERT(weightsCorrect(a));
   return a[mNumVars + 1];
+#endif
 }
 
 ////////////////////////////////////////////////
@@ -857,25 +887,27 @@ inline bool PolyRing::monomialIsDivisibleBy(ConstMonomial a,
 #endif
 }
 
-inline bool PolyRing::monomialDivide(ConstMonomial a, 
+inline void PolyRing::monomialDivide(ConstMonomial a, 
                                      ConstMonomial b, 
                                      Monomial& result) const
 {
+#ifdef MATHICGB_USE_MONOID
+  return monoid().divide(b, a, result);
+#else
   //// returns true if b divides a, in this case, result is set to b//a.
   size_t i;
   for (i = 1; i <= mNumVars; i++)
     {
       exponent c = a[i] - b[i];
-      if (c >= 0)
-        result[i] = c;
-      else
-        return false;
+      if (c < 0)
+        return;
+      result[i] = c;
     }
   // at this point we have divisibility, so need to fill in the rest of the monomial
   *result = *a.mValue - *b.mValue;  // component
   for ( ; i<=mHashIndex; i++)
     result[i] = a[i] - b[i];
-  return true;
+#endif
 }
 
 inline void PolyRing::monomialColons(
@@ -884,6 +916,9 @@ inline void PolyRing::monomialColons(
   monomial aColonB,
   monomial bColonA
 ) const {
+#ifdef MATHICGB_USE_MONOID
+  monoid().colons(a, b, aColonB, bColonA);
+#else
   *aColonB = *a;
   *bColonA = *b;
   for (size_t i = 1; i <= mNumVars; i++) {
@@ -893,12 +928,16 @@ inline void PolyRing::monomialColons(
   }
   setWeightsAndHash(aColonB);
   setWeightsAndHash(bColonA);
+#endif
 }
 
 inline void PolyRing::monomialDivideToNegative(ConstMonomial a, 
                                                ConstMonomial b, 
                                                Monomial& result) const 
 {
+#ifdef MATHICGB_USE_MONOID
+  monoid().divideToNegative(b, a, result);
+#else
   for (size_t i = 0; i <= mHashIndex; ++i)
     result[i] = a[i] - b[i];
   MATHICGB_ASSERT(monomialHashValue(result) ==
@@ -906,15 +945,20 @@ inline void PolyRing::monomialDivideToNegative(ConstMonomial a,
   MATHICGB_ASSERT(!hashValid(a) || !hashValid(b) || hashValid(result));
   MATHICGB_ASSERT(computeHashValue(result) == static_cast<exponent>
     (computeHashValue(a) - computeHashValue(b)));
+#endif
 }
 
 inline bool PolyRing::monomialRelativelyPrime(ConstMonomial a, 
                                               ConstMonomial b) const
 {
+#ifdef MATHICGB_USE_MONOID
+  return monoid().relativelyPrime(a, b);
+#else
   for (size_t i = 1; i <= mNumVars; ++i)
     if (a[i] > 0 && b[i] > 0)
       return false;
   return true;
+#endif
 }
 
 inline void PolyRing::monomialLeastCommonMultiple(
@@ -922,8 +966,12 @@ inline void PolyRing::monomialLeastCommonMultiple(
   ConstMonomial b,
   Monomial& l) const
 {
+#ifdef MATHICGB_USE_MONOID
+  monoid().lcm(a, b, l);
+#else
   monomialLeastCommonMultipleNoWeights(a, b, l);
   setWeightsAndHash(l);
+#endif
 }
 
 inline void PolyRing::monomialLeastCommonMultipleNoWeights(
@@ -931,9 +979,13 @@ inline void PolyRing::monomialLeastCommonMultipleNoWeights(
   ConstMonomial b,
   Monomial& l) const
 {
+#ifdef MATHICGB_USE_MONOID
+  monoid().lcm(a, b, l);
+#else
   *l = 0;
   for (size_t i = 1; i <= mNumVars; ++i)
     l[i] = std::max(a[i], b[i]);
+#endif
 }
 
 inline bool PolyRing::monomialHasStrictlyLargerExponent(
@@ -941,10 +993,14 @@ inline bool PolyRing::monomialHasStrictlyLargerExponent(
   ConstMonomial smaller1,
   ConstMonomial smaller2) const 
 {
+#ifdef MATHICGB_USE_MONOID
+  return !monoid().dividesLcm(hasLarger, smaller1, smaller2);
+#else
   for (size_t i = 1; i <= mNumVars; ++i)
     if (hasLarger[i] > smaller1[i] && hasLarger[i] > smaller2[i])
       return true;
   return false;
+#endif
 }
 
 
@@ -957,45 +1013,73 @@ inline bool PolyRing::monomialIsLeastCommonMultiple(
   ConstMonomial b,
   ConstMonomial l) const
 {
+#ifdef MATHICGB_USE_MONOID
+  return monoid().isLcm(a, b, l);
+#else
   return monomialIsLeastCommonMultipleNoWeights(a, b, l) && weightsCorrect(l);
+#endif
 }
 
 inline void PolyRing::coefficientReciprocalTo(coefficient& result) const
 {
+#ifdef MATHICGB_USE_FIELD
+  result = field().inverse(field().toElementInRange(result)).value();
+#else
   MATHICGB_ASSERT(result != 0);
   mStats.n_recip++;
   result = modularInverse(result, mCharac);
+#endif
 }
 
 inline void PolyRing::coefficientDivide(coefficient a, coefficient b, coefficient &result) const
  // result = a/b
 {
+#ifdef MATHICGB_USE_FIELD
+  result = field().quotient
+    (field().toElementInRange(a), field().toElementInRange(b)).value();
+#else
   mStats.n_divide++;
   result = (a * modularInverse(b, mCharac)) % mCharac;
   MATHICGB_ASSERT((result * b) % mCharac == a);
   MATHICGB_ASSERT(result >= 0);
   MATHICGB_ASSERT(result < mCharac);
+#endif
 }
 
 inline void PolyRing::coefficientFromInt(coefficient &result, int a) const
 {
+#ifdef MATHICGB_USE_FIELD
+  result = field().toElement(a).value();
+#else
   result = toCoefficient(a);
+#endif
 }
 
 inline void PolyRing::coefficientAddOneTo(coefficient &result) const
 {
+#ifdef MATHICGB_USE_FIELD
+  result = field().plusOne(field().toElementInRange(result)).value();
+#else
   ++result;
   if (result == mCharac)
     result = 0;
+#endif
 }
 
 inline void PolyRing::coefficientNegateTo(coefficient& result) const {
+#ifdef MATHICGB_USE_FIELD
+  result = field().negative(field().toElementInRange(result)).value();
+#else
   MATHICGB_ASSERT(result < mCharac);
   if (result != 0)
     result = coefficientNegateNonZero(result);
+#endif
 }
 
 inline coefficient PolyRing::toCoefficient(const int64 value) const {
+#ifdef MATHICGB_USE_FIELD
+  return field().toElement(value).value();
+#else
   auto modLong = value % mCharac;
   if (modLong < 0)
     modLong += mCharac;
@@ -1005,71 +1089,113 @@ inline coefficient PolyRing::toCoefficient(const int64 value) const {
   MATHICGB_ASSERT(0 <= mod);
   MATHICGB_ASSERT(mod < mCharac);
   return mod;
+#endif
 }
 
 inline coefficient PolyRing::coefficientNegate(const coefficient coeff) const {
+#ifdef MATHICGB_USE_FIELD
+  return field().negative(field().toElementInRange(coeff)).value();
+#else
   MATHICGB_ASSERT(coeff < mCharac);
   return coeff == 0 ? 0 : coefficientNegateNonZero(coeff);
+#endif
 }
 
 inline coefficient PolyRing::coefficientNegateNonZero(
   const coefficient coeff
 ) const {
+#ifdef MATHICGB_USE_FIELD
+  return field().negativeNonZero(field().toElementInRange(coeff)).value();
+#else
   MATHICGB_ASSERT(coeff != 0);
   MATHICGB_ASSERT(coeff < mCharac);
   return mCharac - coeff;
+#endif
 }
 
 inline coefficient PolyRing::coefficientSubtract(
   const coefficient a,
   const coefficient b
 ) const {
+#ifdef MATHICGB_USE_FIELD
+  return field().difference
+    (field().toElementInRange(a), field().toElementInRange(b)).value();
+#else
   MATHICGB_ASSERT(a < mCharac);
   MATHICGB_ASSERT(b < mCharac);
   const auto diff = a < b ? a + (mCharac - b) : a - b;
   MATHICGB_ASSERT(diff < mCharac);
   MATHICGB_ASSERT((diff + b) % mCharac == a);
   return diff;
+#endif
 }
 
-inline void PolyRing::coefficientAddTo(coefficient &result, coefficient a, coefficient b) const
+inline void PolyRing::coefficientAddTo
+(coefficient &result, coefficient a, coefficient b) const
 // result += a*b
 {
+#ifdef MATHICGB_USE_FIELD
+  const auto prod =
+    field().product(field().toElementInRange(a), field().toElementInRange(b));
+  result = field().sum(field().toElementInRange(result), prod).value();
+#else
   mStats.n_addmult++;
   auto c = a * b + result;
   result = c % mCharac;
+#endif
 }
 
 inline void PolyRing::coefficientAddTo(coefficient &result, coefficient a) const
  // result += a
 {
+#ifdef MATHICGB_USE_FIELD
+  result = field().sum
+    (field().toElementInRange(result), field().toElementInRange(a)).value();
+#else
   mStats.n_add++;
   result += a;
   if (result >= mCharac)
     result -= mCharac;
+#endif
 }
 
-inline void PolyRing::coefficientMultTo(coefficient &result, coefficient a) const
+inline void PolyRing::coefficientMultTo
+(coefficient &result, coefficient a) const
   // result *= a
 {
+#ifdef MATHICGB_USE_FIELD
+  result = field().product
+    (field().toElementInRange(result), field().toElementInRange(a)).value();
+#else
   mStats.n_mult++;
   coefficient b = result * a;
   result = b % mCharac;
+#endif
 }
 
-inline void PolyRing::coefficientMult(coefficient a, coefficient b, coefficient &result) const
+inline void PolyRing::coefficientMult
+(coefficient a, coefficient b, coefficient &result) const
 {
+#ifdef MATHICGB_USE_FIELD
+  result = field().product
+    (field().toElementInRange(a), field().toElementInRange(b)).value();
+#else
   mStats.n_mult++;
   coefficient c = b * a;
   result = c % mCharac;
+#endif
 }
 
 inline bool PolyRing::monomialHasAmpleCapacity(ConstMonomial mono) const {
+#ifdef MATHICGB_USE_MONOID
+  return monoid().hasAmpleCapacity(mono);
+#else
   const auto halfMax = std::numeric_limits<exponent>::max() / 2;
   for (size_t i = mTopIndex; i != 0; --i)
     if (mono[i] > halfMax)
       return false;
   return true;
+#endif
 }
 
 #endif
