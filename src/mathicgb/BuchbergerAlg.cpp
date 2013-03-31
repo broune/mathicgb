@@ -336,7 +336,7 @@ void BuchbergerAlg::autoTailReduce() {
 size_t BuchbergerAlg::getMemoryUse() const {
   return
     mBasis.getMemoryUse() +
-    mRing.getMonomialPool().getMemoryUse() +
+    mRing.getMemoryUse() +
     mReducer.getMemoryUse() +
     mSPairs.getMemoryUse();
 }
@@ -553,7 +553,7 @@ void BuchbergerAlg::printMemoryUse(std::ostream& out) const
     extra << mic::ColumnPrinter::percentInteger(reducerMem, total) << '\n';
   }
   { // Signatures
-    const size_t sigMem = mRing.getMonomialPool().getMemoryUse();
+    const size_t sigMem = mRing.getMemoryUse();
     name << "Monomials:\n";
     value << mic::ColumnPrinter::bytesInUnit(sigMem) << '\n';
     extra << mic::ColumnPrinter::percentInteger(sigMem, total) << '\n';

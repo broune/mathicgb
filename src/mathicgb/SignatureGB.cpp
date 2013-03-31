@@ -89,7 +89,7 @@ SignatureGB::SignatureGB(
   stats_pairsReduced(0),
   stats_nsecs(0.0),
   GB(make_unique<GroebnerBasis>(R, F.get(), divlookup_type, montable_type, preferSparseReducers)),
-  mKoszuls(make_unique<KoszulQueue>(F.get(), R->getMonomialPool())),
+  mKoszuls(make_unique<KoszulQueue>(F.get(), *R)),
   Hsyz(MonomialTableArray::make(R, montable_type, ideal.size(), !mPostponeKoszul)),
   reducer(Reducer::makeReducer(reductiontyp, *R)),
   SP(make_unique<SigSPairs>(R, F.get(), GB.get(), Hsyz.get(), reducer.get(), mPostponeKoszul, mUseBaseDivisors, useSingularCriterionEarly, queueType))
@@ -275,7 +275,7 @@ size_t SignatureGB::getMemoryUse() const {
   size_t sum =
     GB->getMemoryUse() +
     Hsyz->getMemoryUse() +
-    R->getMonomialPool().getMemoryUse() +
+    R->getMemoryUse() +
     reducer->getMemoryUse() +
     mSpairTmp.capacity() * sizeof(mSpairTmp.front());
   sum += SP->getMemoryUse();
@@ -702,7 +702,7 @@ void SignatureGB::displayMemoryUse(std::ostream& out) const
     extra << mic::ColumnPrinter::percentInteger(reducerMem, total) << '\n';
   }
   { // Signatures
-    const size_t sigMem = R->getMonomialPool().getMemoryUse();
+    const size_t sigMem = R->getMemoryUse();
     name << "Signatures:\n";
     value << mic::ColumnPrinter::bytesInUnit(sigMem) << '\n';
     extra << mic::ColumnPrinter::percentInteger(sigMem, total) << '\n';

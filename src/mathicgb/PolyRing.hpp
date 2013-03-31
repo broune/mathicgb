@@ -5,6 +5,9 @@
 
 #ifdef MATHICGB_USE_MONOID
 #include "MonoMonoid.hpp"
+
+#define MATHICGB_USE_FIELD
+#include "PrimeField.hpp"
 #endif
 
 #include <assert.h>
@@ -20,9 +23,26 @@
 #define EQ 0
 #define GT 1
 
+#ifdef MATHICGB_USE_FIELD
+template<class T>
+PrimeField<
+  typename std::make_unsigned<
+    typename std::remove_reference<T>::type
+  >::type
+> makeField(T charac) {
+  return charac;
+}
+#endif
+
 /** Returns a^-1 mod modulus. It is required that 0 < a < modulus. */
 template<class T>
 T modularInverse(T a, T modulus) {
+#ifdef MATHICGB_USE_FIELD
+  MATHICGB_ASSERT(0 < a);
+  MATHICGB_ASSERT(a < modulus);
+  auto f = makeField(modulus);
+  return f.inverse(f.toElementInRange(a)).value();
+#else
   // we do two turns of the extended Euclidian algorithm per
   // loop. Usually the sign of x changes each time through the loop,
   // but we avoid that by representing every other x as its negative,
@@ -62,6 +82,7 @@ T modularInverse(T a, T modulus) {
   MATHICGB_ASSERT(x < modulus);
   MATHICGB_ASSERT_NO_ASSUME((static_cast<uint64>(origA) * x) % modulus == 1);
   return x;
+#endif
 }
 
 template<class T>
@@ -76,6 +97,14 @@ template<> struct ModularProdType<int32> {typedef int64 type;};
 /** Returns a*b mod modulus.  It is required that 0 <= a, b < modulus. */
 template<class T>
 T modularProduct(T a, T b, T modulus) {
+#ifdef MATHICGB_USE_FIELD
+  MATHICGB_ASSERT(0 < a);
+  MATHICGB_ASSERT(a < modulus);
+  MATHICGB_ASSERT(0 <= b);
+  MATHICGB_ASSERT(b < modulus);
+  auto f = makeField(modulus);
+  return f.product(f.toElementInRange(a), f.toElementInRange(b)).value();
+#else
   typedef typename ModularProdType<T>::type BigT;
   MATHICGB_ASSERT(0 <= a);
   MATHICGB_ASSERT(a < modulus);
@@ -84,11 +113,20 @@ T modularProduct(T a, T b, T modulus) {
   BigT bigProd = static_cast<BigT>(a) * b;
   MATHICGB_ASSERT(a == 0 || bigProd / a == b);
   return static_cast<T>(bigProd % modulus);
+#endif
 }
 
 /** Returns a+b mod modulus.  It is required that 0 <= a, b < modulus. */
 template<class T>
 T modularSum(T a, T b, T modulus) {
+#ifdef MATHICGB_USE_FIELD
+  MATHICGB_ASSERT(0 < a);
+  MATHICGB_ASSERT(a < modulus);
+  MATHICGB_ASSERT(0 <= b);
+  MATHICGB_ASSERT(b < modulus);
+  auto f = makeField(modulus);
+  return f.sum(f.toElementInRange(a), f.toElementInRange(b)).value();
+#else
   typedef typename ModularProdType<T>::type BigT;
   MATHICGB_ASSERT(0 <= a);
   MATHICGB_ASSERT(a < modulus);
@@ -97,22 +135,37 @@ T modularSum(T a, T b, T modulus) {
   BigT bigSum = static_cast<BigT>(a) + b;
   MATHICGB_ASSERT(bigSum - a == b);
   return static_cast<T>(bigSum % modulus);
+#endif
 } 
 
 /** Returns -a mod modulus. It is required that 0 <= a < modulus. */
 template<class T>
 T modularNegative(T a, T modulus) {
+#ifdef MATHICGB_USE_FIELD
+  MATHICGB_ASSERT(0 < a);
+  MATHICGB_ASSERT(a < modulus);
+  auto f = makeField(modulus);
+  return f.negative(f.toElementInRange(a)).value();
+#else
   MATHICGB_ASSERT(0 <= a);
   MATHICGB_ASSERT(a < modulus);
   return a == 0 ? 0 : modulus - a;
+#endif
 }
 
 /** Returns -a mod modulus. It is required that 0 < a < modulus. */
 template<class T>
 T modularNegativeNonZero(T a, T modulus) {
+#ifdef MATHICGB_USE_FIELD
+  MATHICGB_ASSERT(0 < a);
+  MATHICGB_ASSERT(a < modulus);
+  auto f = makeField(modulus);
+  return f.negativeNonZero(f.toElementInRange(a)).value();
+#else
   MATHICGB_ASSERT(0 < a);
   MATHICGB_ASSERT(a < modulus);
   return modulus - a;
+#endif
 }
 
 typedef int32 exponent ;
@@ -234,7 +287,10 @@ public:
   PolyRing(coefficient charac, int nvars, int nweights);
   ~PolyRing() {}
 
-  memt::BufferPool &getMonomialPool() const { return mMonomialPool; }
+  size_t getMemoryUse() const {
+    // todo: Make this more accurate.
+    return mMonomialPool.getMemoryUse();
+  }
 
   coefficient charac() const { return mCharac; }
   size_t getNumVars() const { return mNumVars; }
@@ -268,6 +324,10 @@ public:
   // thing allocated in A.
   void freeTopMonomial(memt::Arena &A, Monomial m) const {
     A.freeTop(m.unsafeGetRepresentation());
+  }
+
+  bool fromPool(ConstMonomial m) const {
+    return mMonomialPool.fromPool(m.unsafeGetRepresentation());
   }
 
   //  Allocate a monomial from a pool that has had its size set to 

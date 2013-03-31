@@ -184,15 +184,15 @@ public:
 
 class MonomialDeleter {
 public:
-  MonomialDeleter(memt::BufferPool& pool): _pool(pool) {}
+  MonomialDeleter(const PolyRing& ring): mRing(ring) {}
   void push_back(const void* p) {
-    _pool.free(const_cast<void*>(p));
+    mRing.freeMonomial(static_cast<exponent*>(const_cast<void*>(p)));
   }
   void push_back(ConstMonomial p) {
-    _pool.free(static_cast<void*>(const_cast<exponent *>(p.unsafeGetRepresentation())));
+    mRing.freeMonomial(const_cast<exponent *>(p.unsafeGetRepresentation()));
   }
 private:
-  memt::BufferPool& _pool;
+  const PolyRing& mRing;
 };
 
 template<bool UDM, bool UTDM, size_t LS, bool AR>
@@ -204,11 +204,11 @@ inline bool MonTableKDTree<UDM, UTDM, LS, AR>::insert(const Entry& entry) {
   if (C::AllowRemovals) {
     if (findDivisor(entry) != 0)
       return false;
-    MonomialDeleter mondelete(getPolyRing()->getMonomialPool());
+    MonomialDeleter mondelete(*getPolyRing());
     _finder.removeMultiples(entry, mondelete);
   } else {
     MATHICGB_ASSERT(findDivisor(entry) == 0);
-    MonomialDeleter mondelete(getPolyRing()->getMonomialPool());
+    MonomialDeleter mondelete(*getPolyRing());
     // todo: can't do the below ASSERT as KD tree won't allow a
     // removal action when removals are not allowed. So there
     // should be a getMultiples() method that could be

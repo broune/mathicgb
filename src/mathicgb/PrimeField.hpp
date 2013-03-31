@@ -45,6 +45,17 @@ public:
 
   T charac() const {return mCharac;}
 
+  /// Assumes that i is in the range [0;charac()).
+  template<class Integer>
+  Element toElementInRange(Integer&& i) const {
+    typedef typename std::remove_reference<Integer>::type NoRefInteger;
+    static_assert(std::numeric_limits<NoRefInteger>::is_integer, "");
+
+    MATHICGB_ASSERT(0 <= i);
+    MATHICGB_ASSERT(i < charac());
+    return Element(i);
+  }
+
   template<class Integer>
   Element toElement(Integer&& i) const {
     typedef typename std::remove_reference<Integer>::type NoRefInteger;
@@ -126,6 +137,12 @@ namespace PrimeFieldInternal {
   template<> struct ModularProdType<uint8> {typedef uint16 type;};
   template<> struct ModularProdType<uint16> {typedef uint32 type;};
   template<> struct ModularProdType<uint32> {typedef uint64 type;};
+
+  // @todo: Remove this typedef when possible. 64 bits is not enough
+  // to store a 64 bit product. We need it right now because
+  // coefficients are handled as 64 bit in the legacy PolyRing.
+  template<> struct ModularProdType<uint64> {typedef uint64 type;};
+  template<> struct ModularProdType<long unsigned int> {typedef uint64 type;};
 }
 
 template<class T>

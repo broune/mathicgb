@@ -10,11 +10,9 @@ class FreeModuleOrder;
 class KoszulQueue
 {
 public:
-  KoszulQueue(const FreeModuleOrder *order,
-              memt::BufferPool &pool) :
-    mQueue(Configuration(order, pool))
-  {
-  }
+  KoszulQueue(const FreeModuleOrder *order, const PolyRing& ring):
+    mQueue(Configuration(order, ring))
+  {}
 
   const_monomial top() const {
     MATHICGB_ASSERT(!empty());
@@ -28,17 +26,13 @@ public:
 
   void pop() {
     MATHICGB_ASSERT(!empty());
-    mQueue.getConfiguration().getPool().free(popRelease().unsafeGetRepresentation());
+    auto toFree = popRelease().unsafeGetRepresentation();
+    mQueue.getConfiguration().ring().freeMonomial(toFree);
   }
 
-  void push(monomial sig) {
-    //TODO: MATHICGB_ASSERT(mPool.member(sig));
-    mQueue.push(sig);
-  }
-
-  bool empty() const { return mQueue.empty(); }
-
-  size_t size() const { return mQueue.size(); }
+  void push(monomial sig) {mQueue.push(sig);}
+  bool empty() const {return mQueue.empty();}
+  size_t size() const {return mQueue.size();}
 
   size_t getMemoryUse() const {return mQueue.getMemoryUse();}
 
@@ -48,15 +42,13 @@ private:
   public:
     typedef monomial Entry;
 
-    Configuration(const FreeModuleOrder *order,
-                  memt::BufferPool &pool) :
-      mOrder(order),
-      mPool(pool)
+    Configuration(const FreeModuleOrder *order, const PolyRing& ring):
+      mOrder(order), mRing(ring)
     {
       MATHICGB_ASSERT(mOrder != 0);
     }
 
-    memt::BufferPool &getPool() { return mPool; }
+    const PolyRing& ring() const {return mRing;}
 
     typedef int CompareResult; /* LT, EQ, GT */
 
@@ -70,12 +62,12 @@ private:
 
     Entry deduplicate(Entry a, Entry b)
     {
-      mPool.free(b.unsafeGetRepresentation());
+      ring().freeMonomial(b.unsafeGetRepresentation());
       return a;
     }
   private:
     const FreeModuleOrder *mOrder;
-    memt::BufferPool &mPool; // for signature monomials
+    const PolyRing& mRing;
   };
 
   mic::Heap<Configuration> mQueue;
