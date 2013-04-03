@@ -532,6 +532,20 @@ public:
     MATHICGB_ASSERT(debugValid(lcmAB));
   }
 
+  /// todo: get rid of this
+  void lcmRaw(ConstMonoRef a, ConstMonoRef b, MonoRef lcmAB) const {
+    MATHICGB_ASSERT(component(a) == component(b));
+
+    // Loop also sets component.
+    access(lcmAB, componentIndex()) = 0;
+    for (auto i = exponentsIndexBegin(); i != exponentsIndexEnd(); ++i)
+      access(lcmAB, i) = std::max(access(a, i), access(b, i));
+    //setOrderData(lcmAB);
+    //setHash(lcmAB);
+
+    MATHICGB_ASSERT(debugValid(lcmAB));
+  }
+
   /// Parses a monomial out of a string. Valid examples: 1 abc a2bc
   /// aA. Variable names are case sensitive. Whitespace terminates the
   /// parse as does any other character that is not a letter or a

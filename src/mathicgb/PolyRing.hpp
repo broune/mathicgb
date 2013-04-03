@@ -981,7 +981,7 @@ inline void PolyRing::monomialLeastCommonMultipleNoWeights(
   Monomial& l) const
 {
 #ifdef MATHICGB_USE_MONOID
-  monoid().lcm(a, b, l);
+  monoid().lcmRaw(a, b, l);
 #else
   *l = 0;
   for (size_t i = 1; i <= mNumVars; ++i)
