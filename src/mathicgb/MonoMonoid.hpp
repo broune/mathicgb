@@ -12,11 +12,20 @@
 #include <mathic.h>
 
 /// Implements the monoid of (monic) monomials with integer
-/// non-negative exponents. T must be an unsigned integer type that is
+/// non-negative exponents. Exponent must be an unsigned integer type that is
 /// used to store each exponent of a monomial.
 ///
 /// TODO: support grading and comparison.
-template<class E>
+template<
+  class Exponent,
+  bool hasComponent = true,
+  bool storeHash = true,
+  bool storeOrder = true
+>
+class MonoMonoid;
+
+
+template<class E, bool HC, bool SH, bool SO>
 class MonoMonoid {
 public:
   static_assert(std::numeric_limits<E>::is_signed, "");
@@ -30,6 +39,20 @@ public:
 
   /// The type of each exponent of a monomial.
   typedef E Exponent;
+
+  /// Is true if the monomials come from a module.
+  static const bool hasComponent;
+
+  /// Is true if the hash value is stored rather than computed at each 
+  /// hash request. This imposes extra computation when updating a monomial,
+  /// but for most operations that overhead is much less than the time for
+  /// computing a hash value from scratch.
+  static const bool storeHash;
+
+  /// Is true if data to compare monomials is stored rather than computed
+  /// at each comparison. As storeHash, there is overhead for this, but it
+  /// is not much for most operations.
+  static const bool storeOrder;
 
   /// Type used to indicate the component of a module monomial. For example,
   /// the component of xe_3 is 3.
@@ -543,7 +566,7 @@ public:
     //setOrderData(lcmAB);
     //setHash(lcmAB);
 
-    MATHICGB_ASSERT(debugValid(lcmAB));
+    //MATHICGB_ASSERT(debugValid(lcmAB));
   }
 
   /// Parses a monomial out of a string. Valid examples: 1 abc a2bc
@@ -973,7 +996,7 @@ private:
       rawPtr(mono)[orderIndexBegin()] += oldExponent - newExponent;
     else {
       MATHICGB_ASSERT(mGrading.size() == varCount());
-      rawPtr(mono)[orderIndexBegin()] +=
+      rawPtr(mono)[orderIndexBegin()] -=
         mGrading[var] * (oldExponent - newExponent);
     }
     MATHICGB_ASSERT(debugOrderValid(mono));
@@ -1103,8 +1126,8 @@ namespace MonoMonoidHelper {
   struct unchar<unsigned char> {typedef unsigned short type;};
 }
 
-template<class E>
-void MonoMonoid<E>::parseM2(std::istream& in, MonoRef mono) const {
+template<class E, bool HC, bool SH, bool SO>
+void MonoMonoid<E, HC, SH, SO>::parseM2(std::istream& in, MonoRef mono) const {
   using MonoMonoidHelper::unchar;
   // todo: signal error on exponent overflow
 
@@ -1141,7 +1164,7 @@ void MonoMonoid<E>::parseM2(std::istream& in, MonoRef mono) const {
     if (isdigit(in.peek())) {
       typename unchar<Exponent>::type e;
       in >> e;
-      exponent = e;
+      exponent = static_cast<Exponent>(e);
     } else
       exponent = 1;
     sawSome = true;
@@ -1155,7 +1178,7 @@ void MonoMonoid<E>::parseM2(std::istream& in, MonoRef mono) const {
     }
     typename unchar<Exponent>::type e;
     in >> e;
-    access(mono, componentIndex()) = e;
+    access(mono, componentIndex()) = static_cast<Exponent>(e);
     if (in.peek() != '>') {
       mathic::reportError("Component < was not matched by >.");
       return;
@@ -1168,8 +1191,11 @@ void MonoMonoid<E>::parseM2(std::istream& in, MonoRef mono) const {
   MATHICGB_ASSERT(debugValid(mono));
 }
 
-template<class E>
-void MonoMonoid<E>::printM2(ConstMonoRef mono, std::ostream& out) const {
+template<class E, bool HC, bool SH, bool SO>
+void MonoMonoid<E, HC, SH, SO>::printM2(
+  ConstMonoRef mono,
+  std::ostream& out
+) const {
   using MonoMonoidHelper::unchar;
   const auto letterCount = 'z' - 'a' + 1;
 
@@ -1179,9 +1205,9 @@ void MonoMonoid<E>::printM2(ConstMonoRef mono, std::ostream& out) const {
       continue;
     char letter;
     if (var < letterCount)
-      letter = 'a' + var;
+      letter = 'a' + static_cast<char>(var);
     else if (var < 2 * letterCount)
-      letter = 'A' + (var - letterCount);
+      letter = 'A' + (static_cast<char>(var) - letterCount);
     else {
       mathic::reportError("Too few letters in alphabet to print variable.");
       return;

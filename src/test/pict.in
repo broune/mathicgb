@@ -14,7 +14,7 @@
 #
 # To update the test in gb-test.cpp, do
 #
-#   pick pict.in > pict.out
+#   pict pict.in > pict.out
 #
 # Then place the entire contents of pict.out (including newlines) into
 # the string allPairsTest in gb-test.cpp.

@@ -4,11 +4,32 @@
 #include <gtest/gtest.h>
 #include <sstream>
 
+
+// Do all-pairs testing -- see monoidPict.in. Especially see that file before
+// editing this list of types.
+typedef ::testing::Types<
+  MonoMonoid<int32,1,1,1>,
+  MonoMonoid<int32,0,1,1>,
+  MonoMonoid<int32,0,0,1>,
+  MonoMonoid<int32,0,0,0>,
+  MonoMonoid<int16,1,1,1>,
+  MonoMonoid<int16,0,1,1>,
+  MonoMonoid<int16,0,0,1>,
+  MonoMonoid<int16,0,0,0>,
+  MonoMonoid<int8,1,0,1>,
+  MonoMonoid<int8,0,1,0>,
+  MonoMonoid<int32,1,1,0>
+> MonoidTypes;
+
+template <typename T>
+class Monoid : public ::testing::Test {};
+TYPED_TEST_CASE(Monoid, MonoidTypes);
+
 // expect(i,j) encodes a matrix with interesting bit patterns that
 // are supposed to be likely to surface errors in how monomials are
 // stored inside a vector.
 uint32 expect(size_t mono, size_t var, size_t varCount) {
-  const auto unique = var + varCount * mono + 1;
+  const auto unique = (static_cast<uint32>(var + varCount * mono + 1) % 127);
 
   while (true) {
     // 000
@@ -57,18 +78,19 @@ uint32 expect(size_t mono, size_t var, size_t varCount) {
   }
 };
 
-TEST(MonoMonoid, VarCount) {
-  ASSERT_EQ(0, MonoMonoid<int8>(0).varCount());
-  ASSERT_EQ(1000 * 1000, MonoMonoid<int8>(1000 * 1000).varCount());
-  ASSERT_EQ(1, MonoMonoid<int16>(1).varCount());
-  ASSERT_EQ(2, MonoMonoid<int32>(2).varCount());
-  ASSERT_EQ(12, MonoMonoid<int64>(12).varCount());
+TYPED_TEST(Monoid, VarCount) {
+  typedef TypeParam Monoid;
+  ASSERT_EQ(0, Monoid(0).varCount());
+  ASSERT_EQ(1000 * 1000, Monoid(1000 * 1000).varCount());
+  ASSERT_EQ(1, Monoid(1).varCount());
+  ASSERT_EQ(2, Monoid(2).varCount());
+  ASSERT_EQ(12, Monoid(12).varCount());
 }
 
-TEST(MonoMonoid, MonoVector) {
-  typedef MonoMonoid<int32> Monoid;
-  typedef Monoid::VarIndex VarIndex;
-  typedef Monoid::MonoVector MonoVector;
+TYPED_TEST(Monoid, MonoVector) {
+  typedef TypeParam Monoid;
+  typedef typename Monoid::VarIndex VarIndex;
+  typedef typename Monoid::MonoVector MonoVector;
 
   Monoid monoid(13);
   MonoVector v(monoid);
@@ -108,8 +130,7 @@ TEST(MonoMonoid, MonoVector) {
   auto it = v.begin();
   ASSERT_EQ(it, v.cbegin());
   for (size_t i = 0; i < count; ++i, ++it) {
-    MonoVector::const_iterator tmp;
-    ASSERT_TRUE(it != tmp);
+    typename MonoVector::const_iterator tmp;
     tmp = it;
     ASSERT_EQ(tmp, it);
     ASSERT_TRUE(v.end() != it);
@@ -170,14 +191,14 @@ TEST(MonoMonoid, MonoVector) {
   ASSERT_TRUE(v.empty());
 }
 
-TEST(MonoMonoid, MonoPool) {
-  typedef MonoMonoid<int32> Monoid;
-  typedef Monoid::VarIndex VarIndex;
-  typedef Monoid::Mono Mono;
+TYPED_TEST(Monoid, MonoPool) {
+  typedef TypeParam Monoid;
+  typedef typename Monoid::VarIndex VarIndex;
+  typedef typename Monoid::Mono Mono;
 
   for (int q = 0; q < 2; ++q) {
     Monoid monoid(13);
-    Monoid::MonoPool pool(monoid);
+    typename Monoid::MonoPool pool(monoid);
     const auto varCount = monoid.varCount();
 
     const auto count = 1000;
@@ -243,86 +264,79 @@ namespace {
   }
 }
 
-namespace {
-  template<class E>
-  void parsePrintM2Helper() {
-    MonoMonoid<E> m(100);
-    const char* str = "1 a z A Z ab a2 a2b ab2 a20b30 1<1> a<2> a2<3> ab<11>\n";
-    auto v2 = parseVector(m, str);
-    std::ostringstream v2Out;
-    v2.printM2(v2Out);
-    ASSERT_EQ(str, v2Out.str());
+TYPED_TEST(Monoid, ParsePrintM2) {
+  typedef TypeParam Monoid;
+  Monoid m(100);
+  const char* str = "1 a z A Z ab a2 a2b ab2 a20b30 1<1> a<2> a2<3> ab<11>\n";
+  auto v2 = parseVector(m, str);
+  std::ostringstream v2Out;
+  v2.printM2(v2Out);
+  ASSERT_EQ(str, v2Out.str());
 
-    decltype(v2) v(m);
-    v.push_back(); // 1
+  decltype(v2) v(m);
+  v.push_back(); // 1
 
-    v.push_back(); // a
-    m.setExponent(0, 1, v.back());
+  v.push_back(); // a
+  m.setExponent(0, 1, v.back());
  
-    v.push_back(); // z
-    m.setExponent(25, 1, v.back());
+  v.push_back(); // z
+  m.setExponent(25, 1, v.back());
 
-    v.push_back(); // A
-    m.setExponent(26, 1, v.back());
+  v.push_back(); // A
+  m.setExponent(26, 1, v.back());
 
-    v.push_back(); // Z
-    m.setExponent(51, 1, v.back());
+  v.push_back(); // Z
+  m.setExponent(51, 1, v.back());
 
-    v.push_back(); // ab
-    m.setExponent(0, 1, v.back());
-    m.setExponent(1, 1, v.back());
+  v.push_back(); // ab
+  m.setExponent(0, 1, v.back());
+  m.setExponent(1, 1, v.back());
 
-    v.push_back(); // a2
-    m.setExponent(0, 2, v.back());
+  v.push_back(); // a2
+  m.setExponent(0, 2, v.back());
 
-    v.push_back(); // a2b
-    m.setExponent(0, 2, v.back());
-    m.setExponent(1, 1, v.back());
+  v.push_back(); // a2b
+  m.setExponent(0, 2, v.back());
+  m.setExponent(1, 1, v.back());
 
-    v.push_back(); // ab2
-    m.setExponent(0, 1, v.back());
-    m.setExponent(1, 2, v.back());
+  v.push_back(); // ab2
+  m.setExponent(0, 1, v.back());
+  m.setExponent(1, 2, v.back());
 
-    v.push_back(); // a20b30
-    m.setExponent(0, 20, v.back());
-    m.setExponent(1, 30, v.back());
+  v.push_back(); // a20b30
+  m.setExponent(0, 20, v.back());
+  m.setExponent(1, 30, v.back());
 
-    v.push_back(); // 1<1>
-    m.setComponent(1, v.back());
+  v.push_back(); // 1<1>
+  m.setComponent(1, v.back());
 
-    v.push_back(); // a<2>
-    m.setComponent(2, v.back());
-    m.setExponent(0, 1, v.back());
+  v.push_back(); // a<2>
+  m.setComponent(2, v.back());
+  m.setExponent(0, 1, v.back());
 
-    v.push_back(); // a2<3>
-    m.setComponent(3, v.back());
-    m.setExponent(0, 2, v.back());
+  v.push_back(); // a2<3>
+  m.setComponent(3, v.back());
+  m.setExponent(0, 2, v.back());
 
-    v.push_back(); // ab<11>
-    m.setComponent(11, v.back());
-    m.setExponent(0, 1, v.back());
-    m.setExponent(1, 1, v.back());
+  v.push_back(); // ab<11>
+  m.setComponent(11, v.back());
+  m.setExponent(0, 1, v.back());
+  m.setExponent(1, 1, v.back());
 
-    std::ostringstream vOut;
-    v.printM2(vOut);
-    ASSERT_EQ(str, vOut.str());
+  std::ostringstream vOut;
+  v.printM2(vOut);
+  ASSERT_EQ(str, vOut.str());
   
-    ASSERT_EQ(v, v2);
-  }
+  ASSERT_EQ(v, v2);
 }
 
-TEST(MonoMonoid, ParsePrintM2) {
-  parsePrintM2Helper<int32>();
-  parsePrintM2Helper<int16>();
-  parsePrintM2Helper<int8>();
-}
 
-TEST(MonoMonoid, MultiplyDivide) {
-  typedef MonoMonoid<int32> Monoid;
+TYPED_TEST(Monoid, MultiplyDivide) {
+  typedef TypeParam Monoid;
   Monoid m(49);
-  Monoid::MonoPool pool(m);
+  typename Monoid::MonoPool pool(m);
   auto mono = pool.alloc();
-  auto check = [&](const char* str) {
+  auto check = [&](const char* str) -> void {
     auto v = parseVector(m, str);
     MATHICGB_ASSERT(v.size() == 3);
     const auto& a = v.front();
@@ -427,13 +441,13 @@ TEST(MonoMonoid, MultiplyDivide) {
   check("abcdefghiV<7> ab2c3d4e5f6g7h8i9V11 a2b3c4d5e6f7g8h9i10V12<7>");
 }
 
-TEST(MonoMonoid, LcmColon) {
-  typedef MonoMonoid<int32> Monoid;
+TYPED_TEST(Monoid, LcmColon) {
+  typedef TypeParam Monoid;
   Monoid m(49);
-  Monoid::MonoPool pool(m);
+  typename Monoid::MonoPool pool(m);
   auto mono = pool.alloc();
   auto mono2 = pool.alloc();
-  auto check = [&](const char* str) {
+  auto check = [&](const char* str) -> void {
     auto v = parseVector(m, str);
     MATHICGB_ASSERT(v.size() == 3);
     const auto& a = v.front();
@@ -485,8 +499,8 @@ TEST(MonoMonoid, LcmColon) {
   check("a6b7c8d9efghiV ab2c3d4e5f6g7h8i9V11 a6b7c8d9e5f6g7h8i9V11");
 }
 
-TEST(MonoMonoid, Order) {
-  typedef MonoMonoid<int32> Monoid;
+TYPED_TEST(Monoid, Order) {
+  typedef TypeParam Monoid;
   Monoid m(52);
   auto v = parseVector(m, "1 Z A z c b a c2 bc ac b2 ab a2 c3 abc b3 a3");
 
@@ -505,13 +519,13 @@ TEST(MonoMonoid, Order) {
   }
 }
 
-TEST(MonoMonoid, RelativelyPrime) {
-  typedef MonoMonoid<int32> Monoid;
+TYPED_TEST(Monoid, RelativelyPrime) {
+  typedef TypeParam Monoid;
   Monoid m(49);
-  Monoid::MonoPool pool(m);
+  typename Monoid::MonoPool pool(m);
   auto mono = pool.alloc();
   auto mono2 = pool.alloc();
-  auto check = [&](const char* str, bool relativelyPrime) {
+  auto check = [&](const char* str, bool relativelyPrime) -> void {
     auto v = parseVector(m, str);
     MATHICGB_ASSERT(v.size() == 2);
     ASSERT_EQ(relativelyPrime, m.relativelyPrime(v.front(), v.back()));
@@ -526,89 +540,67 @@ TEST(MonoMonoid, RelativelyPrime) {
   check("fgh abcdef", false);
 }
 
-TEST(MonoMonoid, SetExponents) {
-  typedef MonoMonoid<int32> Monoid;
+TYPED_TEST(Monoid, SetExponents) {
+  typedef TypeParam Monoid;
   Monoid m(5);
   auto v = parseVector(m, "a1b2c3d4e5");
-  int32 exponents[] = {1, 2, 3, 4, 5};
+  typename Monoid::Exponent exponents[] = {1, 2, 3, 4, 5};
   v.push_back();
   m.setExponents(exponents, v.back());
   ASSERT_TRUE(m.equal(v.front(), v.back()));  
 }
 
-TEST(MonoMonoid, HasAmpleCapacity) {
-  // non-total-degree grading, last char is c
-  std::vector<int8> v8;
-  v8.push_back(1);
-  v8.push_back(10);
-  v8.push_back(1);
-  MonoMonoid<int8> m8(v8);
+TYPED_TEST(Monoid, HasAmpleCapacityTotalDegree) {
+  typedef TypeParam Monoid;
+  typedef typename Monoid::Exponent Exponent;
+  typedef typename Monoid::VarIndex VarIndex;
 
-  // total degree grading, last char is d.
-  MonoMonoid<int16> m16(4);
+  for (VarIndex varCount = 1; varCount < 33; ++varCount) {
+    Monoid monoidTotalDegree(varCount);
+    std::vector<Exponent> v(varCount, 1);
+    Monoid monoidTotalDegreeImplicit(v);
+    v[0] = 7;
+    Monoid monoidGeneral(v);
 
-  // non-total-degree grading, last char is e
-  std::vector<int32> v32;
-  v32.push_back(1);
-  v32.push_back(10);
-  v32.push_back(1);
-  v32.push_back(1);
-  v32.push_back(1);
-  MonoMonoid<int32> m32(v32);
+    Monoid* monoids[] = {
+      &monoidTotalDegree,
+      &monoidTotalDegreeImplicit,
+      &monoidGeneral
+    };
+    for (int j = 0; j < 3; ++j) {
+      auto& m = *monoids[j];
+      const auto firstDeg = (j == 2 ? v[0] : 1);
+      ASSERT_EQ(varCount, m.varCount());
 
-  // total degree grading, last char is n
-  MonoMonoid<int32> m32t(14);
+      typename Monoid::MonoPool p(m);
+      auto mono = p.alloc();
+      const auto last = m.varCount() - 1;
+      const auto max = std::numeric_limits<Exponent>::max() / 2;
 
+      // pure power, first variable
+      m.setIdentity(mono);
+      m.setExponent(0, max / firstDeg, mono);
+      ASSERT_TRUE(m.hasAmpleCapacity(mono));
+      m.setExponent(0, max / firstDeg + 1, mono);
+      ASSERT_FALSE(m.hasAmpleCapacity(mono));
 
-  // pure power, first variable
-  auto f8 = parseVector(m8, "a63 a64");
-  ASSERT_TRUE(m8.hasAmpleCapacity(f8.front()));
-  ASSERT_FALSE(m8.hasAmpleCapacity(f8.back()));
+      if (varCount == 1)
+        continue;
 
-  auto f16 = parseVector(m16, "a16383 a16384");
-  ASSERT_TRUE(m16.hasAmpleCapacity(f16.front()));
-  ASSERT_FALSE(m16.hasAmpleCapacity(f16.back()));
+      // pure power, last variable
+      m.setIdentity(mono);
+      m.setExponent(last, max, mono);
+      ASSERT_TRUE(m.hasAmpleCapacity(mono));
+      m.setExponent(last, max + 1, mono);
+      ASSERT_FALSE(m.hasAmpleCapacity(mono));
 
-  auto f32 = parseVector(m32, "a1073741823 a1073741824");
-  ASSERT_TRUE(m32.hasAmpleCapacity(f32.front()));
-  ASSERT_FALSE(m32.hasAmpleCapacity(f32.back()));
-
-  auto f32t = parseVector(m32t, "a1073741823 a1073741824");
-  ASSERT_TRUE(m32.hasAmpleCapacity(f32t.front()));
-  ASSERT_FALSE(m32.hasAmpleCapacity(f32t.back()));
-
-  // pure power, last variable
-  auto l8 = parseVector(m8, "c63 c64");
-  ASSERT_TRUE(m8.hasAmpleCapacity(l8.front()));
-  ASSERT_FALSE(m8.hasAmpleCapacity(l8.back()));
-
-  auto l16 = parseVector(m16, "d16383 d16384");
-  ASSERT_TRUE(m16.hasAmpleCapacity(l16.front()));
-  ASSERT_FALSE(m16.hasAmpleCapacity(l16.back()));
-
-  auto l32 = parseVector(m32, "e1073741823 e1073741824");
-  ASSERT_TRUE(m32.hasAmpleCapacity(l32.front()));
-  ASSERT_FALSE(m32.hasAmpleCapacity(l32.back()));
-
-  auto l32t = parseVector(m32t, "n1073741823 n1073741824");
-  ASSERT_TRUE(m32t.hasAmpleCapacity(l32t.front()));
-  ASSERT_FALSE(m32t.hasAmpleCapacity(l32t.back()));
-
-  // no exponent is too high but the degree is
-  auto d8 = parseVector(m8, "abc52 abc53");
-  ASSERT_TRUE(m8.hasAmpleCapacity(d8.front()));
-  ASSERT_FALSE(m8.hasAmpleCapacity(d8.back()));
-
-  auto d16 = parseVector(m16, "abcd16380 abcd16381");
-  ASSERT_TRUE(m16.hasAmpleCapacity(d16.front()));
-  ASSERT_FALSE(m16.hasAmpleCapacity(d16.back()));
-
-  auto d32 = parseVector(m32, "abcde1073741810 abcde1073741811");
-  ASSERT_TRUE(m32.hasAmpleCapacity(d32.front()));
-  ASSERT_FALSE(m32.hasAmpleCapacity(d32.back()));
-
-  auto d32t = parseVector
-    (m32t, "abcdefghijklmn1073741810 abcdefghijklmn1073741811");
-  ASSERT_TRUE(m32t.hasAmpleCapacity(d32t.front()));
-  ASSERT_FALSE(m32t.hasAmpleCapacity(d32t.back()));
+      // no exponent is too high but the degree is
+      m.setIdentity(mono);
+      m.setExponent(0, 12, mono);
+      m.setExponent(last, max - 12 * firstDeg, mono);
+      ASSERT_TRUE(m.hasAmpleCapacity(mono));
+      m.setExponent(0, 13, mono);
+      ASSERT_FALSE(m.hasAmpleCapacity(mono));
+    }
+  }
 }
