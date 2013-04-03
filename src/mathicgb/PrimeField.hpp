@@ -52,7 +52,8 @@ public:
     static_assert(std::numeric_limits<NoRefInteger>::is_integer, "");
 
     MATHICGB_ASSERT(0 <= i);
-    MATHICGB_ASSERT(i < charac());
+    typedef typename std::make_unsigned<NoRefInteger>::type Unsigned;
+    MATHICGB_ASSERT(static_cast<Unsigned>(i) < charac());
     return Element(i);
   }
 

@@ -3,6 +3,7 @@
 #ifndef _polyRing_h_
 #define _polyRing_h_
 
+#define MATHICGB_USE_MONOID
 #ifdef MATHICGB_USE_MONOID
 #include "MonoMonoid.hpp"
 
@@ -660,7 +661,7 @@ private:
 
 inline exponent PolyRing::weight(ConstMonomial a) const {
 #ifdef MATHICGB_USE_MONOID
-  monoid().degree(a);
+  return monoid().degree(a);
 #else
   MATHICGB_ASSERT(weightsCorrect(a));
   return a[mNumVars + 1];

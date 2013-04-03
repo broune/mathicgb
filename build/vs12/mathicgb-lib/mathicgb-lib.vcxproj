@@ -471,7 +471,6 @@
     <ClCompile Include="..\..\..\src\mathicgb\PolyHeap.cpp" />
     <ClCompile Include="..\..\..\src\mathicgb\PolyReducer.cpp" />
     <ClCompile Include="..\..\..\src\mathicgb\PolyRing.cpp" />
-    <ClCompile Include="..\..\..\src\mathicgb\PrimeField.cpp" />
     <ClCompile Include="..\..\..\src\mathicgb\QuadMatrix.cpp" />
     <ClCompile Include="..\..\..\src\mathicgb\QuadMatrixBuilder.cpp" />
     <ClCompile Include="..\..\..\src\mathicgb\Reducer.cpp" />
