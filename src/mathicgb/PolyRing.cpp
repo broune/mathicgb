@@ -28,13 +28,9 @@ PolyRing::PolyRing(
   mMaxMonomialSize(nvars + mNumWeights + 2),
   mMaxMonomialByteSize(mMaxMonomialSize * sizeof(exponent)),
   mMonomialPool(mMaxMonomialByteSize),
-  mTotalDegreeGradedOnly(false)
-#ifdef MATHICGB_USE_MONOID
-  , mMonoid(weights)
-#endif
-#ifdef MATHICGB_USE_FIELD
-    , mField(p0)
-#endif
+  mTotalDegreeGradedOnly(false),
+  mMonoid(weights),
+  mField(p0)
 {
   MATHICGB_ASSERT(weights.size() == nvars);
   mTotalDegreeGradedOnly = true;
@@ -62,13 +58,9 @@ PolyRing::PolyRing(coefficient p0,
     mMaxMonomialSize(nvars + nweights + 2),
     mMaxMonomialByteSize(mMaxMonomialSize * sizeof(exponent)),
     mMonomialPool(mMaxMonomialByteSize),
-    mTotalDegreeGradedOnly(nweights == 1)
-#ifdef MATHICGB_USE_MONOID
-    , mMonoid(nvars)
-#endif
-#ifdef MATHICGB_USE_FIELD
-    , mField(p0)
-#endif
+    mTotalDegreeGradedOnly(nweights == 1),
+    mMonoid(nvars),
+    mField(p0)
 {
   MATHICGB_ASSERT(nweights == 1);
 
@@ -152,13 +144,7 @@ void PolyRing::monomialEi(size_t i, Monomial &result) const
 
 void PolyRing::monomialMultTo(Monomial &a, ConstMonomial b) const
 {
-#ifdef MATHICGB_USE_MONOID
   monoid().multiplyInPlace(b, a);
-#else
-  // a *= b
-  for (size_t i = mHashIndex; i != static_cast<size_t>(-1); --i)
-    a[i] += b[i];
-#endif
 }
 
 

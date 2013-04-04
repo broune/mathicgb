@@ -228,8 +228,9 @@ void SPairs::addPairs(size_t newGen) {
     }
     mRing.setWeightsOnly(lcm);
 
-    prePairs.emplace_back(lcm, static_cast<Queue::Index>(oldGen));
-    lcm = mBasis.ring().allocMonomial();
+    auto newLcm = mBasis.ring().allocMonomial();
+    mBasis.ring().monomialCopy(lcm, newLcm);
+    prePairs.emplace_back(newLcm, static_cast<Queue::Index>(oldGen));
   }
   mBasis.ring().freeMonomial(lcm);
 
