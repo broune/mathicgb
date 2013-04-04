@@ -18,9 +18,9 @@
 /// TODO: support grading and comparison.
 template<
   class Exponent,
-  bool hasComponent = true,
-  bool storeHash = true,
-  bool storeOrder = true
+  bool HasComponent = true,
+  bool StoreHash = true,
+  bool StoreOrder = true
 >
 class MonoMonoid;
 
@@ -41,18 +41,18 @@ public:
   typedef E Exponent;
 
   /// Is true if the monomials come from a module.
-  static const bool hasComponent;
+  static const bool HasComponent = HC;
 
   /// Is true if the hash value is stored rather than computed at each 
   /// hash request. This imposes extra computation when updating a monomial,
   /// but for most operations that overhead is much less than the time for
   /// computing a hash value from scratch.
-  static const bool storeHash;
+  static const bool StoreHash = SH;
 
   /// Is true if data to compare monomials is stored rather than computed
   /// at each comparison. As storeHash, there is overhead for this, but it
   /// is not much for most operations.
-  static const bool storeOrder;
+  static const bool StoreOrder = SO;
 
   /// Type used to indicate the component of a module monomial. For example,
   /// the component of xe_3 is 3.
@@ -122,9 +122,9 @@ public:
 
   MonoMonoid(const std::vector<Exponent>& grading):
     mVarCount(grading.size()),
-    mOrderEntryCount(1),
-    mOrderIndexBegin(1 + mVarCount),
-    mOrderIndexEnd(2 + mVarCount),
+    mOrderEntryCount(StoreOrder),
+    mOrderIndexBegin(HasComponent + mVarCount),
+    mOrderIndexEnd(HasComponent + mVarCount + StoreOrder),
     mHashCoefficients(mVarCount),
     mGradingIsTotalDegree(
       [&]() {
@@ -153,9 +153,9 @@ public:
 
   MonoMonoid(const VarIndex varCount):
     mVarCount(varCount),
-    mOrderEntryCount(1),
-    mOrderIndexBegin(1 + mVarCount),
-    mOrderIndexEnd(2 + mVarCount),
+    mOrderEntryCount(StoreOrder),
+    mOrderIndexBegin(HasComponent + mVarCount),
+    mOrderIndexEnd(HasComponent + mVarCount + StoreOrder),
     mHashCoefficients(mVarCount),
     mGradingIsTotalDegree(true),
     mGrading()
@@ -193,7 +193,7 @@ public:
   /// Returns the exponent of var in mono.
   Exponent exponent(ConstMonoRef mono, const VarIndex var) const {
     MATHICGB_ASSERT(var < varCount());
-    return begin(mono)[var];
+    return access(mono, exponentsIndexBegin() + var);
   } 
 
   /// Returns the component of the monomial. Monomials not from a
@@ -201,6 +201,7 @@ public:
   /// i. @todo: Have different monoids for module monomials and
   /// monomials and only offer this method for the module monomials.
   Component component(ConstMonoRef mono) const {
+    MATHICGB_ASSERT(HasComponent);
     return access(mono, componentIndex());
   }
 
@@ -208,12 +209,15 @@ public:
   /// to be unique.
   HashValue hash(ConstMonoRef mono) const {
     MATHICGB_ASSERT(debugHashValid(mono));
-    return static_cast<HashValue>(access(mono, hashIndex()));
+    if (StoreHash)
+      return static_cast<HashValue>(access(mono, hashIndex()));
+    else
+      return computeHash(mono);
   }
 
   /// Returns true if a and b are equal. Includes check for component.
   bool equal(ConstMonoRef a, ConstMonoRef b) const {
-    for (auto i = componentIndex(); i != exponentsIndexEnd(); ++i)
+    for (auto i = entriesIndexBegin(); i != exponentsIndexEnd(); ++i)
       if (access(a, i) != access(b, i))
         return false;
     return true;
@@ -227,7 +231,7 @@ public:
     // that none of the early-exit branches are taken - that is, when a equals
     // b.
     Exponent orOfXor = 0;
-    for (VarIndex i = lastExponentIndex(); i != beforeComponentIndex(); --i)
+    for (VarIndex i = lastExponentIndex(); i != beforeEntriesIndexBegin(); --i)
       orOfXor |= access(a, i) ^ access(b, i);
     MATHICGB_ASSERT((orOfXor == 0) == equal(a, b));
     return orOfXor == 0;
@@ -238,7 +242,7 @@ public:
     ConstMonoRef b,
     ConstMonoRef ab
   ) const {
-    for (VarIndex i = componentIndex(); i != exponentsIndexEnd(); ++i)
+    for (VarIndex i = entriesIndexBegin(); i != exponentsIndexEnd(); ++i)
       if (access(ab, i) != access(a, i) + access(b, i))
         return false;
     return true;
@@ -267,7 +271,7 @@ public:
       return isProductOf(a, b, ab);
 
     uint64 orOfXor = 0;
-    for (VarIndex i = varCount() / 2; i != beforeComponentIndex(); --i) {
+    for (VarIndex i = varCount() / 2; i != beforeEntriesIndexBegin(); --i) {
       MATHICGB_ASSERT(access(a, i*2) >= 0);
       MATHICGB_ASSERT(i == varCount() / 2 || access(a, i*2+1) >= 0);
       
@@ -296,7 +300,7 @@ public:
       return (isProductOf(a1, b, a1b) && isProductOf(a2, b, a2b));
 
     uint64 orOfXor = 0;
-    for (VarIndex i = varCount() / 2; i != beforeComponentIndex(); --i) {
+    for (VarIndex i = varCount() / 2; i != beforeEntriesIndexBegin(); --i) {
       uint64 A1, A2, B, A1B, A2B;
       std::memcpy(&A1, ptr(a1, i*2), 8);
       std::memcpy(&A2, ptr(a2, i*2), 8);
@@ -327,28 +331,29 @@ public:
 
   /// Returns true if a divides b. Equal monomials divide each other.
   bool divides(ConstMonoRef a, ConstMonoRef b) const {
-    for (auto var = 0; var < varCount(); ++var)
-      if (exponent(a, var) > exponent(b, var))
-	return false;
+    for (auto i = entriesIndexBegin(); i < exponentsIndexEnd(); ++i)
+      if (access(a, i) > access(b, i))
+        return false;
     return true;
   }
 
   /// Returns true if div divides lcm(a, b).
   bool dividesLcm(ConstMonoRef div, ConstMonoRef a, ConstMonoRef b) const {
+    MATHICGB_ASSERT(!HasComponent || component(a) == component(b));
+
     for (auto i = exponentsIndexBegin(); i != exponentsIndexEnd(); ++i) {
       const auto dive = access(div, i);
       if (access(div, i) > access(a, i) && access(div, i) > access(b, i))
-	return false;
+        return false;
     }
     return true;
   }
 
   /// Returns true if lcm(a,b) == lcmAB.
   bool isLcm(ConstMonoRef a, ConstMonoRef b, ConstMonoRef lcmAB) const {
-    MATHICGB_ASSERT(component(a) == component(b));
+    MATHICGB_ASSERT(!HasComponent || component(a) == component(b));
 
-    // Loop also checks component.
-    for (auto i = componentIndex(); i != exponentsIndexEnd(); ++i)
+    for (auto i = exponentsIndexBegin(); i != exponentsIndexEnd(); ++i)
       if (access(lcmAB, i) != std::max(access(a, i), access(b, i)))
         return false;
     return true;
@@ -359,8 +364,11 @@ public:
     MATHICGB_ASSERT(debugOrderValid(a));
     MATHICGB_ASSERT(debugOrderValid(b));
 
-    const auto stop = componentIndex() - 1;
-    for (auto i = orderIndexEnd() - 1; i != stop; --i) {
+    const auto cmp = degree(a) - degree(b);
+    if (cmp < 0) return GreaterThan;
+    if (cmp > 0) return LessThan;
+
+    for (auto i = exponentsIndexEnd() - 1; i != beforeEntriesIndexBegin(); --i) {
       const auto cmp = access(a, i) - access(b, i);
       if (cmp < 0) return GreaterThan;
       if (cmp > 0) return LessThan;
@@ -388,19 +396,24 @@ public:
     const auto halfMax = std::numeric_limits<Exponent>::max() / 2;
     MATHICGB_ASSERT(halfMin <= 0);
     const auto limit = std::min(-halfMin, halfMax);
+    const auto inRange = [&](Exponent value)
+      {return -limit <= value && value <= limit;};
 
-    for (VarIndex i = exponentsIndexBegin(); i != orderIndexEnd(); ++i) {
-      const auto value = access(mono, i);
-      if (!(-limit <= value && value <= limit))
+    for (VarIndex i = exponentsIndexBegin(); i != exponentsIndexEnd(); ++i)
+      if (!inRange(access(mono, i)))
         return false;
-    }
+    if (!inRange(degree(mono)))
+      return false;
     return true;
   }
 
   /// Returns the degree of mono using the grading on the monoid.
   Exponent degree(ConstMonoRef mono) const {
     MATHICGB_ASSERT(debugOrderValid(mono));
-    return access(mono, orderIndexBegin());
+    if (StoreOrder)
+      return access(mono, orderIndexBegin());
+    else
+      return computeDegree(mono);
   }
 
 
@@ -409,7 +422,9 @@ public:
   /// Copes the parameter from to the parameter to.
   void copy(ConstMonoRef from, MonoRef to) const {
     MATHICGB_ASSERT(debugValid(from));
+
     std::copy_n(rawPtr(from), entryCount(), rawPtr(to));
+
     MATHICGB_ASSERT(debugValid(to));
   }
 
@@ -420,12 +435,14 @@ public:
     MonoRef mono
   ) const {
     MATHICGB_ASSERT(var < varCount());
+
     auto& exponent = access(mono, exponentsIndexBegin() + var);
     const auto oldExponent = exponent;
     exponent = newExponent;
 
     updateOrderData(var, oldExponent, newExponent, mono);
     updateHashExponent(var, oldExponent, newExponent, mono);
+
     MATHICGB_ASSERT(debugValid(mono));
   }
 
@@ -433,26 +450,33 @@ public:
   /// of size varCount().
   void setExponents(const Exponent* exponents, MonoRef mono) const {
     MATHICGB_ASSERT(exponents != 0);
-    access(mono, componentIndex()) = 0;
+
+    if (HasComponent)
+      access(mono, componentIndex()) = 0;
     std::copy_n(exponents, varCount(), ptr(mono, exponentsIndexBegin()));
     setOrderData(mono);
     setHash(mono);
+
     MATHICGB_ASSERT(debugValid(mono));
   }
 
   /// Sets mono to 1, which is the identity for multiplication.
   void setIdentity(MonoRef mono) const {
     std::fill_n(rawPtr(mono), entryCount(), static_cast<Exponent>(0));
+
     MATHICGB_ASSERT(debugValid(mono));
     MATHICGB_ASSERT(isIdentity(mono));
   }
 
   /// Sets the component of mono to newComponent.
   void setComponent(Component newComponent, MonoRef mono) const {
+    MATHICGB_ASSERT(HasComponent);
+
     auto& component = access(mono, componentIndex());
     const auto oldComponent = component;
     component = newComponent;
     updateHashComponent(oldComponent, newComponent, mono);
+
     MATHICGB_ASSERT(debugValid(mono));
   }
 
@@ -461,7 +485,7 @@ public:
     MATHICGB_ASSERT(debugValid(a));
     MATHICGB_ASSERT(debugValid(b));
 
-    for (auto i = lastEntryIndex(); i != beforeFirstIndex(); --i)
+    for (auto i = lastEntryIndex(); i != beforeEntriesIndexBegin(); --i)
       access(prod, i) = access(a, i) + access(b, i);
 
     MATHICGB_ASSERT(debugValid(prod));
@@ -472,7 +496,7 @@ public:
     MATHICGB_ASSERT(debugValid(a));
     MATHICGB_ASSERT(debugValid(prod));
 
-    for (auto i = 0; i < entryCount(); ++i)
+    for (auto i = entriesIndexBegin(); i < entriesIndexEnd(); ++i)
       access(prod, i) += access(a, i);
 
     MATHICGB_ASSERT(debugValid(prod));      
@@ -484,7 +508,7 @@ public:
     MATHICGB_ASSERT(debugValid(num));
     MATHICGB_ASSERT(debugValid(by));
 
-    for (auto i = 0; i < entryCount(); ++i)
+    for (auto i = entriesIndexBegin(); i < entriesIndexEnd(); ++i)
       access(quo, i) = access(num, i) - access(by, i);
 
     MATHICGB_ASSERT(debugValid(quo));
@@ -496,7 +520,7 @@ public:
     MATHICGB_ASSERT(debugValid(by));
     MATHICGB_ASSERT(debugValid(num));
 
-    for (auto i = 0; i < entryCount(); ++i)
+    for (auto i = entriesIndexBegin(); i < entriesIndexEnd(); ++i)
       access(num, i) -= access(by, i);
 
     MATHICGB_ASSERT(debugValid(num));
@@ -507,8 +531,13 @@ public:
   void divideToNegative(ConstMonoRef by, ConstMonoRef num, MonoRef quo) const {
     MATHICGB_ASSERT(debugValid(num));
     MATHICGB_ASSERT(debugValid(by));
+    MATHICGB_ASSERT(
+      !HasComponent ||
+      component(by) == 0 ||
+      component(by) == component(num)
+    );
 
-    for (auto i = 0; i < entryCount(); ++i)
+    for (auto i = entriesIndexBegin(); i < entriesIndexEnd(); ++i)
       access(quo, i) = access(num, i) - access(by, i);
 
     MATHICGB_ASSERT(debugValid(quo));
@@ -523,10 +552,13 @@ public:
   ) const {
     MATHICGB_ASSERT(debugValid(a));
     MATHICGB_ASSERT(debugValid(b));
-    MATHICGB_ASSERT(component(a) == component(b));
 
-    access(aColonB, componentIndex()) = 0;
-    access(bColonA, componentIndex()) = 0;
+    if (HasComponent) {
+      MATHICGB_ASSERT(component(a) == component(b));
+      access(aColonB, componentIndex()) = 0;
+      access(bColonA, componentIndex()) = 0;
+    }
+
     for (auto i = exponentsIndexBegin(); i != exponentsIndexEnd(); ++i) {
       const auto ae = access(a, i);
       const auto be = access(b, i);
@@ -544,10 +576,11 @@ public:
   }
 
   void lcm(ConstMonoRef a, ConstMonoRef b, MonoRef lcmAB) const {
-    MATHICGB_ASSERT(component(a) == component(b));
-
-    // Loop also sets component.
-    for (auto i = componentIndex(); i != exponentsIndexEnd(); ++i)
+    if (HasComponent) {
+      MATHICGB_ASSERT(component(a) == component(b));
+      access(lcmAB, componentIndex()) = access(a, componentIndex());
+    }
+    for (auto i = exponentsIndexBegin(); i != exponentsIndexEnd(); ++i)
       access(lcmAB, i) = std::max(access(a, i), access(b, i));
     setOrderData(lcmAB);
     setHash(lcmAB);
@@ -613,7 +646,6 @@ public:
   public:
     MonoPtr(): mMono(0) {}
     MonoPtr(const MonoPtr& mono): mMono(mono.mMono) {}
-    // todo: xxx
 
     MonoPtr operator=(const MonoPtr& mono) {
       mMono = mono.mMono;
@@ -734,7 +766,7 @@ public:
     void free(Mono& mono) {free(std::move(mono));}
     void free(Mono&& mono) {
       if (mono.isNull())
-	return;
+        return;
       mPool.free(rawPtr(mono));
       mono.mMono = 0;
       mono.mPool = 0;
@@ -892,20 +924,20 @@ public:
     /// the vector.
     void parseM2(std::istream& in) {
       while(true) {
-	push_back();
-	monoid().parseM2(in, back());
-	if (in.peek() != ' ')
-	  break;
-	in.get();
+        push_back();
+        monoid().parseM2(in, back());
+        if (in.peek() != ' ')
+          break;
+        in.get();
       }
     }
 
     /// The inverse of parseM2.
     void printM2(std::ostream& out) const {
       for (auto it = begin(); it != end(); ++it) {
-	if (it != begin())
-	  out << ' ';
-	monoid().printM2(*it, out);
+      if (it != begin())
+        out << ' ';
+       monoid().printM2(*it, out);
       }
       out << '\n';
     }
@@ -962,6 +994,8 @@ private:
   // *** Implementation of monomial ordering
   bool debugOrderValid(ConstMonoRef mono) const {
 #ifdef MATHICGB_DEBUG
+    if (!StoreOrder)
+      return true;
     // Check assumptions for layout in memory.
     MATHICGB_ASSERT(orderIndexBegin() == exponentsIndexEnd());
     MATHICGB_ASSERT(orderIndexBegin() + orderEntryCount() == orderIndexEnd());
@@ -981,6 +1015,9 @@ private:
   }
 
   void setOrderData(MonoRef mono) const {
+    if (!StoreOrder)
+      return;
+
     rawPtr(mono)[orderIndexBegin()] = computeDegree(mono);      
     MATHICGB_ASSERT(debugOrderValid(mono));
   }
@@ -991,6 +1028,9 @@ private:
     const Exponent newExponent,
     MonoRef mono
   ) const {
+    if (!StoreOrder)
+      return;
+
     MATHICGB_ASSERT(var < varCount());
     if (mGradingIsTotalDegree)
       rawPtr(mono)[orderIndexBegin()] += oldExponent - newExponent;
@@ -1019,6 +1059,9 @@ private:
   // *** Implementation of hash value computation
 
   bool debugHashValid(ConstMonoRef mono) const {
+    if (!StoreHash)
+      return true;
+
     // We cannot call hash() here since it calls this method.
     MATHICGB_ASSERT(hashIndex() < entryCount());
     // todo: we cannot make this check right now because the legacy
@@ -1028,10 +1071,9 @@ private:
   }
 
   HashValue computeHash(ConstMonoRef mono) const {
-    HashValue hash = component(mono);
-    const auto exponents = begin(mono);
+    HashValue hash = HasComponent ? component(mono) : 0;
     for (VarIndex var = 0; var < varCount(); ++var)
-      hash += static_cast<HashValue>(exponents[var]) * mHashCoefficients[var];
+      hash += static_cast<HashValue>(exponent(mono, var)) * mHashCoefficients[var];
 
     // Hash values are stored as exponents. If the cast to an exponent
     // changes the value, then we need computeHashValue to match that
@@ -1041,6 +1083,8 @@ private:
   }
 
   void setHash(MonoRef mono) const {
+    if (!StoreHash)
+      return;
     rawPtr(mono)[hashIndex()] = computeHash(mono);
     MATHICGB_ASSERT(debugHashValid(mono));
   }
@@ -1050,6 +1094,8 @@ private:
     const Exponent newComponent,
     MonoRef mono
   ) const {
+    if (!StoreHash)
+      return;
     rawPtr(mono)[hashIndex()] += newComponent - oldComponent;
     MATHICGB_ASSERT(debugHashValid(mono));
   }
@@ -1060,6 +1106,8 @@ private:
     const Exponent newExponent,
     MonoRef mono
   ) const {
+    if (!StoreHash)
+      return;
     MATHICGB_ASSERT(var < varCount());
     rawPtr(mono)[hashIndex()] +=
       (newExponent - oldExponent) * mHashCoefficients[var];
@@ -1078,19 +1126,39 @@ private:
 
   /// Returns how many Exponents are necessary to store the extra data
   /// used to compare monomials quickly.
-  size_t orderEntryCount() const {return mOrderEntryCount;}
+  size_t orderEntryCount() const {
+    // static_assert(StoreOrder, "");
+    return mOrderEntryCount;
+  }
 
-  VarIndex componentIndex() const {return 0;}
-  VarIndex exponentsIndexBegin() const {return 1;}
-  VarIndex exponentsIndexEnd() const {return varCount() + 1;}
-  VarIndex orderIndexBegin() const {return mOrderIndexBegin;}
-  VarIndex orderIndexEnd() const {return mOrderIndexEnd;}
-  VarIndex hashIndex() const {return mOrderIndexEnd;}
+  VarIndex componentIndex() const {
+    //static_assert(HasComponent, "");
+    return 0;
+  }
 
-  VarIndex lastEntryIndex() const {return hashIndex();}
-  VarIndex beforeFirstIndex() const {return static_cast<VarIndex>(-1);}
-  VarIndex lastExponentIndex() const {return orderIndexEnd() - 1;}
-  VarIndex beforeComponentIndex() const {return componentIndex() - 1;}
+  VarIndex exponentsIndexBegin() const {return HasComponent;}
+  VarIndex exponentsIndexEnd() const {return exponentsIndexBegin() + varCount();}
+  VarIndex lastExponentIndex() const {return exponentsIndexEnd() - 1;}
+
+  VarIndex orderIndexBegin() const {
+    //static_assert(StoreOrder, "");
+    return mOrderIndexBegin;
+  }
+
+  VarIndex orderIndexEnd() const {
+    //static_assert(StoreOrder, "");
+    return mOrderIndexEnd;
+  }
+
+  VarIndex hashIndex() const {
+    //static_assert(StoreHash, "");
+    return mOrderIndexEnd;
+  }
+
+  VarIndex entriesIndexBegin() const {return 0;}
+  VarIndex entriesIndexEnd() const {return entryCount();}
+  VarIndex beforeEntriesIndexBegin() const {return entriesIndexBegin() - 1;}
+  VarIndex lastEntryIndex() const {return entriesIndexEnd() - 1;}
 
   const VarIndex mVarCount;
   const VarIndex mOrderEntryCount;
@@ -1171,6 +1239,11 @@ void MonoMonoid<E, HC, SH, SO>::parseM2(std::istream& in, MonoRef mono) const {
   }
 
   if (in.peek() == '<') {
+    if (!HasComponent) {
+      mathic::reportError("Read unexpected < for start of module component\n");
+      return;
+    }
+
     in.get();
     if (!isdigit(in.peek())) {
       mathic::reportError("Component was not integer.");
@@ -1219,7 +1292,7 @@ void MonoMonoid<E, HC, SH, SO>::printM2(
   }
   if (!printedSome)
     out << '1';
-  if (component(mono) != 0) {
+  if (HasComponent && component(mono) != 0) {
     out << '<'
         << static_cast<typename unchar<Exponent>::type>(component(mono))
         << '>';

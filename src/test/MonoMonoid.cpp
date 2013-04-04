@@ -267,8 +267,12 @@ namespace {
 TYPED_TEST(Monoid, ParsePrintM2) {
   typedef TypeParam Monoid;
   Monoid m(100);
-  const char* str = "1 a z A Z ab a2 a2b ab2 a20b30 1<1> a<2> a2<3> ab<11>\n";
-  auto v2 = parseVector(m, str);
+  std::string str = "1 a z A Z ab a2 a2b ab2 a20b30";
+  if (Monoid::HasComponent)
+    str += " 1<1> a<2> a2<3> ab<11>\n";
+  else
+    str += '\n';
+  auto v2 = parseVector(m, str.c_str());
   std::ostringstream v2Out;
   v2.printM2(v2Out);
   ASSERT_EQ(str, v2Out.str());
@@ -307,21 +311,23 @@ TYPED_TEST(Monoid, ParsePrintM2) {
   m.setExponent(0, 20, v.back());
   m.setExponent(1, 30, v.back());
 
-  v.push_back(); // 1<1>
-  m.setComponent(1, v.back());
+  if (Monoid::HasComponent) {
+    v.push_back(); // 1<1>
+    m.setComponent(1, v.back());
 
-  v.push_back(); // a<2>
-  m.setComponent(2, v.back());
-  m.setExponent(0, 1, v.back());
+    v.push_back(); // a<2>
+    m.setComponent(2, v.back());
+    m.setExponent(0, 1, v.back());
 
-  v.push_back(); // a2<3>
-  m.setComponent(3, v.back());
-  m.setExponent(0, 2, v.back());
+    v.push_back(); // a2<3>
+    m.setComponent(3, v.back());
+    m.setExponent(0, 2, v.back());
 
-  v.push_back(); // ab<11>
-  m.setComponent(11, v.back());
-  m.setExponent(0, 1, v.back());
-  m.setExponent(1, 1, v.back());
+    v.push_back(); // ab<11>
+    m.setComponent(11, v.back());
+    m.setExponent(0, 1, v.back());
+    m.setExponent(1, 1, v.back());
+  }
 
   std::ostringstream vOut;
   v.printM2(vOut);
@@ -336,7 +342,9 @@ TYPED_TEST(Monoid, MultiplyDivide) {
   Monoid m(49);
   typename Monoid::MonoPool pool(m);
   auto mono = pool.alloc();
-  auto check = [&](const char* str) -> void {
+  auto check = [&](const char* const str, const bool component) -> void {
+    if (component && !Monoid::HasComponent)
+      return;
     auto v = parseVector(m, str);
     MATHICGB_ASSERT(v.size() == 3);
     const auto& a = v.front();
@@ -423,6 +431,8 @@ TYPED_TEST(Monoid, MultiplyDivide) {
     MATHICGB_ASSERT(m.isIdentity(mono));
 
     // Check that negative exponents work.
+    if (Monoid::HasComponent && m.component(a) != m.component(b))
+      return;
     m.divideToNegative(a, b, mono);
     m.multiply(a, mono, mono);
     ASSERT_TRUE(m.equal(mono, b));
@@ -431,14 +441,14 @@ TYPED_TEST(Monoid, MultiplyDivide) {
     m.multiply(b, mono, mono);
     ASSERT_TRUE(m.equal(mono, a));
   };
-  check("1 1 1");
-  check("a<5> 1 a<5>");
-  check("1 Vx Vx");
-  check("aV bx abxV");
-  check("a a2 a3");
-  check("V<2> V2 V3<2>");
-  check("arlgh svug arlg2hsvu");
-  check("abcdefghiV<7> ab2c3d4e5f6g7h8i9V11 a2b3c4d5e6f7g8h9i10V12<7>");
+  check("1 1 1", false);
+  check("a<5> 1 a<5>", true);
+  check("1 Vx Vx", false);
+  check("aV bx abxV", false);
+  check("a a2 a3", false);
+  check("V<2> V2 V3<2>", true);
+  check("arlgh svug arlg2hsvu", false);
+  check("abcdefghiV<7> ab2c3d4e5f6g7h8i9V11 a2b3c4d5e6f7g8h9i10V12<7>", true);
 }
 
 TYPED_TEST(Monoid, LcmColon) {
@@ -447,7 +457,9 @@ TYPED_TEST(Monoid, LcmColon) {
   typename Monoid::MonoPool pool(m);
   auto mono = pool.alloc();
   auto mono2 = pool.alloc();
-  auto check = [&](const char* str) -> void {
+  auto check = [&](const char* const str, const bool component) -> void {
+    if (component && !Monoid::HasComponent)
+      return;
     auto v = parseVector(m, str);
     MATHICGB_ASSERT(v.size() == 3);
     const auto& a = v.front();
@@ -489,14 +501,14 @@ TYPED_TEST(Monoid, LcmColon) {
     ASSERT_TRUE(m.equal(mono2, lcm));
     ASSERT_TRUE(m.compare(mono2, lcm) == Monoid::EqualTo);
   };
-  check("1 1 1");
-  check("a<2> 1<2> a<2>");
-  check("1 Vx Vx");
-  check("aV bx abxV");
-  check("a a2 a2");
-  check("V<3> V2<3> V2<3>");
-  check("arlgh svug arlghsvu");
-  check("a6b7c8d9efghiV ab2c3d4e5f6g7h8i9V11 a6b7c8d9e5f6g7h8i9V11");
+  check("1 1 1", false);
+  check("a<2> 1<2> a<2>", true);
+  check("1 Vx Vx", false);
+  check("aV bx abxV", false);
+  check("a a2 a2", false);
+  check("V<3> V2<3> V2<3>", true);
+  check("arlgh svug arlghsvu", false);
+  check("a6b7c8d9efghiV ab2c3d4e5f6g7h8i9V11 a6b7c8d9e5f6g7h8i9V11", false);
 }
 
 TYPED_TEST(Monoid, Order) {
