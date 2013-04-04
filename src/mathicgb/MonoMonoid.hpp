@@ -261,13 +261,15 @@ public:
     // It is OK that the degree field can be negative (a field we might go
     // into without caring about it because it shares a 64 bit field with
     // the last exponent), because it is at the end so the overflowing
-    // bit will not interfere.
+    // bit will not interfere. For this reason we need to have a degree
+    // or a hash value stored there - otherwise two equal monomials could
+    // have different things stored next to them which would confuse this code.
     
     // todo: ensure 8 byte alignment. Though there seem to be no ill effects
     // for unaligned access. Performance seems to be no worse than for using
     // 32 bit integers directly.
 
-    if (sizeof(Exponent) != 4)
+    if (sizeof(Exponent) != 4 || (!StoreHash && !StoreOrder))
       return isProductOf(a, b, ab);
 
     uint64 orOfXor = 0;
@@ -296,7 +298,7 @@ public:
     ConstMonoRef a1b,
     ConstMonoRef a2b
   ) const {
-    if (sizeof(Exponent) != 4)
+    if (sizeof(Exponent) != 4 || (!StoreHash && !StoreOrder))
       return (isProductOf(a1, b, a1b) && isProductOf(a2, b, a2b));
 
     uint64 orOfXor = 0;
@@ -999,7 +1001,7 @@ private:
     // Check assumptions for layout in memory.
     MATHICGB_ASSERT(orderIndexBegin() == exponentsIndexEnd());
     MATHICGB_ASSERT(orderIndexBegin() + orderEntryCount() == orderIndexEnd());
-    MATHICGB_ASSERT(orderIndexEnd() < entryCount());
+    MATHICGB_ASSERT(orderIndexEnd() <= entryCount());
     MATHICGB_ASSERT(orderEntryCount() == 1);
 
     if (mGradingIsTotalDegree)
@@ -1122,7 +1124,7 @@ private:
   /// Returns how many Exponents are necessary to store a
   /// monomial. This can include other data than the exponents, so
   /// this number can be larger than varCount().
-  size_t entryCount() const {return mOrderIndexEnd + 1;}
+  size_t entryCount() const {return mOrderIndexEnd + StoreHash;}
 
   /// Returns how many Exponents are necessary to store the extra data
   /// used to compare monomials quickly.
