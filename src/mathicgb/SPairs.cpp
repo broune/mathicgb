@@ -23,12 +23,13 @@ MATHICGB_DEFINE_LOG_ALIAS(
 );
 
 SPairs::SPairs(const PolyBasis& basis, bool preferSparseSPairs):
-  mQueue(QueueConfiguration(basis, basis.ring().monoid(), preferSparseSPairs)),
-  mBasis(basis),
-  mRing(basis.ring()),
   mMonoid(basis.ring().monoid()),
   mOrderMonoid(mMonoid),
-  mBareMonoid(mMonoid) {}
+  mBareMonoid(mMonoid),
+  mQueue(QueueConfiguration(basis, mMonoid, mOrderMonoid, preferSparseSPairs)),
+  mBasis(basis),
+  mRing(basis.ring())
+ {}
 
 std::pair<size_t, size_t> SPairs::pop() {
   MATHICGB_LOG_TIME(SPairLate);
@@ -43,7 +44,7 @@ std::pair<size_t, size_t> SPairs::pop() {
       continue;
     }
     auto lcm = bareMonoid().alloc(); // todo: just keep one around instead
-    bareMonoid().copy(monoid(), mQueue.topPairData(), lcm);
+    bareMonoid().copy(orderMonoid(), mQueue.topPairData(), lcm);
     mQueue.pop();
 
     MATHICGB_ASSERT(bareMonoid().isLcm(
@@ -70,7 +71,7 @@ std::pair<size_t, size_t> SPairs::pop(exponent& w) {
     if (mBasis.retired(p.first) || mBasis.retired(p.second))
       continue;
     auto lcm = bareMonoid().alloc(); // todo: just keep one around instead
-    bareMonoid().copy(monoid(), mQueue.topPairData(), lcm);
+    bareMonoid().copy(orderMonoid(), mQueue.topPairData(), lcm);
 
     MATHICGB_ASSERT(bareMonoid().isLcm(
       monoid(), mBasis.leadMonomial(p.first),
@@ -204,7 +205,8 @@ void SPairs::addPairs(size_t newGen) {
   }
 
 
-  typedef std::pair<Mono, Queue::Index> PrePair;
+  // todo: use a monovector
+  typedef std::pair<OrderMonoid::Mono, Queue::Index> PrePair;
   std::vector<PrePair> prePairs;
 
   MATHICGB_ASSERT(prePairs.empty());
@@ -212,7 +214,7 @@ void SPairs::addPairs(size_t newGen) {
     throw std::overflow_error
       ("Too large basis element index in constructing S-pairs.");
 
-  Monoid::MonoPool pool(mMonoid);
+  OrderMonoid::MonoPool pool(mMonoid);
   ConstMonoRef newLead = mBasis.leadMonomial(newGen);
   auto lcm = mBareMonoid.alloc();
   for (size_t oldGen = 0; oldGen < newGen; ++oldGen) {
@@ -230,9 +232,9 @@ void SPairs::addPairs(size_t newGen) {
       continue;
     }
 
-    auto orderLcm = monoid().alloc(); // todo: use orderMonoid
+    auto orderLcm = orderMonoid().alloc();
     // todo: convert lcm instead of re-computing
-    monoid().lcm(monoid(), newLead, monoid(), oldLead, orderLcm);
+    orderMonoid().lcm(monoid(), newLead, monoid(), oldLead, orderLcm);
     prePairs.emplace_back
       (std::move(orderLcm), static_cast<Queue::Index>(oldGen));
   }
@@ -247,7 +249,7 @@ void SPairs::addPairs(size_t newGen) {
 	(makeSecondIterator(prePairs.begin()), makeSecondIterator(prePairs.end()));
 
   for (auto it = prePairs.begin(); it != prePairs.end(); ++it)
-    mMonoid.free(std::move(it->first));
+    orderMonoid().free(std::move(it->first));
 }
 
 size_t SPairs::getMemoryUse() const {
@@ -654,7 +656,7 @@ std::string SPairs::name() const {
 void SPairs::QueueConfiguration::computePairData(
   size_t a,
   size_t b,
-  MonoRef orderBy
+  OrderMonoid::MonoRef orderBy
 ) const {
   MATHICGB_ASSERT(a != b);
   MATHICGB_ASSERT(a < mBasis.size());
@@ -663,8 +665,8 @@ void SPairs::QueueConfiguration::computePairData(
     // todo: do something special here?
     return; //return false;
   }
-  ConstMonoRef leadA = mBasis.leadMonomial(a);
-  ConstMonoRef leadB = mBasis.leadMonomial(b);
-  mMonoid.lcm(leadA, leadB, orderBy);
+  Monoid::ConstMonoRef leadA = mBasis.leadMonomial(a);
+  Monoid::ConstMonoRef leadB = mBasis.leadMonomial(b);
+  orderMonoid().lcm(monoid(), leadA, monoid(), leadB, orderBy);
   return; //todo: return true;
 }

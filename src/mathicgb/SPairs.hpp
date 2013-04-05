@@ -157,26 +157,32 @@ private:
   // As the non-slow version, but uses simpler and slower code.
   bool advancedBuchbergerLcmCriterionSlow(size_t a, size_t b) const;
 
+  const Monoid& mMonoid;
+  OrderMonoid mOrderMonoid;
+  BareMonoid mBareMonoid;
+
   class QueueConfiguration {
   public:
     QueueConfiguration(
       const PolyBasis& basis,
       const Monoid& monoid,
+      const OrderMonoid& orderMonoid,
       const bool preferSparseSPairs
     ):
       mBasis(basis),
       mMonoid(mBasis.ring().monoid()),
+      mOrderMonoid(orderMonoid),
       mPreferSparseSPairs(preferSparseSPairs) {}
 
-    typedef Mono PairData;
-	void computePairData(size_t col, size_t row, MonoRef m) const;
+    typedef OrderMonoid::Mono PairData;
+	void computePairData(size_t col, size_t row, OrderMonoid::MonoRef m) const;
 
 	typedef bool CompareResult;
 	bool compare(
-      size_t colA, size_t rowA, ConstMonoRef a,
-      size_t colB, size_t rowB, ConstMonoRef b
+      size_t colA, size_t rowA, OrderMonoid::ConstMonoRef a,
+      size_t colB, size_t rowB, OrderMonoid::ConstMonoRef b
     ) const {
-      const auto cmp = monoid().compare(a, b);
+      const auto cmp = orderMonoid().compare(a, b);
       if (cmp == GT)
         return true;
       if (cmp == LT)
@@ -199,16 +205,18 @@ private:
 	bool cmpLessThan(bool v) const {return v;}
 
     // The following methods are not required of a configuration.
-	Mono allocPairData() {return monoid().alloc();}
-	void freePairData(Mono&& mono) {
-      return monoid().free(std::move(mono));
+	OrderMonoid::Mono allocPairData() {return orderMonoid().alloc();}
+	void freePairData(OrderMonoid::Mono&& mono) {
+      return orderMonoid().free(std::move(mono));
     }
 
   private:
     const Monoid& monoid() const {return mMonoid;}
+    const OrderMonoid& orderMonoid() const {return mOrderMonoid;}
 
 	const PolyBasis& mBasis;
     const Monoid& mMonoid;
+    const OrderMonoid& mOrderMonoid;
     const bool mPreferSparseSPairs;
   };
   typedef mathic::PairQueue<QueueConfiguration> Queue;
@@ -222,10 +230,6 @@ private:
   const PolyBasis& mBasis;
   const PolyRing& mRing;
   mutable Stats mStats;
-
-  const Monoid& mMonoid;
-  OrderMonoid mOrderMonoid;
-  BareMonoid mBareMonoid;
 
   static const bool mUseBuchbergerLcmHitCache = true;
   mutable std::vector<size_t> mBuchbergerLcmHitCache;
@@ -242,7 +246,7 @@ private:
   friend void mathic::PairQueueNamespace::constructPairData<QueueConfiguration>
     (void*, Index, Index, QueueConfiguration&);
   friend void mathic::PairQueueNamespace::destructPairData<QueueConfiguration>
-    (Mono*, Index, Index, QueueConfiguration&);
+    (OrderMonoid::Mono*, Index, Index, QueueConfiguration&);
 };
 
 namespace mathic {
@@ -256,13 +260,13 @@ namespace mathic {
     ) {
 	  MATHICGB_ASSERT(memory != 0);
 	  MATHICGB_ASSERT(col > row);
-	  auto pd = new (memory) SPairs::Mono(conf.allocPairData());
+	  auto pd = new (memory) SPairs::OrderMonoid::Mono(conf.allocPairData());
 	  conf.computePairData(col, row, *pd);
 	}
 
 	template<>
 	inline void destructPairData(
-      SPairs::Mono* pd,
+      SPairs::OrderMonoid::Mono* pd,
       const Index col,
       const Index row,
       SPairs::QueueConfiguration& conf
