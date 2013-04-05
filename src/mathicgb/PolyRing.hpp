@@ -18,6 +18,7 @@
 #define EQ 0
 #define GT 1
 
+
 template<class T>
 PrimeField<
   typename std::make_unsigned<
@@ -90,6 +91,7 @@ typedef uint32 HashValue;
 typedef long coefficient;
 typedef MonoMonoid<exponent> Monoid;
 typedef PrimeField<unsigned long> Field;
+
 
 typedef exponent* vecmonomial; // includes a component
 typedef coefficient const_coefficient;
@@ -195,6 +197,9 @@ struct term {
 
 class PolyRing {
 public:
+  typedef MonoMonoid<exponent> Monoid;
+  typedef PrimeField<unsigned long> Field;
+
   PolyRing(coefficient charac, int nvars, const std::vector<exponent>& weights);
   PolyRing(coefficient charac, int nvars, int nweights);
   ~PolyRing() {}
@@ -452,17 +457,9 @@ public:
                                           ConstMonomial b, 
                                           Monomial& l) const;
 
-  inline void monomialLeastCommonMultipleNoWeights(ConstMonomial a, 
-                                                   ConstMonomial b, 
-                                                   Monomial& l) const;
-
   bool monomialIsLeastCommonMultiple(ConstMonomial a, 
                                      ConstMonomial b, 
                                      ConstMonomial l) const;
-
-  bool monomialIsLeastCommonMultipleNoWeights(ConstMonomial a, 
-                                              ConstMonomial b, 
-                                              ConstMonomial l) const;
 
   // Returns true if there is a variable var such that hasLarger raises var to
   // a strictly greater exponent than both smaller1 and smaller2 does.
@@ -498,6 +495,9 @@ public:
   const coefficientStats & getCoefficientStats() const { return mStats; }
   void resetCoefficientStats() const;
 
+  const Monoid& monoid() const {return mMonoid;}
+  const Field field() const {return mField;}
+
 private:
   inline HashValue computeHashValue(const_monomial a1) const;
 
@@ -518,10 +518,7 @@ private:
 
   bool mTotalDegreeGradedOnly;
 
-  const Monoid& monoid() const {return mMonoid;}
   Monoid mMonoid;
-
-  const Field field() const {return mField;}
   Field mField;
 };
 
@@ -649,14 +646,6 @@ inline void PolyRing::monomialLeastCommonMultiple(
   Monomial& l) const
 {
   monoid().lcm(a, b, l);
-}
-
-inline void PolyRing::monomialLeastCommonMultipleNoWeights(
-  ConstMonomial a,
-  ConstMonomial b,
-  Monomial& l) const
-{
-  monoid().lcmRaw(a, b, l);
 }
 
 inline bool PolyRing::monomialHasStrictlyLargerExponent(

@@ -12,6 +12,28 @@ class PolyBasis;
 // algorithm. Also eliminates useless S-pairs and orders the S-pairs.
 class SPairs {
 public:
+  typedef PolyRing::Monoid Monoid;
+  typedef Monoid::Exponent Exponent;
+  typedef Monoid::Mono Mono;
+  typedef Monoid::MonoPtr MonoPtr;
+  typedef Monoid::ConstMonoPtr ConstMonoPtr;
+  typedef Monoid::MonoRef MonoRef;
+  typedef Monoid::ConstMonoRef ConstMonoRef;
+
+  /// This monoid is used for computations to determine whether to eliminate
+  /// an S-pair. These computations do not require anything beyond just
+  /// considering the exponents. Since recomputing characteristics of
+  /// lcms such as hash and degree is expensive (unlike for a product), it is
+  /// worthwhile to disable those characteristics that we do not need.
+  typedef MonoMonoid<Exponent, true, false, false> BareMonoid;
+  //typedef Monoid BareMonoid;
+
+  /// This monoid is used to order S-pairs by their lcm. Here we need to
+  /// to store the ordering data for fast comparison, but we do not need
+  /// hashes.
+  typedef MonoMonoid<Exponent, true, false, true> OrderMonoid;
+  //typedef Monoid OrderMonoid;
+
   SPairs(const PolyBasis& basis, bool preferSparseSPairs);
 
   // Returns the number of S-pairs in the data structure.
@@ -58,6 +80,7 @@ public:
     return mEliminated.bitUnordered(a, b);
   }
 
+  const Monoid& monoid() const {return ring().monoid();}
   const PolyRing& ring() const {return mRing;}
   const PolyBasis& basis() const {return mBasis;}
 
@@ -89,6 +112,9 @@ public:
   std::string name() const;
 
 private:
+  const BareMonoid& bareMonoid() const {return mBareMonoid;}
+  const OrderMonoid& orderMonoid() const {return mOrderMonoid;}
+
   // Returns true if Buchberger's second criterion for eliminating useless
   // S-pairs applies to the pair (a,b). Define
   //   l(a,b) = lcm(lead(a), lead(b)).
@@ -107,8 +133,11 @@ private:
   // cases to the advanced criterion, except if an S-pair has already been
   // eliminated - in that case we do not check to see if the lcm's are the same
   // as it is not necessary to do so.
-  bool simpleBuchbergerLcmCriterion
-    (size_t a, size_t b, const_monomial lcmAB) const;
+  bool simpleBuchbergerLcmCriterion(
+    size_t a,
+    size_t b,
+    BareMonoid::ConstMonoRef lcmAB
+  ) const;
 
   // As the non-slow version, but uses simpler and slower code.
   bool simpleBuchbergerLcmCriterionSlow(size_t a, size_t b) const;
@@ -123,24 +152,31 @@ private:
   // been eliminated. It is a theorem that if there is a path from a to b
   // in G then (a,b) is a useless S-pair that can be eliminated.
   bool advancedBuchbergerLcmCriterion
-    (size_t a, size_t b, const_monomial lcmAB) const;
+    (size_t a, size_t b, BareMonoid::ConstMonoRef lcmAB) const;
 
   // As the non-slow version, but uses simpler and slower code.
   bool advancedBuchbergerLcmCriterionSlow(size_t a, size_t b) const;
 
   class QueueConfiguration {
   public:
-    QueueConfiguration(const PolyBasis& basis, const bool preferSparseSPairs):
-      mBasis(basis), mPreferSparseSPairs(preferSparseSPairs) {}
+    QueueConfiguration(
+      const PolyBasis& basis,
+      const Monoid& monoid,
+      const bool preferSparseSPairs
+    ):
+      mBasis(basis),
+      mMonoid(mBasis.ring().monoid()),
+      mPreferSparseSPairs(preferSparseSPairs) {}
 
-    typedef monomial PairData;
-	void computePairData(size_t col, size_t row, monomial m) const;
+    typedef Mono PairData;
+	void computePairData(size_t col, size_t row, MonoRef m) const;
 
 	typedef bool CompareResult;
-	bool compare(size_t colA, size_t rowA, const_monomial a,
-				 size_t colB, size_t rowB, const_monomial b) const
-    {
-      const auto cmp = mBasis.ring().monomialCompare(a, b);
+	bool compare(
+      size_t colA, size_t rowA, ConstMonoRef a,
+      size_t colB, size_t rowB, ConstMonoRef b
+    ) const {
+      const auto cmp = monoid().compare(a, b);
       if (cmp == GT)
         return true;
       if (cmp == LT)
@@ -162,13 +198,17 @@ private:
 	}
 	bool cmpLessThan(bool v) const {return v;}
 
-	// these are not required for a configuration but we will use
-	// them from this code. TODO
-	monomial allocPairData() {return mBasis.ring().allocMonomial();}
-	void freePairData(monomial m) {return mBasis.ring().freeMonomial(m);}
+    // The following methods are not required of a configuration.
+	Mono allocPairData() {return monoid().alloc();}
+	void freePairData(Mono&& mono) {
+      return monoid().free(std::move(mono));
+    }
 
   private:
+    const Monoid& monoid() const {return mMonoid;}
+
 	const PolyBasis& mBasis;
+    const Monoid& mMonoid;
     const bool mPreferSparseSPairs;
   };
   typedef mathic::PairQueue<QueueConfiguration> Queue;
@@ -182,6 +222,10 @@ private:
   const PolyBasis& mBasis;
   const PolyRing& mRing;
   mutable Stats mStats;
+
+  const Monoid& mMonoid;
+  OrderMonoid mOrderMonoid;
+  BareMonoid mBareMonoid;
 
   static const bool mUseBuchbergerLcmHitCache = true;
   mutable std::vector<size_t> mBuchbergerLcmHitCache;
@@ -198,26 +242,34 @@ private:
   friend void mathic::PairQueueNamespace::constructPairData<QueueConfiguration>
     (void*, Index, Index, QueueConfiguration&);
   friend void mathic::PairQueueNamespace::destructPairData<QueueConfiguration>
-    (monomial*, Index, Index, QueueConfiguration&);
+    (Mono*, Index, Index, QueueConfiguration&);
 };
 
 namespace mathic {
   namespace PairQueueNamespace {
 	template<>
-	inline void constructPairData<SPairs::QueueConfiguration>
-	(void* memory, Index col, Index row, SPairs::QueueConfiguration& conf) {
+	inline void constructPairData<SPairs::QueueConfiguration>(
+      void* memory,
+      const Index col,
+      const Index row,
+      SPairs::QueueConfiguration& conf
+    ) {
 	  MATHICGB_ASSERT(memory != 0);
 	  MATHICGB_ASSERT(col > row);
-	  monomial* pd = new (memory) monomial(conf.allocPairData());
+	  auto pd = new (memory) SPairs::Mono(conf.allocPairData());
 	  conf.computePairData(col, row, *pd);
 	}
 
 	template<>
-	inline void destructPairData
-	(monomial* pd, Index col, Index row, SPairs::QueueConfiguration& conf) {
+	inline void destructPairData(
+      SPairs::Mono* pd,
+      const Index col,
+      const Index row,
+      SPairs::QueueConfiguration& conf
+    ) {
 	  MATHICGB_ASSERT(pd != 0);
 	  MATHICGB_ASSERT(col > row);
-	  conf.freePairData(*pd);
+	  conf.freePairData(std::move(*pd));
 	}	
   }
 }

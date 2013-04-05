@@ -72,30 +72,6 @@ public:
   };
   Stats stats() const {return mStats;}
 
-  // Returns true if Buchberger's second criterion for eliminating useless
-  // S-pairs applies to the pair (a,b). Let
-  //   l(a,b) = lcm(lead(a), lead(b)).
-  // The criterion says that if there is some other basis element c such that
-  //   lead(c)|l(a,b)
-  // and
-  //   l(a,c) reduces to zero, and
-  //   l(b,c) reduces to zero
-  // then (a,b) will reduce to zero (using classic non-signature reduction).
-  //
-  // This criterion is less straight forward to apply in case for example
-  //   l(a,b) = l(a,c) = l(b,c)
-  // since then there is the potential to erroneously eliminate all the three
-  // pairs among a,b,c on the assumption that the other two pairs will reduce
-  // to zero. In such cases, we eliminate the pair with the lowest indexes.
-  // This allows removing generators that get non-minimal lead term without
-  // problems.
-  bool buchbergerLcmCriterion(size_t a, size_t b) const;
-
-  // As the overload with an lcmAb parameter, except lcmAB must be the lcm of
-  // the lead monomials of a and b. Then this quantity does not have to be
-  // computed for the criterion.
-  bool buchbergerLcmCriterion(size_t a, size_t b, const_monomial lcmAB) const;
-
   // As the non-slow version, but uses simpler and slower code.
   bool buchbergerLcmCriterionSlow(size_t a, size_t b) const;
 

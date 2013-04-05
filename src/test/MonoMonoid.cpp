@@ -385,17 +385,24 @@ TYPED_TEST(Monoid, MultiplyDivide) {
     ASSERT_TRUE(m.compare(c, mono) == Monoid::EqualTo);
     ASSERT_EQ(m.hash(c), m.hash(mono));
 
-    // check properties that mono=a*b should have
+    // divides, check properties that mono=a*b should have
     ASSERT_TRUE(m.divides(mono, c));
     ASSERT_TRUE(m.divides(c, mono));
     ASSERT_TRUE(m.divides(a, mono));
     ASSERT_TRUE(m.divides(b, mono));
+
+    // divides, general
+    ASSERT_TRUE(m.divides(m, mono, c));
+    ASSERT_TRUE(m.divides(m, c, mono));
+    ASSERT_TRUE(m.divides(m, a, mono));
+    ASSERT_TRUE(m.divides(m, b, mono));
 
     if (!m.isIdentity(a)) {
       ASSERT_TRUE(m.lessThan(b, mono));
       ASSERT_FALSE(m.lessThan(mono, b));
       ASSERT_TRUE(m.compare(mono, b) == Monoid::GreaterThan);
       ASSERT_FALSE(m.divides(mono, b));
+      ASSERT_FALSE(m.divides(m, mono, b));
 
       ASSERT_FALSE(m.isProductOf(a, c, b));
       ASSERT_FALSE(m.isProductOfHintTrue(a, c, b));
@@ -406,6 +413,7 @@ TYPED_TEST(Monoid, MultiplyDivide) {
       ASSERT_TRUE(m.equal(b, mono));
       ASSERT_TRUE(m.compare(b, mono) == Monoid::EqualTo);
       ASSERT_TRUE(m.divides(mono, b));
+      ASSERT_TRUE(m.divides(m, mono, b));
     }
 
     if (!m.isIdentity(b)) {
@@ -413,6 +421,7 @@ TYPED_TEST(Monoid, MultiplyDivide) {
       ASSERT_FALSE(m.lessThan(mono, a));
       ASSERT_TRUE(m.compare(mono, a) == Monoid::GreaterThan);
       ASSERT_FALSE(m.divides(mono, a));
+      ASSERT_FALSE(m.divides(m, mono, a));
 
       ASSERT_FALSE(m.isProductOf(c, b, a));
       ASSERT_FALSE(m.isProductOfHintTrue(b, c, a));
@@ -422,7 +431,7 @@ TYPED_TEST(Monoid, MultiplyDivide) {
     } else {
       ASSERT_TRUE(m.equal(a, mono));
       ASSERT_TRUE(m.compare(a, mono) == Monoid::EqualTo);
-      ASSERT_TRUE(m.divides(mono, a));
+      ASSERT_TRUE(m.divides(m, mono, a));
     }
 
     // Check that aliased parameters work.
@@ -453,7 +462,8 @@ TYPED_TEST(Monoid, MultiplyDivide) {
 
 TYPED_TEST(Monoid, LcmColon) {
   typedef TypeParam Monoid;
-  Monoid m(49);
+  Monoid mNonConst(49);
+  auto& m = mNonConst;
   typename Monoid::MonoPool pool(m);
   auto mono = pool.alloc();
   auto mono2 = pool.alloc();
@@ -466,11 +476,13 @@ TYPED_TEST(Monoid, LcmColon) {
     const auto& b = *++v.begin();
     const auto& lcm = v.back();
 
-    // isLcm
+    // isLcm (+general)
     ASSERT_TRUE(m.isLcm(a, b, lcm));
+    ASSERT_TRUE(m.isLcm(m, a, m, b, lcm));
     m.copy(lcm, mono);
     m.setExponent(1, m.exponent(mono, 1) + 1, mono);
     ASSERT_FALSE(m.isLcm(a, b, mono));
+    ASSERT_FALSE(m.isLcm(m, a, m, b, mono));
 
     // dividesLcm
     ASSERT_TRUE(m.dividesLcm(lcm, a, b));
@@ -480,14 +492,22 @@ TYPED_TEST(Monoid, LcmColon) {
     ASSERT_TRUE(m.dividesLcm(b, b, b));
     ASSERT_TRUE(m.dividesLcm(b, b, a));
 
+    // dividesLcm, general
+    ASSERT_TRUE(m.dividesLcm(m, lcm, m, a, b));
+    ASSERT_FALSE(m.dividesLcm(m, mono, m, a, b));
+    ASSERT_TRUE(m.dividesLcm(m, a, m, a, a));
+    ASSERT_TRUE(m.dividesLcm(m, a, m, a, b));
+    ASSERT_TRUE(m.dividesLcm(m, b, m, b, b));
+    ASSERT_TRUE(m.dividesLcm(m, b, m, b, a));
+
     // lcm(a, b)
     m.lcm(a, b, mono);
     ASSERT_TRUE(m.equal(mono, lcm));
     ASSERT_TRUE(m.compare(mono, lcm) == Monoid::EqualTo);
     ASSERT_EQ(m.hash(lcm), m.hash(mono));
 
-    // lcm(b, a)
-    m.lcm(b, a, mono);
+    // lcm(b, a), general
+    m.lcm(m, b, m, a, mono);
     ASSERT_TRUE(m.equal(mono, lcm));
     ASSERT_TRUE(m.compare(mono, lcm) == Monoid::EqualTo);
     ASSERT_EQ(m.hash(lcm), m.hash(mono));
@@ -614,5 +634,103 @@ TYPED_TEST(Monoid, HasAmpleCapacityTotalDegree) {
       m.setExponent(0, 13, mono);
       ASSERT_FALSE(m.hasAmpleCapacity(mono));
     }
+  }
+}
+
+TYPED_TEST(Monoid, CopyEqualConversion) {
+  typedef TypeParam Monoid;
+  typedef typename Monoid::Exponent Exponent;
+  typedef typename Monoid::VarIndex VarIndex;
+  static const bool HasComponent = Monoid::HasComponent;
+  typedef MonoMonoid<Exponent, HasComponent, false, false> MonoidNone;
+  typedef MonoMonoid<Exponent, HasComponent, true, true> MonoidAll;
+  for (VarIndex varCount = 1; varCount < 33; ++varCount) {
+    MonoidNone none(varCount);
+    Monoid some(none);
+    MonoidAll all(some);
+
+    auto none1 = none.alloc();
+    auto none2 = none.alloc();
+    auto none3 = none.alloc();
+    auto some1 = some.alloc();
+    auto some2 = some.alloc();
+    auto some3 = some.alloc();
+    auto all1 = all.alloc();
+    auto all2 = all.alloc();
+    auto all3 = all.alloc();
+
+    none.setExponent(0, 1, none1);
+    none.setExponent(varCount / 2, 2, none1);
+    none.setExponent(varCount - 1, 3, none1);
+    none.copy(none1, none2);
+    none.setExponent(0, 4, none2);
+
+    some.setExponent(0, 1, some1);
+    some.setExponent(varCount / 2, 2, some1);
+    some.setExponent(varCount - 1, 3, some1);
+    some.copy(some1, some2);
+    some.setExponent(0, 4, some2);
+
+    all.setExponent(0, 1, all1);
+    all.setExponent(varCount / 2, 2, all1);
+    all.setExponent(varCount - 1, 3, all1);
+    all.copy(all1, all2);
+    all.setExponent(0, 4, all2);
+
+    // compare on none
+    ASSERT_TRUE(none.equal(none, none1, none1));
+    ASSERT_TRUE(none.equal(some, some1, none1));
+    ASSERT_TRUE(none.equal(all, all1, none1));
+    ASSERT_FALSE(none.equal(none, none1, none2));
+    ASSERT_FALSE(none.equal(some, some1, none2));
+    ASSERT_FALSE(none.equal(all, all1, none2));
+
+    // compare on some
+    ASSERT_TRUE(some.equal(none, none1, some1));
+    ASSERT_TRUE(some.equal(some, some1, some1));
+    ASSERT_TRUE(some.equal(all, all1, some1));
+    ASSERT_FALSE(some.equal(none, none1, some2));
+    ASSERT_FALSE(some.equal(some, some1, some2));
+    ASSERT_FALSE(some.equal(all, all1, some2));
+
+    // compare on all
+    ASSERT_TRUE(all.equal(none, none1, all1));
+    ASSERT_TRUE(all.equal(some, some1, all1));
+    ASSERT_TRUE(all.equal(all, all1, all1));
+    ASSERT_FALSE(all.equal(none, none1, all2));
+    ASSERT_FALSE(all.equal(some, some1, all2));
+    ASSERT_FALSE(all.equal(all, all1, all2));
+
+    // convert some->none
+    none.copy(some, some1, none3);
+    ASSERT_TRUE(none.equal(none1, none3));
+    ASSERT_FALSE(none.equal(none2, none3));
+    none.copy(some, some2, none3);
+    ASSERT_FALSE(none.equal(none1, none3));
+    ASSERT_TRUE(none.equal(none2, none3));
+
+    /// convert some->all
+    all.copy(some, some1, all3);
+    ASSERT_TRUE(all.equal(all1, all3));
+    ASSERT_FALSE(all.equal(all2, all3));
+    all.copy(some, some2, all3);
+    ASSERT_FALSE(all.equal(all1, all3));
+    ASSERT_TRUE(all.equal(all2, all3));
+
+    // convert none->some
+    some.copy(none, none1, some3);
+    ASSERT_TRUE(some.equal(some1, some3));
+    ASSERT_FALSE(some.equal(some2, some3));
+    some.copy(none, none2, some3);
+    ASSERT_FALSE(some.equal(some1, some3));
+    ASSERT_TRUE(some.equal(some2, some3));
+
+    // convert Y->some
+    some.copy(none, none1, some3);
+    ASSERT_TRUE(some.equal(some1, some3));
+    ASSERT_FALSE(some.equal(some2, some3));
+    some.copy(none, none2, some3);
+    ASSERT_FALSE(some.equal(some1, some3));
+    ASSERT_TRUE(some.equal(some2, some3));
   }
 }

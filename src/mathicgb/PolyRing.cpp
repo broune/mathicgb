@@ -222,20 +222,6 @@ void PolyRing::monomialGreatestCommonDivisor(ConstMonomial a,
   setWeightsOnly(g);
 }
 
-bool PolyRing::monomialIsLeastCommonMultipleNoWeights(
-  ConstMonomial a,
-  ConstMonomial b,
-  ConstMonomial l) const
-{
-  if (*l != 0)
-    return false;
-  for (size_t i = 1; i <= mNumVars; ++i)
-    if (l[i] != std::max(a[i], b[i]))
-      return false;
-  return true;
-}
-
-
 void PolyRing::mysteriousSPairMonomialRoutine(ConstMonomial newSig,
                                               ConstMonomial newLead,
                                               ConstMonomial baseDivSig,

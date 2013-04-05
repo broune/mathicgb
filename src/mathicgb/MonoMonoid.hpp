@@ -14,8 +14,6 @@
 /// Implements the monoid of (monic) monomials with integer
 /// non-negative exponents. Exponent must be an unsigned integer type that is
 /// used to store each exponent of a monomial.
-///
-/// TODO: support grading and comparison.
 template<
   class Exponent,
   bool HasComponent = true,
@@ -115,6 +113,8 @@ public:
   friend class PolyRing;
   static MonoRef toRef(Exponent* e) {return MonoRef(e);}
   static ConstMonoRef toRef(const Exponent* e) {return ConstMonoRef(e);}
+  static Exponent* toOld(MonoRef e) {return rawPtr(e);}
+  static const Exponent* toOld(ConstMonoRef e) {return rawPtr(e);}
 
   
 
@@ -134,7 +134,8 @@ public:
         return true;
       }()
     ),
-    mGrading(mGradingIsTotalDegree ? std::vector<Exponent>() : grading)
+    mGrading(mGradingIsTotalDegree ? std::vector<Exponent>() : grading),
+    mPool(*this)
   {
     if (!mGradingIsTotalDegree) {
       // Take negative values since reverse lex makes bigger values
@@ -158,12 +159,40 @@ public:
     mOrderIndexEnd(HasComponent + mVarCount + StoreOrder),
     mHashCoefficients(mVarCount),
     mGradingIsTotalDegree(true),
-    mGrading()
+    mGrading(),
+    mPool(*this)
   {
     std::srand(0); // To use the same hash coefficients every time.
     for (VarIndex var = 0; var < varCount; ++var)
       mHashCoefficients[var] = static_cast<HashValue>(std::rand());      
   }
+
+  /// Copies the ordering and varCount from monoid.
+  template<class E2, bool HC2, bool SH2, bool SO2>
+  MonoMonoid(const MonoMonoid<E2, HC2, SH2, SO2>& monoid):
+    mVarCount(monoid.varCount()),
+    mOrderEntryCount(StoreOrder),
+    mOrderIndexBegin(HasComponent + mVarCount),
+    mOrderIndexEnd(HasComponent + mVarCount + StoreOrder),
+    mHashCoefficients(mVarCount),
+    mGradingIsTotalDegree(monoid.mGradingIsTotalDegree),
+    mGrading(monoid.mGrading),
+    mPool(*this)
+  {}
+  // the compiler-generated copy constructor is a better match for overload
+  // resolution than the template constructor above, so we need to provide
+  // our own copy constructor to prevent the compiler-generated one from
+  // being used.
+  MonoMonoid(const MonoMonoid& monoid):
+    mVarCount(monoid.varCount()),
+    mOrderEntryCount(StoreOrder),
+    mOrderIndexBegin(HasComponent + mVarCount),
+    mOrderIndexEnd(HasComponent + mVarCount + StoreOrder),
+    mHashCoefficients(mVarCount),
+    mGradingIsTotalDegree(monoid.mGradingIsTotalDegree),
+    mGrading(monoid.mGrading),
+    mPool(*this)
+  {}
 
   bool operator==(const MonoMonoid& monoid) const {
     return this == &monoid;
@@ -219,6 +248,19 @@ public:
   bool equal(ConstMonoRef a, ConstMonoRef b) const {
     for (auto i = entriesIndexBegin(); i != exponentsIndexEnd(); ++i)
       if (access(a, i) != access(b, i))
+        return false;
+    return true;
+  }
+
+  template<class MonoidA>
+  bool equal(
+    const MonoidA& monoidA,
+    typename MonoidA::ConstMonoRef a,
+    ConstMonoRef b
+  ) const {
+    // todo: assert compatible
+    for (VarIndex var = 0; var < varCount(); ++var)
+      if (monoidA.exponent(a, var) != exponent(b, var))
         return false;
     return true;
   }
@@ -332,16 +374,46 @@ public:
   }
 
   /// Returns true if a divides b. Equal monomials divide each other.
-  bool divides(ConstMonoRef a, ConstMonoRef b) const {
-    for (auto i = entriesIndexBegin(); i < exponentsIndexEnd(); ++i)
-      if (access(a, i) > access(b, i))
+  bool divides(ConstMonoRef div, ConstMonoRef into) const {
+    // todo: enable this when the code works with it
+    //if (HasComponent && component(div) != component(into))
+    //  return false;
+    for (auto i = exponentsIndexBegin(); i < exponentsIndexEnd(); ++i)
+      if (access(div, i) > access(into, i))
+        return false;
+    return true;
+  }
+
+  template<class MonoidA>
+  bool divides(
+    const MonoidA& monoidA,
+    typename MonoidA::ConstMonoRef a,
+    ConstMonoRef b
+  ) const {
+    // todo: fix other divisibility functions to work properly for component too.
+    MATHICGB_ASSERT(monoidA.varCount() == varCount());
+    MATHICGB_ASSERT(!MonoidA::HasComponent || HasComponent);
+    MATHICGB_ASSERT(monoidA.debugValid(a));
+    MATHICGB_ASSERT(debugValid(b));
+    // todo: enable this when the code works with it
+    //if (HasComponent && component(div) != component(into))
+    //  return false;
+    //if (
+    //  MonoidA::HasComponent &&
+    //  HasComponent &&
+    //  monoidA.component(a) != component(b)
+    //)
+    //  return false;
+    for (VarIndex var = 0; var < varCount(); ++var)
+      if (monoidA.exponent(a, var) > exponent(b, var))
         return false;
     return true;
   }
 
   /// Returns true if div divides lcm(a, b).
   bool dividesLcm(ConstMonoRef div, ConstMonoRef a, ConstMonoRef b) const {
-    MATHICGB_ASSERT(!HasComponent || component(a) == component(b));
+    MATHICGB_ASSERT(debugLcmCheck(*this, a, *this, b));
+    MATHICGB_ASSERT(debugValid(div));
 
     for (auto i = exponentsIndexBegin(); i != exponentsIndexEnd(); ++i) {
       const auto dive = access(div, i);
@@ -351,13 +423,65 @@ public:
     return true;
   }
 
+  template<class MonoidDiv, class MonoidA>
+  bool dividesLcm(
+    const MonoidDiv& monoidDiv,
+    typename MonoidDiv::ConstMonoRef div,
+    const MonoidA& monoidA,
+    typename MonoidA::ConstMonoRef a,
+    ConstMonoRef b
+  ) const {
+    MATHICGB_ASSERT(monoidDiv.debugLcmCheck(monoidA, a, *this, b));
+    MATHICGB_ASSERT(monoidDiv.debugValid(div));
+
+    for (VarIndex var = 0; var < varCount(); ++var) {
+      const auto e = monoidDiv.exponent(div, var);
+      if (e > monoidA.exponent(a, var) && e > exponent(b, var))
+        return false;
+    }
+    return true;
+  }
+
   /// Returns true if lcm(a,b) == lcmAB.
   bool isLcm(ConstMonoRef a, ConstMonoRef b, ConstMonoRef lcmAB) const {
-    MATHICGB_ASSERT(!HasComponent || component(a) == component(b));
+    MATHICGB_ASSERT(debugLcmCheck(*this, a, *this, b));
+    MATHICGB_ASSERT(debugValid(lcmAB));
 
     for (auto i = exponentsIndexBegin(); i != exponentsIndexEnd(); ++i)
       if (access(lcmAB, i) != std::max(access(a, i), access(b, i)))
         return false;
+    return true;
+  }
+
+  template<class MonoidA, class MonoidB>
+  bool isLcm(
+    const MonoidA& monoidA,
+    typename MonoidA::ConstMonoRef a,
+    const MonoidB& monoidB,
+    typename MonoidB::ConstMonoRef b,
+    ConstMonoRef lcmAB
+  ) const {
+    MATHICGB_ASSERT(debugLcmCheck(monoidA, a, monoidB, b));
+    MATHICGB_ASSERT(debugValid(lcmAB));
+
+    if (HasComponent) {
+      if (MonoidA::HasComponent) {
+        if (monoidA.component(a) != component(lcmAB))
+          return false;
+      } else {
+        MATHICGB_ASSERT(MonoidB::HasComponent);
+        if (monoidB.component(b) != component(lcmAB))
+          return false;
+      }
+    }
+
+    for (VarIndex var = 0; var < varCount(); ++var) {
+      if (
+        ptr(lcmAB, exponentsIndexBegin())[var] !=
+        std::max(monoidA.exponent(a, var), monoidB.exponent(b, var))
+      )
+        return false;
+    }
     return true;
   }
 
@@ -428,6 +552,32 @@ public:
     std::copy_n(rawPtr(from), entryCount(), rawPtr(to));
 
     MATHICGB_ASSERT(debugValid(to));
+  }
+
+  template<class MonoidFrom>
+  void copy(
+    const MonoidFrom& monoidFrom,
+    typename MonoidFrom::ConstMonoRef from,
+    MonoRef to
+  ) const {
+    // todo: extract this in checker method
+    MATHICGB_ASSERT(HasComponent == MonoidFrom::HasComponent);
+    MATHICGB_ASSERT(monoidFrom.debugValid(from));
+    MATHICGB_ASSERT(monoidFrom.varCount() == varCount());
+    MATHICGB_ASSERT
+      ((std::is_same<Exponent, typename MonoidFrom::Exponent>::value));
+
+    if (HasComponent)
+      access(to, componentIndex()) = monoidFrom.component(from);
+    for (VarIndex var = 0; var < varCount(); ++var)
+      ptr(to, exponentsIndexBegin())[var] = monoidFrom.exponent(from, var);
+    if (StoreOrder)
+      access(to, orderIndexBegin()) = monoidFrom.degree(from);
+    if (StoreHash)
+      access(to, hashIndex()) = monoidFrom.hash(from);
+
+    MATHICGB_ASSERT(debugValid(to));
+    // todo: check equal
   }
 
   /// Set the exponent of var to newExponent in mono.
@@ -577,6 +727,7 @@ public:
     MATHICGB_ASSERT(debugValid(bColonA));
   }
 
+  /// Sets lcmAB to the lcm of a and b.
   void lcm(ConstMonoRef a, ConstMonoRef b, MonoRef lcmAB) const {
     if (HasComponent) {
       MATHICGB_ASSERT(component(a) == component(b));
@@ -588,21 +739,38 @@ public:
     setHash(lcmAB);
 
     MATHICGB_ASSERT(debugValid(lcmAB));
+    MATHICGB_ASSERT(isLcm(a, b, lcmAB));
   }
 
-  /// todo: get rid of this
-  void lcmRaw(ConstMonoRef a, ConstMonoRef b, MonoRef lcmAB) const {
-    MATHICGB_ASSERT(component(a) == component(b));
+  template<class MonoidA, class MonoidB>
+  void lcm(
+    const MonoidA& monoidA,
+    typename MonoidA::ConstMonoRef a,
+    const MonoidB& monoidB,
+    typename MonoidB::ConstMonoRef b,
+    MonoRef lcmAB
+  ) const {
+    MATHICGB_ASSERT(debugLcmCheck(monoidA, a, monoidB, b));
 
-    // Loop also sets component.
-    access(lcmAB, componentIndex()) = 0;
-    for (auto i = exponentsIndexBegin(); i != exponentsIndexEnd(); ++i)
-      access(lcmAB, i) = std::max(access(a, i), access(b, i));
-    //setOrderData(lcmAB);
-    //setHash(lcmAB);
+    if (HasComponent) {
+      access(lcmAB, componentIndex()) =
+        MonoidA::HasComponent ? monoidA.component(a) : monoidB.component(b);
+    }
 
-    //MATHICGB_ASSERT(debugValid(lcmAB));
+    for (VarIndex var = 0; var < varCount(); ++var) {
+      ptr(lcmAB, exponentsIndexBegin())[var] =
+        std::max(monoidA.exponent(a, var), monoidB.exponent(b, var));
+    }
+
+    setOrderData(lcmAB);
+    setHash(lcmAB);
+
+    MATHICGB_ASSERT(debugValid(lcmAB));
+    MATHICGB_ASSERT(isLcm(monoidA, a, monoidB, b, lcmAB));
   }
+
+  Mono alloc() const {return mPool.alloc();}
+  void free(Mono&& mono) const {mPool.free(std::move(mono));}
 
   /// Parses a monomial out of a string. Valid examples: 1 abc a2bc
   /// aA. Variable names are case sensitive. Whitespace terminates the
@@ -777,6 +945,9 @@ public:
     const MonoMonoid& monoid() const {return mMonoid;}
 
   private:
+    MonoPool(const MonoPool&); // not available
+    void operator=(const MonoPool&); // not available
+
     const MonoMonoid& mMonoid;
     memt::BufferPool mPool;
   };
@@ -953,6 +1124,11 @@ public:
 
 
 private:
+  // Grants access to other template instantiations.
+  template<class E2, bool HC2, bool SH2, bool SO2>
+  friend class MonoMonoid;
+
+  // The main point here is to grant access to rawPtr().
   friend class Mono;
   friend class MonoRef;
   friend class ConstMonoRef;
@@ -964,6 +1140,33 @@ private:
   bool debugValid(ConstMonoRef mono) const {
     MATHICGB_ASSERT(debugOrderValid(mono));
     MATHICGB_ASSERT(debugHashValid(mono));
+    return true;
+  }
+
+  template<class MonoidA, class MonoidB>
+  bool debugLcmCheck(
+    const MonoidA& monoidA,
+    typename MonoidA::ConstMonoRef a,
+    const MonoidB& monoidB,
+    typename MonoidB::ConstMonoRef b
+  ) const {
+    MATHICGB_ASSERT(monoidA.varCount() == varCount());
+    MATHICGB_ASSERT(monoidB.varCount() == varCount());
+    MATHICGB_ASSERT
+      ((std::is_same<Exponent, typename MonoidA::Exponent>::value));
+    MATHICGB_ASSERT
+      ((std::is_same<Exponent, typename MonoidB::Exponent>::value));
+    MATHICGB_ASSERT
+      (HasComponent == (MonoidA::HasComponent || MonoidB::HasComponent));
+    MATHICGB_ASSERT(monoidA.debugValid(a));
+    MATHICGB_ASSERT(monoidB.debugValid(b));
+    MATHICGB_ASSERT(
+      !HasComponent ||
+      !MonoidA::HasComponent ||
+      !MonoidB::HasComponent ||
+      monoidA.component(a) == monoidB.component(b)
+  );
+
     return true;
   }
 
@@ -1178,6 +1381,8 @@ private:
   /// vector with this vector. If mGradingIsTotalDegree is true then
   /// mGrading is empty but implicitly it is a vector of ones.
   std::vector<Exponent> mGrading;
+
+  mutable MonoPool mPool;
 };
 
 namespace MonoMonoidHelper {
