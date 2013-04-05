@@ -80,8 +80,7 @@ public:
     return mEliminated.bitUnordered(a, b);
   }
 
-  const Monoid& monoid() const {return ring().monoid();}
-  const PolyRing& ring() const {return mRing;}
+  const Monoid& monoid() const {return mMonoid;}
   const PolyBasis& basis() const {return mBasis;}
 
   size_t getMemoryUse() const;
@@ -165,12 +164,11 @@ private:
   public:
     QueueConfiguration(
       const PolyBasis& basis,
-      const Monoid& monoid,
       const OrderMonoid& orderMonoid,
       const bool preferSparseSPairs
     ):
       mBasis(basis),
-      mMonoid(mBasis.ring().monoid()),
+      mMonoid(basis.ring().monoid()),
       mOrderMonoid(orderMonoid),
       mPreferSparseSPairs(preferSparseSPairs) {}
 
@@ -228,7 +226,6 @@ private:
   // S-polynomial of that pair has already been reduced.
   mathic::BitTriangle mEliminated;
   const PolyBasis& mBasis;
-  const PolyRing& mRing;
   mutable Stats mStats;
 
   static const bool mUseBuchbergerLcmHitCache = true;

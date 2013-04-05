@@ -1058,11 +1058,9 @@ public:
     }
 
     // ** Modifiers
-    void push_back(ConstMonoRef mono) {
-      MATHICGB_ASSERT(monoid().debugValid(mono));
-      const auto offset = mMonos.size();
-      mMonos.resize(offset + monoid().entryCount());
-      monoid().copy(mono, *MonoPtr(mMonos.data() + offset));
+
+    void reserve(size_t count) {
+      mMonos.reserve(count * monoid().entryCount());
     }
 
     /// Appends the identity.
@@ -1070,6 +1068,26 @@ public:
       const auto offset = mMonos.size();
       mMonos.resize(offset + monoid().entryCount());
       MATHICGB_ASSERT(monoid().isIdentity(back()));
+      MATHICGB_ASSERT(monoid().debugValid(back()));
+    }
+
+    void push_back(ConstMonoRef mono) {
+      MATHICGB_ASSERT(monoid().debugValid(mono));
+      const auto offset = mMonos.size();
+      mMonos.resize(offset + monoid().entryCount());
+      monoid().copy(mono, *MonoPtr(mMonos.data() + offset));
+      MATHICGB_ASSERT(monoid().debugValid(back()));
+    }
+
+    template<class Monoid>
+    void push_back(
+      const Monoid& monoidMono,
+      typename Monoid::ConstMonoRef mono
+    ) {
+      MATHICGB_ASSERT(monoidMono.debugValid(mono));
+      const auto offset = mMonos.size();
+      mMonos.resize(offset + monoid().entryCount());
+      monoid().copy(monoidMono, mono, *MonoPtr(mMonos.data() + offset));
       MATHICGB_ASSERT(monoid().debugValid(back()));
     }
 

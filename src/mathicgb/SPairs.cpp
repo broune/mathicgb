@@ -26,9 +26,8 @@ SPairs::SPairs(const PolyBasis& basis, bool preferSparseSPairs):
   mMonoid(basis.ring().monoid()),
   mOrderMonoid(mMonoid),
   mBareMonoid(mMonoid),
-  mQueue(QueueConfiguration(basis, mMonoid, mOrderMonoid, preferSparseSPairs)),
-  mBasis(basis),
-  mRing(basis.ring())
+  mQueue(QueueConfiguration(basis, mOrderMonoid, preferSparseSPairs)),
+  mBasis(basis)
  {}
 
 std::pair<size_t, size_t> SPairs::pop() {
@@ -205,51 +204,46 @@ void SPairs::addPairs(size_t newGen) {
   }
 
 
-  // todo: use a monovector
-  typedef std::pair<OrderMonoid::Mono, Queue::Index> PrePair;
-  std::vector<PrePair> prePairs;
-
-  MATHICGB_ASSERT(prePairs.empty());
   if (newGen == std::numeric_limits<Queue::Index>::max())
     throw std::overflow_error
       ("Too large basis element index in constructing S-pairs.");
 
-  OrderMonoid::MonoPool pool(mMonoid);
+  OrderMonoid::MonoVector prePairMonos(orderMonoid());
+  typedef std::pair<OrderMonoid::ConstMonoPtr, Queue::Index> PrePair;
+  std::vector<PrePair> prePairs;
+  prePairMonos.reserve(newGen);
+  prePairs.reserve(newGen);
+
   ConstMonoRef newLead = mBasis.leadMonomial(newGen);
   auto lcm = mBareMonoid.alloc();
   for (size_t oldGen = 0; oldGen < newGen; ++oldGen) {
     if (mBasis.retired(oldGen))
       continue;
     ConstMonoRef oldLead = mBasis.leadMonomial(oldGen);
-    if (mMonoid.relativelyPrime(newLead, oldLead)) {
+    if (monoid().relativelyPrime(newLead, oldLead)) {
       ++mStats.relativelyPrimeHits;
       mEliminated.setBit(newGen, oldGen, true);
       continue;
     }
-    mBareMonoid.lcm(mMonoid, newLead, mMonoid, oldLead, lcm);
+    mBareMonoid.lcm(monoid(), newLead, monoid(), oldLead, lcm);
     if (simpleBuchbergerLcmCriterion(newGen, oldGen, lcm)) {
       mEliminated.setBit(newGen, oldGen, true);
       continue;
     }
 
-    auto orderLcm = orderMonoid().alloc();
-    // todo: convert lcm instead of re-computing
-    orderMonoid().lcm(monoid(), newLead, monoid(), oldLead, orderLcm);
+    prePairMonos.push_back(bareMonoid(), lcm);
     prePairs.emplace_back
-      (std::move(orderLcm), static_cast<Queue::Index>(oldGen));
+      (prePairMonos.back().ptr(), static_cast<Queue::Index>(oldGen));
   }
 
   std::sort(prePairs.begin(), prePairs.end(),
     [&](const PrePair& a, const PrePair& b)
   {
     return mQueue.configuration().compare
-      (b.second, newGen, b.first, a.second, newGen, a.first);
+      (b.second, newGen, *b.first, a.second, newGen, *a.first);
   });
   mQueue.addColumnDescending
 	(makeSecondIterator(prePairs.begin()), makeSecondIterator(prePairs.end()));
-
-  for (auto it = prePairs.begin(); it != prePairs.end(); ++it)
-    orderMonoid().free(std::move(it->first));
 }
 
 size_t SPairs::getMemoryUse() const {
@@ -364,7 +358,7 @@ bool SPairs::simpleBuchbergerLcmCriterion(
           !applies &&
           !mBasis.retired(cacheB) &&
           mBareMonoid.divides
-            (mMonoid, mBasis.leadMonomial(cacheB), criterion.lcmAB())
+            (monoid(), mBasis.leadMonomial(cacheB), criterion.lcmAB())
       )
         applies = !criterion.Criterion::proceed(cacheB);
 
@@ -373,7 +367,7 @@ bool SPairs::simpleBuchbergerLcmCriterion(
         !applies &&
         !mBasis.retired(cacheA) &&
         mBareMonoid.divides
-          (mMonoid, mBasis.leadMonomial(cacheA), criterion.lcmAB())
+          (monoid(), mBasis.leadMonomial(cacheA), criterion.lcmAB())
       ) {
         applies = !criterion.Criterion::proceed(cacheA);
         if (applies)
@@ -422,36 +416,43 @@ bool SPairs::simpleBuchbergerLcmCriterionSlow(size_t a, size_t b) const {
   MATHICGB_ASSERT(mEliminated.columnCount() == mBasis.size());
 
   // todo: use iterators
-  monomial lcmAB = mRing.allocMonomial();
-  monomial lcm = mRing.allocMonomial();
-  mRing.monomialLeastCommonMultiple
-    (mBasis.leadMonomial(a), mBasis.leadMonomial(b), lcmAB);
+  auto lcmAB = bareMonoid().alloc();
+  auto lcm = bareMonoid().alloc();
+  bareMonoid().lcm(
+    monoid(), mBasis.leadMonomial(a),
+    monoid(), mBasis.leadMonomial(b),
+    lcmAB
+  );
   size_t stop = mBasis.size();
   size_t i = 0;
   for (; i < stop; ++i) {
     if (mBasis.retired(i))
       continue;
-    if (!mMonoid.divides(mBasis.leadMonomial(i), lcmAB))
+    if (!bareMonoid().divides(monoid(), mBasis.leadMonomial(i), lcmAB))
       continue;
     if (i == a || i == b)
       continue;
     if (!eliminated(i, a)) {
-      mRing.monomialLeastCommonMultiple
-        (mBasis.leadMonomial(a), mBasis.leadMonomial(i), lcm);
-      if (mRing.monomialEQ(lcmAB, lcm))
+      bareMonoid().lcm(
+        monoid(), mBasis.leadMonomial(a),
+        monoid(), mBasis.leadMonomial(i),
+        lcm
+      );
+      if (bareMonoid().equal(lcmAB, lcm))
         continue;
     }
 
     if (!eliminated(i, b)) {
-      mRing.monomialLeastCommonMultiple
-        (mBasis.leadMonomial(b), mBasis.leadMonomial(i), lcm);
-      if (mRing.monomialEQ(lcmAB, lcm))
+      bareMonoid().lcm(
+        monoid(), mBasis.leadMonomial(b),
+        monoid(), mBasis.leadMonomial(i),
+        lcm
+      );
+      if (bareMonoid().equal(lcmAB, lcm))
         continue;
     }
     break;
   }
-  mRing.freeMonomial(lcmAB);
-  mRing.freeMonomial(lcm);
   return i != stop;
 }
 
@@ -576,9 +577,9 @@ bool SPairs::advancedBuchbergerLcmCriterionSlow(size_t a, size_t b) const {
   MATHICGB_ASSERT(a != b);
   MATHICGB_ASSERT(mEliminated.columnCount() == mBasis.size());
 
-  auto lcmAB = mMonoid.alloc();
-  auto lcm = mMonoid.alloc();
-  mMonoid.lcm(mBasis.leadMonomial(a), mBasis.leadMonomial(b), lcmAB);
+  auto lcmAB = monoid().alloc();
+  auto lcm = monoid().alloc();
+  monoid().lcm(mBasis.leadMonomial(a), mBasis.leadMonomial(b), lcmAB);
   size_t stop = mBasis.size();
 
   // *** Build the graph vertices
@@ -590,7 +591,7 @@ bool SPairs::advancedBuchbergerLcmCriterionSlow(size_t a, size_t b) const {
   for (size_t i = 0; i != stop; ++i) {
     if (mBasis.retired(i))
       continue;
-    if (!mMonoid.divides(mBasis.leadMonomial(i), lcmAB))
+    if (!monoid().divides(mBasis.leadMonomial(i), lcmAB))
       continue;
     Connection con = NotConnected;
     if (i == a) {
@@ -622,8 +623,8 @@ bool SPairs::advancedBuchbergerLcmCriterionSlow(size_t a, size_t b) const {
       size_t const other = graph[i].first;
 
       const_monomial const leadOther = mBasis.leadMonomial(other);
-      mMonoid.lcm(leadNode, leadOther, lcm);
-      if (!eliminated(node.first, other) && mMonoid.equal(lcm, lcmAB))
+      monoid().lcm(leadNode, leadOther, lcm);
+      if (!eliminated(node.first, other) && monoid().equal(lcm, lcmAB))
         continue; // not an edge in G
       
       if (graph[i].second == NotConnected) {
