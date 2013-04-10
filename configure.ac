@@ -5,6 +5,24 @@ AC_INIT([mathicgb], [1.0]) # package, version, bug-report-email
 PKG_CHECK_MODULES([MEMTAILOR], [memtailor])
 PKG_CHECK_MODULES([MATHIC], [mathic])
 
+AC_LANG([C++])
+dnl the first AC_LINK_IFELSE causes tests for lots of C++ related things,
+dnl and these print out messages. So to avoid those messages appearing
+dnl after "if librt..." and before the result for that test, we do an
+dnl empty AC_LINK_IFELSE. Probably there is a better way.
+AC_LINK_IFELSE([AC_LANG_SOURCE([[]])], [], [])
+
+AC_MSG_CHECKING([if librt is needed on this platform])
+AC_LINK_IFELSE(
+  [AC_LANG_PROGRAM(
+    [[#]include [<]ctime[>]],
+    [[std::clock();]]
+   )],
+  [AC_MSG_RESULT([no]); RT_LIBS=""],
+  [AC_MSG_RESULT([yes]); RT_LIBS="-lrt"]
+)
+
+
 dnl ----- The gtest dependency
 
 AC_ARG_WITH([gtest], AS_HELP_STRING(
@@ -75,7 +93,7 @@ AS_IF(
 )
 
 DEPS_CFLAGS="$MEMTAILOR_CFLAGS $MATHIC_CFLAGS $TBB_CFLAGS $GTEST_CFLAGS"
-DEPS_LIBS="$MEMTAILOR_LIBS $MATHIC_LIBS $TBB_LIBS $GTEST_LIBS -lrt"
+DEPS_LIBS="$MEMTAILOR_LIBS $MATHIC_LIBS $TBB_LIBS $GTEST_LIBS $RT_LIBS"
 AC_SUBST(DEPS_CFLAGS)
 AC_SUBST(DEPS_LIBS)
 

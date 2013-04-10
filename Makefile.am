@@ -54,7 +54,7 @@ libmathicgb_la_SOURCES = src/mathicgb/BjarkeGeobucket2.cpp				\
   src/mathicgb/SigSPairQueue.cpp src/mathicgb/SparseMatrix.hpp			\
   src/mathicgb/SparseMatrix.cpp src/mathicgb/QuadMatrixBuilder.hpp		\
   src/mathicgb/QuadMatrixBuilder.cpp src/mathicgb/TypicalReducer.cpp	\
-  src/mathicgb/TypicalReducer.cpp src/mathicgb/F4Reducer.hpp			\
+  src/mathicgb/TypicalReducer.hpp src/mathicgb/F4Reducer.hpp			\
   src/mathicgb/F4Reducer.cpp src/mathicgb/F4MatrixBuilder.hpp			\
   src/mathicgb/F4MatrixBuilder.cpp src/mathicgb/QuadMatrix.hpp			\
   src/mathicgb/QuadMatrix.cpp src/mathicgb/F4MatrixReducer.cpp			\

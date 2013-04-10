@@ -211,16 +211,16 @@ TYPED_TEST(Monoid, MonoPool) {
       auto m2 = pool.alloc();
       ASSERT_TRUE(monoid.isIdentity(m2));
       for (VarIndex var = 0; var < varCount; ++var) {
-	monoid.setExponent(var, 1, m1);
-	monoid.setExponent(var, 1, m2);
+        monoid.setExponent(var, 1, m1);
+        monoid.setExponent(var, 1, m2);
       }
       if (i > 10) {
-	using std::swap;
-	swap(m2, monos[i - 10]);
+        using std::swap;
+        swap(m2, monos[i - 10]);
       }
-      monos.push_back(std::move(m1));
+      monos.emplace_back(std::move(m1));
     }
-
+    
     // This ensures that we get to each entry in monos exactly once.
     MATHICGB_ASSERT((count % 17) != 0); 
     int i = 0;
@@ -243,11 +243,11 @@ TYPED_TEST(Monoid, MonoPool) {
       monos[i] = pool.alloc();
       ASSERT_TRUE(monoid.isIdentity(monos[i]));
       for (VarIndex var = 0; var < varCount; ++var)
-	monoid.setExponent(var, expect(i, var, varCount), monos[i]);
+        monoid.setExponent(var, expect(i, var, varCount), monos[i]);
     }
     for (int i = 0; i < count; ++i) {
       for (VarIndex var = 0; var < varCount; ++var) {
-	ASSERT_EQ(expect(i, var, varCount), monoid.exponent(monos[i], var));
+        ASSERT_EQ(expect(i, var, varCount), monoid.exponent(monos[i], var));
       }
     }
     // everything should be free'd now. Let's do all that again.
