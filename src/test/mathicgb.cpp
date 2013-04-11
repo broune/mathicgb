@@ -247,3 +247,124 @@ TEST(MathicGBLib, EasyReGB) {
     << "\nDisplayed expected:\n" << correctStr.str()
     << "\nDisplayed computed:\n" << computedStr.str();
 }
+
+TEST(MathicGBLib, Cyclic5) {
+  mgb::GroebnerConfiguration configuration(101, 5);
+  mgb::GroebnerInputIdealStream s(configuration);
+  s.idealBegin(5); // polyCount
+  s.appendPolynomialBegin(5);
+  s.appendTermBegin();
+  s.appendExponent(0, 1); // index, exponent
+  s.appendTermDone(1); // coefficient
+  s.appendTermBegin();
+  s.appendExponent(1, 1); // index, exponent
+  s.appendTermDone(1); // coefficient
+  s.appendTermBegin();
+  s.appendExponent(2, 1); // index, exponent
+  s.appendTermDone(1); // coefficient
+  s.appendTermBegin();
+  s.appendExponent(3, 1); // index, exponent
+  s.appendTermDone(1); // coefficient
+  s.appendTermBegin();
+  s.appendExponent(4, 1); // index, exponent
+  s.appendTermDone(1); // coefficient
+  s.appendPolynomialDone();
+  s.appendPolynomialBegin(5);
+  s.appendTermBegin();
+  s.appendExponent(0, 1); // index, exponent
+  s.appendExponent(1, 1); // index, exponent
+  s.appendTermDone(1); // coefficient
+  s.appendTermBegin();
+  s.appendExponent(1, 1); // index, exponent
+  s.appendExponent(2, 1); // index, exponent
+  s.appendTermDone(1); // coefficient
+  s.appendTermBegin();
+  s.appendExponent(2, 1); // index, exponent
+  s.appendExponent(3, 1); // index, exponent
+  s.appendTermDone(1); // coefficient
+  s.appendTermBegin();
+  s.appendExponent(0, 1); // index, exponent
+  s.appendExponent(4, 1); // index, exponent
+  s.appendTermDone(1); // coefficient
+  s.appendTermBegin();
+  s.appendExponent(3, 1); // index, exponent
+  s.appendExponent(4, 1); // index, exponent
+  s.appendTermDone(1); // coefficient
+  s.appendPolynomialDone();
+  s.appendPolynomialBegin(5);
+  s.appendTermBegin();
+  s.appendExponent(0, 1); // index, exponent
+  s.appendExponent(1, 1); // index, exponent
+  s.appendExponent(2, 1); // index, exponent
+  s.appendTermDone(1); // coefficient
+  s.appendTermBegin();
+  s.appendExponent(1, 1); // index, exponent
+  s.appendExponent(2, 1); // index, exponent
+  s.appendExponent(3, 1); // index, exponent
+  s.appendTermDone(1); // coefficient
+  s.appendTermBegin();
+  s.appendExponent(0, 1); // index, exponent
+  s.appendExponent(1, 1); // index, exponent
+  s.appendExponent(4, 1); // index, exponent
+  s.appendTermDone(1); // coefficient
+  s.appendTermBegin();
+  s.appendExponent(0, 1); // index, exponent
+  s.appendExponent(3, 1); // index, exponent
+  s.appendExponent(4, 1); // index, exponent
+  s.appendTermDone(1); // coefficient
+  s.appendTermBegin();
+  s.appendExponent(2, 1); // index, exponent
+  s.appendExponent(3, 1); // index, exponent
+  s.appendExponent(4, 1); // index, exponent
+  s.appendTermDone(1); // coefficient
+  s.appendPolynomialDone();
+  s.appendPolynomialBegin(5);
+  s.appendTermBegin();
+  s.appendExponent(0, 1); // index, exponent
+  s.appendExponent(1, 1); // index, exponent
+  s.appendExponent(2, 1); // index, exponent
+  s.appendExponent(3, 1); // index, exponent
+  s.appendTermDone(1); // coefficient
+  s.appendTermBegin();
+  s.appendExponent(0, 1); // index, exponent
+  s.appendExponent(1, 1); // index, exponent
+  s.appendExponent(2, 1); // index, exponent
+  s.appendExponent(4, 1); // index, exponent
+  s.appendTermDone(1); // coefficient
+  s.appendTermBegin();
+  s.appendExponent(0, 1); // index, exponent
+  s.appendExponent(1, 1); // index, exponent
+  s.appendExponent(3, 1); // index, exponent
+  s.appendExponent(4, 1); // index, exponent
+  s.appendTermDone(1); // coefficient
+  s.appendTermBegin();
+  s.appendExponent(0, 1); // index, exponent
+  s.appendExponent(2, 1); // index, exponent
+  s.appendExponent(3, 1); // index, exponent
+  s.appendExponent(4, 1); // index, exponent
+  s.appendTermDone(1); // coefficient
+  s.appendTermBegin();
+  s.appendExponent(1, 1); // index, exponent
+  s.appendExponent(2, 1); // index, exponent
+  s.appendExponent(3, 1); // index, exponent
+  s.appendExponent(4, 1); // index, exponent
+  s.appendTermDone(1); // coefficient
+  s.appendPolynomialDone();
+  s.appendPolynomialBegin(2);
+  s.appendTermBegin();
+  s.appendExponent(0, 1); // index, exponent
+  s.appendExponent(1, 1); // index, exponent
+  s.appendExponent(2, 1); // index, exponent
+  s.appendExponent(3, 1); // index, exponent
+  s.appendExponent(4, 1); // index, exponent
+  s.appendTermDone(1); // coefficient
+  s.appendTermBegin();
+  s.appendTermDone(100); // coefficient
+  s.appendPolynomialDone();
+  s.idealDone();
+
+  std::ostringstream computedStr;
+  mgb::IdealStreamLog<> computed(computedStr, s.modulus(), s.varCount());
+
+  mgb::computeGroebnerBasis(s, computed);
+}
