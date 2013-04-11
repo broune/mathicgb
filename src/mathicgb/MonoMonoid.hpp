@@ -11,6 +11,20 @@
 #include <cstring>
 #include <mathic.h>
 
+/// Temporary class. Should be moved to its own place eventually.
+/// Derive from this class to disable the compiler-generated
+/// copy constructor and assignment. The purpose of the template
+/// parameter is to avoid any chance of getting a diamond-graph
+/// inheritance graph.
+template<class T>
+class NonCopyable {
+public:
+  NonCopyable() {}
+private:
+  NonCopyable(const NonCopyable&); // unavailable
+  void operator=(const NonCopyable&); // unavailable
+};
+
 /// Implements the monoid of (monic) monomials with integer
 /// non-negative exponents. Exponent must be an unsigned integer type that is
 /// used to store each exponent of a monomial.
@@ -838,7 +852,7 @@ public:
     Exponent* mMono;
   };
 
-  class Mono {
+  class Mono : public NonCopyable<Mono> {
   public:
     Mono(): mMono(), mPool(0) {}
 
@@ -870,8 +884,6 @@ public:
     }
 
   private:
-    Mono(const Mono&); // not available
-    void operator=(const Mono&); // not available
     friend class MonoMonoid;
 
     Mono(const MonoPtr mono, MonoPool& pool):
