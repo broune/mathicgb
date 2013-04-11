@@ -186,6 +186,11 @@ private:
       if (cmp == LT)
         return false;
 
+      const bool aRetired = mBasis.retired(rowA) || mBasis.retired(colA);
+      const bool bRetired = mBasis.retired(rowB) || mBasis.retired(colB);
+      if (aRetired || bRetired)
+        return !bRetired;
+
       if (mPreferSparseSPairs) {
         const auto termCountA =
           mBasis.basisElement(colA).termCount() +
