@@ -3,14 +3,10 @@
 ACLOCAL_AMFLAGS = -I build/autotools/m4
 
 # Options passed to the C and C++ PreProcessor (CPP) and compiler
-AM_CPPFLAGS = -I${top_srcdir}/
-libmathicgb_la_CPPFLAGS = $(DEPS_CFLAGS)
+AM_CPPFLAGS = -I${top_srcdir}/ -I$(top_srcdir)/src/ $(DEPS_CFLAGS)
 
 # tell Libtool what the name of the library is.
 lib_LTLIBRARIES = libmathicgb.la
-
-# set the C++ compiler to include src/
-AM_CXXFLAGS=-I$(top_srcdir)/src/ -std=gnu++0x
 
 # libraries that are needed by this library
 libmathicgb_la_LIBADD= $(DEPS_LIBS)
@@ -89,7 +85,6 @@ bin_PROGRAMS = mgb
 
 # set up the console program. Listing the headers in sources ensure that
 # those files are included in distributions.
-mgb_CPPFLAGS = $(DEPS_CFLAGS)
 mgb_SOURCES = src/cli/GBMain.cpp src/cli/CommonParams.hpp				\
   src/cli/CommonParams.cpp src/cli/GBAction.hpp src/cli/GBAction.cpp	\
   src/cli/GBCommonParams.hpp src/cli/GBCommonParams.cpp					\
@@ -104,8 +99,6 @@ if with_gtest
 TESTS=unittest
 check_PROGRAMS=$(TESTS)
 
-unittest_CPPFLAGS = $(DEPS_CFLAGS)
-unittest_CXXFLAGS = -I$(top_srcdir)/src/ -std=gnu++0x
 unittest_LDADD = $(DEPS_LIBS)
 unittest_LDFLAGS= $(top_builddir)/libmathicgb.la
 

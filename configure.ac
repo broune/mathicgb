@@ -5,22 +5,12 @@ AC_INIT([mathicgb], [1.0]) # package, version, bug-report-email
 PKG_CHECK_MODULES([MEMTAILOR], [memtailor])
 PKG_CHECK_MODULES([MATHIC], [mathic])
 
+# Locate the C++ compiler.
+AC_PROG_CXX
 AC_LANG([C++])
-dnl the first AC_LINK_IFELSE causes tests for lots of C++ related things,
-dnl and these print out messages. So to avoid those messages appearing
-dnl after "if librt..." and before the result for that test, we do an
-dnl empty AC_LINK_IFELSE. Probably there is a better way.
-AC_LINK_IFELSE([AC_LANG_SOURCE([[]])], [], [])
 
-AC_MSG_CHECKING([if librt is needed on this platform])
-AC_LINK_IFELSE(
-  [AC_LANG_PROGRAM(
-    [[#]include [<]ctime[>]],
-    [[std::clock();]]
-   )],
-  [AC_MSG_RESULT([no]); RT_LIBS=""],
-  [AC_MSG_RESULT([yes]); RT_LIBS="-lrt"]
-)
+# Require C++11 support
+AX_CXX_COMPILE_STDCXX_11(, [mandatory])
 
 
 dnl ----- The gtest dependency
@@ -92,8 +82,45 @@ AS_IF(
   [AC_MSG_ERROR([invalid value $with_tbb for with_tbb.])]
 )
 
+dnl ----- The librt dependency
+dnl On Linux TBB calls clock_gettime, which requires librt, but librt is not
+dnl linked in automatically. So we need to check for that.
+
+dnl the first AC_LINK_IFELSE causes tests for lots of C++ related things,
+dnl and these print out messages. So to avoid those messages appearing
+dnl after "if librt..." and before the result for that test, we do an
+dnl empty AC_LINK_IFELSE. Probably there is a better way.
+AC_LINK_IFELSE([AC_LANG_SOURCE([[]])], [], [])
+
+dnl We check if -lrt is necessary. We need librt if we are building with TBB,
+dnl if linking and compiling works when linking with librt but it doesn't
+dnl without linking with librt.
+AS_IF([test "x$with_tbb" == "xyes"],
+  [AC_MSG_CHECKING([if librt is needed to support TBB on this platform]);
+  oldLIBS=$LIBS;
+  LIBS="$TBB_LIBS -lrt $LIBS";
+  oldCFLAGS=$CFLAGS;
+  CFLAGS="$CFLAGS $TBB_CFLAGS";
+  AC_LINK_IFELSE(
+    [AC_LANG_PROGRAM(
+      [[#]include [<]tbb/tbb.h[>]], [[tbb::tick_count::now();]]
+    )],
+    [LIBS=$oldLibs; AC_LINK_IFELSE(
+      [AC_LANG_PROGRAM(
+        [[#]include [<]tbb/tbb.h[>]], [[tbb::tick_count::now();]]
+      )],
+      [AC_MSG_RESULT([no])],
+      [AC_MSG_RESULT([yes]); RT_LIBS="-lrt"]
+    )],
+    [AC_MSG_WARN([AC_MSG_RESULT([no])])]
+  )];
+  LIBS=$oldLIBS;
+  CFLAGS=$oldCFLAGS;
+)
+
 DEPS_CFLAGS="$MEMTAILOR_CFLAGS $MATHIC_CFLAGS $TBB_CFLAGS $GTEST_CFLAGS"
 DEPS_LIBS="$MEMTAILOR_LIBS $MATHIC_LIBS $TBB_LIBS $GTEST_LIBS $RT_LIBS"
+
 AC_SUBST(DEPS_CFLAGS)
 AC_SUBST(DEPS_LIBS)
 
@@ -145,9 +172,6 @@ AC_PROG_LN_S
 # Requires install-sh to be present as a fallback, even on systems where
 # the fallback is not used.
 AC_PROG_INSTALL
-
-# Locate the C++ compiler.
-AC_PROG_CXX
 
 # Set up LibTool
 LT_INIT
