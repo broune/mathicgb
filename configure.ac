@@ -72,15 +72,16 @@ AC_ARG_WITH([tbb], AS_HELP_STRING(
       March 2013).]
 ))
 AS_IF([test "x$with_tbb" == "x"], [with_tbb="detect"])
-AS_IF([test "x$with_tbb" == "xdetect"],
-    [PKG_CHECK_MODULES([TBB], [tbb], [with_tbb="yes"], [with_tbb="no";
-      AC_MSG_WARN([TBB not detected. Compiling without multithreading and without precise timing.])
-    ])])
 AS_IF(
-  [test "x$with_tbb" == "xyes"], [PKG_CHECK_MODULES([TBB], [tbb])],
-  [test "x$with_tbb" == "xno"], [TBB_CFLAGS="-DMATHICGB_NO_TBB"],
+  [test "x$with_tbb" == "xdetect"],
+  [PKG_CHECK_MODULES([TBB], [tbb], [with_tbb="yes"], [with_tbb="no";
+    AC_MSG_WARN([TBB not detected. Compiling without multithreading and without precise timing.])
+  ])],
+  [test "x$with_tbb" == "xyes"], [PKG_CHECK_MODULES([TBB], [tbb])],    
+  [test "x$with_tbb" == "xno"], [],
   [AC_MSG_ERROR([invalid value $with_tbb for with_tbb.])]
 )
+AS_IF([test "x$with_tbb" == "xno"], [TBB_CFLAGS="-DMATHICGB_NO_TBB"])
 
 dnl ----- The librt dependency
 dnl On Linux TBB calls clock_gettime, which requires librt, but librt is not
@@ -112,7 +113,7 @@ AS_IF([test "x$with_tbb" == "xyes"],
       [AC_MSG_RESULT([no])],
       [AC_MSG_RESULT([yes]); RT_LIBS="-lrt"]
     )],
-    [AC_MSG_WARN([AC_MSG_RESULT([no])])]
+    [AC_MSG_RESULT([no])]
   )];
   LIBS=$oldLIBS;
   CFLAGS=$oldCFLAGS;
