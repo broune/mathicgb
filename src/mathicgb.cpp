@@ -6,6 +6,7 @@
 #include "mathicgb/Poly.hpp"
 #include "mathicgb/Reducer.hpp"
 #include "mathicgb/BuchbergerAlg.hpp"
+#include "mathicgb/mtbb.hpp"
 #include <mathic.h>
 
 namespace {
@@ -311,7 +312,8 @@ namespace mgb {
     Pimpl(Coefficient modulus, VarIndex varCount):
       mModulus(modulus),
       mVarCount(varCount),
-      mReducer(DefaultReducer)
+      mReducer(DefaultReducer),
+      mMaxThreadCount(0)
 #ifdef MATHICGB_DEBUG
       , mHasBeenDestroyed(false)
 #endif
@@ -343,6 +345,7 @@ namespace mgb {
     const Coefficient mModulus;
     const VarIndex mVarCount;
     Reducer mReducer;
+    size_t mMaxThreadCount;
     MATHICGB_IF_DEBUG(bool mHasBeenDestroyed);
   };
 
@@ -397,6 +400,14 @@ namespace mgb {
 
   auto GroebnerConfiguration::reducer() const -> Reducer {
     return mPimpl->mReducer;
+  }
+
+  void GroebnerConfiguration::setMaxThreadCount(size_t maxThreadCount) {
+    mPimpl->mMaxThreadCount = maxThreadCount;
+  }
+
+  size_t GroebnerConfiguration::maxThreadCount() const {
+    return mPimpl->mMaxThreadCount;
   }
 }
 
@@ -628,6 +639,12 @@ namespace mgbi {
     auto&& ring = ideal.ring();
     const auto varCount = ring.getNumVars();
     MATHICGB_ASSERT(PimplOf()(conf).debugAssertValid());
+
+    // Tell tbb how many threads to use
+    const auto maxThreadCount = conf.maxThreadCount();
+    const auto tbbMaxThreadCount = maxThreadCount == 0 ?
+      mgb::tbb::task_scheduler_init::automatic : maxThreadCount;
+    mgb::tbb::task_scheduler_init scheduler(tbbMaxThreadCount);
 
     // Make reducer
     typedef GroebnerConfiguration GConf;
