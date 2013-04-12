@@ -50,10 +50,16 @@ namespace mgbi {
       modulus(modulus),
       varCount(varCount),
       state(Initial),
+
+      hasClaimedPolyCount(false),
       claimedPolyCount(0),
       seenPolyCount(0),
+
+      hasClaimedTermCount(false),
       claimedTermCount(0),
-      seenTermCount(0)
+      seenTermCount(0),
+
+      lastVar(0)
     {}
 
     bool debugAssertValid() const;
@@ -70,10 +76,15 @@ namespace mgbi {
     const VarIndex varCount;
 
     State state;
+
+    bool hasClaimedPolyCount;
     size_t claimedPolyCount;
     size_t seenPolyCount;
+
+    bool hasClaimedTermCount;
     size_t claimedTermCount;
     size_t seenTermCount;
+
     VarIndex lastVar;
   };
 
@@ -112,7 +123,7 @@ namespace mgbi {
     delete mPimpl;
   }
 
-  void StreamStateChecker::idealBegin(size_t polyCount) {
+  void StreamStateChecker::idealBegin() {
     MATHICGB_ASSERT(mPimpl->debugAssertValid());
 
     MATHICGB_STREAM_CHECK(
@@ -121,13 +132,23 @@ namespace mgbi {
       "without an intervening call to idealDone()."
     );
     mPimpl->state = Pimpl::MakingIdeal;
+    mPimpl->hasClaimedPolyCount = false;
+    mPimpl->claimedPolyCount = 0;
+    mPimpl->seenPolyCount = 0;
+
+    MATHICGB_ASSERT(mPimpl->debugAssertValid());
+  }
+
+  void StreamStateChecker::idealBegin(size_t polyCount) {
+    idealBegin();
+    mPimpl->hasClaimedPolyCount = true;
     mPimpl->claimedPolyCount = polyCount;
     mPimpl->seenPolyCount = 0;
 
     MATHICGB_ASSERT(mPimpl->debugAssertValid());
   }
 
-  void StreamStateChecker::appendPolynomialBegin(size_t termCount) {
+  void StreamStateChecker::appendPolynomialBegin() {
     MATHICGB_ASSERT(mPimpl->debugAssertValid());
 
     MATHICGB_STREAM_CHECK(
@@ -137,16 +158,27 @@ namespace mgbi {
     );
     MATHICGB_STREAM_CHECK(
       mPimpl->state == Pimpl::MakingIdeal,
-     "appendPolynomialBegin() must not be called twice without "
-     "an intervening call to appendPolynomialDone()."
+      "appendPolynomialBegin() must not be called twice without "
+      "an intervening call to appendPolynomialDone()."
     );
     MATHICGB_STREAM_CHECK(
-      mPimpl->seenPolyCount < mPimpl->claimedPolyCount,
+      !mPimpl->hasClaimedPolyCount ||
+        mPimpl->seenPolyCount < mPimpl->claimedPolyCount,
       "The number of polynomials in an ideal must not exceed the amount "
       "passed to idealBegin()."
     );
     mPimpl->state = Pimpl::MakingPoly;
     mPimpl->seenPolyCount += 1;
+    mPimpl->hasClaimedTermCount = false;
+    mPimpl->claimedTermCount = 0;
+    mPimpl->seenTermCount = 0;
+
+    MATHICGB_ASSERT(mPimpl->debugAssertValid());
+  }
+
+  void StreamStateChecker::appendPolynomialBegin(size_t termCount) {
+    appendPolynomialBegin();
+    mPimpl->hasClaimedTermCount = true;
     mPimpl->claimedTermCount = termCount;
     mPimpl->seenTermCount = 0;
 
@@ -169,7 +201,8 @@ namespace mgbi {
       "call to appendTermDone()."
     );
     MATHICGB_STREAM_CHECK(
-      mPimpl->seenTermCount < mPimpl->claimedTermCount,
+      !mPimpl->hasClaimedTermCount ||
+        mPimpl->seenTermCount < mPimpl->claimedTermCount,
       "The number of terms in a polynomial must not exceed the amount "
       "passed to appendPolynomialBegin()."
     );
@@ -236,7 +269,8 @@ namespace mgbi {
       "appendPolynomialDone() must only be called after appendPolynomialBegin()."
     );
     MATHICGB_STREAM_CHECK(
-      mPimpl->seenTermCount == mPimpl->claimedTermCount,
+      !mPimpl->hasClaimedTermCount ||
+        mPimpl->seenTermCount == mPimpl->claimedTermCount,
       "The number of terms in a polynomial must match the amount "
       "passed to appendPolynomialBegin()."
     );
@@ -253,7 +287,8 @@ namespace mgbi {
       "idealDone() must only be called after idealBegin()."
     );
     MATHICGB_STREAM_CHECK(
-      mPimpl->seenPolyCount == mPimpl->claimedPolyCount,
+      !mPimpl->hasClaimedPolyCount ||
+        mPimpl->seenPolyCount == mPimpl->claimedPolyCount,
       "The number of polynomials in an ideal must match the amount "
       "passed to idealBegin()."
     );
@@ -426,6 +461,15 @@ namespace mgb {
     return mPimpl->conf.varCount();
   }
 
+  void GroebnerInputIdealStream::idealBegin() {
+    MATHICGB_ASSERT(debugAssertValid());
+    MATHICGB_IF_DEBUG(mPimpl->checker.idealBegin());
+    MATHICGB_ASSERT(mPimpl->poly.isZero());
+    MATHICGB_ASSERT(mPimpl->ideal.empty());
+
+    MATHICGB_ASSERT(debugAssertValid());
+  }
+
   void GroebnerInputIdealStream::idealBegin(size_t polyCount) {
     MATHICGB_ASSERT(debugAssertValid());
     MATHICGB_IF_DEBUG(mPimpl->checker.idealBegin(polyCount));
@@ -434,6 +478,13 @@ namespace mgb {
 
     mPimpl->ideal.reserve(polyCount);
 
+    MATHICGB_ASSERT(debugAssertValid());
+  }
+
+  void GroebnerInputIdealStream::appendPolynomialBegin() {
+    MATHICGB_ASSERT(debugAssertValid());
+    MATHICGB_IF_DEBUG(mPimpl->checker.appendPolynomialBegin());
+    MATHICGB_ASSERT(mPimpl->poly.isZero());
     MATHICGB_ASSERT(debugAssertValid());
   }
 

@@ -6,8 +6,8 @@
 namespace {
   template<class Stream>
   void makeBasis(Stream& s) {
-    s.idealBegin(2);
-      s.appendPolynomialBegin(2); // x^2 - y
+    s.idealBegin();
+      s.appendPolynomialBegin(); // x^2 - y
         s.appendTermBegin();
           s.appendExponent(0,2);
         s.appendTermDone(1);
@@ -202,8 +202,8 @@ TEST(MathicGBLib, NullIdealStream) {
 TEST(MathicGBLib, IdealStreamLog) {
   {
     const char* const idealStr = 
-      "s.idealBegin(2); // polyCount\n"
-      "s.appendPolynomialBegin(2);\n"
+      "s.idealBegin();\n"
+      "s.appendPolynomialBegin();\n"
       "s.appendTermBegin();\n"
       "s.appendExponent(0, 2); // index, exponent\n"
       "s.appendTermDone(1); // coefficient\n"
@@ -245,7 +245,9 @@ TEST(MathicGBLib, IdealStreamLog) {
     const auto str1 = std::string(
       "IdealStreamLog s(stream, 7, 3);\n"
     ) + idealStr;
-    ASSERT_EQ(str1, out1.str()) << "Displayed expected:\n" << out1.str();
+    ASSERT_EQ(str1, out1.str())
+      << "Displayed expected:\n" << out1.str()
+      << "Displayed actual:\n" << str1 << std::endl;
 
     const auto str2 = std::string(
       "IdealStreamLog s(stream, log); // modulus=7, varCount=3\n"

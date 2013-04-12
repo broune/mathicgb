@@ -66,7 +66,9 @@ namespace mgb { // Part of the public interface of MathicGB
     Coefficient modulus() const;
     VarIndex varCount() const;
 
+    void idealBegin();
     void idealBegin(size_t polyCount);
+    void appendPolynomialBegin();
     void appendPolynomialBegin(size_t termCount);
     void appendTermBegin();
 
@@ -164,7 +166,9 @@ namespace mgb { // Part of the public interface of MathicGB
     Coefficient modulus() const;
     VarIndex varCount() const;
 
+    void idealBegin();
     void idealBegin(size_t polyCount);
+    void appendPolynomialBegin();
     void appendPolynomialBegin(size_t termCount);
     void appendTermBegin();
     void appendExponent(VarIndex index, Exponent exponent);
@@ -193,7 +197,9 @@ namespace mgb { // Part of the public interface of MathicGB
     Coefficient modulus() const {return mModulus;}
     VarIndex varCount() const {return mVarCount;}
 
+    void idealBegin() {}
     void idealBegin(size_t polyCount) {}
+    void appendPolynomialBegin() {}
     void appendPolynomialBegin(size_t termCount) {}
     void appendTermBegin() {}
     void appendExponent(VarIndex index, Exponent exponent) {}
@@ -226,7 +232,9 @@ namespace mgbi { // Not part of the public interface of MathicGB
     StreamStateChecker(const Coefficient modulus, const VarIndex varCount);
     ~StreamStateChecker();
 
+    void idealBegin();
     void idealBegin(size_t polyCount);
+    void appendPolynomialBegin();
     void appendPolynomialBegin(size_t termCount);
     void appendTermBegin();
     void appendExponent(VarIndex index, Exponent exponent);
@@ -261,7 +269,9 @@ namespace mgb { // Part of the public interface of MathicGB
     Coefficient modulus() const;
     VarIndex varCount() const;
 
+    void idealBegin();
     void idealBegin(size_t polyCount);
+    void appendPolynomialBegin();
     void appendPolynomialBegin(size_t termCount);
     void appendTermBegin();
     void appendExponent(VarIndex index, Exponent exponent);
@@ -349,11 +359,25 @@ namespace mgb {
     return mVarCount;
   }
 
+  template<class Stream>
+  void IdealStreamLog<Stream>::idealBegin() {
+    mLog << "s.idealBegin();\n";
+    if (mStream != 0)
+      mStream->idealBegin();
+  }
+
   template<class Stream> 
   void IdealStreamLog<Stream>::idealBegin(size_t polyCount) {
     mLog << "s.idealBegin(" << polyCount << "); // polyCount\n";
     if (mStream != 0)
       mStream->idealBegin(polyCount);
+  }
+
+  template<class Stream> 
+  void IdealStreamLog<Stream>::appendPolynomialBegin() {
+    mLog << "s.appendPolynomialBegin();\n";
+    if (mStream != 0)
+      mStream->appendPolynomialBegin();
   }
 
   template<class Stream> 
@@ -422,9 +446,21 @@ namespace mgb {
   }
 
   template<class Stream>
+  void IdealStreamChecker<Stream>::idealBegin() {
+    mChecker.idealBegin();
+    mStream.idealBegin();
+  }
+
+  template<class Stream>
   void IdealStreamChecker<Stream>::idealBegin(size_t polyCount) {
     mChecker.idealBegin(polyCount);
     mStream.idealBegin(polyCount);
+  }
+
+  template<class Stream>
+  void IdealStreamChecker<Stream>::appendPolynomialBegin() {
+    mChecker.appendPolynomialBegin();
+    mStream.appendPolynomialBegin();
   }
 
   template<class Stream>
