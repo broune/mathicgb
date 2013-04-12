@@ -19,6 +19,13 @@ class Reducer {
 public:
   virtual ~Reducer();
 
+  /// Returns the preferred number of reductions to do at a time. A classic
+  /// serial reducer will have no particular benefit from doing more than
+  /// one reduction at a time, so it should say that. A matrix-based or
+  /// parallel reducer will have benefit from being presented with
+  /// larger sets of reductions at a time.
+  virtual size_t preferredSetSize() const = 0;
+
   // ***** Methods that do reduction
 
   /** Clasically reduces poly by the basis elements of basis. The reduction

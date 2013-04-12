@@ -46,9 +46,9 @@ public:
     mPrintInterval = reductions;
   }
 
-  void setSPairGroupSize(unsigned int groupSize) {
-    mSPairGroupSize = groupSize;
-  }
+  /// A value of zero means to let the algorithm decide a reasonable
+  /// value based on the other settings.
+  void setSPairGroupSize(unsigned int groupSize);
 
   void setReducerMemoryQuantum(size_t memoryQuantum) {
     mReducer.setMemoryQuantum(memoryQuantum);

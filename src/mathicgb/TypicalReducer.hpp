@@ -18,6 +18,8 @@ class PolyBasis;
 */
 class TypicalReducer : public Reducer {
 public:
+  virtual size_t preferredSetSize() const;
+
   virtual Poly* regularReduce(
     const_monomial sig,
     const_monomial multiple,

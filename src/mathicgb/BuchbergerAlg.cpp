@@ -14,7 +14,7 @@ BuchbergerAlg::BuchbergerAlg(
 ):
   mBreakAfter(0),
   mPrintInterval(0),
-  mSPairGroupSize(0),
+  mSPairGroupSize(reducer.preferredSetSize()),
   mUseAutoTopReduction(true),
   mUseAutoTailReduction(false),
   mRing(*ideal.getPolyRing()),
@@ -33,6 +33,13 @@ BuchbergerAlg::BuchbergerAlg(
   for (size_t gen = 0; gen != idealSize; ++gen)
     polys.push_back(make_unique<Poly>(*ideal.getPoly(gen)));
   insertPolys(polys);
+}
+
+void BuchbergerAlg::setSPairGroupSize(unsigned int groupSize) {
+  if (groupSize == 0)
+    groupSize = mReducer.preferredSetSize();
+  else
+    mSPairGroupSize = groupSize;
 }
 
 void BuchbergerAlg::insertPolys
@@ -221,7 +228,8 @@ void BuchbergerAlg::step() {
   if (tracingLevel > 30)
     std::cerr << "Determining next S-pair" << std::endl;
 
-  if (mSPairGroupSize == 0) {
+  MATHICGB_ASSERT(mSPairGroupSize >= 1);
+  if (mSPairGroupSize == 1) {
     std::pair<size_t, size_t> p = mSPairs.pop();
     if (p.first == static_cast<size_t>(-1)) {
       MATHICGB_ASSERT(p.second == static_cast<size_t>(-1));

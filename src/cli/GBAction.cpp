@@ -28,8 +28,7 @@ GBAction::GBAction():
 
   mSPairGroupSize("sPairGroupSize",
     "Specifies how many S-pair to reduce at one time. A value of 0 "
-    "indicates not to group S-pairs together. Only currently relevant "
-    "for the classic Buchberger algorithm.",
+    "indicates to use an appropriate default.",
     0),
 
  mMinMatrixToStore("storeMatrices",

@@ -45,6 +45,10 @@ F4Reducer::F4Reducer(const PolyRing& ring, Type type):
   mMatrixSaveCount(0) {
 }
 
+size_t F4Reducer::preferredSetSize() const {
+  return 100000;
+}
+
 void F4Reducer::writeMatricesTo(std::string file, size_t minEntries) {
   mStoreToFile = std::move(file);
   mMinEntryCountForStore = minEntries;

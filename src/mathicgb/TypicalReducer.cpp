@@ -5,6 +5,10 @@
 #include "PolyBasis.hpp"
 #include <iostream>
 
+size_t TypicalReducer::preferredSetSize() const {
+  return 1;
+}
+
 void TypicalReducer::reset()
 {
   mArena.freeAllAllocs();
