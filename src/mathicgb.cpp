@@ -274,17 +274,41 @@ namespace mgb {
 
   struct GroebnerConfiguration::Pimpl {
     Pimpl(Coefficient modulus, VarIndex varCount):
+      mModulus(modulus),
+      mVarCount(varCount),
+      mReducer(DefaultReducer)
 #ifdef MATHICGB_DEBUG
-      hasBeenDestroyed(false),
+      , mHasBeenDestroyed(false)
 #endif
-      modulus(modulus),
-      varCount(varCount)
     {
     }
 
-    MATHICGB_IF_DEBUG(bool hasBeenDestroyed);
-    const Coefficient modulus;
-    const VarIndex varCount;
+    ~Pimpl() {
+      MATHICGB_ASSERT(debugAssertValid());
+      MATHICGB_IF_DEBUG(mHasBeenDestroyed = true;)
+    }
+
+    static bool reducerValid(Reducer reducer) {
+      return
+        reducer == DefaultReducer ||
+        reducer == ClassicReducer ||
+        reducer == MatrixReducer;
+    }
+
+    bool debugAssertValid() const {
+#ifdef MATHICGB_DEBUG
+      MATHICGB_ASSERT(this != 0);
+      MATHICGB_ASSERT(reducerValid(mReducer));
+      MATHICGB_ASSERT(mModulus != 0);
+      MATHICGB_ASSERT_NO_ASSUME(!mHasBeenDestroyed);
+#endif
+      return true;
+    }
+
+    const Coefficient mModulus;
+    const VarIndex mVarCount;
+    Reducer mReducer;
+    MATHICGB_IF_DEBUG(bool mHasBeenDestroyed);
   };
 
   GroebnerConfiguration::GroebnerConfiguration(
@@ -307,6 +331,7 @@ namespace mgb {
         << " is not prime. MathicGB only supports prime fields.";
       mathic::reportError(str.str());
     }
+    MATHICGB_ASSERT(mPimpl->debugAssertValid());
   }
 
   GroebnerConfiguration::GroebnerConfiguration(
@@ -314,24 +339,29 @@ namespace mgb {
   ):
     mPimpl(new Pimpl(*conf.mPimpl))
   {
-    MATHICGB_ASSERT(conf.mPimpl->modulus != 0);
-    MATHICGB_ASSERT_NO_ASSUME(!conf.mPimpl->hasBeenDestroyed);
+    MATHICGB_ASSERT(conf.mPimpl->debugAssertValid());
   }
 
   GroebnerConfiguration::~GroebnerConfiguration() {
-    MATHICGB_ASSERT(mPimpl != 0);
-    MATHICGB_ASSERT_NO_ASSUME(!mPimpl->hasBeenDestroyed);
-    MATHICGB_IF_DEBUG(mPimpl->hasBeenDestroyed = true);
-
+    MATHICGB_ASSERT(mPimpl->debugAssertValid());
     delete mPimpl;
   }
 
   auto GroebnerConfiguration::modulus() const -> Coefficient {
-    return mPimpl->modulus;
+    return mPimpl->mModulus;
   }
  
   auto GroebnerConfiguration::varCount() const -> VarIndex {
-    return mPimpl->varCount;
+    return mPimpl->mVarCount;
+  }
+
+  void GroebnerConfiguration::setReducer(Reducer reducer) {
+    MATHICGB_ASSERT(Pimpl::reducerValid(reducer));
+    mPimpl->mReducer = reducer;
+  }
+
+  auto GroebnerConfiguration::reducer() const -> Reducer {
+    return mPimpl->mReducer;
   }
 }
 
@@ -339,10 +369,6 @@ namespace mgb {
 namespace mgb {
   struct GroebnerInputIdealStream::Pimpl {
     Pimpl(const GroebnerConfiguration& conf):
-#ifdef MATHICGB_DEBUG
-      hasBeenDestroyed(false),
-      checker(conf.modulus(), conf.varCount()),
-#endif
       // @todo: varCount should not be int. Fix PolyRing constructor,
       // then remove this static_cast.
       ring(conf.modulus(), static_cast<int>(conf.varCount()), 1),
@@ -350,20 +376,24 @@ namespace mgb {
       poly(ring),
       monomial(ring.allocMonomial()),
       conf(conf)
+#ifdef MATHICGB_DEBUG
+      , hasBeenDestroyed(false),
+      checker(conf.modulus(), conf.varCount())
+#endif
     {}
 
     ~Pimpl() {
       ring.freeMonomial(monomial);
     }
 
-    MATHICGB_IF_DEBUG(bool hasBeenDestroyed);
-    MATHICGB_IF_DEBUG(::mgbi::StreamStateChecker checker);
     const PolyRing ring;
     Ideal ideal;
     Poly poly;
     Monomial monomial;
     const GroebnerConfiguration conf;
-  };
+    MATHICGB_IF_DEBUG(bool hasBeenDestroyed);
+    MATHICGB_IF_DEBUG(::mgbi::StreamStateChecker checker); 
+ };
 
   GroebnerInputIdealStream::GroebnerInputIdealStream(
     const GroebnerConfiguration& conf
@@ -532,7 +562,7 @@ namespace mgbi {
   }
 }
 
-// ** Implementation of function mgbi::internalComputeGreobnerBasis
+// ** Implementation of function mgbi::internalComputeGroebnerBasis
 namespace mgbi {
   void internalComputeGroebnerBasis(
     GroebnerInputIdealStream& inputWhichWillBeCleared,
@@ -542,19 +572,37 @@ namespace mgbi {
     /// polynomial-by-polynomial as data is transferred to out. Also
     /// make it so that ideal is not copied.
 
-    auto& ideal = PimplOf()(inputWhichWillBeCleared).ideal;
-    const auto& ring = ideal.ring();
+    auto&& ideal = PimplOf()(inputWhichWillBeCleared).ideal;
+    auto&& conf = inputWhichWillBeCleared.configuration();
+    auto&& ring = ideal.ring();
     const auto varCount = ring.getNumVars();
+    MATHICGB_ASSERT(PimplOf()(conf).debugAssertValid());
 
-    // Compute Groebner basis
-    const auto reducer = Reducer::makeReducer(Reducer::Reducer_F4_New, ring);
+    // Make reducer
+    typedef GroebnerConfiguration GConf;
+    Reducer::ReducerType reducerType;
+    switch (conf.reducer()) {
+    case GConf::ClassicReducer:
+      reducerType = Reducer::Reducer_BjarkeGeo;
+      break;
+
+    default:
+    case GConf::DefaultReducer:
+    case GConf::MatrixReducer:
+      reducerType = Reducer::Reducer_F4_New;
+      break;
+    }
+    const auto reducer = Reducer::makeReducer(reducerType, ring);
+
+    // Set up and configure algorithm
     BuchbergerAlg alg(ideal, 4, *reducer, 2, true, 0);
     alg.setSPairGroupSize(10000);
     alg.setReducerMemoryQuantum(100 * 1024);
     alg.setUseAutoTopReduction(true);
     alg.setUseAutoTailReduction(false);
-    alg.computeGrobnerBasis();
 
+    // Compute Groebner basis
+    alg.computeGrobnerBasis();
     PimplOf()(output).ideal = alg.basis().toIdealAndRetireAll();
   }
 }

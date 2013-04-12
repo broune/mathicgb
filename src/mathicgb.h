@@ -36,7 +36,17 @@ namespace mgb { // Part of the public interface of MathicGB
     Coefficient modulus() const;
     VarIndex varCount() const;
 
+    enum Reducer {
+      DefaultReducer = 0,
+      ClassicReducer = 1, /// the classic polynomial division algorithm
+      MatrixReducer = 2 /// use linear algebra as in F4
+    };
+    void setReducer(Reducer reducer);
+    Reducer reducer() const;
+
   private:
+    friend class mgbi::PimplOf;
+
     struct Pimpl;
     Pimpl* mPimpl;
   };

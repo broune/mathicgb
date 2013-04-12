@@ -67,6 +67,121 @@ namespace {
       s.appendPolynomialDone();
     s.idealDone();
   }
+
+  template<class Stream>
+  void makeCyclic5Basis(Stream& s) {
+    s.idealBegin(5); // polyCount
+    s.appendPolynomialBegin(5);
+    s.appendTermBegin();
+    s.appendExponent(0, 1); // index, exponent
+    s.appendTermDone(1); // coefficient
+    s.appendTermBegin();
+    s.appendExponent(1, 1); // index, exponent
+    s.appendTermDone(1); // coefficient
+    s.appendTermBegin();
+    s.appendExponent(2, 1); // index, exponent
+    s.appendTermDone(1); // coefficient
+    s.appendTermBegin();
+    s.appendExponent(3, 1); // index, exponent
+    s.appendTermDone(1); // coefficient
+    s.appendTermBegin();
+    s.appendExponent(4, 1); // index, exponent
+    s.appendTermDone(1); // coefficient
+    s.appendPolynomialDone();
+    s.appendPolynomialBegin(5);
+    s.appendTermBegin();
+    s.appendExponent(0, 1); // index, exponent
+    s.appendExponent(1, 1); // index, exponent
+    s.appendTermDone(1); // coefficient
+    s.appendTermBegin();
+    s.appendExponent(1, 1); // index, exponent
+    s.appendExponent(2, 1); // index, exponent
+    s.appendTermDone(1); // coefficient
+    s.appendTermBegin();
+    s.appendExponent(2, 1); // index, exponent
+    s.appendExponent(3, 1); // index, exponent
+    s.appendTermDone(1); // coefficient
+    s.appendTermBegin();
+    s.appendExponent(0, 1); // index, exponent
+    s.appendExponent(4, 1); // index, exponent
+    s.appendTermDone(1); // coefficient
+    s.appendTermBegin();
+    s.appendExponent(3, 1); // index, exponent
+    s.appendExponent(4, 1); // index, exponent
+    s.appendTermDone(1); // coefficient
+    s.appendPolynomialDone();
+    s.appendPolynomialBegin(5);
+    s.appendTermBegin();
+    s.appendExponent(0, 1); // index, exponent
+    s.appendExponent(1, 1); // index, exponent
+    s.appendExponent(2, 1); // index, exponent
+    s.appendTermDone(1); // coefficient
+    s.appendTermBegin();
+    s.appendExponent(1, 1); // index, exponent
+    s.appendExponent(2, 1); // index, exponent
+    s.appendExponent(3, 1); // index, exponent
+    s.appendTermDone(1); // coefficient
+    s.appendTermBegin();
+    s.appendExponent(0, 1); // index, exponent
+    s.appendExponent(1, 1); // index, exponent
+    s.appendExponent(4, 1); // index, exponent
+    s.appendTermDone(1); // coefficient
+    s.appendTermBegin();
+    s.appendExponent(0, 1); // index, exponent
+    s.appendExponent(3, 1); // index, exponent
+    s.appendExponent(4, 1); // index, exponent
+    s.appendTermDone(1); // coefficient
+    s.appendTermBegin();
+    s.appendExponent(2, 1); // index, exponent
+    s.appendExponent(3, 1); // index, exponent
+    s.appendExponent(4, 1); // index, exponent
+    s.appendTermDone(1); // coefficient
+    s.appendPolynomialDone();
+    s.appendPolynomialBegin(5);
+    s.appendTermBegin();
+    s.appendExponent(0, 1); // index, exponent
+    s.appendExponent(1, 1); // index, exponent
+    s.appendExponent(2, 1); // index, exponent
+    s.appendExponent(3, 1); // index, exponent
+    s.appendTermDone(1); // coefficient
+    s.appendTermBegin();
+    s.appendExponent(0, 1); // index, exponent
+    s.appendExponent(1, 1); // index, exponent
+    s.appendExponent(2, 1); // index, exponent
+    s.appendExponent(4, 1); // index, exponent
+    s.appendTermDone(1); // coefficient
+    s.appendTermBegin();
+    s.appendExponent(0, 1); // index, exponent
+    s.appendExponent(1, 1); // index, exponent
+    s.appendExponent(3, 1); // index, exponent
+    s.appendExponent(4, 1); // index, exponent
+    s.appendTermDone(1); // coefficient
+    s.appendTermBegin();
+    s.appendExponent(0, 1); // index, exponent
+    s.appendExponent(2, 1); // index, exponent
+    s.appendExponent(3, 1); // index, exponent
+    s.appendExponent(4, 1); // index, exponent
+    s.appendTermDone(1); // coefficient
+    s.appendTermBegin();
+    s.appendExponent(1, 1); // index, exponent
+    s.appendExponent(2, 1); // index, exponent
+    s.appendExponent(3, 1); // index, exponent
+    s.appendExponent(4, 1); // index, exponent
+    s.appendTermDone(1); // coefficient
+    s.appendPolynomialDone();
+    s.appendPolynomialBegin(2);
+    s.appendTermBegin();
+    s.appendExponent(0, 1); // index, exponent
+    s.appendExponent(1, 1); // index, exponent
+    s.appendExponent(2, 1); // index, exponent
+    s.appendExponent(3, 1); // index, exponent
+    s.appendExponent(4, 1); // index, exponent
+    s.appendTermDone(1); // coefficient
+    s.appendTermBegin();
+    s.appendTermDone(100); // coefficient
+    s.appendPolynomialDone();
+    s.idealDone();
+  }
 }
 
 TEST(MathicGBLib, NullIdealStream) {
@@ -249,122 +364,17 @@ TEST(MathicGBLib, EasyReGB) {
 }
 
 TEST(MathicGBLib, Cyclic5) {
-  mgb::GroebnerConfiguration configuration(101, 5);
-  mgb::GroebnerInputIdealStream s(configuration);
-  s.idealBegin(5); // polyCount
-  s.appendPolynomialBegin(5);
-  s.appendTermBegin();
-  s.appendExponent(0, 1); // index, exponent
-  s.appendTermDone(1); // coefficient
-  s.appendTermBegin();
-  s.appendExponent(1, 1); // index, exponent
-  s.appendTermDone(1); // coefficient
-  s.appendTermBegin();
-  s.appendExponent(2, 1); // index, exponent
-  s.appendTermDone(1); // coefficient
-  s.appendTermBegin();
-  s.appendExponent(3, 1); // index, exponent
-  s.appendTermDone(1); // coefficient
-  s.appendTermBegin();
-  s.appendExponent(4, 1); // index, exponent
-  s.appendTermDone(1); // coefficient
-  s.appendPolynomialDone();
-  s.appendPolynomialBegin(5);
-  s.appendTermBegin();
-  s.appendExponent(0, 1); // index, exponent
-  s.appendExponent(1, 1); // index, exponent
-  s.appendTermDone(1); // coefficient
-  s.appendTermBegin();
-  s.appendExponent(1, 1); // index, exponent
-  s.appendExponent(2, 1); // index, exponent
-  s.appendTermDone(1); // coefficient
-  s.appendTermBegin();
-  s.appendExponent(2, 1); // index, exponent
-  s.appendExponent(3, 1); // index, exponent
-  s.appendTermDone(1); // coefficient
-  s.appendTermBegin();
-  s.appendExponent(0, 1); // index, exponent
-  s.appendExponent(4, 1); // index, exponent
-  s.appendTermDone(1); // coefficient
-  s.appendTermBegin();
-  s.appendExponent(3, 1); // index, exponent
-  s.appendExponent(4, 1); // index, exponent
-  s.appendTermDone(1); // coefficient
-  s.appendPolynomialDone();
-  s.appendPolynomialBegin(5);
-  s.appendTermBegin();
-  s.appendExponent(0, 1); // index, exponent
-  s.appendExponent(1, 1); // index, exponent
-  s.appendExponent(2, 1); // index, exponent
-  s.appendTermDone(1); // coefficient
-  s.appendTermBegin();
-  s.appendExponent(1, 1); // index, exponent
-  s.appendExponent(2, 1); // index, exponent
-  s.appendExponent(3, 1); // index, exponent
-  s.appendTermDone(1); // coefficient
-  s.appendTermBegin();
-  s.appendExponent(0, 1); // index, exponent
-  s.appendExponent(1, 1); // index, exponent
-  s.appendExponent(4, 1); // index, exponent
-  s.appendTermDone(1); // coefficient
-  s.appendTermBegin();
-  s.appendExponent(0, 1); // index, exponent
-  s.appendExponent(3, 1); // index, exponent
-  s.appendExponent(4, 1); // index, exponent
-  s.appendTermDone(1); // coefficient
-  s.appendTermBegin();
-  s.appendExponent(2, 1); // index, exponent
-  s.appendExponent(3, 1); // index, exponent
-  s.appendExponent(4, 1); // index, exponent
-  s.appendTermDone(1); // coefficient
-  s.appendPolynomialDone();
-  s.appendPolynomialBegin(5);
-  s.appendTermBegin();
-  s.appendExponent(0, 1); // index, exponent
-  s.appendExponent(1, 1); // index, exponent
-  s.appendExponent(2, 1); // index, exponent
-  s.appendExponent(3, 1); // index, exponent
-  s.appendTermDone(1); // coefficient
-  s.appendTermBegin();
-  s.appendExponent(0, 1); // index, exponent
-  s.appendExponent(1, 1); // index, exponent
-  s.appendExponent(2, 1); // index, exponent
-  s.appendExponent(4, 1); // index, exponent
-  s.appendTermDone(1); // coefficient
-  s.appendTermBegin();
-  s.appendExponent(0, 1); // index, exponent
-  s.appendExponent(1, 1); // index, exponent
-  s.appendExponent(3, 1); // index, exponent
-  s.appendExponent(4, 1); // index, exponent
-  s.appendTermDone(1); // coefficient
-  s.appendTermBegin();
-  s.appendExponent(0, 1); // index, exponent
-  s.appendExponent(2, 1); // index, exponent
-  s.appendExponent(3, 1); // index, exponent
-  s.appendExponent(4, 1); // index, exponent
-  s.appendTermDone(1); // coefficient
-  s.appendTermBegin();
-  s.appendExponent(1, 1); // index, exponent
-  s.appendExponent(2, 1); // index, exponent
-  s.appendExponent(3, 1); // index, exponent
-  s.appendExponent(4, 1); // index, exponent
-  s.appendTermDone(1); // coefficient
-  s.appendPolynomialDone();
-  s.appendPolynomialBegin(2);
-  s.appendTermBegin();
-  s.appendExponent(0, 1); // index, exponent
-  s.appendExponent(1, 1); // index, exponent
-  s.appendExponent(2, 1); // index, exponent
-  s.appendExponent(3, 1); // index, exponent
-  s.appendExponent(4, 1); // index, exponent
-  s.appendTermDone(1); // coefficient
-  s.appendTermBegin();
-  s.appendTermDone(100); // coefficient
-  s.appendPolynomialDone();
-  s.idealDone();
+  for (int i = 0; i < 2; ++i) {
+    mgb::GroebnerConfiguration configuration(101, 5);
+    const auto reducer = i == 0 ?
+      mgb::GroebnerConfiguration::ClassicReducer :
+      mgb::GroebnerConfiguration::MatrixReducer;
+    configuration.setReducer(reducer);
+    mgb::GroebnerInputIdealStream input(configuration);
+    makeCyclic5Basis(input);
 
-  std::ostringstream computedStr;
-  mgb::IdealStreamLog<> computed(computedStr, s.modulus(), s.varCount());
+    mgb::NullIdealStream computed(input.modulus(), input.varCount());
 
-  mgb::computeGroebnerBasis(s, computed);
+    mgb::computeGroebnerBasis(input, computed);
+  }
 }
