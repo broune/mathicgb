@@ -7,6 +7,7 @@
 #include "mathicgb/Reducer.hpp"
 #include "mathicgb/BuchbergerAlg.hpp"
 #include "mathicgb/mtbb.hpp"
+#include "mathicgb/LogDomainSet.hpp"
 #include <mathic.h>
 
 namespace {
@@ -313,7 +314,8 @@ namespace mgb {
       mModulus(modulus),
       mVarCount(varCount),
       mReducer(DefaultReducer),
-      mMaxThreadCount(0)
+      mMaxThreadCount(0),
+      mLogging()
 #ifdef MATHICGB_DEBUG
       , mHasBeenDestroyed(false)
 #endif
@@ -346,6 +348,7 @@ namespace mgb {
     const VarIndex mVarCount;
     Reducer mReducer;
     size_t mMaxThreadCount;
+    std::string mLogging;
     MATHICGB_IF_DEBUG(bool mHasBeenDestroyed);
   };
 
@@ -409,6 +412,17 @@ namespace mgb {
   size_t GroebnerConfiguration::maxThreadCount() const {
     return mPimpl->mMaxThreadCount;
   }
+
+  void GroebnerConfiguration::setLogging(const char* logging) {
+    if (logging == 0)
+      mPimpl->mLogging.clear();
+    else
+      mPimpl->mLogging = logging;
+  }
+
+  const char* GroebnerConfiguration::logging() const {
+    return mPimpl->mLogging.c_str();
+  }
 }
 
 // ** Implementation of class GroebnerInputIdealStream
@@ -439,7 +453,7 @@ namespace mgb {
     const GroebnerConfiguration conf;
     MATHICGB_IF_DEBUG(bool hasBeenDestroyed);
     MATHICGB_IF_DEBUG(::mgbi::StreamStateChecker checker); 
- };
+  };
 
   GroebnerInputIdealStream::GroebnerInputIdealStream(
     const GroebnerConfiguration& conf
@@ -645,6 +659,9 @@ namespace mgbi {
     const auto tbbMaxThreadCount = maxThreadCount == 0 ?
       mgb::tbb::task_scheduler_init::automatic : maxThreadCount;
     mgb::tbb::task_scheduler_init scheduler(tbbMaxThreadCount);
+
+    // Set up logging
+    LogDomainSet::singleton().performLogCommands(conf.logging());
 
     // Make reducer
     typedef GroebnerConfiguration GConf;

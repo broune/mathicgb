@@ -50,6 +50,13 @@ namespace mgb { // Part of the public interface of MathicGB
     void setMaxThreadCount(size_t maxThreadCount);
     size_t maxThreadCount() const;
 
+    /// Sets logging to occur according to the string. The format of the
+    /// string is the same as for the -logs command line parameter.
+    /// Ownership of the string is not taken over.
+    /// @todo: describe the format in more detail.
+    void setLogging(const char* logging);
+    const char* logging() const;
+
   private:
     friend class mgbi::PimplOf;
 
