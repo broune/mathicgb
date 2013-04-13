@@ -27,7 +27,7 @@ public:
   /// Returns the reduced row echelon form of matrix.
   SparseMatrix reducedRowEchelonForm(const SparseMatrix& matrix);
 
-  /// Returns the lower right submatrix if the reduced row echelon
+  /// Returns the lower right submatrix of the reduced row echelon
   /// form of matrix. The lower left part is not returned because it is
   /// always zero after row reduction.
   SparseMatrix reducedRowEchelonFormBottomRight(const QuadMatrix& matrix);

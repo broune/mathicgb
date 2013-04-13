@@ -306,6 +306,84 @@ namespace {
     return std::move(reduced);
   }
 
+  SparseMatrix reduceToEchelonFormSparse(
+    const SparseMatrix& toReduce,
+    const SparseMatrix::Scalar modulus
+  ) {
+    const auto colCount = toReduce.computeColCount();
+
+    const auto noRow = static_cast<SparseMatrix::RowIndex>(-1);
+
+    // pivotRowOfCol[i] is the pivot in column i or noRow
+    // if we have not identified such a pivot so far.
+    std::vector<SparseMatrix::RowIndex> pivotRowOfCol(colCount, noRow);
+
+    DenseRow rowToReduce(colCount);
+
+    // ** Reduce to row echelon form -- every row is a pivot row.
+    SparseMatrix pivots(colCount);
+    for (SparseMatrix::RowIndex row = 0; row < toReduce.rowCount(); ++row) {
+      if (toReduce.emptyRow(row))
+        continue;
+      rowToReduce.clear(colCount);
+      rowToReduce.addRow(toReduce, row);
+
+      SparseMatrix::ColIndex leadingCol = 0;
+      while (true) { // reduce row by previous pivots
+        for (; leadingCol < colCount; ++leadingCol) {
+          auto& entry = rowToReduce[leadingCol];
+          if (entry != 0) {
+            entry %= modulus;
+            if (entry != 0)
+              break;
+          }
+        }
+        if (leadingCol == colCount)
+          break; // The row has been reduced to zero.
+        const auto pivotRow = pivotRowOfCol[leadingCol];
+        if (pivotRow == noRow) { // If the row is a new pivot.
+          rowToReduce.makeUnitary(modulus, leadingCol);
+          pivotRowOfCol[leadingCol] = pivots.rowCount();
+          rowToReduce.appendTo(pivots);
+          break;
+        }
+        rowToReduce.rowReduceByUnitary(pivotRow, pivots, modulus);
+      }
+    }
+
+    // ** Reduce from row echelon form to reduced row echelon form
+
+    SparseMatrix reduced(colCount);
+    auto pivotCol = colCount;
+    // Reduce pivot rows in descending order of leading column. The reduced
+    // pivots go into reduced and we update pivotRowOfCol to refer to the
+    // row indices in reduced as we go along.
+    while (pivotCol != 0) {
+      --pivotCol;
+      const auto row = pivotRowOfCol[pivotCol];
+      if (row == noRow)
+        continue;
+      rowToReduce.clear(colCount);
+      rowToReduce.addRow(pivots, row);
+      MATHICGB_ASSERT(rowToReduce[pivotCol] == 1); // unitary
+      for (auto col = pivotCol + 1; col != colCount; ++col) {
+        auto& entry = rowToReduce[col];
+        if (entry == 0)
+          continue;
+        entry %= modulus;
+        if (entry == 0)
+          continue;
+        const auto pivotRow = pivotRowOfCol[col];
+        if (pivotRow != noRow)
+          rowToReduce.rowReduceByUnitary(pivotRow, reduced, modulus);
+        MATHICGB_ASSERT(entry < modulus);
+      }
+      pivotRowOfCol[pivotCol] = reduced.rowCount();
+      rowToReduce.appendTo(reduced);
+    }
+    return std::move(reduced);
+  }
+
   SparseMatrix reduceToEchelonForm(
     const SparseMatrix& toReduce,
     const SparseMatrix::Scalar modulus
@@ -698,8 +776,15 @@ SparseMatrix F4MatrixReducer::reducedRowEchelonForm(
       return reduceToEchelonFormShrawanDelayedModulus(matrix, mModulus);
     else    
       return reduceToEchelonFormShrawan(matrix, mModulus);
-  } else
-    return reduceToEchelonForm(matrix, mModulus);
+  } else {
+    // todo: actually do some work to determine a good way to determine
+    // when to use the sparse method, or alternatively make some some
+    // sort of hybrid.
+    if ( matrix.computeDensity() < 0.02)
+      return reduceToEchelonFormSparse(matrix, mModulus);
+    else
+      return reduceToEchelonForm(matrix, mModulus);
+  }
 }
 
 SparseMatrix F4MatrixReducer::reducedRowEchelonFormBottomRight(
