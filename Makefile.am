@@ -99,8 +99,7 @@ if with_gtest
 TESTS=unittest
 check_PROGRAMS=$(TESTS)
 
-unittest_LDADD = $(DEPS_LIBS)
-unittest_LDFLAGS= $(top_builddir)/libmathicgb.la
+unittest_LDADD = $(DEPS_LIBS) $(top_builddir)/libmathicgb.la
 
 test_LIBS=
 unittest_SOURCES=src/test/FreeModuleOrderTest.cpp						\
