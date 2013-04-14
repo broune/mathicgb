@@ -314,6 +314,7 @@ namespace mgb {
       mModulus(modulus),
       mVarCount(varCount),
       mReducer(DefaultReducer),
+      mMaxSPairGroupSize(0),
       mMaxThreadCount(0),
       mLogging()
 #ifdef MATHICGB_DEBUG
@@ -347,6 +348,7 @@ namespace mgb {
     const Coefficient mModulus;
     const VarIndex mVarCount;
     Reducer mReducer;
+    size_t mMaxSPairGroupSize;
     size_t mMaxThreadCount;
     std::string mLogging;
     MATHICGB_IF_DEBUG(bool mHasBeenDestroyed);
@@ -403,6 +405,14 @@ namespace mgb {
 
   auto GroebnerConfiguration::reducer() const -> Reducer {
     return mPimpl->mReducer;
+  }
+
+  void GroebnerConfiguration::setMaxSPairGroupSize(size_t size) {
+    mPimpl->mMaxSPairGroupSize = size;
+  }
+
+  size_t GroebnerConfiguration::maxSPairGroupSize() const {
+    return mPimpl->mMaxSPairGroupSize;
   }
 
   void GroebnerConfiguration::setMaxThreadCount(size_t maxThreadCount) {
@@ -685,6 +695,7 @@ namespace mgbi {
     alg.setReducerMemoryQuantum(100 * 1024);
     alg.setUseAutoTopReduction(true);
     alg.setUseAutoTailReduction(false);
+    alg.setSPairGroupSize(conf.maxSPairGroupSize());
 
     // Compute Groebner basis
     alg.computeGrobnerBasis();

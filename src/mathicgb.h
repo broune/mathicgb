@@ -44,9 +44,20 @@ namespace mgb { // Part of the public interface of MathicGB
     void setReducer(Reducer reducer);
     Reducer reducer() const;
 
+    /// Sets the maximum number of S-pairs to reduce at one time. This is
+    /// mainly useful as a (weak) control on memory usage for F4 reducers.
+    /// A value of 0 indicates to let the library decide this value for
+    /// itself, which is also the default and highly recommended value.
+    ///
+    /// For matrix-based reducers, use a high value. For serial classic
+    /// reduction, use a low value, preferably 1. Setting the value to
+    /// 0 already takes care of this.
+    void setMaxSPairGroupSize(size_t size);
+    size_t maxSPairGroupSize() const;
+
     /// Sets the maximum number of threads to use. May use fewer threads.
     /// A value of 0 indicates to let the library decide this value for
-    /// it self, which is also the default value.
+    /// itself, which is also the default value.
     void setMaxThreadCount(size_t maxThreadCount);
     size_t maxThreadCount() const;
 
