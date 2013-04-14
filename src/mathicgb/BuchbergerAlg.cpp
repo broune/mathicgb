@@ -235,107 +235,70 @@ void BuchbergerAlg::step() {
     std::cerr << "Determining next S-pair" << std::endl;
 
   MATHICGB_ASSERT(mSPairGroupSize >= 1);
-  if (mSPairGroupSize == 1) {
-    std::pair<size_t, size_t> p = mSPairs.pop();
+  std::vector<std::pair<size_t, size_t> > spairGroup;
+  exponent w = 0;
+  for (unsigned int i = 0; i < mSPairGroupSize; ++i) {
+    auto p = mSPairs.pop(w);
     if (p.first == static_cast<size_t>(-1)) {
       MATHICGB_ASSERT(p.second == static_cast<size_t>(-1));
-      return; // no more S-pairs
+      break; // no more S-pairs
     }
     MATHICGB_ASSERT(p.first != static_cast<size_t>(-1));
     MATHICGB_ASSERT(p.second != static_cast<size_t>(-1));
     MATHICGB_ASSERT(!mBasis.retired(p.first));
     MATHICGB_ASSERT(!mBasis.retired(p.second));
-
-    if (tracingLevel > 20) {
-      std::cerr << "Reducing S-pair ("
-                << p.first << ", "
-                << p.second << ")" << std::endl;
-    }
-    std::unique_ptr<Poly> reduced
-      (mReducer.classicReduceSPoly
-       (mBasis.poly(p.first), mBasis.poly(p.second), mBasis));
-    if (!reduced->isZero()) {
-      insertReducedPoly(std::move(reduced));
-      if (mUseAutoTailReduction)
-        autoTailReduce();
-    }
-  } else {
-    std::vector<std::pair<size_t, size_t> > spairGroup;
-    exponent w = 0;
-    for (unsigned int i = 0; i < mSPairGroupSize; ++i) {
-      std::pair<size_t, size_t> p;
-      p = mSPairs.pop(w);
-      if (p.first == static_cast<size_t>(-1)) {
-        MATHICGB_ASSERT(p.second == static_cast<size_t>(-1));
-        break; // no more S-pairs
-      }
-      MATHICGB_ASSERT(p.first != static_cast<size_t>(-1));
-      MATHICGB_ASSERT(p.second != static_cast<size_t>(-1));
-      MATHICGB_ASSERT(!mBasis.retired(p.first));
-      MATHICGB_ASSERT(!mBasis.retired(p.second));
-
-      spairGroup.push_back(p);
-    }
-    if (spairGroup.empty())
-      return; // no more s-pairs
-    std::vector<std::unique_ptr<Poly> > reduced;
-
-    // w is the negative of the degree of the lcm's of the chosen spairs
-    MATHICGB_LOG(F4SPairDegree) << std::endl << "[degree = " << -w << "]";
-
-    mReducer.classicReduceSPolySet(spairGroup, mBasis, reduced);
-
-    // sort the elements to get deterministic behavior. The order will change
-    // arbitrarily when running multithreaded. Also, if preferring older
-    // reducers, it is of benefit to break ties by preferring the sparser
-    // reducer. Age does not have ties, since each element has a distinct
-    // index, but if they all come from the same matrix then there is
-    // really nothing to distinguish them - the relative age is arbitrarily
-    // chosen. If we order sparsest-first, we will effectively make the
-    // arbitrary choice among reducers from the same matrix in favor of sparser
-    // reducers.
-    auto order = [&](
-      const std::unique_ptr<Poly>& a,
-      const std::unique_ptr<Poly>& b
-    ) {
-      const auto aTermCount = a->nTerms();
-      const auto bTermCount = b->nTerms();
-      if (aTermCount < bTermCount)
-        return true;
-      if (aTermCount > bTermCount)
-        return false;
-      auto bIt = b->begin();
-      const auto aEnd = a->end();
-      for (auto aIt = a->begin(); aIt != aEnd; ++aIt, ++bIt) {
-        const auto monoCmp =
-          mRing.monomialCompare(aIt.getMonomial(), bIt.getMonomial());
-        if (monoCmp == LT)
-          return true;
-        if (monoCmp == GT)
-          return false;
-        if (aIt.getCoefficient() < bIt.getCoefficient())
-          return true;
-        if (aIt.getCoefficient() > bIt.getCoefficient())
-          return false;
-      }
-      return false;
-    };
-    std::sort(reduced.begin(), reduced.end(), order);
-
-    insertPolys(reduced);
-    /*
-    for (auto it = reduced.begin(); it != reduced.end(); ++it) {
-      auto p = std::move(*it);
-      MATHICGB_ASSERT(!p->isZero());
-      if (it != reduced.begin())
-        p = mReducer.classicReduce(*p, mBasis);
-      if (!p->isZero())
-        insertReducedPoly(std::move(p));
-    }
-    */
-    if (mUseAutoTailReduction)
-      autoTailReduce();
+    
+    spairGroup.push_back(p);
   }
+  if (spairGroup.empty())
+    return; // no more s-pairs
+  std::vector<std::unique_ptr<Poly>> reduced;
+
+  // w is the negative of the degree of the lcm's of the chosen spairs
+  MATHICGB_LOG(F4SPairDegree) << std::endl << "[degree = " << -w << "]";
+  
+  mReducer.classicReduceSPolySet(spairGroup, mBasis, reduced);
+
+  // sort the elements to get deterministic behavior. The order will change
+  // arbitrarily when running multithreaded. Also, if preferring older
+  // reducers, it is of benefit to break ties by preferring the sparser
+  // reducer. Age does not have ties, since each element has a distinct
+  // index, but if they all come from the same matrix then there is
+  // really nothing to distinguish them - the relative age is arbitrarily
+  // chosen. If we order sparsest-first, we will effectively make the
+  // arbitrary choice among reducers from the same matrix in favor of sparser
+  // reducers.
+  auto order = [&](
+    const std::unique_ptr<Poly>& a,
+    const std::unique_ptr<Poly>& b
+  ) {
+    const auto aTermCount = a->nTerms();
+    const auto bTermCount = b->nTerms();
+    if (aTermCount < bTermCount)
+      return true;
+    if (aTermCount > bTermCount)
+      return false;
+    auto bIt = b->begin();
+    const auto aEnd = a->end();
+    for (auto aIt = a->begin(); aIt != aEnd; ++aIt, ++bIt) {
+      const auto monoCmp =
+        mRing.monomialCompare(aIt.getMonomial(), bIt.getMonomial());
+      if (monoCmp == LT)
+        return true;
+      if (monoCmp == GT)
+        return false;
+      if (aIt.getCoefficient() < bIt.getCoefficient())
+          return true;
+      if (aIt.getCoefficient() > bIt.getCoefficient())
+        return false;
+    }
+    return false;
+  };
+  std::sort(reduced.begin(), reduced.end(), order);
+  
+  insertPolys(reduced);
+  if (mUseAutoTailReduction)
+    autoTailReduce();
 }
 
 void BuchbergerAlg::autoTailReduce() {
