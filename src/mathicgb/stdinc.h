@@ -173,7 +173,7 @@ std::unique_ptr<T> make_unique( Args&& ...args )
 
 Unfortunately, MSVC does not have variadic templates, so this turns
 into the monstrosity of overloads below. At least they got the perfect
-forwarding working, otherwise this would have required N^2 overloads
+forwarding working, otherwise this would have required 4^N overloads
 for N parameters! Add more overloads below if you need more
 parameters.
 */

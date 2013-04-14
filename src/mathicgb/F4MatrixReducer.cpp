@@ -22,12 +22,12 @@ MATHICGB_DEFINE_LOG_DOMAIN(
 
 MATHICGB_DEFINE_LOG_DOMAIN(
   F4MatReduceTop,
-  "Displays time to reduce each F4 matrix to the bottom left matrix."
+  "Displays time to reduce each F4 matrix to the bottom right submatrix."
 );
 
 MATHICGB_DEFINE_LOG_DOMAIN(
   F4RedBottomRight,
-  "Displays time to reduce the bottom left of each F4 matrix."
+  "Displays time to reduce the bottom right submatrix of each F4 matrix."
 );
 
 namespace {

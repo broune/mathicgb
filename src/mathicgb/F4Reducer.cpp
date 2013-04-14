@@ -30,13 +30,13 @@ MATHICGB_DEFINE_LOG_DOMAIN(
 );
 
 MATHICGB_DEFINE_LOG_ALIAS(
-  "F4",
+  "F4Detail",
   "F4MatrixEntries,F4MatrixBottomRows,F4MatrixTopRows,F4MatrixRows,"
-  "F4MatrixBuild,F4MatrixBuild2,F4MatrixReduce"
+  "F4MatrixBuild,F4MatrixBuild2,F4MatrixReduce,F4"
 );
 
 MATHICGB_DEFINE_LOG_ALIAS(
-  "F4Incremental",
+  "F4",
   "F4MatrixSizes,F4MatrixBuild2,F4SPairDegree,F4MatReduceTop,F4RedBottomRight"
 );
 
