@@ -23,6 +23,7 @@ namespace mgb {
 #include <vector>
 #include <ctime>
 #include <algorithm>
+#include <chrono>
 
 namespace mgb {
   namespace tbb {
@@ -194,12 +195,17 @@ namespace mgb {
     }
 
     class tick_count {
+    private:
+      // This really should be std::chrono::steady_clock, but GCC 4.5.3 doesn't
+      // have that.
+      typedef std::chrono::system_clock clock;
+
     public:
-      tick_count(): mTime(0) {}
+      tick_count(): mTime() {}
 
       static tick_count now() {
         tick_count t;
-        t.mTime = std::time(0);
+        t.mTime = clock::now();
         return t;
       }
 
@@ -213,17 +219,19 @@ namespace mgb {
         const double mSeconds;
       };
 
-      interval_t operator-(tick_count t) const {
-        return interval_t(std::difftime(mTime, t.mTime));
+      interval_t operator-(const tick_count t) const {
+        typedef std::chrono::duration<double> SecondDuration;
+        const auto duration =
+          std::chrono::duration_cast<SecondDuration>(mTime - t.mTime);
+        return duration.count();
       }
 
     private:
-      std::time_t mTime;
+      clock::time_point mTime;
     };
   }
 }
 
 #endif
-
 
 #endif
