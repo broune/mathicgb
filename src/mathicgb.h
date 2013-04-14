@@ -2,6 +2,8 @@
 #define MATHICGB_MATHICGB_GUARD
 
 #include <ostream>
+#include <vector>
+#include <utility>
 
 // The main function in this file is computeGroebnerBasis. See the comment
 // preceding that function for an example of how to use this library
@@ -36,11 +38,63 @@ namespace mgb { // Part of the public interface of MathicGB
     Coefficient modulus() const;
     VarIndex varCount() const;
 
-    enum Reducer {
-      DefaultReducer = 0,
-      ClassicReducer = 1, /// the classic polynomial division algorithm
-      MatrixReducer = 2 /// use linear algebra as in F4
+    enum BaseOrder {
+      /// Lexicographic order where variables with higher
+      /// index are greater (x_1 > x_2 > ... > x_n). TODO: or is it the
+      /// other way around?
+      LexicographicBaseOrder = 0,
+
+      /// Reverse lexicographic order where variables with higher
+      /// index are greater (x_1 > x_2 > ... > x_n). TODO: or is it the
+      /// other way around?
+      ReverseLexicographicBaseOrder = 1
     };
+
+    /// Specifies the monomial order to compute a Groebner basis with
+    /// respect to. You must ensure that the order that you are specifying
+    /// is in fact a monomial order.
+    ///
+    /// The specified monomial order has two parts - a set of gradings and
+    /// a base order. The base order is used to break ties for monomials with
+    /// identical grades.
+    ///
+    /// The gradings parameter represents a matrix where each row of the matrix
+    /// defines a grading. The matrix is represented in row-major order.
+    /// The matrix has varCount() columns so gradings.size() must be a multiple
+    /// of varCount().
+    ///
+    /// Suppose gradings has one row U and that x^a and x^b are two monomials
+    /// with exponent vectors a and b respectively. Then a < b if a*U < b*U
+    /// where * is dot product. If there are several rows in gradings, then
+    /// the first row U is considered first. If a*U=b*U then the second row
+    /// is considered and so on. If a and b have the same degree with respect
+    /// to all the rows of the matrix, then the base order is used to break the
+    /// tie.
+    ///
+    /// You must ensure that the combination of grading and base order in fact
+    /// defines a monomial order. For example, ungraded reverse lex does not
+    /// define a monomial order so you must not ask for a Groebner basis with
+    /// respect to that order.
+    ///
+    /// Each row of the matrix adds overhead to the Groebner basis
+    /// computation both in terms of time and space. Total degree grading,
+    /// that is a grading where gradings contains exactly varCount()
+    /// 1's, adds less overhead than other gradings.
+    /// 
+    /// The default grading is (1, ..., 1)-graded reverse lex.
+    void setMonomialOrder(
+      BaseOrder order,
+      const std::vector<Exponent>& gradings
+    );
+    std::pair<BaseOrder, std::vector<Exponent>> monomialOrder() const;
+
+    enum Reducer {
+      DefaultReducer = 0, /// Let the library decide for itself.
+      ClassicReducer = 1, /// The classic polynomial division algorithm.
+      MatrixReducer = 2 /// use linear algebra as in F4.
+    };
+
+    /// Specify the way that polynoials are reduced.
     void setReducer(Reducer reducer);
     Reducer reducer() const;
 
@@ -70,6 +124,14 @@ namespace mgb { // Part of the public interface of MathicGB
 
   private:
     friend class mgbi::PimplOf;
+
+    struct MonomialOrderData {
+      BaseOrder baseOrder;
+      const Exponent* gradings;
+      size_t gradingsSize;
+    };
+    void setMonomialOrderInternal(MonomialOrderData order);
+    MonomialOrderData monomialOrderInternal() const;
 
     struct Pimpl;
     Pimpl* mPimpl;
@@ -336,6 +398,41 @@ namespace mgb {
 #endif
     mExponents[index] = exponent;
   }
+
+  // ** Implementation of class GroebnerConfiguration
+  // This code is inline so that things will still work even if
+  // the caller uses a different implementation of std::vector than
+  // the library does internally. So we have to decay objects of
+  // type std::vector to pointers.
+
+  inline void GroebnerConfiguration::setMonomialOrder(
+    const BaseOrder baseOrder,
+    const std::vector<Exponent>& gradings
+  ) {
+    // We cannot do gradings.data() since we may be compiling without C++11
+    // support. We also cannot do &*gradings.begin() if gradings is empty
+    // since then we are dereferencing an invalid iterator - the debug build
+    // of MSVC's STL will correctly flag this as an error.
+    const MonomialOrderData data = {
+      baseOrder,
+      gradings.empty() ? static_cast<Exponent*>(0) : &*gradings.begin(),
+      gradings.size()
+    };
+    setMonomialOrderInternal(data);
+  }
+
+  inline std::pair<
+    GroebnerConfiguration::BaseOrder,
+    std::vector<GroebnerConfiguration::Exponent>
+  > GroebnerConfiguration::monomialOrder() const {
+    const MonomialOrderData data = monomialOrderInternal();
+    return std::make_pair(
+      data.baseOrder,
+      std::vector<Exponent>(data.gradings, data.gradings + data.gradingsSize)
+    );
+  }
+
+    
 
 
   // ** Implementation of the class IdealStreamLog

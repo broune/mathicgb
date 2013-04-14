@@ -313,6 +313,8 @@ namespace mgb {
     Pimpl(Coefficient modulus, VarIndex varCount):
       mModulus(modulus),
       mVarCount(varCount),
+      mBaseOrder(ReverseLexicographicBaseOrder),
+      mGradings(varCount, 1),
       mReducer(DefaultReducer),
       mMaxSPairGroupSize(0),
       mMaxThreadCount(0),
@@ -328,7 +330,13 @@ namespace mgb {
       MATHICGB_IF_DEBUG(mHasBeenDestroyed = true;)
     }
 
-    static bool reducerValid(Reducer reducer) {
+    static bool baseOrderValid(const BaseOrder order) {
+      return
+        order == LexicographicBaseOrder ||
+        order == ReverseLexicographicBaseOrder;
+    }
+
+    static bool reducerValid(const Reducer reducer) {
       return
         reducer == DefaultReducer ||
         reducer == ClassicReducer ||
@@ -338,6 +346,7 @@ namespace mgb {
     bool debugAssertValid() const {
 #ifdef MATHICGB_DEBUG
       MATHICGB_ASSERT(this != 0);
+      MATHICGB_ASSERT(baseOrderValid(mBaseOrder));
       MATHICGB_ASSERT(reducerValid(mReducer));
       MATHICGB_ASSERT(mModulus != 0);
       MATHICGB_ASSERT_NO_ASSUME(!mHasBeenDestroyed);
@@ -347,6 +356,8 @@ namespace mgb {
 
     const Coefficient mModulus;
     const VarIndex mVarCount;
+    BaseOrder mBaseOrder;
+    std::vector<Exponent> mGradings;
     Reducer mReducer;
     size_t mMaxSPairGroupSize;
     size_t mMaxThreadCount;
@@ -398,6 +409,34 @@ namespace mgb {
     return mPimpl->mVarCount;
   }
 
+  void GroebnerConfiguration::setMonomialOrderInternal(
+    MonomialOrderData order
+  ) {
+    MATHICGB_ASSERT(Pimpl::baseOrderValid(order.baseOrder));
+    MATHICGB_ASSERT(order.gradingsSize % varCount() == 0);
+    
+    // Currently only single grading supported. TODO: make it work.
+    MATHICGB_ASSERT(order.gradingsSize / varCount() <= 1);
+
+    // Currently only reverse lex supported. TODO: make it work
+    MATHICGB_ASSERT(order.baseOrder == ReverseLexicographicBaseOrder);
+
+    mPimpl->mBaseOrder = order.baseOrder;
+    mPimpl->mGradings.assign
+      (order.gradings, order.gradings + order.gradingsSize);
+  }
+
+  auto GroebnerConfiguration::monomialOrderInternal() const ->
+    MonomialOrderData
+  {
+    const MonomialOrderData data = {
+      mPimpl->mBaseOrder,
+      mPimpl->mGradings.data(),
+      mPimpl->mGradings.size()
+    };
+    return data;
+  }
+
   void GroebnerConfiguration::setReducer(Reducer reducer) {
     MATHICGB_ASSERT(Pimpl::reducerValid(reducer));
     mPimpl->mReducer = reducer;
@@ -441,7 +480,11 @@ namespace mgb {
     Pimpl(const GroebnerConfiguration& conf):
       // @todo: varCount should not be int. Fix PolyRing constructor,
       // then remove this static_cast.
-      ring(conf.modulus(), static_cast<int>(conf.varCount()), 1),
+      ring(
+        conf.modulus(),
+        static_cast<int>(conf.varCount()),
+        conf.monomialOrder().second
+      ),
       ideal(ring),
       poly(ring),
       monomial(ring.allocMonomial()),
