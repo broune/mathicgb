@@ -764,24 +764,23 @@ SparseMatrix reduceToEchelonFormShrawanDelayedModulus(
 
 SparseMatrix F4MatrixReducer::reduceToBottomRight(const QuadMatrix& matrix) {
   MATHICGB_ASSERT(matrix.debugAssertValid());
+  MATHICGB_LOG_TIME(F4MatReduceTop);
   MATHICGB_LOG_TIME(F4MatrixReduce) <<
     "\n***** Reducing QuadMatrix to bottom right matrix *****\n";
   MATHICGB_IF_STREAM_LOG(F4MatrixReduce)
     {matrix.printStatistics(log.stream());};
 
-  MATHICGB_LOG_TIME(F4MatReduceTop);
   return reduce(matrix, mModulus);
 }
 
 SparseMatrix F4MatrixReducer::reducedRowEchelonForm(
   const SparseMatrix& matrix
 ) {
+  MATHICGB_LOG_TIME(F4RedBottomRight);
   MATHICGB_LOG_TIME(F4MatrixReduce) <<
     "\n***** Reducing SparseMatrix to reduced row echelon form *****\n";
   MATHICGB_IF_STREAM_LOG(F4MatrixReduce)
     {matrix.printStatistics(log.stream());};
-
-  MATHICGB_LOG_TIME(F4RedBottomRight);
 
   const bool useShrawan = false;
   const bool useDelayedModulus = false;
@@ -794,7 +793,7 @@ SparseMatrix F4MatrixReducer::reducedRowEchelonForm(
     // todo: actually do some work to determine a good way to determine
     // when to use the sparse method, or alternatively make some some
     // sort of hybrid.
-    if ( matrix.computeDensity() < 0.02)
+    if (matrix.computeDensity() < 0.02)
       return reduceToEchelonFormSparse(matrix, mModulus);
     else
       return reduceToEchelonForm(matrix, mModulus);

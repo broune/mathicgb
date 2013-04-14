@@ -661,6 +661,7 @@ namespace mgbi {
     mgb::tbb::task_scheduler_init scheduler(tbbMaxThreadCount);
 
     // Set up logging
+    LogDomainSet::singleton().reset();
     LogDomainSet::singleton().performLogCommands(conf.logging());
 
     // Make reducer

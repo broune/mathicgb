@@ -14,12 +14,26 @@ LogDomain<true>::LogDomain(
   const bool streamEnabled
 ):
   mEnabled(enabled),
+  mOriginallyEnabled(enabled),
   mStreamEnabled(streamEnabled),
+  mOriginallyStreamEnabled(streamEnabled),
   mName(name),
   mDescription(description),
-  mInterval()
+  mInterval(),
+  mHasTime(false),
+  mCount(0),
+  mHasCount(false)
 {
   LogDomainSet::singleton().registerLogDomain(*this);
+}
+
+void LogDomain<true>::reset() {
+  mEnabled = mOriginallyEnabled;
+  mStreamEnabled = mOriginallyStreamEnabled;
+  mInterval = TimeInterval();
+  mHasTime = false;
+  mCount = 0;
+  mHasCount = false;
 }
 
 std::ostream& LogDomain<true>::stream() {

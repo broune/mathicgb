@@ -62,6 +62,11 @@ public:
   void printTimeReport(std::ostream& out) const;
   void printCountReport(std::ostream& out) const;
 
+  /// Resets the logging system as though the program had just started up.
+  /// This resets all counts, all recorded time and the enabledness of all logs.
+  /// You should not have a timer running for a log when you call this method.
+  void reset();
+
   static LogDomainSet& singleton();
 
 private:

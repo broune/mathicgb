@@ -195,6 +195,15 @@ void LogDomainSet::printTimeReport(std::ostream& out) const {
   out.flags(oldFlags);
 }
 
+void LogDomainSet::reset() {
+  mStartTime = mgb::tbb::tick_count::now();
+  const auto end = logDomains().cend();
+  for (auto it = logDomains().cbegin(); it != end; ++it) {
+    MATHICGB_ASSERT(*it != 0);
+    (*it)->reset();
+  }
+}
+
 LogDomainSet& LogDomainSet::singleton() {
   static LogDomainSet set;
   return set;

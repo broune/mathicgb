@@ -76,6 +76,10 @@ public:
   /// Returns true if setCount has been called.
   bool hasCount() const {return mHasCount;}
 
+  /// Resets this object to the state it had when it was
+  /// constructed.
+  void reset();
+
 private:
   struct TimeInterval {
     // todo: support user time too. clock() doesn't seem to sum the time
@@ -87,7 +91,9 @@ private:
   void recordTime(TimeInterval interval);
 
   bool mEnabled;
+  const bool mOriginallyEnabled;
   bool mStreamEnabled;
+  const bool mOriginallyStreamEnabled;
   const char* mName;
   const char* mDescription;
 
@@ -95,7 +101,7 @@ private:
   bool mHasTime; /// Whether any time has been registered (even if 0s).
 
   Counter mCount;
-  bool mHasCount; /// Whether the count has been set
+  bool mHasCount; /// Whether the count has been set (even if set to zero)
 };
 
 class LogDomain<true>::Timer {
@@ -163,6 +169,7 @@ public:
   Counter count() const {return 0;}
   void setCount(const Counter counter) {MATHICGB_ASSERT(false);}
   bool hasCount() const {return false;}
+  void reset() {}
 };
 
 namespace LogDomainInternal {
