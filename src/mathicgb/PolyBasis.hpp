@@ -58,20 +58,6 @@ public:
     MATHICGB_ASSERT(mEntries[index].poly != 0);
   }
 
-  struct Stats {
-    Stats():
-      buchbergerLcmQueries(0),
-      buchbergerLcmHits(0),
-      buchbergerLcmNearHits(0),
-      buchbergerLcmCacheHits(0) {}
-
-    unsigned long long buchbergerLcmQueries;
-    unsigned long long buchbergerLcmHits;
-    unsigned long long buchbergerLcmNearHits;
-    unsigned long long buchbergerLcmCacheHits;
-  };
-  Stats stats() const {return mStats;}
-
   // As the non-slow version, but uses simpler and slower code.
   bool buchbergerLcmCriterionSlow(size_t a, size_t b) const;
 
@@ -236,10 +222,6 @@ private:
   FreeModuleOrder& mOrder;
   std::unique_ptr<DivisorLookup> mDivisorLookup;
   std::vector<Entry> mEntries;
-  mutable Stats mStats;
-
-  static const bool mUseBuchbergerLcmHitCache = true;
-  mutable std::vector<size_t> mBuchbergerLcmHitCache;
 };
 
 #endif

@@ -82,8 +82,6 @@ void PolyBasis::insert(std::unique_ptr<Poly> poly) {
   entry.poly = poly.release();
   entry.leadMinimal = leadMinimal;
 
-  if (mUseBuchbergerLcmHitCache)
-    mBuchbergerLcmHitCache.push_back(0);
   MATHICGB_ASSERT(mEntries.back().poly != 0);
 }
 
