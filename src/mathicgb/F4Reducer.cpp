@@ -35,6 +35,11 @@ MATHICGB_DEFINE_LOG_ALIAS(
   "F4MatrixBuild,F4MatrixBuild2,F4MatrixReduce"
 );
 
+MATHICGB_DEFINE_LOG_ALIAS(
+  "F4Incremental",
+  "F4MatrixSizes,F4MatrixBuild2,F4SPairDegree,F4MatReduceTop,F4RedBottomRight"
+);
+
 F4Reducer::F4Reducer(const PolyRing& ring, Type type):
   mType(type),
   mFallback(Reducer::makeReducer(Reducer::Reducer_BjarkeGeo, ring)),

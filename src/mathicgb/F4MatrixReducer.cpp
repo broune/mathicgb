@@ -20,6 +20,16 @@ MATHICGB_DEFINE_LOG_DOMAIN(
   "Displays statistics about matrices that are row reduced."
 );
 
+MATHICGB_DEFINE_LOG_DOMAIN(
+  F4MatReduceTop,
+  "Displays time to reduce each F4 matrix to the bottom left matrix."
+);
+
+MATHICGB_DEFINE_LOG_DOMAIN(
+  F4RedBottomRight,
+  "Displays time to reduce the bottom left of each F4 matrix."
+);
+
 namespace {
   class DenseRow {
   public:
@@ -758,6 +768,8 @@ SparseMatrix F4MatrixReducer::reduceToBottomRight(const QuadMatrix& matrix) {
     "\n***** Reducing QuadMatrix to bottom right matrix *****\n";
   MATHICGB_IF_STREAM_LOG(F4MatrixReduce)
     {matrix.printStatistics(log.stream());};
+
+  MATHICGB_LOG_TIME(F4MatReduceTop);
   return reduce(matrix, mModulus);
 }
 
@@ -768,6 +780,8 @@ SparseMatrix F4MatrixReducer::reducedRowEchelonForm(
     "\n***** Reducing SparseMatrix to reduced row echelon form *****\n";
   MATHICGB_IF_STREAM_LOG(F4MatrixReduce)
     {matrix.printStatistics(log.stream());};
+
+  MATHICGB_LOG_TIME(F4RedBottomRight);
 
   const bool useShrawan = false;
   const bool useDelayedModulus = false;

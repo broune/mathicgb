@@ -9,6 +9,11 @@ MATHICGB_DEFINE_LOG_DOMAIN(
   "Displays statistics about F4 matrix construction."
 );
 
+MATHICGB_DEFINE_LOG_DOMAIN(
+  F4MatrixSizes,
+  "Displays row and column count for each F4 matrix construction."
+);
+
 MATHICGB_NO_INLINE
 std::pair<F4MatrixBuilder2::ColIndex, ConstMonomial>
 F4MatrixBuilder2::findOrCreateColumn(
@@ -276,6 +281,14 @@ void F4MatrixBuilder2::buildMatrixAndClear(QuadMatrix& quadMatrix) {
 
   quadMatrix = projection.makeAndClear(mMemoryQuantum);
   threadData.clear();
+
+  MATHICGB_LOG(F4MatrixSizes) 
+    << "F4[" 
+    << mathic::ColumnPrinter::commafy(quadMatrix.rowCount())
+    << " by "
+    << mathic::ColumnPrinter::commafy(
+         quadMatrix.computeLeftColCount() + quadMatrix.computeRightColCount())
+    << "]" << std::endl;
 
 #ifdef MATHICGB_DEBUG
   for (size_t side = 0; side < 2; ++side) {

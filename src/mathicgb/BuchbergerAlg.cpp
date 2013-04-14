@@ -2,7 +2,13 @@
 #include "BuchbergerAlg.hpp"
 #include "Ideal.hpp"
 
+#include "LogDomain.hpp"
 #include <iostream>
+
+MATHICGB_DEFINE_LOG_DOMAIN(
+  F4SPairDegree,
+  "Displays the degree of the S-pairs being considered in F4 Reducers"
+);
 
 BuchbergerAlg::BuchbergerAlg(
   const Ideal& ideal,
@@ -273,6 +279,10 @@ void BuchbergerAlg::step() {
     if (spairGroup.empty())
       return; // no more s-pairs
     std::vector<std::unique_ptr<Poly> > reduced;
+
+    // w is the negative of the degree of the lcm's of the chosen spairs
+    MATHICGB_LOG(F4SPairDegree) << std::endl << "[degree = " << -w << "]";
+
     mReducer.classicReduceSPolySet(spairGroup, mBasis, reduced);
 
     // sort the elements to get deterministic behavior. The order will change
