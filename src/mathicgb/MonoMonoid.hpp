@@ -130,83 +130,97 @@ public:
   static Exponent* toOld(MonoRef e) {return rawPtr(e);}
   static const Exponent* toOld(ConstMonoRef e) {return rawPtr(e);}
 
-  
 
   // *** Constructors and accessors
 
-  MonoMonoid(const std::vector<Exponent>& grading):
-    mVarCount(grading.size()),
-    mOrderEntryCount(StoreOrder),
-    mOrderIndexBegin(HasComponent + mVarCount),
-    mOrderIndexEnd(HasComponent + mVarCount + StoreOrder),
-    mHashCoefficients(mVarCount),
+  MonoMonoid(VarIndex varCount, const std::vector<Exponent>& gradings):
+    mVarCount(varCount),
+    mGradingCount(gradings.size() / varCount),
+    mOrderIndexBegin(HasComponent + varCount),
+    mOrderIndexEnd(mOrderIndexBegin + StoreOrder * mGradingCount),
+    mHashCoefficients(varCount),
     mGradingIsTotalDegree(
       [&]() {
-        for (auto it = grading.begin(); it != grading.end(); ++it)
+        MATHICGB_ASSERT(gradings.size() % varCount == 0);
+        if (gradings.size() != varCount)
+          return false;
+        for (auto it = gradings.begin(); it != gradings.end(); ++it)
           if (*it != 1)
             return false;
         return true;
       }()
     ),
-    mGrading(mGradingIsTotalDegree ? std::vector<Exponent>() : grading),
+    mGradings(),
     mPool(*this)
   {
+    MATHICGB_ASSERT(gradings.size() % varCount == 0);
     if (!mGradingIsTotalDegree) {
       // Take negative values since reverse lex makes bigger values
       // give smaller monomials, but we need bigger degrees to give
       // bigger monomials.
-      mGrading.resize(varCount());
-      for (VarIndex var = 0; var < varCount(); ++var)
-        mGrading[var] = -grading[var];
+      mGradings.resize(gradings.size());
+      for (VarIndex grading = 0; grading < gradingCount(); ++grading) {
+        const auto myRowStart = grading * varCount;
+        const auto hisRowStart = (gradingCount() - grading - 1) * varCount;
+        for (VarIndex var = 0; var < varCount; ++var)
+          mGradings[myRowStart + var] = -gradings[hisRowStart + var];
+      }
     }
 
     std::srand(0); // To use the same hash coefficients every time.
-    for (VarIndex var = 0; var < varCount(); ++var)
+    for (VarIndex var = 0; var < varCount; ++var)
       mHashCoefficients[var] = static_cast<HashValue>(std::rand());      
-  }
 
+    MATHICGB_ASSERT(debugAssertValid());
+  }
 
   MonoMonoid(const VarIndex varCount):
     mVarCount(varCount),
-    mOrderEntryCount(StoreOrder),
+    mGradingCount(1),
     mOrderIndexBegin(HasComponent + mVarCount),
-    mOrderIndexEnd(HasComponent + mVarCount + StoreOrder),
+    mOrderIndexEnd(mOrderIndexBegin + StoreOrder * mGradingCount),
     mHashCoefficients(mVarCount),
     mGradingIsTotalDegree(true),
-    mGrading(),
+    mGradings(),
     mPool(*this)
   {
     std::srand(0); // To use the same hash coefficients every time.
     for (VarIndex var = 0; var < varCount; ++var)
       mHashCoefficients[var] = static_cast<HashValue>(std::rand());      
+    MATHICGB_ASSERT(debugAssertValid());
   }
 
   /// Copies the ordering and varCount from monoid.
   template<class E2, bool HC2, bool SH2, bool SO2>
   MonoMonoid(const MonoMonoid<E2, HC2, SH2, SO2>& monoid):
     mVarCount(monoid.varCount()),
-    mOrderEntryCount(StoreOrder),
+    mGradingCount(monoid.gradingCount()),
     mOrderIndexBegin(HasComponent + mVarCount),
-    mOrderIndexEnd(HasComponent + mVarCount + StoreOrder),
+    mOrderIndexEnd(mOrderIndexBegin + StoreOrder * mGradingCount),
     mHashCoefficients(mVarCount),
     mGradingIsTotalDegree(monoid.mGradingIsTotalDegree),
-    mGrading(monoid.mGrading),
+    mGradings(monoid.mGradings),
     mPool(*this)
-  {}
+  {
+    MATHICGB_ASSERT(debugAssertValid());
+  }
+
   // the compiler-generated copy constructor is a better match for overload
   // resolution than the template constructor above, so we need to provide
   // our own copy constructor to prevent the compiler-generated one from
   // being used.
   MonoMonoid(const MonoMonoid& monoid):
     mVarCount(monoid.varCount()),
-    mOrderEntryCount(StoreOrder),
+    mGradingCount(monoid.gradingCount()),
     mOrderIndexBegin(HasComponent + mVarCount),
-    mOrderIndexEnd(HasComponent + mVarCount + StoreOrder),
+    mOrderIndexEnd(mOrderIndexBegin + StoreOrder * mGradingCount),
     mHashCoefficients(mVarCount),
     mGradingIsTotalDegree(monoid.mGradingIsTotalDegree),
-    mGrading(monoid.mGrading),
+    mGradings(monoid.mGradings),
     mPool(*this)
-  {}
+  {
+    MATHICGB_ASSERT(debugAssertValid());
+  }
 
   bool operator==(const MonoMonoid& monoid) const {
     return this == &monoid;
@@ -504,9 +518,14 @@ public:
     MATHICGB_ASSERT(debugOrderValid(a));
     MATHICGB_ASSERT(debugOrderValid(b));
 
-    const auto cmp = degree(a) - degree(b);
-    if (cmp < 0) return GreaterThan;
-    if (cmp > 0) return LessThan;
+    // todo: fold this into the lower loop if StoreOrder is true.
+    auto grading = gradingCount();
+    while (grading != 0) {
+      --grading;
+      const auto cmp = degree(a, grading) - degree(b, grading);
+      if (cmp < 0) return GreaterThan;
+      if (cmp > 0) return LessThan;
+    }
 
     for (auto i = exponentsIndexEnd() - 1; i != beforeEntriesIndexBegin(); --i) {
       const auto cmp = access(a, i) - access(b, i);
@@ -542,19 +561,34 @@ public:
     for (VarIndex i = exponentsIndexBegin(); i != exponentsIndexEnd(); ++i)
       if (!inRange(access(mono, i)))
         return false;
-    if (!inRange(degree(mono)))
-      return false;
+    for (VarIndex grading = 0; grading < gradingCount(); ++grading)
+      if (!inRange(degree(mono, grading)))
+        return false;
     return true;
   }
 
-  /// Returns the degree of mono using the grading on the monoid.
+  /// Returns the degree of mono using the most significant grading on
+  /// the monoid. This is the grading with index gradingCount() -
+  /// 1. This object must have at least one grading associated to it
+  /// before calling this method.
   Exponent degree(ConstMonoRef mono) const {
+    MATHICGB_ASSERT(gradingCount() > 0);
+    return degree(mono, gradingCount() - 1);
+  }
+
+  /// Returns the degree of mono according to the grading with the
+  /// given index.
+  Exponent degree(ConstMonoRef mono, VarIndex grading) const {
+    MATHICGB_ASSERT(grading < gradingCount());
     MATHICGB_ASSERT(debugOrderValid(mono));
     if (StoreOrder)
-      return access(mono, orderIndexBegin());
+      return access(mono, orderIndexBegin() + grading);
     else
-      return computeDegree(mono);
+      return computeDegree(mono, grading);
   }
+
+  /// Returns the number of gradings.
+  size_t gradingCount() const {return mGradingCount;}
 
 
   // *** Monomial mutating computations
@@ -585,8 +619,11 @@ public:
       access(to, componentIndex()) = monoidFrom.component(from);
     for (VarIndex var = 0; var < varCount(); ++var)
       ptr(to, exponentsIndexBegin())[var] = monoidFrom.exponent(from, var);
-    if (StoreOrder)
-      access(to, orderIndexBegin()) = monoidFrom.degree(from);
+    if (StoreOrder) {
+      const auto degrees = ptr(to, orderIndexBegin());
+      for (VarIndex grading = 0; grading < gradingCount(); ++grading)
+        degrees[grading] = monoidFrom.degree(from);
+    }
     if (StoreHash)
       access(to, hashIndex()) = monoidFrom.hash(from);
 
@@ -798,6 +835,13 @@ public:
 
   // Inverse of parseM2().
   void printM2(ConstMonoRef mono, std::ostream& out) const;
+
+  // As printM2, but returns a string.
+  std::string toString(ConstMonoRef mono) const {
+    std::ostringstream out;
+    printM2(mono, out);
+    return out.str();
+  }
 
 
   // *** Classes for holding and referring to monomials
@@ -1167,6 +1211,33 @@ private:
   friend class MonoVector;
   friend class MonoPool;
 
+  bool debugAssertValid() const {
+#ifdef MATHICGB_DEBUG
+    // ** Order checks
+    MATHICGB_ASSERT(orderIndexBegin() == exponentsIndexEnd());
+    const auto storedDegrees = StoreOrder * gradingCount();
+    MATHICGB_ASSERT(orderIndexEnd() == orderIndexBegin() + storedDegrees);
+    MATHICGB_ASSERT(orderIndexEnd() <= entryCount());
+
+    MATHICGB_ASSERT(gradingCount() >= 1); // todo: if rev lex
+
+    if (mGradingIsTotalDegree) {
+      MATHICGB_ASSERT(mGradings.empty());
+      MATHICGB_ASSERT(gradingCount() == 1);
+    } else {
+      MATHICGB_ASSERT(mGradings.size() == gradingCount() * varCount());
+    }
+
+    // ** Hash checks
+    if (StoreHash) {
+      MATHICGB_ASSERT(hashIndex() < entryCount());
+      MATHICGB_ASSERT(hashIndex() == orderIndexEnd());
+    }
+    MATHICGB_ASSERT(mHashCoefficients.size() == varCount());
+#endif
+    return true;
+  }
+
   bool debugValid(ConstMonoRef mono) const {
     MATHICGB_ASSERT(debugOrderValid(mono));
     MATHICGB_ASSERT(debugHashValid(mono));
@@ -1231,20 +1302,11 @@ private:
 #ifdef MATHICGB_DEBUG
     if (!StoreOrder)
       return true;
-    // Check assumptions for layout in memory.
-    MATHICGB_ASSERT(orderIndexBegin() == exponentsIndexEnd());
-    MATHICGB_ASSERT(orderIndexBegin() + orderEntryCount() == orderIndexEnd());
-    MATHICGB_ASSERT(orderIndexEnd() <= entryCount());
-    MATHICGB_ASSERT(orderEntryCount() == 1);
-
-    if (mGradingIsTotalDegree)
-      MATHICGB_ASSERT(mGrading.empty());
-    else
-      MATHICGB_ASSERT(mGrading.size() == varCount());
-
     // Check the order data of mono
-    MATHICGB_ASSERT
-      (rawPtr(mono)[orderIndexBegin()] == computeDegree(mono));
+    const auto degrees = ptr(mono, orderIndexBegin());
+    for (VarIndex grading = 0; grading < gradingCount(); ++grading) {
+      MATHICGB_ASSERT(degrees[grading] == computeDegree(mono, grading));
+    }
 #endif
     return true;
   }
@@ -1253,7 +1315,9 @@ private:
     if (!StoreOrder)
       return;
 
-    rawPtr(mono)[orderIndexBegin()] = computeDegree(mono);      
+    const auto degrees = ptr(mono, orderIndexBegin());
+    for (VarIndex grading = 0; grading < gradingCount(); ++grading)
+      degrees[grading] = computeDegree(mono, grading);
     MATHICGB_ASSERT(debugOrderValid(mono));
   }
 
@@ -1267,25 +1331,34 @@ private:
       return;
 
     MATHICGB_ASSERT(var < varCount());
-    if (mGradingIsTotalDegree)
+    if (mGradingIsTotalDegree) {
+      MATHICGB_ASSERT(gradingCount() == 1);
       rawPtr(mono)[orderIndexBegin()] += oldExponent - newExponent;
-    else {
-      MATHICGB_ASSERT(mGrading.size() == varCount());
-      rawPtr(mono)[orderIndexBegin()] -=
-        mGrading[var] * (oldExponent - newExponent);
+    } else {
+      MATHICGB_ASSERT(mGradings.size() == gradingCount() * varCount());
+      const auto degrees = ptr(mono, orderIndexBegin());
+      for (VarIndex grading = 0; grading < gradingCount(); ++grading) {
+        const auto index = grading * varCount() + var;
+        degrees[grading] -= mGradings[index] * (oldExponent - newExponent);
+      }
     }
     MATHICGB_ASSERT(debugOrderValid(mono));
   }
 
-  Exponent computeDegree(ConstMonoRef mono) const {
+  Exponent computeDegree(ConstMonoRef mono, VarIndex grading) const {
+    MATHICGB_ASSERT(grading < gradingCount());
+
     Exponent degree = 0;
-    const auto end = this->end(mono);
     if (mGradingIsTotalDegree) {
-      for (auto it = begin(mono); it != end; ++it)
-        degree -= *it;
-    } else {
+      MATHICGB_ASSERT(grading == 0);
       for (auto var = 0; var < varCount(); ++var)
-        degree += access(mono, exponentsIndexBegin() + var) * mGrading[var];
+        degree -= exponent(mono, var);
+    } else {
+      MATHICGB_ASSERT(mGradings.size() == gradingCount() * varCount());
+      for (auto var = 0; var < varCount(); ++var) {
+        const auto index = grading * varCount() + var;
+        degree += exponent(mono, var) * mGradings[index];
+      }
     }
     return degree;
   }
@@ -1298,7 +1371,6 @@ private:
       return true;
 
     // We cannot call hash() here since it calls this method.
-    MATHICGB_ASSERT(hashIndex() < entryCount());
     // todo: we cannot make this check right now because the legacy
     // integration with PolyRing can create monomials with unset hash.
     // MATHICGB_ASSERT(rawPtr(mono)[hashIndex()] == computeHash(mono));
@@ -1307,8 +1379,10 @@ private:
 
   HashValue computeHash(ConstMonoRef mono) const {
     HashValue hash = HasComponent ? component(mono) : 0;
-    for (VarIndex var = 0; var < varCount(); ++var)
-      hash += static_cast<HashValue>(exponent(mono, var)) * mHashCoefficients[var];
+    for (VarIndex var = 0; var < varCount(); ++var) {
+      hash +=
+        static_cast<HashValue>(exponent(mono, var)) * mHashCoefficients[var];
+    }
 
     // Hash values are stored as exponents. If the cast to an exponent
     // changes the value, then we need computeHashValue to match that
@@ -1359,13 +1433,6 @@ private:
   /// this number can be larger than varCount().
   size_t entryCount() const {return mOrderIndexEnd + StoreHash;}
 
-  /// Returns how many Exponents are necessary to store the extra data
-  /// used to compare monomials quickly.
-  size_t orderEntryCount() const {
-    // static_assert(StoreOrder, "");
-    return mOrderEntryCount;
-  }
-
   VarIndex componentIndex() const {
     //static_assert(HasComponent, "");
     return 0;
@@ -1396,21 +1463,24 @@ private:
   VarIndex lastEntryIndex() const {return entriesIndexEnd() - 1;}
 
   const VarIndex mVarCount;
-  const VarIndex mOrderEntryCount;
+  const VarIndex mGradingCount;
   const VarIndex mOrderIndexBegin;
   const VarIndex mOrderIndexEnd;
 
   /// Take dot product of exponents with this vector to get hash value.
   std::vector<HashValue> mHashCoefficients;
 
-  /// This is initialized before mGrading, so it has to be ordered
-  /// above mGrading.
+  /// This is initialized before mGradings, so it has to be ordered
+  /// above mGradings. 
   const bool mGradingIsTotalDegree;
 
-  /// The degree of a monomial is the dot product of the exponent
-  /// vector with this vector. If mGradingIsTotalDegree is true then
-  /// mGrading is empty but implicitly it is a vector of ones.
-  std::vector<Exponent> mGrading;
+  /// Defines a matrix where each row is a grading. The degree of a
+  /// monomial with respect to grading g is the dot product of the
+  /// exponent vector of that monomial with row g of the matrix
+  /// (starting at g=0). The matrix is stored in row-major order. If
+  /// mGradingsIsTotalDegree is true then mGradings is empty but
+  /// implicitly it is a single grading consisting of all 1s.
+  std::vector<Exponent> mGradings;
 
   mutable MonoPool mPool;
 };

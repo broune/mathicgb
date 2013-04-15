@@ -29,7 +29,7 @@ PolyRing::PolyRing(
   mMaxMonomialByteSize(mMaxMonomialSize * sizeof(exponent)),
   mMonomialPool(mMaxMonomialByteSize),
   mTotalDegreeGradedOnly(false),
-  mMonoid(weights),
+  mMonoid(nvars, weights),
   mField(p0)
 {
   MATHICGB_ASSERT(weights.size() == nvars);

@@ -533,22 +533,61 @@ TYPED_TEST(Monoid, LcmColon) {
 
 TYPED_TEST(Monoid, Order) {
   typedef TypeParam Monoid;
-  Monoid m(52);
-  auto v = parseVector(m, "1 Z A z c b a c2 bc ac b2 ab a2 c3 abc b3 a3");
+  typedef typename Monoid::Exponent Exponent;
 
-  for (auto greater = v.begin(); greater != v.end(); ++greater) {
-    ASSERT_EQ(m.compare(*greater, *greater), Monoid::EqualTo);
-    ASSERT_TRUE(m.equal(*greater, *greater));
-    ASSERT_FALSE(m.lessThan(*greater, *greater));
-
-    for (auto lesser = v.begin(); lesser != greater; ++lesser) {
-      ASSERT_FALSE(m.equal(*lesser, *greater));
-      ASSERT_TRUE(m.lessThan(*lesser, *greater));
-      ASSERT_FALSE(m.lessThan(*greater, *lesser));
-      ASSERT_EQ(m.compare(*lesser, *greater), Monoid::LessThan);
-      ASSERT_EQ(m.compare(*greater, *lesser), Monoid::GreaterThan);
+  auto check = [](const Monoid& m, const char* sorted) -> void {
+    auto v = parseVector(m, sorted);
+    for (auto greater = v.begin(); greater != v.end(); ++greater) {
+      ASSERT_EQ(m.compare(*greater, *greater), Monoid::EqualTo);
+      ASSERT_TRUE(m.equal(*greater, *greater));
+      ASSERT_FALSE(m.lessThan(*greater, *greater));
+      
+      for (auto lesser = v.begin(); lesser != greater; ++lesser) {
+        ASSERT_FALSE(m.equal(*lesser, *greater));
+        ASSERT_TRUE(m.lessThan(*lesser, *greater))
+          << "*lesser  is " << m.toString(*lesser) << '\n'
+          << "*greater is " << m.toString(*greater) << '\n';
+        ASSERT_FALSE(m.lessThan(*greater, *lesser));
+        ASSERT_EQ(m.compare(*lesser, *greater), Monoid::LessThan);
+        ASSERT_EQ(m.compare(*greater, *lesser), Monoid::GreaterThan);
+      }
     }
-  }
+  };
+
+  const auto sortedTotalDegreeRevLex =
+    "1 Z A z c b a c2 bc ac b2 ab a2 c3 abc b3 a3";
+  check(Monoid(52), sortedTotalDegreeRevLex);
+  check(Monoid(52, std::vector<Exponent>(52, 1)), sortedTotalDegreeRevLex);
+  check(Monoid(52, std::vector<Exponent>(52, 7)), sortedTotalDegreeRevLex);
+
+  std::vector<Exponent> dupGradings = {
+     5, 2, 3,
+    10, 4, 6, // duplicate, just multiplied by 2
+    -6, 9, 4,
+    -6, 9, 4,
+    -6, 9, 4,
+    -6, 9, 4,
+    -6, 9, 4
+  };
+  //   b:  2  9
+  //   c:  3  4
+  //   a:  5 -7
+  //  bc:  5 20
+  //  c2:  6  8
+  //  b3:  6 27
+  // bc3: 11 21
+  // ab3: 11 21
+  const auto sortedDupGradingsRevLex = "1 b c a bc c2 b3 bc3 ab3";
+  check(Monoid(3, dupGradings), sortedDupGradingsRevLex);
+
+  std::vector<Exponent> lexGradings = {
+    0, 0, 1,
+    0, 1, 0,
+    1, 0, 0
+  };
+  const auto sortedLex =
+    "1 a a2 a3 b ab a2b b2 ab2 b3 c ac bc abc c2 ac2 bc2 c3";
+  check(Monoid(3, lexGradings), sortedLex);
 }
 
 TYPED_TEST(Monoid, RelativelyPrime) {
@@ -590,9 +629,9 @@ TYPED_TEST(Monoid, HasAmpleCapacityTotalDegree) {
   for (VarIndex varCount = 1; varCount < 33; ++varCount) {
     Monoid monoidTotalDegree(varCount);
     std::vector<Exponent> v(varCount, 1);
-    Monoid monoidTotalDegreeImplicit(v);
+    Monoid monoidTotalDegreeImplicit(varCount, v);
     v[0] = 7;
-    Monoid monoidGeneral(v);
+    Monoid monoidGeneral(varCount, v);
 
     Monoid* monoids[] = {
       &monoidTotalDegree,
@@ -645,7 +684,7 @@ TYPED_TEST(Monoid, CopyEqualConversion) {
   typedef MonoMonoid<Exponent, HasComponent, false, false> MonoidNone;
   typedef MonoMonoid<Exponent, HasComponent, true, true> MonoidAll;
   for (VarIndex varCount = 1; varCount < 33; ++varCount) {
-    MonoidNone none(varCount);
+    MonoidNone none(varCount, std::vector<Exponent>(varCount, 1));
     Monoid some(none);
     MonoidAll all(some);
 
