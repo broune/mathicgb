@@ -16,9 +16,7 @@ PolyRing::PolyRing(const Field& field, const Monoid& monoid):
   mMonoid(monoid),
   mNumWeights(monoid.gradingCount()),
   mTopIndex(monoid.varCount() + mNumWeights),
-  mMaxMonomialSize(monoid.varCount() + mNumWeights + 2),
-  mMaxMonomialByteSize(mMaxMonomialSize * sizeof(exponent)),
-  mMonomialPool(mMaxMonomialByteSize)
+  mMonomialPool(maxMonomialByteSize())
 {
 }
 
@@ -31,9 +29,7 @@ PolyRing::PolyRing(
   mMonoid(nvars, weights),
   mNumWeights(nvars == 0 ? 0 : weights.size() / nvars),
   mTopIndex(nvars + mNumWeights),
-  mMaxMonomialSize(nvars + mNumWeights + 2),
-  mMaxMonomialByteSize(mMaxMonomialSize * sizeof(exponent)),
-  mMonomialPool(mMaxMonomialByteSize)
+  mMonomialPool(maxMonomialByteSize())
 {
 }
 
@@ -41,12 +37,10 @@ PolyRing::PolyRing(coefficient p0,
                    int nvars,
                    int nweights):
   mField(p0),
-    mMonoid(nvars),
-    mNumWeights(nweights),
-    mTopIndex(nvars + nweights),
-    mMaxMonomialSize(nvars + nweights + 2),
-    mMaxMonomialByteSize(mMaxMonomialSize * sizeof(exponent)),
-    mMonomialPool(mMaxMonomialByteSize)
+  mMonoid(nvars),
+  mNumWeights(nweights),
+  mTopIndex(nvars + nweights),
+  mMonomialPool(maxMonomialByteSize())
 {
 }
 
@@ -150,7 +144,7 @@ void PolyRing::monomialParse(std::istream &i,
 {
 //  monoid().parseM2(i, result);
   // first initialize result:
-  for (size_t j=0; j<mMaxMonomialSize; j++) result[j] = 0;
+  for (size_t j=0; j< maxMonomialSize(); j++) result[j] = 0;
 
   uint64 e;
   int v, x;

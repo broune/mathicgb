@@ -225,12 +225,12 @@ public:
   //  This monomial may only be freed if no other elements that were allocated
   // later are live on A.  In this case, use freeMonomial(A,m) to free 'm'.
   Monomial allocMonomial(memt::Arena &A) const {
-    exponent* ptr = static_cast<exponent*>(A.alloc(mMaxMonomialByteSize));
+    exponent* ptr = static_cast<exponent*>(A.alloc(maxMonomialByteSize()));
 #ifdef MATHICGB_DEBUG
     // fill with value that do not make sense to catch bugs in debug
     // mode. The maximum value of setting all bits increases the
     // chances of getting an assert.
-    std::fill_n(reinterpret_cast<char*>(ptr), mMaxMonomialByteSize,
+    std::fill_n(reinterpret_cast<char*>(ptr), maxMonomialByteSize(),
                 ~static_cast<char>(0));
 #endif
     return ptr;
@@ -256,7 +256,7 @@ public:
     // fill with value that do not make sense to catch bugs in debug
     // mode. The maximum value of setting all bits increases the
     // chances of getting an assert.
-    std::fill_n(reinterpret_cast<char*>(ptr), mMaxMonomialByteSize,
+    std::fill_n(reinterpret_cast<char*>(ptr), maxMonomialByteSize(),
                 ~static_cast<char>(0));
 #endif
     return ptr;
@@ -305,9 +305,9 @@ public:
   //  nterms comp v1 e1 ... v_nterms e_nterms
   // with each e_i nonzero, and v_1 > v_2 > ... > v_nterms
 
-  size_t maxMonomialByteSize() const { return mMaxMonomialByteSize; }
+  size_t maxMonomialByteSize() const { return maxMonomialSize() * sizeof(exponent); }
 
-  size_t maxMonomialSize() const { return mMaxMonomialSize; }
+  size_t maxMonomialSize() const { return monoid().entryCount(); }
 
   ///////////////////////////////////////////
   // Monomial Routines //////////////////////
@@ -368,8 +368,6 @@ public:
 
   /// as monomialEQ, but optimized for the case that the answer is true.
   bool monomialEqualHintTrue(ConstMonomial a, ConstMonomial b) const;
-
-  size_t monomialSize(ConstMonomial) const { return mMaxMonomialSize; }
 
   exponent monomialGetComponent(ConstMonomial a) const { return *a.mValue; }
 
@@ -490,8 +488,6 @@ private:
 
   size_t mNumWeights;
   size_t mTopIndex;
-  size_t mMaxMonomialSize;
-  size_t mMaxMonomialByteSize;
 
   mutable memt::BufferPool mMonomialPool;
   mutable coefficientStats mStats;

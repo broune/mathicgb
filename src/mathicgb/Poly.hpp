@@ -177,7 +177,7 @@ inline void Poly::appendTerm(coefficient a, const_monomial m)
 {
   // the monomial will be copied on.
   coeffs.push_back(a);
-  size_t len = R->monomialSize(m);
+  size_t len = R->maxMonomialSize();
   exponent const * e = m.unsafeGetRepresentation();
   monoms.insert(monoms.end(), e, e + len);
 }
