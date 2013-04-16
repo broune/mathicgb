@@ -413,11 +413,8 @@ namespace mgb {
     MonomialOrderData order
   ) {
     MATHICGB_ASSERT(Pimpl::baseOrderValid(order.baseOrder));
-    MATHICGB_ASSERT(order.gradingsSize % varCount() == 0);
+    MATHICGB_ASSERT(varCount() == 0 || order.gradingsSize % varCount() == 0);
     
-    // Currently only single grading supported. TODO: make it work.
-    MATHICGB_ASSERT(order.gradingsSize / varCount() <= 1);
-
     // Currently only reverse lex supported. TODO: make it work
     MATHICGB_ASSERT(order.baseOrder == ReverseLexicographicBaseOrder);
 

@@ -135,14 +135,17 @@ public:
 
   MonoMonoid(VarIndex varCount, const std::vector<Exponent>& gradings):
     mVarCount(varCount),
-    mGradingCount(gradings.size() / varCount),
+    mGradingCount(varCount == 0 ? 0 : gradings.size() / varCount),
     mOrderIndexBegin(HasComponent + varCount),
     mOrderIndexEnd(mOrderIndexBegin + StoreOrder * mGradingCount),
+    mEntryCount
+      (mOrderIndexEnd + StoreHash == 0 ? 1 : mOrderIndexEnd + StoreHash),
     mHashCoefficients(varCount),
     mGradingIsTotalDegree(
       [&]() {
-        MATHICGB_ASSERT(gradings.size() % varCount == 0);
-        if (gradings.size() != varCount)
+        MATHICGB_ASSERT(varCount == 0 || gradings.size() % varCount == 0);
+        MATHICGB_ASSERT((varCount == 0) == (gradings.empty()));
+        if (gradings.size() != varCount || varCount == 0)
           return false;
         for (auto it = gradings.begin(); it != gradings.end(); ++it)
           if (*it != 1)
@@ -153,7 +156,8 @@ public:
     mGradings(),
     mPool(*this)
   {
-    MATHICGB_ASSERT(gradings.size() % varCount == 0);
+    MATHICGB_ASSERT(varCount == 0 || gradings.size() % varCount == 0);
+    MATHICGB_ASSERT((varCount == 0) == (gradings.empty()));
     if (!mGradingIsTotalDegree) {
       // Take negative values since reverse lex makes bigger values
       // give smaller monomials, but we need bigger degrees to give
@@ -179,6 +183,8 @@ public:
     mGradingCount(1),
     mOrderIndexBegin(HasComponent + mVarCount),
     mOrderIndexEnd(mOrderIndexBegin + StoreOrder * mGradingCount),
+    mEntryCount
+      (mOrderIndexEnd + StoreHash == 0 ? 1 : mOrderIndexEnd + StoreHash),
     mHashCoefficients(mVarCount),
     mGradingIsTotalDegree(true),
     mGradings(),
@@ -197,6 +203,8 @@ public:
     mGradingCount(monoid.gradingCount()),
     mOrderIndexBegin(HasComponent + mVarCount),
     mOrderIndexEnd(mOrderIndexBegin + StoreOrder * mGradingCount),
+    mEntryCount
+      (mOrderIndexEnd + StoreHash == 0 ? 1 : mOrderIndexEnd + StoreHash),
     mHashCoefficients(mVarCount),
     mGradingIsTotalDegree(monoid.mGradingIsTotalDegree),
     mGradings(monoid.mGradings),
@@ -214,6 +222,8 @@ public:
     mGradingCount(monoid.gradingCount()),
     mOrderIndexBegin(HasComponent + mVarCount),
     mOrderIndexEnd(mOrderIndexBegin + StoreOrder * mGradingCount),
+    mEntryCount
+      (mOrderIndexEnd + StoreHash == 0 ? 1 : mOrderIndexEnd + StoreHash),
     mHashCoefficients(mVarCount),
     mGradingIsTotalDegree(monoid.mGradingIsTotalDegree),
     mGradings(monoid.mGradings),
@@ -1218,8 +1228,13 @@ private:
     const auto storedDegrees = StoreOrder * gradingCount();
     MATHICGB_ASSERT(orderIndexEnd() == orderIndexBegin() + storedDegrees);
     MATHICGB_ASSERT(orderIndexEnd() <= entryCount());
+    if (mOrderIndexEnd + StoreHash == 0) {
+      MATHICGB_ASSERT(entryCount() == 1);
+    } else {
+      MATHICGB_ASSERT(entryCount() == mOrderIndexEnd + StoreHash);
+    }
 
-    MATHICGB_ASSERT(gradingCount() >= 1); // todo: if rev lex
+    MATHICGB_ASSERT(varCount() == 0 || gradingCount() >= 1); // todo: if rev lex
 
     if (mGradingIsTotalDegree) {
       MATHICGB_ASSERT(mGradings.empty());
@@ -1431,7 +1446,7 @@ private:
   /// Returns how many Exponents are necessary to store a
   /// monomial. This can include other data than the exponents, so
   /// this number can be larger than varCount().
-  size_t entryCount() const {return mOrderIndexEnd + StoreHash;}
+  size_t entryCount() const {return mEntryCount;}
 
   VarIndex componentIndex() const {
     //static_assert(HasComponent, "");
@@ -1466,6 +1481,7 @@ private:
   const VarIndex mGradingCount;
   const VarIndex mOrderIndexBegin;
   const VarIndex mOrderIndexEnd;
+  const VarIndex mEntryCount;
 
   /// Take dot product of exponents with this vector to get hash value.
   std::vector<HashValue> mHashCoefficients;

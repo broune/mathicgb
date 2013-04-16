@@ -559,6 +559,11 @@ TYPED_TEST(Monoid, Order) {
   check(Monoid(52), sortedTotalDegreeRevLex);
   check(Monoid(52, std::vector<Exponent>(52, 1)), sortedTotalDegreeRevLex);
   check(Monoid(52, std::vector<Exponent>(52, 7)), sortedTotalDegreeRevLex);
+  std::vector<Exponent> revLexGradings(52, 1);
+  for (size_t grading = 51; grading != static_cast<size_t>(-1); --grading)
+    for (size_t var = 0; var < 52; ++var)
+      revLexGradings.push_back(var == grading ? -1 : 0);
+  check(Monoid(52, revLexGradings), sortedTotalDegreeRevLex);
 
   std::vector<Exponent> dupGradings = {
      5, 2, 3,
