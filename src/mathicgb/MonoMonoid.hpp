@@ -893,6 +893,8 @@ public:
 
   Mono alloc() const {return mPool.alloc();}
   void free(Mono&& mono) const {mPool.free(std::move(mono));}
+  void freeRaw(MonoRef mono) const {mPool.freeRaw(mono);}
+  bool fromPool(ConstMonoRef mono) const {mPool.fromPool(mono);}
 
   /// Parses a monomial out of a string. Valid examples: 1 abc a2bc
   /// aA. Variable names are case sensitive. Whitespace terminates the
@@ -960,6 +962,7 @@ public:
 
   private:
     friend class MonoMonoid;
+    friend class PolyRing; // todo: remove
 
     Exponent* internalRawPtr() const {return mMono;}
     MonoPtr(Exponent* mono): mMono(mono) {}
@@ -1010,7 +1013,7 @@ public:
     }
 
     bool isNull() const {return mMono.isNull();}
-    void toNull() {mPool->free(*this);}
+    void toNull() {mPool->free(std::move(*this));}
 
     MonoPtr ptr() const {return mMono;}
 
@@ -1078,7 +1081,6 @@ public:
       return mono;
     }
 
-    void free(Mono& mono) {free(std::move(mono));}
     void free(Mono&& mono) {
       if (mono.isNull())
         return;

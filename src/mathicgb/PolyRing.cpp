@@ -12,22 +12,16 @@
 #include <limits>
 
 PolyRing::PolyRing(const Field& field, const Monoid& monoid):
-  mField(field),
-  mMonoid(monoid),
-  mMonomialPool(maxMonomialByteSize())
-{
-}
+  mField(field), mMonoid(monoid)
+{}
 
 PolyRing::PolyRing(
   coefficient p0,
   int nvars,
   const std::vector<exponent>& weights
 ):
-  mField(p0),
-  mMonoid(nvars, weights),
-  mMonomialPool(maxMonomialByteSize())
-{
-}
+  mField(p0), mMonoid(nvars, weights)
+{}
 
 ///////////////////////////////////////
 // (New) Monomial Routines ////////////

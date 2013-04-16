@@ -205,7 +205,7 @@ public:
 
   size_t getMemoryUse() const {
     // todo: Make this more accurate.
-    return mMonomialPool.getMemoryUse();
+    return 0;
   }
 
   coefficient charac() const { return mField.charac(); }
@@ -241,10 +241,6 @@ public:
     A.freeTop(m.unsafeGetRepresentation());
   }
 
-  bool fromPool(ConstMonomial m) const {
-    return mMonomialPool.fromPool(m.unsafeGetRepresentation());
-  }
-
   //  Allocate a monomial from a pool that has had its size set to 
   //   maxMonomialByteSize()
   //  Free monomials here using the SAME pool
@@ -268,11 +264,18 @@ public:
 
   // Only call this method for monomials returned by allocMonomial().
   void freeMonomial(Monomial m) const {
-    mMonomialPool.free(m.unsafeGetRepresentation());
+    monoid().freeRaw(m);
   }
 
   // Free monomials allocated here by calling freeMonomial().
-  monomial allocMonomial() const { return allocMonomial(mMonomialPool); }
+  monomial allocMonomial() const {
+    return Monoid::rawPtr(monoid().alloc().release());
+  }
+
+  bool fromPool(ConstMonomial m) const {
+    return monoid().fromPool(m);
+  }
+
 
 
 
@@ -473,8 +476,6 @@ public:
 private:
   Field mField;
   Monoid mMonoid;
-
-  mutable memt::BufferPool mMonomialPool;
 };
 
 inline exponent PolyRing::weight(ConstMonomial a) const {

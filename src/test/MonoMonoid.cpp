@@ -227,9 +227,9 @@ TYPED_TEST(Monoid, MonoPool) {
     do {
       MATHICGB_ASSERT(!monos[i].isNull());
       ASSERT_FALSE(monoid.isIdentity(monos[i]));
-      pool.free(monos[i]);
+      pool.free(std::move(monos[i]));
       ASSERT_TRUE(monos[i].isNull());
-      pool.free(monos[i]);
+      pool.free(std::move(monos[i]));
       ASSERT_TRUE(monos[i].isNull());
       i = (i + 17) % count;
     } while (i != 0);
