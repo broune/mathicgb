@@ -232,6 +232,9 @@ public:
     MATHICGB_ASSERT(debugAssertValid());
   }
 
+  static MonoMonoid readMonoid(std::istream& in);
+  void printMonoid(std::ostream& out) const;
+
   bool operator==(const MonoMonoid& monoid) const {
     return this == &monoid;
   }
@@ -757,7 +760,8 @@ public:
     MATHICGB_ASSERT(debugValid(quo));
   }
 
-  // Set out to (colonBy : colonNum) * mult.
+  /// Set out to (colonBy : colonNum) * mult.
+  /// @todo: test
   void colonMultiply(
     ConstMonoRef colonBy,
     ConstMonoRef colonNum,
@@ -778,6 +782,16 @@ public:
     }
     setOrderData(out);
     setHash(out);
+  }
+
+  /// Returns the number of variables that divide mono.
+  /// @todo: test
+  VarIndex sizeOfSupport(ConstMonoRef mono) const {
+    VarIndex count = 0;
+    for (VarIndex var = 0; var < varCount(); ++var)
+      if (exponent(mono, var) != 0)
+        ++count;
+    return count;
   }
 
   /// Sets aColonB to a:b and bColonA to b:a.
@@ -1539,6 +1553,46 @@ namespace MonoMonoidHelper {
   struct unchar<signed char> {typedef short type;};
   template<>
   struct unchar<unsigned char> {typedef unsigned short type;};
+}
+
+template<class E, bool HC, bool SH, bool SO>
+auto MonoMonoid<E, HC, SH, SO>::readMonoid(std::istream& in) -> MonoMonoid {
+  using MonoMonoidHelper::unchar;
+  VarIndex varCount;
+  in >> varCount;
+
+  VarIndex gradingCount;
+  in >> gradingCount;
+
+  const size_t weightCount = static_cast<size_t>(varCount) * gradingCount;
+  std::vector<Exponent> gradings(weightCount);
+  for (size_t w = 0; w < weightCount; ++w) {
+    typename unchar<Exponent>::type e;
+    in >> e;
+    gradings[w] = static_cast<Exponent>(e);
+  }
+  return MonoMonoid(varCount, gradings);
+}
+
+template<class E, bool HC, bool SH, bool SO>
+void MonoMonoid<E, HC, SH, SO>::printMonoid(std::ostream& out) const {
+  out << varCount() << ' ' << gradingCount() << '\n';
+  if (mGradingIsTotalDegree) {
+    MATHICGB_ASSERT(mGradings.empty());
+    for (VarIndex var = 0; var < varCount(); ++var)
+      out << " 1";
+    out << '\n';
+  } else {
+    MATHICGB_ASSERT(mGradings.size() == gradingCount() * varCount());
+    for (VarIndex grading = 0; grading < gradingCount(); ++grading) {
+      const auto offset = static_cast<size_t>(grading) * varCount();
+      for (VarIndex var = 0; var < varCount(); ++var) {
+        MATHICGB_ASSERT(offset + var < mGradings.size());
+        out << ' ' << mGradings[offset + var];
+      }
+      out << '\n';
+    }
+  }
 }
 
 template<class E, bool HC, bool SH, bool SO>

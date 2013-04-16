@@ -400,8 +400,6 @@ void PolyHashTable::dump(int level) const
   value << "\n";
   extra << "\n";
 
-  mRing.displayHashValues();
-
   name << "# resets:\n";
   value << mic::ColumnPrinter::commafy(mStats.n_resets) << '\n';
   extra << '\n';

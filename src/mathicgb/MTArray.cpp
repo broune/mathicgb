@@ -138,8 +138,6 @@ template <typename MT>
 void MTArrayT<MT>::printFrobbyM2Format
   (std::ostream& out, size_t component) const
 {
-  R->printRingFrobbyM2Format(out);
-
   MATHICGB_ASSERT(component < tables.size());
   T* p = tables[component];
   MATHICGB_ASSERT(p != 0);

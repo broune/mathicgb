@@ -202,6 +202,7 @@ public:
 
   PolyRing(coefficient charac, int nvars, const std::vector<exponent>& weights);
   PolyRing(coefficient charac, int nvars, int nweights);
+  PolyRing(const Field& field, const Monoid& monoid);
   ~PolyRing() {}
 
   size_t getMemoryUse() const {
@@ -210,7 +211,8 @@ public:
   }
 
   coefficient charac() const { return mCharac; }
-  size_t getNumVars() const { return mNumVars; }
+  size_t getNumVars() const { return varCount();}
+  size_t varCount() const {return monoid().varCount();}
   //       const std::vector<int> &degs,
   //       const std::string &monorder);
 
@@ -218,8 +220,6 @@ public:
   void write(std::ostream &o) const;
   // Format for ring
   //   <char> <mNumVars> <deg1> ... <deg_n> <monorder>
-
-  void printRingFrobbyM2Format(std::ostream& out) const;
 
   //  Allocate a monomial from an arena A
   //  This monomial may only be freed if no other elements that were allocated
@@ -308,8 +308,6 @@ public:
   size_t maxMonomialByteSize() const { return mMaxMonomialByteSize; }
 
   size_t maxMonomialSize() const { return mMaxMonomialSize; }
-
-  void displayHashValues() const;
 
   size_t monomialHashIndex() const { return mHashIndex; }
 
@@ -423,9 +421,7 @@ public:
 
   /// Returns the hash of the product of a and b.
   HashValue monomialHashOfProduct(ConstMonomial a, ConstMonomial b) const {
-    return static_cast<exponent>(
-      static_cast<HashValue>(a[mHashIndex]) +
-      static_cast<HashValue>(b[mHashIndex]));
+    return monoid().hashOfProduct(a, b);
   }
 
   void monomialCopy(ConstMonomial  a, Monomial &result) const;
@@ -496,13 +492,11 @@ private:
   inline HashValue computeHashValue(const_monomial a1) const;
 
   coefficient mCharac; // p=mCharac: ring is ZZ/p
-  size_t mNumVars;
-  size_t mNumWeights; // stored as negative of weight vectors
+  size_t mNumWeights;
   size_t mTopIndex;
   size_t mHashIndex; // 1 more than mTopIndex.  Where the has value is stored.
   size_t mMaxMonomialSize;
   size_t mMaxMonomialByteSize;
-  std::vector<exponent> mWeights; // 0..mNumWeights * mNumVars - 1.
 
   std::vector<HashValue> mHashVals; // one for each variable 0..mNumVars-1
   // stored as weightvec1 weightvec2 ...
