@@ -627,12 +627,13 @@ public:
 
     if (HasComponent)
       access(to, componentIndex()) = monoidFrom.component(from);
+    const auto expsTo = ptr(to, exponentsIndexBegin());
     for (VarIndex var = 0; var < varCount(); ++var)
-      ptr(to, exponentsIndexBegin())[var] = monoidFrom.exponent(from, var);
+      expsTo[var] = monoidFrom.exponent(from, var);
     if (StoreOrder) {
       const auto degrees = ptr(to, orderIndexBegin());
       for (VarIndex grading = 0; grading < gradingCount(); ++grading)
-        degrees[grading] = monoidFrom.degree(from);
+        degrees[grading] = monoidFrom.degree(from, grading);
     }
     if (StoreHash)
       access(to, hashIndex()) = monoidFrom.hash(from);
