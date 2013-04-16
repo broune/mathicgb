@@ -234,12 +234,9 @@ void testMonomialOps(const PolyRing* R, std::string s1, std::string s2)
   Monomial m2 = stringToMonomial(R, s2);
   Monomial m3 = stringToMonomial(R, "abcdef<0>");
 
-  // m1 * m2 == lcm(m1,m2) * gcd(m1,m2)
-  
+ 
   Monomial m4 = R->allocMonomial();
   Monomial lcm = R->allocMonomial();
-  Monomial gcd = R->allocMonomial();
-  Monomial m7 = R->allocMonomial();
   Monomial m8 = R->allocMonomial();
   Monomial m1a = R->allocMonomial();
   Monomial m2a = R->allocMonomial();
@@ -248,10 +245,6 @@ void testMonomialOps(const PolyRing* R, std::string s1, std::string s2)
 
   R->monomialMult(m1,m2,m4);
   R->monomialLeastCommonMultiple(m1,m2,lcm);
-  R->monomialGreatestCommonDivisor(m1,m2,gcd);
-
-  R->monomialMult(lcm,gcd,m7);
-  EXPECT_TRUE(R->monomialEQ(m4, m7));
 
   // lcm(m1,m2)/m1, lcm(m1,m2)/m2:  relatively prime
   EXPECT_TRUE(R->monomialIsDivisibleBy(lcm, m1));
@@ -266,9 +259,6 @@ void testMonomialOps(const PolyRing* R, std::string s1, std::string s2)
   R->monomialDivide(lcm, m2a, m2b);
   EXPECT_TRUE(R->monomialEQ(m1, m1b));
   EXPECT_TRUE(R->monomialEQ(m2, m2b));
-
-  EXPECT_TRUE(R->monomialIsDivisibleBy(lcm,gcd));
-  R->monomialDivide(lcm,gcd,m8);
 
   size_t supp1 = R->monomialSizeOfSupport(m1a);
   size_t supp2 = R->monomialSizeOfSupport(m2a);
@@ -615,9 +605,18 @@ bool test_find_signatures(const PolyRing *R,
   monomial y2 = new int[R->maxMonomialSize()];
   monomial v1v2 = new int[R->maxMonomialSize()];
   monomial x1g = new int[R->maxMonomialSize()];
+  monomial p = new int[R->maxMonomialSize()];
+  monomial m = new int[R->maxMonomialSize()];
+  
+
   R->monomialFindSignature(v1,v2,u1,t1);
   R->monomialFindSignature(v2,v1,u2,t2);
-  R->monomialGreatestCommonDivisor(v1, v2, g);
+
+  R->monomialMult(v1, v2, p);
+  R->monomialLeastCommonMultiple(v1, v2, m);
+  R->monomialDivide(p, m, g);
+  //R->monomialGreatestCommonDivisor(v1, v2, g);
+
   // check that v1*t1 == v2*t2
   // v1*v2 == g * (v1*t1)
   R->monomialDivide(t1,u1,y1);

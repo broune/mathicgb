@@ -756,6 +756,29 @@ public:
     MATHICGB_ASSERT(debugValid(quo));
   }
 
+  // Set out to (colonBy : colonNum) * mult.
+  void colonMultiply(
+    ConstMonoRef colonBy,
+    ConstMonoRef colonNum,
+    ConstMonoRef mult,
+    MonoRef out
+  ) const {
+    // todo: consider what happens with exponent overflow here
+    if (HasComponent) {
+      MATHICGB_ASSERT(component(colonBy) == component(colonNum));
+      access(out, componentIndex()) = component(mult);
+    }
+    for (auto i = exponentsIndexBegin(); i != exponentsIndexEnd(); ++i) {
+      const auto colon = access(colonNum, i) - access(colonBy, i);
+      auto result = access(mult, i);
+      if (colon > 0)
+        result += colon;
+      access(out, i) = result;
+    }
+    setOrderData(out);
+    setHash(out);
+  }
+
   /// Sets aColonB to a:b and bColonA to b:a.
   void colons(
     ConstMonoRef a,

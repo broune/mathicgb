@@ -353,8 +353,6 @@ public:
 
   bool hashValid(const_monomial m) const;
 
-  bool weightsCorrect(ConstMonomial a) const;
-
   // returns LT, EQ, or GT, depending on sig ? (m2 * sig2).
   int monomialCompare(ConstMonomial a, 
                       ConstMonomial b) const; 
@@ -449,10 +447,6 @@ public:
 
   size_t monomialSizeOfSupport(ConstMonomial m) const;
 
-  void monomialGreatestCommonDivisor(ConstMonomial a, 
-                                     ConstMonomial b, 
-                                     Monomial& g) const;
-
   inline void monomialLeastCommonMultiple(ConstMonomial a, 
                                           ConstMonomial b, 
                                           Monomial& l) const;
@@ -516,8 +510,6 @@ private:
   mutable memt::BufferPool mMonomialPool;
   mutable coefficientStats mStats;
 
-  bool mTotalDegreeGradedOnly;
-
   Monoid mMonoid;
   Field mField;
 };
@@ -577,16 +569,7 @@ inline void PolyRing::monomialMult(ConstMonomial a,
 
 inline void PolyRing::setWeightsOnly(Monomial& a1) const
 {
-  exponent *a = a1.unsafeGetRepresentation();
-  a++;
-  auto wts = mWeights.data();
-  for (size_t i = 0; i < mNumWeights; ++i)
-    {
-      exponent result = 0;
-      for (size_t j = 0; j < mNumVars; ++j)
-        result += *wts++ * a[j];
-      a[mNumVars+i] = result;
-    }
+  monoid().setOrderData(a1);
 }
 
 inline HashValue PolyRing::computeHashValue(const_monomial a1) const {
@@ -595,8 +578,7 @@ inline HashValue PolyRing::computeHashValue(const_monomial a1) const {
 
 inline void PolyRing::setHashOnly(Monomial& a1) const
 {
-  exponent* a = a1.unsafeGetRepresentation();
-  a[mHashIndex] = computeHashValue(a1);
+  monoid().setHash(a1);
 }
 
 inline int PolyRing::monomialCompare(ConstMonomial a, ConstMonomial b) const

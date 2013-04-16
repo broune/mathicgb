@@ -22,23 +22,17 @@ PolyRing::PolyRing(
 ):
   mCharac(p0),
   mNumVars(nvars),
-  mNumWeights(1),
+  mNumWeights(nvars == 0 ? 0 : weights.size() / nvars),
   mTopIndex(nvars + mNumWeights),
   mHashIndex(nvars + mNumWeights + 1),
   mMaxMonomialSize(nvars + mNumWeights + 2),
   mMaxMonomialByteSize(mMaxMonomialSize * sizeof(exponent)),
   mMonomialPool(mMaxMonomialByteSize),
-  mTotalDegreeGradedOnly(false),
   mMonoid(nvars, weights),
   mField(p0)
 {
-  MATHICGB_ASSERT(weights.size() == nvars);
-  mTotalDegreeGradedOnly = true;
-  for (size_t i = 0; i < nvars; ++i)
-    if (weights[i] != 1)
-      mTotalDegreeGradedOnly = false;
-  mWeights.resize(nvars);
-  for (size_t i = 0; i < nvars; ++i)
+  mWeights.resize(weights.size());
+  for (size_t i = 0; i < weights.size(); ++i)
     mWeights[i] = -weights[i];
 
   resetCoefficientStats();
@@ -58,7 +52,6 @@ PolyRing::PolyRing(coefficient p0,
     mMaxMonomialSize(nvars + nweights + 2),
     mMaxMonomialByteSize(mMaxMonomialSize * sizeof(exponent)),
     mMonomialPool(mMaxMonomialByteSize),
-    mTotalDegreeGradedOnly(nweights == 1),
     mMonoid(nvars),
     mField(p0)
 {
@@ -98,21 +91,6 @@ void PolyRing::setWeightsAndHash(Monomial& a1) const
 {
   setWeightsOnly(a1);
   setHashOnly(a1);
-}
-
-bool PolyRing::weightsCorrect(ConstMonomial a1) const
-{
-  exponent const *a = a1.mValue;
-  ++a;
-  auto wts = &mWeights[0];
-  for (size_t i = 0; i < mNumWeights; ++i) {
-    exponent result = 0;
-    for (size_t j = 0; j < mNumVars; ++j)
-      result += *wts++ * a[j];
-    if (a[mNumVars + i] != result)
-      return false;
-  }
-  return true;
 }
 
 int PolyRing::monomialCompare(ConstMonomial sig, ConstMonomial m2, ConstMonomial sig2) const
@@ -175,32 +153,7 @@ void PolyRing::monomialFindSignature(ConstMonomial v1,
                                      ConstMonomial u1,
                                      Monomial& t1) const
 {
-  // t1 := (v2:v1) u1
-  *t1 = *u1.mValue;
-  if (mTotalDegreeGradedOnly) {
-    MATHICGB_ASSERT(mNumWeights == 1);
-    exponent weight = 0;
-    for (size_t i = 1; i <= mNumVars; ++i) {
-      MATHICGB_ASSERT(mWeights[i - 1] == -1);
-      if (v1[i] < v2[i])
-        weight -= t1[i] = u1[i] + v2[i] - v1[i];
-      else
-        weight -= t1[i] = u1[i];
-    }
-#ifdef MATHICGB_DEBUG
-    setWeightsOnly(t1);
-    MATHICGB_ASSERT(t1[mNumVars + 1] == weight);
-#endif
-    t1[mNumVars + 1] = weight;
-  } else {
-    for (size_t i = 1; i <= mNumVars; ++i) {
-        if (v1[i] < v2[i])
-          t1[i] = u1[i] + v2[i] - v1[i];
-        else
-          t1[i] = u1[i];
-    }
-    setWeightsOnly(t1);
-  }
+  monoid().colonMultiply(v1, v2, u1, t1);
 }
 
 size_t PolyRing::monomialSizeOfSupport(ConstMonomial m) const 
@@ -210,16 +163,6 @@ size_t PolyRing::monomialSizeOfSupport(ConstMonomial m) const
     if (m[i] != 0)
       ++support;
   return support;
-}
-
-void PolyRing::monomialGreatestCommonDivisor(ConstMonomial a, 
-                                             ConstMonomial b, 
-                                             Monomial& g) const 
-{
-  *g = 0;
-  for (size_t i = 1; i <= mNumVars; ++i)
-    g[i] = std::min(a[i], b[i]);
-  setWeightsOnly(g);
 }
 
 void PolyRing::mysteriousSPairMonomialRoutine(ConstMonomial newSig,
