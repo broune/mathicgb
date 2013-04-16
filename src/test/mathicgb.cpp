@@ -182,6 +182,31 @@ namespace {
     s.appendPolynomialDone();
     s.idealDone();
   }
+
+  template<class Stream>
+  void makeSimpleIdeal(Stream& s) { // variables a,b,c,d.  a2-bc, ab-cd.
+    s.idealBegin();
+      s.appendPolynomialBegin(); // a^2-b*c
+        s.appendTermBegin();
+          s.appendExponent(0,2);
+        s.appendTermDone(1);
+        s.appendTermBegin();
+          s.appendExponent(1,1);
+          s.appendExponent(2,1);
+        s.appendTermDone(s.modulus() - 1);
+      s.appendPolynomialDone();
+      s.appendPolynomialBegin(2); // a*b-c*d
+        s.appendTermBegin();
+          s.appendExponent(0,1);
+          s.appendExponent(1,1);
+        s.appendTermDone(1);
+        s.appendTermBegin();
+          s.appendExponent(2,1);
+          s.appendExponent(3,1);
+        s.appendTermDone(s.modulus() - 1);
+      s.appendPolynomialDone();
+    s.idealDone();
+  }
 }
 
 TEST(MathicGBLib, NullIdealStream) {
@@ -380,3 +405,25 @@ TEST(MathicGBLib, Cyclic5) {
     mgb::computeGroebnerBasis(input, computed);
   }
 }
+
+TEST(MathicGBLib, SimpleEliminationGB) {
+  std::vector<mgb::GroebnerConfiguration::Exponent> gradings = {1,0,0,0,  1,1,1,1};
+  for (int i = 0; i < 2; ++i) {
+    mgb::GroebnerConfiguration configuration(101, 4);
+    const auto reducer = i == 0 ?
+      mgb::GroebnerConfiguration::ClassicReducer :
+      mgb::GroebnerConfiguration::MatrixReducer;
+    configuration.setReducer(reducer);
+    configuration.setMonomialOrder(
+      mgb::GroebnerConfiguration::BaseOrder::ReverseLexicographicBaseOrder, 
+      gradings
+    );
+    mgb::GroebnerInputIdealStream input(configuration);
+    makeSimpleIdeal(input);
+
+    mgb::NullIdealStream computed(input.modulus(), input.varCount());
+
+    mgb::computeGroebnerBasis(input, computed);
+  }
+}
+
