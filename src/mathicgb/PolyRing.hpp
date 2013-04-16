@@ -210,7 +210,7 @@ public:
     return mMonomialPool.getMemoryUse();
   }
 
-  coefficient charac() const { return mCharac; }
+  coefficient charac() const { return mField.charac(); }
   size_t getNumVars() const { return varCount();}
   size_t varCount() const {return monoid().varCount();}
   //       const std::vector<int> &degs,
@@ -309,8 +309,6 @@ public:
 
   size_t maxMonomialSize() const { return mMaxMonomialSize; }
 
-  size_t monomialHashIndex() const { return mHashIndex; }
-
   ///////////////////////////////////////////
   // Monomial Routines //////////////////////
   ///////////////////////////////////////////
@@ -348,8 +346,6 @@ public:
   inline void setWeightsOnly(Monomial& a) const;
 
   inline void setHashOnly(Monomial& a) const;
-
-  bool hashValid(const_monomial m) const;
 
   // returns LT, EQ, or GT, depending on sig ? (m2 * sig2).
   int monomialCompare(ConstMonomial a, 
@@ -489,23 +485,17 @@ public:
   const Field field() const {return mField;}
 
 private:
-  inline HashValue computeHashValue(const_monomial a1) const;
+  Field mField;
+  Monoid mMonoid;
 
-  coefficient mCharac; // p=mCharac: ring is ZZ/p
   size_t mNumWeights;
   size_t mTopIndex;
-  size_t mHashIndex; // 1 more than mTopIndex.  Where the has value is stored.
   size_t mMaxMonomialSize;
   size_t mMaxMonomialByteSize;
-
-  std::vector<HashValue> mHashVals; // one for each variable 0..mNumVars-1
-  // stored as weightvec1 weightvec2 ...
 
   mutable memt::BufferPool mMonomialPool;
   mutable coefficientStats mStats;
 
-  Monoid mMonoid;
-  Field mField;
 };
 
 inline exponent PolyRing::weight(ConstMonomial a) const {
@@ -564,10 +554,6 @@ inline void PolyRing::monomialMult(ConstMonomial a,
 inline void PolyRing::setWeightsOnly(Monomial& a1) const
 {
   monoid().setOrderData(a1);
-}
-
-inline HashValue PolyRing::computeHashValue(const_monomial a1) const {
-  return monoid().computeHash(a1);
 }
 
 inline void PolyRing::setHashOnly(Monomial& a1) const

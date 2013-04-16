@@ -282,7 +282,6 @@ void Poly::parseDoNotOrder(std::istream& i)
       R->monomialParse(i, m);
     else
       R->monomialSetIdentity(m); // have to do this to set hash value
-    MATHICGB_ASSERT(ring().hashValid(m));
     next = i.peek();
     if (next == '>')
       i.get();

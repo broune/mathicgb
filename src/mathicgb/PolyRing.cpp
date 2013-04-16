@@ -11,20 +11,14 @@
 #include <cstdlib>
 #include <limits>
 
-bool PolyRing::hashValid(const_monomial m) const {
-  return monomialHashValue(m) == computeHashValue(m);
-}
-
 PolyRing::PolyRing(const Field& field, const Monoid& monoid):
-  mCharac(field.charac()),
+  mField(field),
+  mMonoid(monoid),
   mNumWeights(monoid.gradingCount()),
   mTopIndex(monoid.varCount() + mNumWeights),
-  mHashIndex(monoid.varCount() + mNumWeights + 1),
   mMaxMonomialSize(monoid.varCount() + mNumWeights + 2),
   mMaxMonomialByteSize(mMaxMonomialSize * sizeof(exponent)),
-  mMonomialPool(mMaxMonomialByteSize),
-  mMonoid(monoid),
-  mField(field)
+  mMonomialPool(mMaxMonomialByteSize)
 {
 }
 
@@ -33,30 +27,26 @@ PolyRing::PolyRing(
   int nvars,
   const std::vector<exponent>& weights
 ):
-  mCharac(p0),
+  mField(p0),
+  mMonoid(nvars, weights),
   mNumWeights(nvars == 0 ? 0 : weights.size() / nvars),
   mTopIndex(nvars + mNumWeights),
-  mHashIndex(nvars + mNumWeights + 1),
   mMaxMonomialSize(nvars + mNumWeights + 2),
   mMaxMonomialByteSize(mMaxMonomialSize * sizeof(exponent)),
-  mMonomialPool(mMaxMonomialByteSize),
-  mMonoid(nvars, weights),
-  mField(p0)
+  mMonomialPool(mMaxMonomialByteSize)
 {
 }
 
 PolyRing::PolyRing(coefficient p0,
                    int nvars,
-                   int nweights)
-  : mCharac(p0),
+                   int nweights):
+  mField(p0),
+    mMonoid(nvars),
     mNumWeights(nweights),
     mTopIndex(nvars + nweights),
-    mHashIndex(nvars + nweights + 1),
     mMaxMonomialSize(nvars + nweights + 2),
     mMaxMonomialByteSize(mMaxMonomialSize * sizeof(exponent)),
-    mMonomialPool(mMaxMonomialByteSize),
-    mMonoid(nvars),
-    mField(p0)
+    mMonomialPool(mMaxMonomialByteSize)
 {
 }
 

@@ -100,7 +100,6 @@ void F4MatrixBuilder::addPolynomialToMatrix(const Poly& poly) {
 
 void F4MatrixBuilder::addPolynomialToMatrix
 (const_monomial multiple, const Poly& poly) {
-  MATHICGB_ASSERT(ring().hashValid(multiple));
   if (poly.isZero())
     return;
 
@@ -109,7 +108,6 @@ void F4MatrixBuilder::addPolynomialToMatrix
   task.poly = &poly;
   task.desiredLead = ring().allocMonomial();
   ring().monomialMult(poly.getLeadMonomial(), multiple, task.desiredLead);
-  MATHICGB_ASSERT(ring().hashValid(task.desiredLead));
 
   MATHICGB_ASSERT(task.sPairPoly == 0);
   mTodo.push_back(task);
@@ -172,7 +170,6 @@ void F4MatrixBuilder::buildMatrixAndClear(QuadMatrix& matrix) {
     else
       ring().monomialDivide
         (task.desiredLead, poly.getLeadMonomial(), data.tmp1);
-    MATHICGB_ASSERT(ring().hashValid(data.tmp1));
     if (task.addToTop)
       appendRowTop(data.tmp1, *task.poly, builder, feeder);
     else
@@ -250,7 +247,6 @@ F4MatrixBuilder::createColumn(
   ring().monomialMult(monoA, monoB, mTmp);
   if (!ring().monomialHasAmpleCapacity(mTmp))
     mathic::reportError("Monomial exponent overflow in F4MatrixBuilder.");
-  MATHICGB_ASSERT(ring().hashValid(mTmp));
 
   // look for a reducer of mTmp
   const size_t reducerIndex = mBasis.classicReducer(mTmp);
@@ -374,14 +370,12 @@ void F4MatrixBuilder::appendRowBottom(
 ) {
   MATHICGB_ASSERT(!poly->isZero());
   MATHICGB_ASSERT(!multiply.isNull());
-  MATHICGB_ASSERT(ring().hashValid(multiply));
   MATHICGB_ASSERT(sPairPoly != 0);
   Poly::const_iterator itA = poly->begin();
   const Poly::const_iterator endA = poly->end();
 
   MATHICGB_ASSERT(!sPairPoly->isZero());
   MATHICGB_ASSERT(!sPairMultiply.isNull());
-  MATHICGB_ASSERT(ring().hashValid(sPairMultiply));
   Poly::const_iterator itB = sPairPoly->begin();
   Poly::const_iterator endB = sPairPoly->end();
 

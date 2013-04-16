@@ -13,7 +13,7 @@ public:
   typedef const_monomial KeyType;
   typedef int ValueType;
 
-  MonomialHashControl(const PolyRing *R) : R_(R), hash_index_(R->monomialHashIndex()) {}
+  MonomialHashControl(const PolyRing *R) : R_(R) {}
   size_t hash_value(KeyType k) const { return R_->monomialHashValue(k); }
   bool is_equal(KeyType k1, KeyType k2) const { return R_->monomialEQ(k1, k2); }
   void combine(ValueType &, ValueType) const { }
@@ -24,7 +24,6 @@ public:
   }
 private:
   const PolyRing *R_;
-  size_t hash_index_;
 };
 
 typedef ChainedHashTable<MonomialHashControl> MonomialHashTableBasic;
