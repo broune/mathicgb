@@ -526,7 +526,6 @@ public:
     return true;
   }
 
-  // Graded reverse lexicographic order. The grading is total degree.
   CompareResult compare(ConstMonoRef a, ConstMonoRef b) const {
     MATHICGB_ASSERT(debugOrderValid(a));
     MATHICGB_ASSERT(debugOrderValid(b));
@@ -542,6 +541,30 @@ public:
 
     for (auto i = exponentsIndexEnd() - 1; i != beforeEntriesIndexBegin(); --i) {
       const auto cmp = access(a, i) - access(b, i);
+      if (cmp < 0) return GreaterThan;
+      if (cmp > 0) return LessThan;
+    }
+    return EqualTo;
+  }
+
+  /// Compares a to b1*b2.
+  /// @todo: test. Also, is this method necessary and useful?
+  CompareResult compare(ConstMonoRef a, ConstMonoRef b1, ConstMonoRef b2) const {
+    MATHICGB_ASSERT(debugOrderValid(a));
+    MATHICGB_ASSERT(debugOrderValid(b1));
+    MATHICGB_ASSERT(debugOrderValid(b2));
+
+    // todo: fold this into the lower loop if StoreOrder is true.
+    auto grading = gradingCount();
+    while (grading != 0) {
+      --grading;
+      const auto cmp = degree(a, grading) - (degree(b1, grading) + degree(b2, grading));
+      if (cmp < 0) return GreaterThan;
+      if (cmp > 0) return LessThan;
+    }
+
+    for (auto i = exponentsIndexEnd() - 1; i != beforeEntriesIndexBegin(); --i) {
+      const auto cmp = access(a, i) - (access(b1, i) + access(b2, i));
       if (cmp < 0) return GreaterThan;
       if (cmp > 0) return LessThan;
     }

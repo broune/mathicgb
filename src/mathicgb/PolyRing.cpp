@@ -66,13 +66,7 @@ void PolyRing::setWeightsAndHash(Monomial& a1) const
 int PolyRing::monomialCompare(ConstMonomial sig, ConstMonomial m2, ConstMonomial sig2) const
   // returns LT, EQ, or GT, depending on sig ? (m2 * sig2).
 {
-  for (size_t i = mTopIndex; i != static_cast<size_t>(-1); --i)
-    {
-      auto cmp = sig[i] - m2[i] - sig2[i];
-      if (cmp < 0) return GT;
-      if (cmp > 0) return LT;
-    }
-  return EQ;
+  return monoid().compare(sig, m2, sig2);
 }
 
 void PolyRing::monomialSetIdentity(Monomial& result) const
