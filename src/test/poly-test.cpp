@@ -259,6 +259,7 @@ void testMonomialOps(const PolyRing* R, std::string s1, std::string s2)
   R->monomialDivide(lcm, m2a, m2b);
   EXPECT_TRUE(R->monomialEQ(m1, m1b));
   EXPECT_TRUE(R->monomialEQ(m2, m2b));
+  R->monomialMult(m1a, m2a, m8);
 
   size_t supp1 = R->monomialSizeOfSupport(m1a);
   size_t supp2 = R->monomialSizeOfSupport(m2a);
