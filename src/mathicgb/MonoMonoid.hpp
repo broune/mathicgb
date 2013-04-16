@@ -971,6 +971,16 @@ public:
   public:
     Mono(): mMono(), mPool(0) {}
 
+    /// Passes ownership of the resources of mono to this object. Mono must
+    /// have been allocated from pool and it must have no other owner.
+    /// In particular, it must have been release()'ed from its original
+    /// owner.
+    Mono(MonoRef mono, MonoPool& pool):
+      mMono(mono.ptr()), mPool(&pool)
+    {
+      MATHICGB_ASSERT(pool.fromPool(mono));
+    }
+
     Mono(Mono&& mono): mMono(mono.mMono), mPool(mono.mPool) {
       mono.mMono.toNull();
       mono.mPool = 0;
@@ -987,7 +997,18 @@ public:
       mPool = mono.mPool;
       mono.mPool = 0;
     }
-    
+
+    /// Sets this object to null but does NOT free the resources previously
+    /// held by this object. The returned MonoPtr points to the resources
+    /// that this object had prior to calling release(). If this object was
+    /// already null then the returned MonoPtr is also null.
+    MonoPtr release() {
+      const auto oldPtr = ptr();
+      mMono = 0;
+      mPool = 0;
+      return oldPtr;
+    }
+
     bool isNull() const {return mMono.isNull();}
     void toNull() {mPool->free(*this);}
 
@@ -1000,9 +1021,6 @@ public:
 
   private:
     friend class MonoMonoid;
-
-    Mono(const MonoPtr mono, MonoPool& pool):
-      mMono(mono), mPool(&pool) {}
 
     Exponent* internalRawPtr() const {return rawPtr(mMono);}
 
@@ -1055,7 +1073,7 @@ public:
 
     Mono alloc() {
       const auto ptr = static_cast<Exponent*>(mPool.alloc());
-      Mono mono(ptr, *this);
+      Mono mono(*MonoPtr(ptr), *this);
       monoid().setIdentity(mono);
       return mono;
     }
@@ -1064,12 +1082,17 @@ public:
     void free(Mono&& mono) {
       if (mono.isNull())
         return;
-      mPool.free(rawPtr(mono));
+      freeRaw(mono);
       mono.mMono = 0;
       mono.mPool = 0;
     }
+    void freeRaw(MonoRef mono) {mPool.free(rawPtr(mono));}
 
     const MonoMonoid& monoid() const {return mMonoid;}
+
+    bool fromPool(ConstMonoRef mono) const {
+      return mPool.fromPool(rawPtr(mono));
+    }
 
   private:
     MonoPool(const MonoPool&); // not available

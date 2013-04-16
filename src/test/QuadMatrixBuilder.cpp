@@ -56,7 +56,7 @@ namespace {
 
 TEST(QuadMatrixBuilder, Empty) {
   // test a builder with no rows and no columns
-  PolyRing ring(2, 0, 1);
+  PolyRing ring(2, 0);
   QuadMatrixBuilder::Map map(ring);
   QuadMatrixBuilder::MonomialsType monoLeft;
   QuadMatrixBuilder::MonomialsType monoRight;

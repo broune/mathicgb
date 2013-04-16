@@ -201,9 +201,7 @@ public:
   typedef PrimeField<unsigned long> Field;
 
   PolyRing(coefficient charac, int nvars, const std::vector<exponent>& weights);
-  PolyRing(coefficient charac, int nvars, int nweights);
   PolyRing(const Field& field, const Monoid& monoid);
-  ~PolyRing() {}
 
   size_t getMemoryUse() const {
     // todo: Make this more accurate.
@@ -469,16 +467,6 @@ public:
   ///////////////////////////////////////////
   ///////////////////////////////////////////
 
-  struct coefficientStats {
-    size_t n_addmult;
-    size_t n_add;
-    size_t n_mult;
-    size_t n_recip;
-    size_t n_divide;
-  };
-  const coefficientStats & getCoefficientStats() const { return mStats; }
-  void resetCoefficientStats() const;
-
   const Monoid& monoid() const {return mMonoid;}
   const Field field() const {return mField;}
 
@@ -486,12 +474,7 @@ private:
   Field mField;
   Monoid mMonoid;
 
-  size_t mNumWeights;
-  size_t mTopIndex;
-
   mutable memt::BufferPool mMonomialPool;
-  mutable coefficientStats mStats;
-
 };
 
 inline exponent PolyRing::weight(ConstMonomial a) const {

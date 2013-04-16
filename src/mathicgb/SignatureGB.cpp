@@ -17,7 +17,6 @@ void SignatureGB::computeGrobnerBasis()
   size_t counter = 0;
 
   mTimer.reset();
-  R->resetCoefficientStats();
   std::ostream& out = std::cout;
 
   while (step()) {
@@ -305,13 +304,6 @@ void SignatureGB::displayStats(std::ostream &o) const
   o << " syz-n-inserts: " << (hsyz_stats.n_calls_insert) << '\n';
   o << " syz-n-actual-inserts: " << (hsyz_stats.n_actual_inserts) << '\n';
   o << " syz sig denseness: " << hsyz_stats.denseness << '\n';
-
-  const PolyRing::coefficientStats& cstats = R->getCoefficientStats();
-  o << "n-coeff-add: " << cstats.n_add << '\n';
-  o << "n-coeff-addmult: " << cstats.n_addmult << '\n';
-  o << "n-coeff-mult: " << cstats.n_mult << '\n';
-  o << "n-coeff-recip: " << cstats.n_recip << '\n';
-  o << "n-coeff-divide: " << cstats.n_divide << '\n';
 
   displayMemoryUse(o);
   displaySomeStats(o);

@@ -203,7 +203,6 @@ void BuchbergerAlg::insertReducedPoly(
 void BuchbergerAlg::computeGrobnerBasis() {
   size_t counter = 0;
   mTimer.reset();
-  mRing.resetCoefficientStats();
   
   if (mUseAutoTailReduction)
     autoTailReduce();
@@ -329,13 +328,6 @@ void BuchbergerAlg::printStats(std::ostream& out) const {
   out << " S-pair queue type:  " << mSPairs.name() << '\n';
   out << " total compute time: " << mTimer.getMilliseconds()/1000.0 << " seconds " << '\n';
   out << " S-pair group size:  " << mSPairGroupSize << '\n';
-
-  const PolyRing::coefficientStats& cstats = mRing.getCoefficientStats();
-  out << "n-coeff-add:         " << cstats.n_add << '\n';
-  out << "n-coeff-addmult:     " << cstats.n_addmult << '\n';
-  out << "n-coeff-mult:        " << cstats.n_mult << '\n';
-  out << "n-coeff-recip:       " << cstats.n_recip << '\n';
-  out << "n-coeff-divide:      " << cstats.n_divide << '\n';
 
   mic::ColumnPrinter pr;
   pr.addColumn(true, " ");

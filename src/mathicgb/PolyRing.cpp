@@ -14,8 +14,6 @@
 PolyRing::PolyRing(const Field& field, const Monoid& monoid):
   mField(field),
   mMonoid(monoid),
-  mNumWeights(monoid.gradingCount()),
-  mTopIndex(monoid.varCount() + mNumWeights),
   mMonomialPool(maxMonomialByteSize())
 {
 }
@@ -27,30 +25,8 @@ PolyRing::PolyRing(
 ):
   mField(p0),
   mMonoid(nvars, weights),
-  mNumWeights(nvars == 0 ? 0 : weights.size() / nvars),
-  mTopIndex(nvars + mNumWeights),
   mMonomialPool(maxMonomialByteSize())
 {
-}
-
-PolyRing::PolyRing(coefficient p0,
-                   int nvars,
-                   int nweights):
-  mField(p0),
-  mMonoid(nvars),
-  mNumWeights(nweights),
-  mTopIndex(nvars + nweights),
-  mMonomialPool(maxMonomialByteSize())
-{
-}
-
-void PolyRing::resetCoefficientStats() const
-{
-  mStats.n_addmult = 0;
-  mStats.n_add = 0;
-  mStats.n_mult = 0;
-  mStats.n_recip = 0;
-  mStats.n_divide = 0;
 }
 
 ///////////////////////////////////////
