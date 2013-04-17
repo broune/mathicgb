@@ -32,12 +32,13 @@ MATHICGB_DEFINE_LOG_DOMAIN(
 MATHICGB_DEFINE_LOG_ALIAS(
   "F4Detail",
   "F4MatrixEntries,F4MatrixBottomRows,F4MatrixTopRows,F4MatrixRows,"
-  "F4MatrixBuild,F4MatrixBuild2,F4MatrixReduce,F4"
+  "F4MatrixReduce,F4"
 );
 
 MATHICGB_DEFINE_LOG_ALIAS(
   "F4",
-  "F4MatrixSizes,F4MatrixBuild2,F4SPairDegree,F4MatReduceTop,F4RedBottomRight"
+  "F4MatrixSizes,F4MatrixBuild,F4MatrixBuild2,"
+  "F4SPairDegree,F4MatReduceTop,F4RedBottomRight"
 );
 
 F4Reducer::F4Reducer(const PolyRing& ring, Type type):

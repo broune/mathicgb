@@ -4,6 +4,8 @@
 #include "mathicgb/LogDomain.hpp"
 #include "mathicgb/LogDomainSet.hpp"
 
+MATHICGB_DEFINE_LOG_ALIAS("default", "F4Detail,SPairs");
+
 CommonParams::CommonParams(size_t minDirectParams, size_t maxDirectParams):
   mTracingLevel("tracingLevel",
     "How much information to print out about what the program does. No "
@@ -48,7 +50,7 @@ void CommonParams::pushBackParameters(
 }
 
 void CommonParams::perform() {
-  const std::string logs = mLogs.value().empty() ? "all" : mLogs.value();
+  const std::string logs = mLogs.value().empty() ? "default" : mLogs.value();
   LogDomainSet::singleton().performLogCommands(logs);
   tracingLevel = mTracingLevel.value();
 
