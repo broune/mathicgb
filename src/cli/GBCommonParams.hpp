@@ -11,6 +11,7 @@ public:
   void perform();
 
   mathic::BoolParameter mPreferSparseReducers;
+  mathic::BoolParameter mOutputResult;
   mathic::IntegerParameter mSPairQueue;
   mathic::IntegerParameter mBreakAfter;
   mathic::IntegerParameter mPrintInterval;
