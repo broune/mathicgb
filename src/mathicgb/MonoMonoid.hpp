@@ -145,11 +145,11 @@ public:
     mEntryCount
       (mOrderIndexEnd + StoreHash == 0 ? 1 : mOrderIndexEnd + StoreHash),
     mHashCoefficients(varCount),
-    mGradingIsTotalDegree(
+    mGradingIsTotalDegreeRevLex(
       [&]() {
         MATHICGB_ASSERT(varCount == 0 || gradings.size() % varCount == 0);
-        MATHICGB_ASSERT((varCount == 0) == (gradings.empty()));
-        if (gradings.size() != varCount || varCount == 0)
+        MATHICGB_ASSERT(lexBaseOrder || (varCount == 0) == (gradings.empty()));
+        if (lexBaseOrder || gradings.size() != varCount || varCount == 0)
           return false;
         for (auto it = gradings.begin(); it != gradings.end(); ++it)
           if (*it != 1)
@@ -162,17 +162,19 @@ public:
     mPool(*this)
   {
     MATHICGB_ASSERT(varCount == 0 || gradings.size() % varCount == 0);
-    MATHICGB_ASSERT((varCount == 0) == (gradings.empty()));
-    if (!mGradingIsTotalDegree) {
+    MATHICGB_ASSERT(lexBaseOrder || (varCount == 0) == (gradings.empty()));
+    if (!mGradingIsTotalDegreeRevLex) {
+      mGradings.resize(gradings.size());
       // Take negative values since reverse lex makes bigger values
       // give smaller monomials, but we need bigger degrees to give
       // bigger monomials.
-      mGradings.resize(gradings.size());
       for (VarIndex grading = 0; grading < gradingCount(); ++grading) {
-        const auto myRowStart = grading * varCount;
-        const auto hisRowStart = (gradingCount() - grading - 1) * varCount;
-        for (VarIndex var = 0; var < varCount; ++var)
-          mGradings[myRowStart + var] = -gradings[hisRowStart + var];
+        for (VarIndex var = 0; var < varCount; ++var) {
+          auto w = gradings[gradingsOppositeRowIndex(grading, var)];
+          if (!mLexBaseOrder)
+            w = -w;
+          mGradings[gradingsIndex(grading, var)] = w;
+        }
       }
     }
 
@@ -191,7 +193,7 @@ public:
     mEntryCount
       (mOrderIndexEnd + StoreHash == 0 ? 1 : mOrderIndexEnd + StoreHash),
     mHashCoefficients(mVarCount),
-    mGradingIsTotalDegree(true),
+    mGradingIsTotalDegreeRevLex(true),
     mGradings(),
     mLexBaseOrder(false),
     mPool(*this)
@@ -212,7 +214,7 @@ public:
     mEntryCount
       (mOrderIndexEnd + StoreHash == 0 ? 1 : mOrderIndexEnd + StoreHash),
     mHashCoefficients(monoid.mHashCoefficients),
-    mGradingIsTotalDegree(monoid.mGradingIsTotalDegree),
+    mGradingIsTotalDegreeRevLex(monoid.mGradingIsTotalDegreeRevLex),
     mGradings(monoid.mGradings),
     mLexBaseOrder(monoid.mLexBaseOrder),
     mPool(*this)
@@ -232,7 +234,7 @@ public:
     mEntryCount
       (mOrderIndexEnd + StoreHash == 0 ? 1 : mOrderIndexEnd + StoreHash),
     mHashCoefficients(monoid.mHashCoefficients),
-    mGradingIsTotalDegree(monoid.mGradingIsTotalDegree),
+    mGradingIsTotalDegreeRevLex(monoid.mGradingIsTotalDegreeRevLex),
     mGradings(monoid.mGradings),
     mLexBaseOrder(monoid.mLexBaseOrder),
     mPool(*this)
@@ -543,14 +545,14 @@ public:
     while (grading != 0) {
       --grading;
       const auto cmp = degree(a, grading) - degree(b, grading);
-      if (cmp < 0) return GreaterThan;
-      if (cmp > 0) return LessThan;
+      if (cmp < 0) return mLexBaseOrder ? LessThan : GreaterThan;
+      if (cmp > 0) return mLexBaseOrder ? GreaterThan : LessThan;
     }
 
     for (auto i = exponentsIndexEnd() - 1; i != beforeEntriesIndexBegin(); --i) {
       const auto cmp = access(a, i) - access(b, i);
-      if (cmp < 0) return GreaterThan;
-      if (cmp > 0) return LessThan;
+      if (cmp < 0) return mLexBaseOrder ? LessThan : GreaterThan;
+      if (cmp > 0) return mLexBaseOrder ? GreaterThan : LessThan;
     }
     return EqualTo;
   }
@@ -567,14 +569,14 @@ public:
     while (grading != 0) {
       --grading;
       const auto cmp = degree(a, grading) - (degree(b1, grading) + degree(b2, grading));
-      if (cmp < 0) return GreaterThan;
-      if (cmp > 0) return LessThan;
+      if (cmp < 0) return mLexBaseOrder ? LessThan : GreaterThan;
+      if (cmp > 0) return mLexBaseOrder ? GreaterThan : LessThan;
     }
 
     for (auto i = exponentsIndexEnd() - 1; i != beforeEntriesIndexBegin(); --i) {
       const auto cmp = access(a, i) - (access(b1, i) + access(b2, i));
-      if (cmp < 0) return GreaterThan;
-      if (cmp > 0) return LessThan;
+      if (cmp < 0) return mLexBaseOrder ? LessThan : GreaterThan;
+      if (cmp > 0) return mLexBaseOrder ? GreaterThan : LessThan;
     }
     return EqualTo;
   }
@@ -1329,9 +1331,10 @@ private:
       MATHICGB_ASSERT(entryCount() == mOrderIndexEnd + StoreHash);
     }
 
-    MATHICGB_ASSERT(varCount() == 0 || gradingCount() >= 1); // todo: if rev lex
+    MATHICGB_ASSERT(mLexBaseOrder || varCount() == 0 || gradingCount() >= 1);
 
-    if (mGradingIsTotalDegree) {
+    if (mGradingIsTotalDegreeRevLex) {
+      MATHICGB_ASSERT(!mLexBaseOrder);
       MATHICGB_ASSERT(mGradings.empty());
       MATHICGB_ASSERT(gradingCount() == 1);
     } else {
@@ -1455,15 +1458,16 @@ private:
       return;
 
     MATHICGB_ASSERT(var < varCount());
-    if (mGradingIsTotalDegree) {
+    if (mGradingIsTotalDegreeRevLex) {
+      MATHICGB_ASSERT(!mLexBaseOrder);
       MATHICGB_ASSERT(gradingCount() == 1);
-      rawPtr(mono)[orderIndexBegin()] += oldExponent - newExponent;
+      rawPtr(mono)[orderIndexBegin()] -= newExponent - oldExponent;
     } else {
       MATHICGB_ASSERT(mGradings.size() == gradingCount() * varCount());
       const auto degrees = ptr(mono, orderIndexBegin());
       for (VarIndex grading = 0; grading < gradingCount(); ++grading) {
-        const auto index = grading * varCount() + var;
-        degrees[grading] -= mGradings[index] * (oldExponent - newExponent);
+        const auto index = gradingsIndex(grading, var);
+        degrees[grading] += mGradings[index] * ( newExponent - oldExponent);
       }
     }
     MATHICGB_ASSERT(debugOrderValid(mono));
@@ -1473,14 +1477,14 @@ private:
     MATHICGB_ASSERT(grading < gradingCount());
 
     Exponent degree = 0;
-    if (mGradingIsTotalDegree) {
+    if (mGradingIsTotalDegreeRevLex) {
       MATHICGB_ASSERT(grading == 0);
       for (auto var = 0; var < varCount(); ++var)
         degree -= exponent(mono, var);
     } else {
       MATHICGB_ASSERT(mGradings.size() == gradingCount() * varCount());
       for (auto var = 0; var < varCount(); ++var) {
-        const auto index = grading * varCount() + var;
+        const auto index = gradingsIndex(grading, var);
         degree += exponent(mono, var) * mGradings[index];
       }
     }
@@ -1597,14 +1601,15 @@ private:
 
   /// This is initialized before mGradings, so it has to be ordered
   /// above mGradings. 
-  const bool mGradingIsTotalDegree;
+  const bool mGradingIsTotalDegreeRevLex;
 
   /// Defines a matrix where each row is a grading. The degree of a
   /// monomial with respect to grading g is the dot product of the
   /// exponent vector of that monomial with row g of the matrix
   /// (starting at g=0). The matrix is stored in row-major order. If
-  /// mGradingsIsTotalDegree is true then mGradings is empty but
-  /// implicitly it is a single grading consisting of all 1s.
+  /// mGradingIsTotalDegreeRevLex is true then mGradings is empty but
+  /// implicitly it is a single grading consisting of all 1s and the
+  /// base order is revlex.
   std::vector<Exponent> mGradings;
 
   /// If true then lex is used to break ties. Otherwise, revlex is
@@ -1674,7 +1679,8 @@ void MonoMonoid<E, HC, SH, SO>::printMonoid(std::ostream& out) const {
   out << varCount() << '\n'
       << (mLexBaseOrder ? "lex" : "revlex")
       << ' ' << gradingCount() << '\n';
-  if (mGradingIsTotalDegree) {
+  if (mGradingIsTotalDegreeRevLex) {
+    MATHICGB_ASSERT(!mLexBaseOrder);
     MATHICGB_ASSERT(mGradings.empty());
     for (VarIndex var = 0; var < varCount(); ++var)
       out << " 1";
@@ -1683,8 +1689,10 @@ void MonoMonoid<E, HC, SH, SO>::printMonoid(std::ostream& out) const {
     MATHICGB_ASSERT(mGradings.size() == gradingCount() * varCount());
     for (VarIndex grading = 0; grading < gradingCount(); ++grading) {
       for (VarIndex var = 0; var < varCount(); ++var) {
-        const auto w = mGradings[gradingsOppositeRowIndex(grading, var)];
-        out << ' ' << static_cast<UncharredExponent>(-w);
+        auto w = mGradings[gradingsOppositeRowIndex(grading, var)];
+        if (!mLexBaseOrder)
+          w = -w;
+        out << ' ' << static_cast<UncharredExponent>(w);
       }
       out << '\n';
     }

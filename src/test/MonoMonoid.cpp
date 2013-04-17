@@ -604,6 +604,7 @@ TYPED_TEST(Monoid, Order) {
     for (size_t var = 0; var < 52; ++var)
       revLexGradings.push_back(var == grading ? -1 : 0);
   check(Monoid(52, false, revLexGradings), sortedTotalDegreeRevLex);
+  check(Monoid(52, true, revLexGradings), sortedTotalDegreeRevLex);
 
   std::vector<Exponent> dupGradings = {
      5, 2, 3,
@@ -633,6 +634,8 @@ TYPED_TEST(Monoid, Order) {
   const auto sortedLex =
     "1 a a2 a3 b ab a2b b2 ab2 b3 c ac bc abc c2 ac2 bc2 c3";
   check(Monoid(3, false, lexGradings), sortedLex);
+  check(Monoid(3, true, lexGradings), sortedLex);
+  check(Monoid(3, true, std::vector<Exponent>()), sortedLex);
 }
 
 TYPED_TEST(Monoid, RelativelyPrime) {
