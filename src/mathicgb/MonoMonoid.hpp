@@ -805,6 +805,7 @@ public:
     }
     setOrderData(out);
     setHash(out);
+    MATHICGB_ASSERT(debugValid(out));
   }
 
   /// Returns the number of variables that divide mono.
@@ -1399,6 +1400,20 @@ private:
   }
 
   // *** Implementation of monomial ordering
+  size_t gradingsIndex(VarIndex grading, VarIndex var) const {
+    MATHICGB_ASSERT(grading < gradingCount());
+    MATHICGB_ASSERT(var < varCount());
+    const auto index = grading * static_cast<size_t>(varCount()) + var;
+    MATHICGB_ASSERT(index < mGradings.size());
+    return index;
+  }
+
+  size_t gradingsOppositeRowIndex(VarIndex grading, VarIndex var) const {
+    MATHICGB_ASSERT(grading < gradingCount());
+    MATHICGB_ASSERT(var < varCount());
+    return gradingsIndex(gradingCount() - 1 - grading, var);
+  }
+
   bool debugOrderValid(ConstMonoRef mono) const {
 #ifdef MATHICGB_DEBUG
     if (!StoreOrder)
@@ -1624,6 +1639,9 @@ auto MonoMonoid<E, HC, SH, SO>::readMonoid(std::istream& in) -> MonoMonoid {
 
 template<class E, bool HC, bool SH, bool SO>
 void MonoMonoid<E, HC, SH, SO>::printMonoid(std::ostream& out) const {
+  using MonoMonoidHelper::unchar;
+  typedef typename unchar<Exponent>::type UncharredExponent;
+
   out << varCount() << ' ' << gradingCount() << '\n';
   if (mGradingIsTotalDegree) {
     MATHICGB_ASSERT(mGradings.empty());
@@ -1633,10 +1651,9 @@ void MonoMonoid<E, HC, SH, SO>::printMonoid(std::ostream& out) const {
   } else {
     MATHICGB_ASSERT(mGradings.size() == gradingCount() * varCount());
     for (VarIndex grading = 0; grading < gradingCount(); ++grading) {
-      const auto offset = static_cast<size_t>(grading) * varCount();
       for (VarIndex var = 0; var < varCount(); ++var) {
-        MATHICGB_ASSERT(offset + var < mGradings.size());
-        out << ' ' << mGradings[offset + var];
+        const auto w = mGradings[gradingsOppositeRowIndex(grading, var)];
+        out << ' ' << static_cast<UncharredExponent>(-w);
       }
       out << '\n';
     }

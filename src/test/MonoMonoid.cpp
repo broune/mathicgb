@@ -191,6 +191,29 @@ TYPED_TEST(Monoid, MonoVector) {
   ASSERT_TRUE(v.empty());
 }
 
+TYPED_TEST(Monoid, ReadWriteMonoid) {
+  typedef TypeParam Monoid;
+  typedef typename Monoid::VarIndex VarIndex;
+
+  const auto check =
+    [](const char* str, VarIndex varCount, VarIndex gradingCount) -> void
+  {
+    std::istringstream in(str);
+    const auto m = Monoid::readMonoid(in);
+    ASSERT_EQ(varCount, m.varCount());
+    ASSERT_EQ(gradingCount, m.gradingCount());
+
+    std::ostringstream out;
+    m.printMonoid(out);
+    ASSERT_EQ(str, out.str());
+  };
+  check("0 0\n", 0, 0);
+  check("1 1\n 2\n", 1, 1);
+  check("1 2\n 3\n 4\n", 1, 2);
+  check("2 2\n 3 4\n 5 6\n", 2, 2);
+  check("4 1\n 1 1 1 1\n", 4, 1);
+}
+
 TYPED_TEST(Monoid, MonoPool) {
   typedef TypeParam Monoid;
   typedef typename Monoid::VarIndex VarIndex;
