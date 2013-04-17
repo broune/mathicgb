@@ -18,9 +18,10 @@ PolyRing::PolyRing(const Field& field, const Monoid& monoid):
 PolyRing::PolyRing(
   coefficient p0,
   int nvars,
+  bool lexBaseOrder,
   const std::vector<exponent>& weights
 ):
-  mField(p0), mMonoid(nvars, weights)
+  mField(p0), mMonoid(nvars, lexBaseOrder, weights)
 {}
 
 ///////////////////////////////////////

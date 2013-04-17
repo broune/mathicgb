@@ -480,6 +480,8 @@ namespace mgb {
       ring(
         conf.modulus(),
         static_cast<int>(conf.varCount()),
+        conf.monomialOrder().first ==
+          GroebnerConfiguration::LexicographicBaseOrder,
         conf.monomialOrder().second
       ),
       ideal(ring),
