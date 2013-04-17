@@ -205,7 +205,7 @@ public:
     mOrderIndexEnd(mOrderIndexBegin + StoreOrder * mGradingCount),
     mEntryCount
       (mOrderIndexEnd + StoreHash == 0 ? 1 : mOrderIndexEnd + StoreHash),
-    mHashCoefficients(mVarCount),
+    mHashCoefficients(monoid.mHashCoefficients),
     mGradingIsTotalDegree(monoid.mGradingIsTotalDegree),
     mGradings(monoid.mGradings),
     mPool(*this)
@@ -224,7 +224,7 @@ public:
     mOrderIndexEnd(mOrderIndexBegin + StoreOrder * mGradingCount),
     mEntryCount
       (mOrderIndexEnd + StoreHash == 0 ? 1 : mOrderIndexEnd + StoreHash),
-    mHashCoefficients(mVarCount),
+    mHashCoefficients(monoid.mHashCoefficients),
     mGradingIsTotalDegree(monoid.mGradingIsTotalDegree),
     mGradings(monoid.mGradings),
     mPool(*this)
