@@ -540,17 +540,28 @@ public:
     MATHICGB_ASSERT(debugOrderValid(a));
     MATHICGB_ASSERT(debugOrderValid(b));
 
-    // todo: fold this into the lower loop if StoreOrder is true.
-    auto grading = gradingCount();
-    while (grading != 0) {
-      --grading;
-      const auto cmp = degree(a, grading) - degree(b, grading);
-      if (cmp < 0) return mLexBaseOrder ? LessThan : GreaterThan;
-      if (cmp > 0) return mLexBaseOrder ? GreaterThan : LessThan;
+    VarIndex index;
+    
+    if (StoreOrder)
+      index = orderIndexEnd();
+    else {
+      // Check the degrees seperately since they are not stored.
+      auto grading = gradingCount();
+      while (grading != 0) {
+        --grading;
+        const auto cmp = degree(a, grading) - degree(b, grading);
+        if (cmp < 0) return mLexBaseOrder ? LessThan : GreaterThan;
+        if (cmp > 0) return mLexBaseOrder ? GreaterThan : LessThan;
+      }
+      index = exponentsIndexEnd();
     }
 
-    for (auto i = exponentsIndexEnd() - 1; i != beforeEntriesIndexBegin(); --i) {
-      const auto cmp = access(a, i) - access(b, i);
+    // If StoreOrder is true then this first checks the degrees.
+    // Then the exponents are checked.
+    // Finally, if HasComponent is true, the component is checked.
+    while (index != entriesIndexBegin()) {
+      --index;
+      const auto cmp = access(a, index) - access(b, index);
       if (cmp < 0) return mLexBaseOrder ? LessThan : GreaterThan;
       if (cmp > 0) return mLexBaseOrder ? GreaterThan : LessThan;
     }
@@ -558,23 +569,37 @@ public:
   }
 
   /// Compares a to b1*b2.
-  /// @todo: test. Also, is this method necessary and useful?
+  /// @todo: Test this method. Also, is this method actually useful, or could
+  /// it just as well be replaced by a multiplication and a comparison?
   CompareResult compare(ConstMonoRef a, ConstMonoRef b1, ConstMonoRef b2) const {
     MATHICGB_ASSERT(debugOrderValid(a));
     MATHICGB_ASSERT(debugOrderValid(b1));
     MATHICGB_ASSERT(debugOrderValid(b2));
 
-    // todo: fold this into the lower loop if StoreOrder is true.
-    auto grading = gradingCount();
-    while (grading != 0) {
-      --grading;
-      const auto cmp = degree(a, grading) - (degree(b1, grading) + degree(b2, grading));
-      if (cmp < 0) return mLexBaseOrder ? LessThan : GreaterThan;
-      if (cmp > 0) return mLexBaseOrder ? GreaterThan : LessThan;
+    VarIndex index;
+
+    if (StoreOrder)
+      index = orderIndexEnd();
+    else {
+      // Check the degrees seperately since they are not stored.
+      auto grading = gradingCount();
+      while (grading != 0) {
+        --grading;
+        const auto cmp =
+          degree(a, grading) - (degree(b1, grading) + degree(b2, grading));
+        if (cmp < 0) return mLexBaseOrder ? LessThan : GreaterThan;
+        if (cmp > 0) return mLexBaseOrder ? GreaterThan : LessThan;
+      }
+      index = exponentsIndexEnd();
     }
 
-    for (auto i = exponentsIndexEnd() - 1; i != beforeEntriesIndexBegin(); --i) {
-      const auto cmp = access(a, i) - (access(b1, i) + access(b2, i));
+    // If StoreOrder is true then this first checks the degrees.
+    // Then the exponents are checked.
+    // Finally, if HasComponent is true, the component is checked.
+    while (index != entriesIndexBegin()) {
+      --index;
+      const auto cmp =
+        access(a, index) - (access(b1, index) + access(b2, index));
       if (cmp < 0) return mLexBaseOrder ? LessThan : GreaterThan;
       if (cmp > 0) return mLexBaseOrder ? GreaterThan : LessThan;
     }
