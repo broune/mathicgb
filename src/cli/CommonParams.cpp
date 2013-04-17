@@ -12,8 +12,9 @@ CommonParams::CommonParams(size_t minDirectParams, size_t maxDirectParams):
     0),
 
   mThreadCount("threadCount",
-    "Specifies how many threads to use at a time.",
-    1),
+    "Specifies how many threads to use at a time. A value of 0 indicates that "
+    "the program should choose the optimal number of threads.",
+    0),
 
   mLogs("log",
     "Enable the specified log. Do \"help logs\" to see all available logs and "
