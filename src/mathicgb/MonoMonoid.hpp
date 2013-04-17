@@ -133,7 +133,11 @@ public:
 
   // *** Constructors and accessors
 
-  MonoMonoid(VarIndex varCount, const std::vector<Exponent>& gradings):
+  MonoMonoid(
+    const VarIndex varCount,
+    const bool lexBaseOrder,
+    const std::vector<Exponent>& gradings
+  ):
     mVarCount(varCount),
     mGradingCount(varCount == 0 ? 0 : gradings.size() / varCount),
     mOrderIndexBegin(HasComponent + varCount),
@@ -154,6 +158,7 @@ public:
       }()
     ),
     mGradings(),
+    mLexBaseOrder(lexBaseOrder),
     mPool(*this)
   {
     MATHICGB_ASSERT(varCount == 0 || gradings.size() % varCount == 0);
@@ -188,6 +193,7 @@ public:
     mHashCoefficients(mVarCount),
     mGradingIsTotalDegree(true),
     mGradings(),
+    mLexBaseOrder(false),
     mPool(*this)
   {
     std::srand(0); // To use the same hash coefficients every time.
@@ -208,6 +214,7 @@ public:
     mHashCoefficients(monoid.mHashCoefficients),
     mGradingIsTotalDegree(monoid.mGradingIsTotalDegree),
     mGradings(monoid.mGradings),
+    mLexBaseOrder(monoid.mLexBaseOrder),
     mPool(*this)
   {
     MATHICGB_ASSERT(debugAssertValid());
@@ -227,6 +234,7 @@ public:
     mHashCoefficients(monoid.mHashCoefficients),
     mGradingIsTotalDegree(monoid.mGradingIsTotalDegree),
     mGradings(monoid.mGradings),
+    mLexBaseOrder(monoid.mLexBaseOrder),
     mPool(*this)
   {
     MATHICGB_ASSERT(debugAssertValid());
@@ -1599,6 +1607,11 @@ private:
   /// implicitly it is a single grading consisting of all 1s.
   std::vector<Exponent> mGradings;
 
+  /// If true then lex is used to break ties. Otherwise, revlex is
+  /// used. This applies as well to degrees, which implies that
+  /// degrees have to be stored negated if doing revlex.
+  const bool mLexBaseOrder;
+
   mutable MonoPool mPool;
 };
 
@@ -1624,6 +1637,22 @@ auto MonoMonoid<E, HC, SH, SO>::readMonoid(std::istream& in) -> MonoMonoid {
   VarIndex varCount;
   in >> varCount;
 
+  bool lexBaseOrder = false;
+  std::string str;
+  char c;
+  in >> c;
+  in.unget();
+  if (!std::isdigit(c)) {
+    std::string str;
+    in >> str;
+    if (str == "revlex")
+      lexBaseOrder = false;
+    else if (str == "lex")
+      lexBaseOrder = true;
+    else
+      mathic::reportError("Expected lex or revlex but read \"" + str + "\".");
+  }
+
   VarIndex gradingCount;
   in >> gradingCount;
 
@@ -1634,7 +1663,7 @@ auto MonoMonoid<E, HC, SH, SO>::readMonoid(std::istream& in) -> MonoMonoid {
     in >> e;
     gradings[w] = static_cast<Exponent>(e);
   }
-  return MonoMonoid(varCount, gradings);
+  return MonoMonoid(varCount, lexBaseOrder, gradings);
 }
 
 template<class E, bool HC, bool SH, bool SO>
@@ -1642,7 +1671,9 @@ void MonoMonoid<E, HC, SH, SO>::printMonoid(std::ostream& out) const {
   using MonoMonoidHelper::unchar;
   typedef typename unchar<Exponent>::type UncharredExponent;
 
-  out << varCount() << ' ' << gradingCount() << '\n';
+  out << varCount() << '\n'
+      << (mLexBaseOrder ? "lex" : "revlex")
+      << ' ' << gradingCount() << '\n';
   if (mGradingIsTotalDegree) {
     MATHICGB_ASSERT(mGradings.empty());
     for (VarIndex var = 0; var < varCount(); ++var)

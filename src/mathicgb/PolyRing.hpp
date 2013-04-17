@@ -200,7 +200,12 @@ public:
   typedef MonoMonoid<exponent> Monoid;
   typedef PrimeField<unsigned long> Field;
 
-  PolyRing(coefficient charac, int nvars, const std::vector<exponent>& weights);
+  PolyRing(
+    coefficient charac,
+    int nvars,
+    bool lexBaseOrder,
+    const std::vector<exponent>& weights
+  );
   PolyRing(const Field& field, const Monoid& monoid);
 
   size_t getMemoryUse() const {
