@@ -13,6 +13,12 @@ GBCommonParams::GBCommonParams():
     "If this option is false, the oldest reducer is always used.",
     true),
 
+  mOutputResult("outputResult",
+    "If true, output the resulting Groebner or signature basis "
+    "to the file <projectName>.gb and in the signature basis "
+    "case, the signatures of the syzygies are placed in <projectName>.syz",
+    false),
+
   mSPairQueue("spairQueue",
     "The priority queue used to order S-pairs.\n"
     "  0   tournament tree in front of triangle\n"
@@ -69,6 +75,7 @@ void GBCommonParams::pushBackParameters(
   std::vector<mathic::CliParameter*>& parameters
 ) {
   parameters.push_back(&mPreferSparseReducers);
+  parameters.push_back(&mOutputResult);
   parameters.push_back(&mSPairQueue);
   parameters.push_back(&mBreakAfter);
   parameters.push_back(&mPrintInterval);

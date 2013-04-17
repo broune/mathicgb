@@ -82,20 +82,23 @@ void SigGBAction::performAction() {
     alg.displayPaperStats(statsOut);
   }
 
-  // print basis
-  {
-    std::ofstream ogb((mParams.inputFileNameStem(0) + ".gb").c_str());
-    ogb << "-- gb: ----\n";
-    alg.getGB()->display(ogb);
-  }
-
-  // print syzygy basis
-  {
-    std::ofstream syzygyOut((mParams.inputFileNameStem(0) + ".syz").c_str());
-    syzygyOut << "-- syz: ----\n";
-    alg.getSyzTable()->display(syzygyOut, 1);
-    syzygyOut << std::endl;
-  }
+  if (mGBParams.mOutputResult.value())
+    {
+      // print basis
+      {
+        std::ofstream ogb((mParams.inputFileNameStem(0) + ".gb").c_str());
+        ogb << "-- gb: ----\n";
+        alg.getGB()->display(ogb);
+      }
+      
+      // print syzygy basis
+      {
+        std::ofstream syzygyOut((mParams.inputFileNameStem(0) + ".syz").c_str());
+        syzygyOut << "-- syz: ----\n";
+        alg.getSyzTable()->display(syzygyOut, 1);
+        syzygyOut << std::endl;
+      }
+    }
 }
 
 const char* SigGBAction::staticName() {
