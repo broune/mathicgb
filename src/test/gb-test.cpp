@@ -307,7 +307,7 @@ spairQueue	reducerType	divLookup	monTable	buchberger	postponeKoszul	useBaseDivis
         << reducerType << ' ' << divLookup << ' '
         << monTable << ' ' << postponeKoszul << ' ' << useBaseDivisors;
     } else {
-      if (freeModuleOrder == 2)
+      if (freeModuleOrder == 2 || freeModuleOrder == 4)
         I->reverse();
      SignatureGB basis
         (*I, freeModuleOrder, Reducer::reducerType(reducerType),

@@ -85,10 +85,10 @@ TEST(FreeModuleOrder, One) {
     "ac<1>\n"
     "bc<1>\n"
     "ab2c<2>\n";
-  
+
   runTest(ideal, sigs, "0 1 6 4 5 3 7 2", 1);
   //runTest(ideal, sigs, "0 6 5 1 4 3 7 2", 2); 
   runTest(ideal, sigs, "0 6 5 1 7 4 3 2", 3); 
-  runTest(ideal, sigs, "0 6 5 1 4 3 7 2", 4); 
-//  runTest(ideal, sigs, "0 6 5 1 4 7 3 2", 5); 
+  //runTest(ideal, sigs, "0 6 5 1 4 3 7 2", 4); 
+  //runTest(ideal, sigs, "0 6 5 1 4 7 3 2", 5); 
 }

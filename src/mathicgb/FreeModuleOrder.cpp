@@ -689,10 +689,10 @@ void FreeModuleOrder::displayOrderTypes(std::ostream &o)
 {
   o << "FreeModule orders:" << std::endl;
   o << "  1   GrevLex IndexDown" << std::endl;
-  o << "  2   DegreeUp IndexUp GrevLex" << std::endl;
+  o << "  2   DegreeUp IndexUp GrevLex" << std::endl; // done
   o << "  3   DegreeUp IndexDown GrevLex" << std::endl;
-  o << "  4   SchreyerGrevLexUp" << std::endl;
-  o << "  5   SchreyerGrevLexDown" << std::endl;
+  o << "  4   SchreyerGrevLexUp" << std::endl; // done
+  o << "  5   SchreyerGrevLexDown" << std::endl; // done
   o << "  6   IndexUp SchreyerGrevLex" << std::endl;
   o << "  7   IndexDown SchreyerGrevLex" << std::endl;
 }
@@ -703,6 +703,8 @@ std::unique_ptr<FreeModuleOrder> FreeModuleOrder::makeOrder(FreeModuleOrderType 
     type = 1;  // Set the default
 
   switch (type) {
+  case 4:
+    //return make_unique<ConcreteOrder<OrderD>>(OrderD(I, true));
   case 5:
     //return make_unique<ConcreteOrder<OrderD>>(OrderD(I, false));
   case 1:
@@ -712,8 +714,6 @@ std::unique_ptr<FreeModuleOrder> FreeModuleOrder::makeOrder(FreeModuleOrderType 
     //return make_unique<ConcreteOrder<OrderB>>(OrderB(I));
   case 3:
    return make_unique<ConcreteOrder<OrderC>>(OrderC(I));
-  case 4:
-    return make_unique<ConcreteOrder<OrderD>>(OrderD(I, true));
   case 6:
     return make_unique<ConcreteOrder<OrderE>>(OrderE(I, true));
   case 7:

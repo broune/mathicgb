@@ -43,12 +43,15 @@ SignatureGB::SignatureGB(
   Hsyz2(MonomialTableArray::make(R, montable_type, ideal.size(), !mPostponeKoszul)),
   reducer(Reducer::makeReducer(reductiontyp, *R)),
   SP(make_unique<SigSPairs>(R, F.get(), GB.get(), Hsyz.get(), reducer.get(), mPostponeKoszul, mUseBaseDivisors, useSingularCriterionEarly, queueType)),
-  mReverseComponents(typ == 2),
+  mReverseComponents(typ == 2 || typ == 4),
   mComponentCount(ideal.size())
 {
   // Populate GB
   for (size_t j = 0; j < ideal.size(); j++)
     GB->addComponent();
+
+  if (typ == 5 || typ == 4)
+    mSchreyerTerms.resize(ideal.size());
 
   for (size_t j = 0; j < ideal.size(); j++) {
     int i = !mReverseComponents ? j : ideal.size() - 1 - j;
@@ -60,10 +63,10 @@ SignatureGB::SignatureGB(
     monomial sig = 0;
     sig = R->allocMonomial();
     R->monomialEi(i, sig);
-    if (typ == 5) {
+    if (typ == 5 || typ == 4) {
       auto lead = R->allocMonomial();
       R->monomialCopy(g->getLeadMonomial(), lead);
-      mSchreyerTerms.push_back(lead);
+      mSchreyerTerms[i] = lead;
       R->monomialMult(sig, g->getLeadMonomial(), sig);
     }
     {
@@ -141,8 +144,9 @@ void SignatureGB::computeGrobnerBasis()
       auto sig = R->allocMonomial();
       R->monomialCopy(v[i], sig);
       auto c = R->monomialGetComponent(sig);
+      MATHICGB_ASSERT(c < mComponentCount);
       if (!mSchreyerTerms.empty()) {
-        MATHICGB_ASSERT(c < mSchreyerTerms.size());
+        MATHICGB_ASSERT(mComponentCount == mSchreyerTerms.size());
         R->monomialDivide(sig, mSchreyerTerms[c], sig);
       }
       if (mReverseComponents)

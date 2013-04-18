@@ -57,7 +57,7 @@ void SigGBAction::performAction() {
     ideal = Ideal::parse(inputFile);
   }
   std::unique_ptr<PolyRing const> ring(&(ideal->ring()));
-  if (mModuleOrder.value() == 2)
+  if (mModuleOrder.value() == 2 || mModuleOrder.value() == 4)
     ideal->reverse();
 
   SignatureGB alg(
