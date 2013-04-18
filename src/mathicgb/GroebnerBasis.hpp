@@ -102,6 +102,10 @@ public:
   // and returns LT, EQ or GT.
   inline int ratioCompare(size_t a, size_t b) const;
 
+  /// Divides all signatures ae_i by leads[i]. This currently breaks
+  /// all sorts of internal invariants - it's a temporary hack.
+  void unschreyer(const std::vector<Monomial>& leads);
+
   class StoredRatioCmp {
   public:
     // Stores the ratio numerator/denominator and prepares it for comparing
@@ -181,7 +185,7 @@ private:
 
   std::vector<DivisorLookup*> mSignatureLookup;
 
-  // contains those lead terms that are minimal
+  // Contains those lead terms that are minimal.
   std::unique_ptr<DivisorLookup> const mMinimalDivisorLookup;
 
   PolyBasis mBasis;

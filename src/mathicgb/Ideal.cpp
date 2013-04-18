@@ -37,6 +37,10 @@ namespace {
   };
 }
 
+void Ideal::reverse() {
+  std::reverse(mGenerators.begin(), mGenerators.end());
+}
+
 void Ideal::sort(FreeModuleOrder& order) {
   IdealSort cmp(order);
   std::sort(mGenerators.begin(), mGenerators.end(), cmp);

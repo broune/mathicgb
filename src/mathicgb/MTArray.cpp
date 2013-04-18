@@ -43,6 +43,8 @@ public:
 
   void display(std::ostream &o, int level) const;
 
+  void getMonomials(std::vector<const_monomial>& monomials) const;
+  
   virtual void printFrobbyM2Format
     (std::ostream& out, size_t component) const;
 
@@ -106,6 +108,12 @@ void MTArrayT<MT>::getStats(Stats &stats) const
 template <typename MT>
 void MTArrayT<MT>::displayStats(std::ostream & /* o */) const
 {
+}
+
+template <typename MT>
+void MTArrayT<MT>::getMonomials(std::vector<const_monomial>& monomials) const {
+  for (size_t i = 0; i < tables.size(); ++i)
+    tables[i]->getMonomials(monomials);  
 }
 
 template <typename MT>

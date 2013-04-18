@@ -65,6 +65,8 @@ public:
 
   virtual void displayStats(std::ostream &o) const = 0;
 
+  virtual void getMonomials(std::vector<const_monomial>& monomials) const = 0;
+
   virtual size_t n_elems() const = 0;
 
   void dump(int level=0) const

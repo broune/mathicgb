@@ -407,6 +407,15 @@ void GroebnerBasis::dump() const
   display(std::cerr);
 }
 
+void GroebnerBasis::unschreyer(const std::vector<Monomial>& leads) {
+  for (size_t i = 0; i < mSignatures.size(); ++i) {
+    auto sig = mSignatures[i];
+    auto c = ring().monomialGetComponent(sig);
+    MATHICGB_ASSERT(c < leads.size());
+    ring().monomialDivide(sig, leads[c], sig);
+  }
+}
+
 size_t GroebnerBasis::getMemoryUse() const
 {
   // Note: we do not count the signatures as they are counted elsewhere.

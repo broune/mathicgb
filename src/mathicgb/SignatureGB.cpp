@@ -12,6 +12,69 @@
 
 int tracingLevel = 0;
 
+SignatureGB::SignatureGB(
+  const Ideal& ideal,
+  FreeModuleOrderType typ,
+  Reducer::ReducerType reductiontyp,
+  int divlookup_type,
+  int montable_type,
+  bool postponeKoszul,
+  bool useBaseDivisors,
+  bool preferSparseReducers,
+  bool useSingularCriterionEarly,
+  size_t queueType
+):
+  mBreakAfter(0),
+  mPrintInterval(0),
+  R(ideal.getPolyRing()),
+  F(FreeModuleOrder::makeOrder(typ, &ideal)),
+  mPostponeKoszul(postponeKoszul),
+  mUseBaseDivisors(useBaseDivisors),
+  stats_sPairSignaturesDone(0),
+  stats_sPairsDone(0),
+  stats_koszulEliminated(0),
+  stats_SignatureCriterionLate(0),
+  stats_relativelyPrimeEliminated(0),
+  stats_pairsReduced(0),
+  stats_nsecs(0.0),
+  GB(make_unique<GroebnerBasis>(R, F.get(), divlookup_type, montable_type, preferSparseReducers)),
+  mKoszuls(make_unique<KoszulQueue>(F.get(), *R)),
+  Hsyz(MonomialTableArray::make(R, montable_type, ideal.size(), !mPostponeKoszul)),
+  Hsyz2(MonomialTableArray::make(R, montable_type, ideal.size(), !mPostponeKoszul)),
+  reducer(Reducer::makeReducer(reductiontyp, *R)),
+  SP(make_unique<SigSPairs>(R, F.get(), GB.get(), Hsyz.get(), reducer.get(), mPostponeKoszul, mUseBaseDivisors, useSingularCriterionEarly, queueType))
+{
+  // Populate GB
+  for (size_t i = 0; i < ideal.size(); i++) {
+    Poly *g = new Poly(*R);
+    ideal.getPoly(i)->copy(*g);
+    g->makeMonic();
+
+    monomial sig = 0;
+    sig = R->allocMonomial();
+    GB->addComponent();
+    R->monomialEi(i, sig);
+    if (typ == 5) {
+      auto lead = R->allocMonomial();
+      R->monomialCopy(g->getLeadMonomial(), lead);
+      mSchreyerTerms.push_back(lead);
+      R->monomialMult(sig, g->getLeadMonomial(), sig);
+    }
+    {
+      std::unique_ptr<Poly> autoG(g);
+      GB->insert(sig, std::move(autoG));
+    }
+  }
+
+  // Populate SP
+  for (size_t i = 0; i < ideal.size(); i++)
+    SP->newPairs(i);
+
+  if (tracingLevel >= 2) {
+    Hsyz->dump();
+  }
+}
+
 void SignatureGB::computeGrobnerBasis()
 {
   size_t counter = 0;
@@ -60,65 +123,20 @@ void SignatureGB::computeGrobnerBasis()
   //  displayMemoryUse(std::cout);
   stats_nsecs = mTimer.getMilliseconds() / 1000.0;
   //GB->displayBrief(out);
-}
 
-SignatureGB::SignatureGB(
-  const Ideal& ideal,
-  FreeModuleOrderType typ,
-  Reducer::ReducerType reductiontyp,
-  int divlookup_type,
-  int montable_type,
-  bool postponeKoszul,
-  bool useBaseDivisors,
-  bool preferSparseReducers,
-  bool useSingularCriterionEarly,
-  size_t queueType
-):
-  mBreakAfter(0),
-  mPrintInterval(0),
-  R(ideal.getPolyRing()),
-  F(FreeModuleOrder::makeOrder(typ, &ideal)),
-  mPostponeKoszul(postponeKoszul),
-  mUseBaseDivisors(useBaseDivisors),
-  stats_sPairSignaturesDone(0),
-  stats_sPairsDone(0),
-  stats_koszulEliminated(0),
-  stats_SignatureCriterionLate(0),
-  stats_relativelyPrimeEliminated(0),
-  stats_pairsReduced(0),
-  stats_nsecs(0.0),
-  GB(make_unique<GroebnerBasis>(R, F.get(), divlookup_type, montable_type, preferSparseReducers)),
-  mKoszuls(make_unique<KoszulQueue>(F.get(), *R)),
-  Hsyz(MonomialTableArray::make(R, montable_type, ideal.size(), !mPostponeKoszul)),
-  reducer(Reducer::makeReducer(reductiontyp, *R)),
-  SP(make_unique<SigSPairs>(R, F.get(), GB.get(), Hsyz.get(), reducer.get(), mPostponeKoszul, mUseBaseDivisors, useSingularCriterionEarly, queueType))
-{
-  // Populate GB
-  for (size_t i = 0; i < ideal.size(); i++) {
-    Poly *g = new Poly(*R);
-    ideal.getPoly(i)->copy(*g);
-    g->makeMonic();
-
-    monomial sig = 0;
-    sig = R->allocMonomial();
-    R->monomialEi(i, sig);
-    GB->addComponent();
-    {
-      std::unique_ptr<Poly> autoG(g);
-      GB->insert(sig, std::move(autoG));
+  if (!mSchreyerTerms.empty()) {
+    GB->unschreyer(mSchreyerTerms);
+    std::vector<const_monomial> v;
+    Hsyz->getMonomials(v);
+    for (size_t i = 0; i < v.size(); ++i) {
+      auto sig = R->allocMonomial();
+      auto c = R->monomialGetComponent(v[i]);
+      MATHICGB_ASSERT(c < mSchreyerTerms.size());
+      R->monomialDivide(v[i], mSchreyerTerms[c], sig);
+      Hsyz2->insert(sig, 0);
     }
   }
-
-  // Populate SP
-  for (size_t i = 0; i < ideal.size(); i++)
-    SP->newPairs(i);
-
-  if (tracingLevel >= 2) {
-    Hsyz->dump();
-  }
 }
-
-SignatureGB::~SignatureGB() {}
 
 bool SignatureGB::processSPair
   (monomial sig, const SigSPairs::PairContainer& pairs)

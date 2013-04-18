@@ -36,6 +36,7 @@ public:
   bool empty() const {return mGenerators.empty();}
   void reserve(size_t size) {mGenerators.reserve(size);}
 
+  void reverse();
   void sort(FreeModuleOrder& order);
 
 private:

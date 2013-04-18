@@ -33,7 +33,6 @@ public:
     bool preferSparseReducers,
     bool useSingularCriterionEarly,
     size_t queueType);
-  ~SignatureGB();
 
   void computeGrobnerBasis();
 
@@ -44,7 +43,7 @@ public:
   unsigned long long getSingularReductionCount() const;
 
   GroebnerBasis* getGB() { return GB.get(); }
-  MonomialTableArray* getSyzTable() { return Hsyz.get(); }
+  MonomialTableArray* getSyzTable() { return mSchreyerTerms.empty() ? Hsyz.get() : Hsyz2.get(); }
   SigSPairs* getSigSPairs() { return SP.get(); }
 
   size_t getMemoryUse() const;
@@ -101,8 +100,10 @@ private:
   std::unique_ptr<GroebnerBasis> GB;
   std::unique_ptr<KoszulQueue> mKoszuls;
   std::unique_ptr<MonomialTableArray> Hsyz;
+  std::unique_ptr<MonomialTableArray> Hsyz2;
   std::unique_ptr<Reducer> reducer;
   std::unique_ptr<SigSPairs> SP;
+  std::vector<monomial> mSchreyerTerms;
 };
 
 #endif

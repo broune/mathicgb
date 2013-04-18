@@ -703,16 +703,17 @@ std::unique_ptr<FreeModuleOrder> FreeModuleOrder::makeOrder(FreeModuleOrderType 
     type = 1;  // Set the default
 
   switch (type) {
+  case 5:
+    //return make_unique<ConcreteOrder<OrderD>>(OrderD(I, false));
   case 1:
     return make_unique<ConcreteOrder<OrderA>>(OrderA(I->getPolyRing()));
+
   case 2:
    return make_unique<ConcreteOrder<OrderB>>(OrderB(I));
   case 3:
    return make_unique<ConcreteOrder<OrderC>>(OrderC(I));
   case 4:
     return make_unique<ConcreteOrder<OrderD>>(OrderD(I, true));
-  case 5:
-    return make_unique<ConcreteOrder<OrderD>>(OrderD(I, false));
   case 6:
     return make_unique<ConcreteOrder<OrderE>>(OrderE(I, true));
   case 7:
