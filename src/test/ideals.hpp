@@ -47,6 +47,14 @@ extern const char* gerdt93_gb_strat0_free5;
 extern const char* gerdt93_syzygies_strat0_free5;
 extern const char* gerdt93_initial_strat0_free5;
 
+extern const char* gerdt93_gb_strat0_free6;
+extern const char* gerdt93_syzygies_strat0_free6;
+extern const char* gerdt93_initial_strat0_free6;
+
+extern const char* gerdt93_gb_strat0_free7;
+extern const char* gerdt93_syzygies_strat0_free7;
+extern const char* gerdt93_initial_strat0_free7;
+
 #endif
 
 // Local Variables:

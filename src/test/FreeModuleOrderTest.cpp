@@ -77,18 +77,20 @@ TEST(FreeModuleOrder, One) {
 "a "
 "a3c2 ";
   const char* sigs =
-    "<1>\n"
-    "<0>\n"
-    "b10<0>\n"
-    "ac<0>\n"
-    "bc<0>\n"
-    "ac<1>\n"
-    "bc<1>\n"
-    "ab2c<2>\n";
+    "<1>\n" // 0
+    "<0>\n" // 1
+    "b10<0>\n" // 2
+    "ac<0>\n" // 3
+    "bc<0>\n" // 4
+    "ac<1>\n" // 5
+    "bc<1>\n" // 6
+    "ab2c<2>\n"; // 7
 
   runTest(ideal, sigs, "0 1 6 4 5 3 7 2", 1);
   //runTest(ideal, sigs, "0 6 5 1 4 3 7 2", 2); 
   runTest(ideal, sigs, "0 6 5 1 7 4 3 2", 3); 
   //runTest(ideal, sigs, "0 6 5 1 4 3 7 2", 4); 
   //runTest(ideal, sigs, "0 6 5 1 4 7 3 2", 5); 
+  runTest(ideal, sigs, "1 4 3 2 0 6 5 7", 6);
+  runTest(ideal, sigs, "7 0 6 5 1 4 3 2", 7);
 }

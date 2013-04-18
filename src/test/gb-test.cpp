@@ -368,11 +368,21 @@ TEST(GB, gerdt93_0_4) {
   testGB(4, gerdt93_ideal, gerdt93_gb_strat0_free4,
          gerdt93_syzygies_strat0_free4, gerdt93_initial_strat0_free4, 7);
 }
+
 TEST(GB, gerdt93_0_5) {
   testGB(5, gerdt93_ideal, gerdt93_gb_strat0_free5,
          gerdt93_syzygies_strat0_free5, gerdt93_initial_strat0_free5, 7);
 }
 
+TEST(GB, gerdt93_0_6) {
+  testGB(6, gerdt93_ideal, gerdt93_gb_strat0_free6,
+         gerdt93_syzygies_strat0_free6, gerdt93_initial_strat0_free6, 7);
+}
+
+TEST(GB, gerdt93_0_7) {
+  testGB(7, gerdt93_ideal, gerdt93_gb_strat0_free7,
+         gerdt93_syzygies_strat0_free7, gerdt93_initial_strat0_free7, 9);
+}
 
 // Local Variables:
 // compile-command: "make -C .. "
