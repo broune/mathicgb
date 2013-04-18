@@ -22,7 +22,7 @@ namespace {
     BuilderMaker():
       mRing(ringFromString("101 6 1\n1 1 1 1 1 1")),
       mIdeal(*mRing),
-      mOrder(FreeModuleOrder::makeOrder(1, &mIdeal)),
+      mOrder(FreeModuleOrder::makeOrder(1, *mIdeal.getPolyRing())),
       mBasis(*mRing, *mOrder, DivisorLookup::makeFactory(*mRing, 1)->create(true, true)) {
     }
 

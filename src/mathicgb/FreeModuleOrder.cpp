@@ -4,7 +4,6 @@
 #include "FreeModuleOrder.hpp"
 
 #include "Poly.hpp"
-#include "Ideal.hpp"
 #include "SigSPairQueue.hpp"
 #include "GroebnerBasis.hpp"
 #include "PolyRing.hpp"
@@ -24,14 +23,13 @@
 // ** Utility objects
 
 namespace {
-  // Comparer for scrambled signatures
   template<class Cmp>
-  class ScrambledComparer {
+  class Comparer {
   public:
-    ScrambledComparer(const Cmp& cmp): mCmp(cmp), mComparisons(0) {}
+    Comparer(const Cmp& cmp): mCmp(cmp), mComparisons(0) {}
     bool operator()(const PreSPair& a, const PreSPair& b) const {
       ++mComparisons;
-      return mCmp.scrambledLessThan(a.signature, b.signature);
+      return mCmp.signatureCompare(a.signature, b.signature) == LT;
     }
     size_t comparisons() const {return mComparisons;}
   private:
@@ -88,13 +86,12 @@ namespace {
         (mBasis.getLeadMonomial(col),
          mBasis.getLeadMonomial(row),
          mBasis.getSignature(col), sig);
-      mCmp.scrambleSignatureForFastComparison(sig);
     }
 
 	typedef bool CompareResult;
 	bool compare(int colA, int rowA, const_monomial a,
 				 int colB, int rowB, const_monomial b) const {
-      return mCmp.scrambledLessThan(b, a);
+      return mCmp.signatureCompare(b, a) == LT;
 	}
 	bool cmpLessThan(bool v) const {return v;}
 
@@ -125,7 +122,6 @@ namespace {
         mPairQueue.pop();
       } while
           (!mPairQueue.empty() && ring().monomialEQ(mPairQueue.topPairData(), sig));
-      comparer().unscrambleSignature(sig);
       return sig;
     }
 
@@ -136,7 +132,6 @@ namespace {
         MATHICGB_ASSERT(pairs[i].i < columnCount());
         mPairQueue.configuration().computePairData
           (columnCount(), pairs[i].i, tmp);
-        comparer().unscrambleSignature(tmp);
         MATHICGB_ASSERT(ring().monomialEQ(tmp, pairs[i].signature));
       }
       ring().freeMonomial(tmp);
@@ -147,8 +142,7 @@ namespace {
           ("Too large basis element index in constructing S-pairs.");
     
       // sort and insert new column
-      ScrambledComparer<Cmp> cmp(comparer());
-      comparer().scrambleSignaturesForFastComparison(pairs);
+      Comparer<Cmp> cmp(comparer());
       std::sort(pairs.begin(), pairs.end(), cmp);
       //mPreComparisons += cmp.comparisons();
       //order().destructiveSort(pairs);
@@ -222,7 +216,7 @@ namespace mathic {
 template<class Cmp>
 class ConcreteOrder : public FreeModuleOrder {
 public:
-  ConcreteOrder(Cmp cmp): mCmp(cmp), mComparisons(0), mPreComparisons(0) {}
+  ConcreteOrder(const PolyRing& ring): mCmp(ring), mComparisons(0), mPreComparisons(0) {}
   virtual ~ConcreteOrder() {}
 
   virtual int signatureCompare(const_monomial sigA, const_monomial sigB) const {
@@ -239,15 +233,10 @@ public:
     return mCmp.signatureCompare(sigA, monoB, sigB);
   }
 
-  virtual void sortAndScrambleSignatures(std::vector<PreSPair>& pairs) const {
-    ScrambledComparer<Cmp> cmp(mCmp);
-    mCmp.scrambleSignaturesForFastComparison(pairs);
+  virtual void sortSignatures(std::vector<PreSPair>& pairs) const {
+    Comparer<Cmp> cmp(mCmp);
     std::sort(pairs.begin(), pairs.end(), cmp);
     mPreComparisons += cmp.comparisons();
-  }
-
-  virtual void appendBasisElement(const_monomial m) {
-    mCmp.appendBasisElement(m);
   }
 
   virtual std::string description() const {
@@ -281,25 +270,16 @@ private:
 // also applies to component, which is considered last.
 class OrderA {
 public:
-  OrderA(const PolyRing* ring): mRing(ring) {}
+  OrderA(const PolyRing& ring): mRing(&ring) {}
 
   int signatureCompare(const_monomial sigA, const_monomial sigB) const {
     return mRing->monomialCompare(sigA, sigB);
   }
 
-  void scrambleSignatureForFastComparison(monomial sig) const {}
-  void scrambleSignaturesForFastComparison(std::vector<PreSPair>& pairs) const {}
-  bool scrambledLessThan(const_monomial sigA, const_monomial sigB) const {
-    return mRing->monomialLT(sigA, sigB);
-  }
-  void unscrambleSignature(monomial sig) const {}
-
   int signatureCompare(const_monomial sigA,
     const_monomial monoB, const_monomial sigB) const {
     return mRing->monomialCompare(sigA, monoB, sigB);
   }
-
-  void appendBasisElement(const_monomial) {}
 
   char const* description() const {return "GrevLex IndexDown";}
 
@@ -310,37 +290,20 @@ private:
 class OrderC
 {
 public:
-  OrderC(const Ideal* I):
-    mRing(I->getPolyRing()),
-    topindex(I->getPolyRing()->maxMonomialSize() - 2)
+  OrderC(const PolyRing& ring):
+    mRing(&ring), topindex(ring.maxMonomialSize() - 2)
   {}
 
-  void appendBasisElement(const_monomial m) {}
-
-  void scrambleSignatureForFastComparison(monomial sig) const {}
-  void scrambleSignaturesForFastComparison(std::vector<PreSPair>& pairs) const {}
-  bool scrambledLessThan(const_monomial a, const_monomial b) const {
-    return signatureCompare(a, b) == LT;
-  }
-  void unscrambleSignature(monomial sig) const {}
-
   int signatureCompare(const_monomial sig, const_monomial sig2) const {
-    int da = - sig[topindex];
-    int db = -sig2[topindex];
-    if (da > db) return GT;
-    if (db > da) return LT;
-    int cmp = *sig  - *sig2;
+    const auto d = sig[topindex] - sig2[topindex];
+    if (d < 0) return GT;
+    if (d > 0) return LT;
+
+    const auto cmp = *sig - *sig2;
     if (cmp < 0) return GT;
     if (cmp > 0) return LT;
 
-    auto a = sig;
-    auto b = sig2;
-    for (size_t i = topindex; i >= 1; i--) {
-      int cmp = a[i] - b[i];
-      if (cmp != 0)
-        return cmp < 0 ? GT : LT;
-    }
-    return EQ;
+    return mRing->monomialCompare(sig, sig2);
   }
 
   int signatureCompare(
@@ -348,24 +311,15 @@ public:
     const_monomial m2,
     const_monomial sig2
   ) const {
-    int da = - sig[topindex];
-    int db = - m2[topindex];
-    db += -sig2[topindex];
-    if (da > db) return GT;
-    if (db > da) return LT;
-    int cmp = *sig  - *sig2;
+    const auto d = sig[topindex] - (m2[topindex] + sig2[topindex]);
+    if (d < 0) return GT;
+    if (d > 0) return LT;
+
+    const auto cmp = *sig - *sig2;
     if (cmp < 0) return GT;
     if (cmp > 0) return LT;
 
-    auto a = sig;
-    auto b = sig2;
-    for (size_t i = topindex; i >= 1; i--)
-      {
-        int cmp = a[i] - b[i] - m2[i];
-      if (cmp < 0) return GT;
-      if (cmp > 0) return LT;
-    }
-    return EQ;
+    return mRing->monomialCompare(sig, m2, sig2);
   }
 
   char const* description() const {return "DegreeUp IndexDown GrevLex";}
@@ -384,30 +338,15 @@ private:
 class OrderE
 {
 public:
-  OrderE(Ideal const* I):
-    mRing(I->getPolyRing()),
-    topindex(mRing->maxMonomialSize() - 2)
+  OrderE(const PolyRing& ring):
+    mRing(&ring), topindex(ring.maxMonomialSize() - 2)
   {}
-
-  void appendBasisElement(const_monomial m) {}
 
   int signatureCompare(const_monomial a, const_monomial b) const {
     if (*a != *b)
       return *a < *b ? GT : LT;
-    for (size_t i = topindex; i >= 1; i--) {
-      int cmp = a[i] - b[i];
-      if (cmp != 0)
-        return cmp < 0 ? GT : LT;
-    }
-    return EQ;
+    return mRing->monomialCompare(a, b);
   }
-
-  void scrambleSignatureForFastComparison(monomial sig) const {}
-  void scrambleSignaturesForFastComparison(std::vector<PreSPair>& pairs) const {}
-  inline bool scrambledLessThan(const_monomial a, const_monomial b) const {
-    return signatureCompare(a,b) == LT;
-  }
-  void unscrambleSignature(monomial sig) const {}
 
   int signatureCompare(const_monomial a, const_monomial m2, const_monomial b) const {
     int cmp = *a - *b;
@@ -415,13 +354,7 @@ public:
       if (cmp < 0) return GT;
       if (cmp > 0) return LT;
     }
-
-    for (size_t i = topindex; i >= 1; i--) {
-      int cmp = a[i] - b[i] - m2[i];
-      if (cmp < 0) return GT;
-      if (cmp > 0) return LT;
-    }
-    return EQ;
+    return mRing->monomialCompare(a, m2, b);
   }
 
   virtual char const* description() const {
@@ -445,7 +378,7 @@ void FreeModuleOrder::displayOrderTypes(std::ostream &o)
   o << "  7   IndexDown SchreyerGrevLex" << std::endl;
 }
 
-std::unique_ptr<FreeModuleOrder> FreeModuleOrder::makeOrder(FreeModuleOrderType type, const Ideal* I)
+std::unique_ptr<FreeModuleOrder> FreeModuleOrder::makeOrder(FreeModuleOrderType type, const PolyRing& ring)
 {
   if (type == 0)
     type = 1;  // Set the default
@@ -454,15 +387,15 @@ std::unique_ptr<FreeModuleOrder> FreeModuleOrder::makeOrder(FreeModuleOrderType 
   case 4:
   case 5:
   case 1:
-    return make_unique<ConcreteOrder<OrderA>>(OrderA(I->getPolyRing()));
+    return make_unique<ConcreteOrder<OrderA>>(ring);
 
   case 2:
   case 3:
-   return make_unique<ConcreteOrder<OrderC>>(OrderC(I));
+   return make_unique<ConcreteOrder<OrderC>>(ring);
 
   case 6:
   case 7:
-    return make_unique<ConcreteOrder<OrderE>>(OrderE(I));
+    return make_unique<ConcreteOrder<OrderE>>(ring);
 
   default: break;
   }
@@ -470,7 +403,7 @@ std::unique_ptr<FreeModuleOrder> FreeModuleOrder::makeOrder(FreeModuleOrderType 
   std::cerr << "unknown free module order type" << std::endl;
   std::cerr << "possible orders are: " << std::endl;
   for (size_t i = 1; i <= 7; ++i) {
-    auto order = makeOrder(static_cast<FreeModuleOrderType>(i), I);
+    auto order = makeOrder(static_cast<FreeModuleOrderType>(i), ring);
     std::cerr << "  " << i << ": " << order->description() << std::endl;
   }
   exit(1);

@@ -149,7 +149,7 @@ TEST(QuadMatrixBuilder, SortColumns) {
   // construct builder and reverse lex order
   std::unique_ptr<PolyRing> ring(ringFromString("32003 6 1\n1 1 1 1 1 1"));
   Ideal ideal(*ring);
-  std::unique_ptr<FreeModuleOrder> order(FreeModuleOrder::makeOrder(1, &ideal));
+  std::unique_ptr<FreeModuleOrder> order(FreeModuleOrder::makeOrder(1, *ideal.getPolyRing()));
   
   // one row top, no rows bottom, no columns
   {

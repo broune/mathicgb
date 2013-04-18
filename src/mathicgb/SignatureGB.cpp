@@ -27,7 +27,7 @@ SignatureGB::SignatureGB(
   mBreakAfter(0),
   mPrintInterval(0),
   R(ideal.getPolyRing()),
-  F(FreeModuleOrder::makeOrder(typ, &ideal)),
+  F(FreeModuleOrder::makeOrder(typ, *ideal.getPolyRing())),
   mPostponeKoszul(postponeKoszul),
   mUseBaseDivisors(useBaseDivisors),
   stats_sPairSignaturesDone(0),

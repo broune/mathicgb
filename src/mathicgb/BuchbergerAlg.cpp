@@ -24,7 +24,7 @@ BuchbergerAlg::BuchbergerAlg(
   mUseAutoTopReduction(true),
   mUseAutoTailReduction(false),
   mRing(*ideal.getPolyRing()),
-  mOrder(FreeModuleOrder::makeOrder(orderType, &ideal)),
+  mOrder(FreeModuleOrder::makeOrder(orderType, *ideal.getPolyRing())),
   mReducer(reducer),
   mBasis(mRing, *mOrder, DivisorLookup::makeFactory(
     *ideal.getPolyRing(),

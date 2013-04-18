@@ -44,8 +44,8 @@ void runTest(
   MATHICGB_ASSERT(sigs.size() == pairs.size());
 
   std::unique_ptr<FreeModuleOrder> order
-    (FreeModuleOrder::makeOrder(orderType, ideal.get()));
-  order->sortAndScrambleSignatures(pairs);
+    (FreeModuleOrder::makeOrder(orderType, *ideal->getPolyRing()));
+  order->sortSignatures(pairs);
   for (size_t i = 0; i < pairs.size(); ++i) {
     ring->freeMonomial(pairs[i].signature);
     pairs[i].signature = sigs[pairs[i].i];
