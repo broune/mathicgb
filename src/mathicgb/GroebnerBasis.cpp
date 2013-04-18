@@ -416,6 +416,15 @@ void GroebnerBasis::unschreyer(const std::vector<Monomial>& leads) {
   }
 }
 
+void GroebnerBasis::reverseComponents(const size_t componentCount) {
+  for (size_t i = 0; i < mSignatures.size(); ++i) {
+    auto sig = mSignatures[i];
+    auto c = ring().monomialGetComponent(sig);
+    MATHICGB_ASSERT(c < componentCount);
+    ring().monomialChangeComponent(sig, componentCount - 1 - c);
+  }
+}
+
 size_t GroebnerBasis::getMemoryUse() const
 {
   // Note: we do not count the signatures as they are counted elsewhere.

@@ -709,7 +709,7 @@ std::unique_ptr<FreeModuleOrder> FreeModuleOrder::makeOrder(FreeModuleOrderType 
     return make_unique<ConcreteOrder<OrderA>>(OrderA(I->getPolyRing()));
 
   case 2:
-   return make_unique<ConcreteOrder<OrderB>>(OrderB(I));
+    //return make_unique<ConcreteOrder<OrderB>>(OrderB(I));
   case 3:
    return make_unique<ConcreteOrder<OrderC>>(OrderC(I));
   case 4:

@@ -106,6 +106,10 @@ public:
   /// all sorts of internal invariants - it's a temporary hack.
   void unschreyer(const std::vector<Monomial>& leads);
 
+  // Replaces component i with componentCount - 1 - i. As unschreyer,
+  // this breaks internval invariants and should be replaced.
+  void reverseComponents(const size_t componentCount);
+
   class StoredRatioCmp {
   public:
     // Stores the ratio numerator/denominator and prepares it for comparing

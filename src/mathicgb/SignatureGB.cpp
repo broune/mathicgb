@@ -42,17 +42,23 @@ SignatureGB::SignatureGB(
   Hsyz(MonomialTableArray::make(R, montable_type, ideal.size(), !mPostponeKoszul)),
   Hsyz2(MonomialTableArray::make(R, montable_type, ideal.size(), !mPostponeKoszul)),
   reducer(Reducer::makeReducer(reductiontyp, *R)),
-  SP(make_unique<SigSPairs>(R, F.get(), GB.get(), Hsyz.get(), reducer.get(), mPostponeKoszul, mUseBaseDivisors, useSingularCriterionEarly, queueType))
+  SP(make_unique<SigSPairs>(R, F.get(), GB.get(), Hsyz.get(), reducer.get(), mPostponeKoszul, mUseBaseDivisors, useSingularCriterionEarly, queueType)),
+  mReverseComponents(typ == 2),
+  mComponentCount(ideal.size())
 {
   // Populate GB
-  for (size_t i = 0; i < ideal.size(); i++) {
+  for (size_t j = 0; j < ideal.size(); j++)
+    GB->addComponent();
+
+  for (size_t j = 0; j < ideal.size(); j++) {
+    int i = !mReverseComponents ? j : ideal.size() - 1 - j;
+
     Poly *g = new Poly(*R);
     ideal.getPoly(i)->copy(*g);
     g->makeMonic();
 
     monomial sig = 0;
     sig = R->allocMonomial();
-    GB->addComponent();
     R->monomialEi(i, sig);
     if (typ == 5) {
       auto lead = R->allocMonomial();
@@ -124,15 +130,23 @@ void SignatureGB::computeGrobnerBasis()
   stats_nsecs = mTimer.getMilliseconds() / 1000.0;
   //GB->displayBrief(out);
 
-  if (!mSchreyerTerms.empty()) {
+  if (!mSchreyerTerms.empty())
     GB->unschreyer(mSchreyerTerms);
+  if (mReverseComponents)
+    GB->reverseComponents(mComponentCount);
+  if (!mSchreyerTerms.empty() || mReverseComponents) {
     std::vector<const_monomial> v;
     Hsyz->getMonomials(v);
     for (size_t i = 0; i < v.size(); ++i) {
       auto sig = R->allocMonomial();
-      auto c = R->monomialGetComponent(v[i]);
-      MATHICGB_ASSERT(c < mSchreyerTerms.size());
-      R->monomialDivide(v[i], mSchreyerTerms[c], sig);
+      R->monomialCopy(v[i], sig);
+      auto c = R->monomialGetComponent(sig);
+      if (!mSchreyerTerms.empty()) {
+        MATHICGB_ASSERT(c < mSchreyerTerms.size());
+        R->monomialDivide(sig, mSchreyerTerms[c], sig);
+      }
+      if (mReverseComponents)
+        R->monomialChangeComponent(sig, mComponentCount - 1 - c);
       Hsyz2->insert(sig, 0);
     }
   }
