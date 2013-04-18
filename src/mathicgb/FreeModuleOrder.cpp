@@ -396,7 +396,10 @@ public:
       appendBasisElement(I->getPoly(i)->getLeadMonomial());
   }
 
-  void appendBasisElement(const_monomial m) {deg.push_back(-m[topindex]);}
+  void appendBasisElement(const_monomial m) {
+    deg.push_back(-m[topindex]);
+    monoms.push_back(m);
+  }
 
   void scrambleSignatureForFastComparison(monomial sig) const {}
   void scrambleSignaturesForFastComparison(std::vector<PreSPair>& pairs) const {}
@@ -413,12 +416,24 @@ public:
     int cmp = *sig  - *sig2;
     if (cmp < 0) return GT;
     if (cmp > 0) return LT;
+
+    auto a = sig;
+    auto b = sig2;
+    const_monomial ma = monoms[*a];
+    const_monomial mb = monoms[*b];
+    for (size_t i = topindex; i >= 1; i--) {
+      int cmp = a[i] - b[i] + ma[i] - mb[i];
+      if (cmp != 0)
+        return cmp < 0 ? GT : LT;
+    }
+/*
     for (size_t i = topindex-1; i >= 1; --i)
       {
         int cmp = sig[i] - sig2[i];
         if (cmp < 0) return GT;
         if (cmp > 0) return LT;
       }
+*/
     return EQ;
   }
 
@@ -435,12 +450,24 @@ public:
     int cmp = *sig  - *sig2;
     if (cmp < 0) return GT;
     if (cmp > 0) return LT;
+
+    auto a = sig;
+    auto b = sig2;
+    const_monomial ma = monoms[*a];
+    const_monomial mb = monoms[*b];
+    for (size_t i = topindex; i >= 1; i--)
+      {
+        int cmp = a[i] - b[i] + ma[i] - mb[i] - m2[i];
+      if (cmp < 0) return GT;
+      if (cmp > 0) return LT;
+    }
+/*
     for (size_t i = topindex-1; i >= 1; --i)
       {
         int cmp = sig[i] - m2[i] - sig2[i];
         if (cmp < 0) return GT;
         if (cmp > 0) return LT;
-      }
+        }*/
     return EQ;
   }
 
@@ -452,6 +479,7 @@ private:
 
   // array of degrees for each component 0..numgens I - 1
   std::vector<int> deg;
+  std::vector<const_monomial> monoms;
 };
 
 // Let l(ae_i) be the leading monomial of ag_i.
@@ -693,7 +721,7 @@ void FreeModuleOrder::displayOrderTypes(std::ostream &o)
   o << "  3   DegreeUp IndexDown GrevLex" << std::endl;
   o << "  4   SchreyerGrevLexUp" << std::endl; // done
   o << "  5   SchreyerGrevLexDown" << std::endl; // done
-  o << "  6   IndexUp SchreyerGrevLex" << std::endl;
+  o << "  6   IndexUp SchreyerGrevLex" << std::endl; // done
   o << "  7   IndexDown SchreyerGrevLex" << std::endl;
 }
 
