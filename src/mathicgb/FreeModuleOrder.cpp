@@ -715,7 +715,7 @@ std::unique_ptr<FreeModuleOrder> FreeModuleOrder::makeOrder(FreeModuleOrderType 
   case 3:
    return make_unique<ConcreteOrder<OrderC>>(OrderC(I));
   case 6:
-    return make_unique<ConcreteOrder<OrderE>>(OrderE(I, true));
+    //return make_unique<ConcreteOrder<OrderE>>(OrderE(I, true));
   case 7:
     return make_unique<ConcreteOrder<OrderE>>(OrderE(I, false));
   default: break;

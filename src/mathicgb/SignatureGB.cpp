@@ -43,7 +43,7 @@ SignatureGB::SignatureGB(
   Hsyz2(MonomialTableArray::make(R, montable_type, ideal.size(), !mPostponeKoszul)),
   reducer(Reducer::makeReducer(reductiontyp, *R)),
   SP(make_unique<SigSPairs>(R, F.get(), GB.get(), Hsyz.get(), reducer.get(), mPostponeKoszul, mUseBaseDivisors, useSingularCriterionEarly, queueType)),
-  mReverseComponents(typ == 2 || typ == 4),
+  mReverseComponents(typ == 2 || typ == 4 || typ == 6),
   mComponentCount(ideal.size())
 {
   // Populate GB

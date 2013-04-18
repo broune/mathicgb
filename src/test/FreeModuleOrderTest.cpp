@@ -91,6 +91,6 @@ TEST(FreeModuleOrder, One) {
   runTest(ideal, sigs, "0 6 5 1 7 4 3 2", 3); 
   //runTest(ideal, sigs, "0 6 5 1 4 3 7 2", 4); 
   //runTest(ideal, sigs, "0 6 5 1 4 7 3 2", 5); 
-  runTest(ideal, sigs, "1 4 3 2 0 6 5 7", 6);
+  //runTest(ideal, sigs, "1 4 3 2 0 6 5 7", 6);
   runTest(ideal, sigs, "7 0 6 5 1 4 3 2", 7);
 }
