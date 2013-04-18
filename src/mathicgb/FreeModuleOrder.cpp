@@ -307,99 +307,15 @@ private:
   PolyRing const* const mRing;
 };
 
-// let d(x) be the first degree of x, so if there are more than one
-// vector of weights, only the first one matters for d. By "first"
-// degree, read "one with highest index".
-//
-//   rule 1: if d(ag_i) > (bg_j) then ae_i > be_j
-//   rule 2: if i > j then ae_i > be_j
-//   rule 2: graded reverse lex as for OrderA, but ignoring the first degree
-//
-// It was probably intended that all the degree should be considered,
-// it just wasn't implemented for more than 1 degree.
-class OrderB {
-public:
-  OrderB(const Ideal *I):
-    mRing(I->getPolyRing()),
-    topindex(I->getPolyRing()->maxMonomialSize() - 2) {
-    for (size_t i = 0; i < I->size(); ++i)
-      appendBasisElement(I->getPoly(i)->getLeadMonomial());
-  }
-
-  void scrambleSignatureForFastComparison(monomial sig) const {}
-  void scrambleSignaturesForFastComparison(std::vector<PreSPair>& pairs) const {}
-  bool scrambledLessThan(const_monomial a, const_monomial b) const {
-    return signatureCompare(a, b) == LT;
-  }
-  void unscrambleSignature(monomial sig) const {}
-
-  int signatureCompare(const_monomial sig, const_monomial sig2) const {
-    int da = - sig[topindex] + deg[*sig];
-    int db = -sig2[topindex] + deg[*sig2];
-    if (da > db) return GT;
-    if (db > da) return LT;
-    int cmp = *sig  - *sig2;
-    if (cmp > 0) return GT;
-    if (cmp < 0) return LT;
-    for (size_t i = topindex-1; i >= 1; --i)
-      {
-        int cmp = sig[i] - sig2[i];
-        if (cmp < 0) return GT;
-        if (cmp > 0) return LT;
-      }
-    return EQ;
-  }
-
-  int signatureCompare(
-    const_monomial sig,
-    const_monomial m2,
-    const_monomial sig2
-  ) const {
-    int da = - sig[topindex] + deg[*sig];
-    int db = - m2[topindex];
-    db += -sig2[topindex] + deg[*sig2];
-    if (da > db) return GT;
-    if (db > da) return LT;
-    int cmp = *sig  - *sig2;
-    if (cmp > 0) return GT;
-    if (cmp < 0) return LT;
-    for (size_t i = topindex-1; i >= 1; --i)
-      {
-        int cmp = sig[i] - m2[i] - sig2[i];
-        if (cmp < 0) return GT;
-        if (cmp > 0) return LT;
-      }
-    return EQ;
-  }
-
-  char const* description() const {return "DegreeUp IndexUp GrevLex";}
-  void appendBasisElement(const_monomial m) {deg.push_back(-m[topindex]);}
-
-private:
-  PolyRing const* const mRing;
-  size_t const topindex;
-
-  // array of degrees for each component 0..numgens I - 1
-  std::vector<int> deg;
-};
-
-// as OrderB, except rule 2 is opposite, so
-//   rule 2: if i > j then ae_i < be_j
 class OrderC
 {
 public:
   OrderC(const Ideal* I):
     mRing(I->getPolyRing()),
     topindex(I->getPolyRing()->maxMonomialSize() - 2)
-  {
-    for (size_t i = 0; i < I->size(); ++i)
-      appendBasisElement(I->getPoly(i)->getLeadMonomial());
-  }
+  {}
 
-  void appendBasisElement(const_monomial m) {
-    deg.push_back(-m[topindex]);
-    monoms.push_back(m);
-  }
+  void appendBasisElement(const_monomial m) {}
 
   void scrambleSignatureForFastComparison(monomial sig) const {}
   void scrambleSignaturesForFastComparison(std::vector<PreSPair>& pairs) const {}
@@ -409,8 +325,8 @@ public:
   void unscrambleSignature(monomial sig) const {}
 
   int signatureCompare(const_monomial sig, const_monomial sig2) const {
-    int da = - sig[topindex];// + deg[*sig];
-    int db = -sig2[topindex];// + deg[*sig2];
+    int da = - sig[topindex];
+    int db = -sig2[topindex];
     if (da > db) return GT;
     if (db > da) return LT;
     int cmp = *sig  - *sig2;
@@ -419,21 +335,11 @@ public:
 
     auto a = sig;
     auto b = sig2;
-//    const_monomial ma = monoms[*a];
-    //   const_monomial mb = monoms[*b];
     for (size_t i = topindex; i >= 1; i--) {
-      int cmp = a[i] - b[i];// + ma[i] - mb[i];
+      int cmp = a[i] - b[i];
       if (cmp != 0)
         return cmp < 0 ? GT : LT;
     }
-/*
-    for (size_t i = topindex-1; i >= 1; --i)
-      {
-        int cmp = sig[i] - sig2[i];
-        if (cmp < 0) return GT;
-        if (cmp > 0) return LT;
-      }
-*/
     return EQ;
   }
 
@@ -442,9 +348,9 @@ public:
     const_monomial m2,
     const_monomial sig2
   ) const {
-    int da = - sig[topindex];// + deg[*sig];
+    int da = - sig[topindex];
     int db = - m2[topindex];
-    db += -sig2[topindex];// + deg[*sig2];
+    db += -sig2[topindex];
     if (da > db) return GT;
     if (db > da) return LT;
     int cmp = *sig  - *sig2;
@@ -453,21 +359,12 @@ public:
 
     auto a = sig;
     auto b = sig2;
-//    const_monomial ma = monoms[*a];
-    //   const_monomial mb = monoms[*b];
     for (size_t i = topindex; i >= 1; i--)
       {
-        int cmp = a[i] - b[i]/* + ma[i] - mb[i]*/ - m2[i];
+        int cmp = a[i] - b[i] - m2[i];
       if (cmp < 0) return GT;
       if (cmp > 0) return LT;
     }
-/*
-    for (size_t i = topindex-1; i >= 1; --i)
-      {
-        int cmp = sig[i] - m2[i] - sig2[i];
-        if (cmp < 0) return GT;
-        if (cmp > 0) return LT;
-        }*/
     return EQ;
   }
 
@@ -476,153 +373,7 @@ public:
 private:
   PolyRing const* const mRing;
   const size_t topindex;
-
-  // array of degrees for each component 0..numgens I - 1
-  std::vector<int> deg;
-  std::vector<const_monomial> monoms;
 };
-
-// Let l(ae_i) be the leading monomial of ag_i.
-// Indexes are considered from high to low
-// rule 1: higher degree of l(ae_I) wins
-// rule 2: reverse lex on l(ae_i)
-// rule 3: higher component wins (if mUp is true)
-// rule 3': lower components wins (if mUp is false)
-class OrderD
-{
-public:
-  OrderD(Ideal const* I, bool up0):
-    mRing(I->getPolyRing()),
-    mUp(up0),
-    topindex(mRing->maxMonomialSize() - 2) {
-    for (size_t i = 0; i < I->size(); ++i)
-      appendBasisElement(I->getPoly(i)->getLeadMonomial());
-  }
-
-  void appendBasisElement(const_monomial m) {monoms.push_back(m);}
-
-  int signatureCompare(const_monomial a, const_monomial b) const {
-    const_monomial ma = monoms[*a];
-    const_monomial mb = monoms[*b];
-    for (size_t i = topindex; i >= 1; i--) {
-      int cmp = a[i] - b[i] + ma[i] - mb[i];
-      if (cmp != 0)
-        return cmp < 0 ? GT : LT;
-    }
-    if (*a == *b)
-      return EQ;
-    if (mUp)
-      return *a < *b ? LT : GT;
-    else
-      return *a < *b ? GT : LT;
-  }
-
-  void scrambleSignatureForFastComparison(monomial sig) const {
-#ifdef DEBUG
-    monomial original = mRing->allocMonomial();
-    mRing->monomialCopy(sig, original);
-#endif
-    const_monomial adjust = monoms[*sig];
-    for (size_t i = topindex; i >= 1; --i) 
-      sig[i] += adjust[i];
-    if (mUp)
-      *sig = -*sig;
-#ifdef DEBUG
-    monomial unscrambled = mRing->allocMonomial();
-    mRing->monomialCopy(sig, unscrambled);
-    unscrambleSignature(unscrambled);
-    MATHICGB_ASSERT(mRing->monomialEQ(original, unscrambled));
-    mRing->freeMonomial(original);
-    mRing->freeMonomial(unscrambled);
-#endif
-  }
-
-  void scrambleSignaturesForFastComparison(std::vector<PreSPair>& pairs) const {
-    typedef std::vector<PreSPair>::iterator Iter;
-    Iter end = pairs.end();
-    for (Iter it = pairs.begin(); it != end; ++it)
-      scrambleSignatureForFastComparison(it->signature);
-  }
-
-  inline bool scrambledLessThan(
-    const_monomial a,
-    const_monomial b
-  ) const {
-    /* non-unrolled version:
-    for (size_t i = topindex; i != static_cast<size_t>(-1); i--) {
-      // for i == 0, this will compare the components. We have
-      // already adjusted those to take account of mUp.
-      int cmp = a[i] - b[i]; // already done: + ma[i] - mb[i];
-      if (cmp != 0)
-        return cmp > 0;
-    }
-    return false; // equality */
-
-    size_t i = topindex;
-    if ((topindex & 1) == 0) { // if odd number of entries to check
-      int cmp = a[topindex] - b[topindex];
-      if (cmp != 0)
-        return cmp > 0;
-      --i;
-    }
-    for (; i != static_cast<size_t>(-1); i -= 2) {
-      int cmp = a[i] - b[i]; // already done: + ma[i] - mb[i];
-      if (cmp != 0)
-        return cmp > 0;
-      int cmp2 = a[i - 1] - b[i - 1];
-      if (cmp2 != 0)
-        return cmp2 > 0;
-    }
-    return false; // equality
-  }
-
-  void unscrambleSignature(monomial sig) const {
-    if (mUp)
-      *sig = -*sig;
-    const_monomial adjust = monoms[*sig];
-    for (size_t i = topindex; i >= 1; --i) 
-      sig[i] -= adjust[i];
-  }
-
-  int signatureCompare(const_monomial a, const_monomial m2, const_monomial b) const {
-    const_monomial ma = monoms[*a];
-    const_monomial mb = monoms[*b];
-    for (size_t i = topindex; i >= 1; i--)
-      {
-        int cmp = a[i] - b[i] + ma[i] - mb[i] - m2[i];
-      if (cmp < 0) return GT;
-      if (cmp > 0) return LT;
-    }
-    int cmp = *a - *b;
-    if (mUp)
-      {
-        if (cmp < 0) return LT;
-        if (cmp > 0) return GT;
-      }
-    else
-      {
-        if (cmp < 0) return GT;
-        if (cmp > 0) return LT;
-      }
-    return EQ;
-  }
-
-  virtual char const* description() const {
-    if (mUp)
-      return "SchreyerGrevLexUp";
-    else
-      return "SchreyerGrevLexDown";
-  }
-
-private:
-  PolyRing const* const mRing;
-  bool const mUp; // how to break ties once the monomials are the same
-  size_t const topindex; // taken from R
-
-  // array 0..numgens I-1 pointing to lead terms of elements of I
-  std::vector<const_monomial> monoms;
-};
-
 
 // Let l(ae_i) be the leading monomial of ag_i.
 // Indexes are considered from high to low
@@ -633,30 +384,18 @@ private:
 class OrderE
 {
 public:
-  OrderE(Ideal const* I, bool up0):
+  OrderE(Ideal const* I):
     mRing(I->getPolyRing()),
-    mUp(up0),
-    topindex(mRing->maxMonomialSize() - 2) {
-    for (size_t i = 0; i < I->size(); ++i)
-      appendBasisElement(I->getPoly(i)->getLeadMonomial());
-  }
+    topindex(mRing->maxMonomialSize() - 2)
+  {}
 
-  void appendBasisElement(const_monomial m) {monoms.push_back(m);}
+  void appendBasisElement(const_monomial m) {}
 
   int signatureCompare(const_monomial a, const_monomial b) const {
-    //const_monomial ma = monoms[*a];
-    //const_monomial mb = monoms[*b];
-
     if (*a != *b)
-      {
-        if (mUp)
-          return *a < *b ? LT : GT;
-        else
-          return *a < *b ? GT : LT;
-      }
-
+      return *a < *b ? GT : LT;
     for (size_t i = topindex; i >= 1; i--) {
-      int cmp = a[i] - b[i];// + ma[i] - mb[i];
+      int cmp = a[i] - b[i];
       if (cmp != 0)
         return cmp < 0 ? GT : LT;
     }
@@ -671,26 +410,14 @@ public:
   void unscrambleSignature(monomial sig) const {}
 
   int signatureCompare(const_monomial a, const_monomial m2, const_monomial b) const {
-    const_monomial ma;// = monoms[*a];
-    const_monomial mb;// = monoms[*b];
     int cmp = *a - *b;
-    if (cmp != 0)
-      {
-        if (mUp)
-          {
-            if (cmp < 0) return LT;
-            if (cmp > 0) return GT;
-          }
-        else
-          {
-            if (cmp < 0) return GT;
-            if (cmp > 0) return LT;
-          }
-      }
+    if (cmp != 0) {
+      if (cmp < 0) return GT;
+      if (cmp > 0) return LT;
+    }
 
-    for (size_t i = topindex; i >= 1; i--)
-      {
-        int cmp = a[i] - b[i]/* + ma[i] - mb[i]*/ - m2[i];
+    for (size_t i = topindex; i >= 1; i--) {
+      int cmp = a[i] - b[i] - m2[i];
       if (cmp < 0) return GT;
       if (cmp > 0) return LT;
     }
@@ -698,19 +425,12 @@ public:
   }
 
   virtual char const* description() const {
-    if (mUp)
-      return "IndexUp SchreyerGrevLex";
-    else
-      return "IndexDown SchreyerGrevLex";
+    return "IndexDown SchreyerGrevLex";
   }
 
 private:
   PolyRing const* const mRing;
-  bool const mUp;
   size_t const topindex; // taken from R
-
-  // array 0..numgens I-1 pointing to lead terms of elements of I
-  std::vector<const_monomial> monoms;
 };
 
 void FreeModuleOrder::displayOrderTypes(std::ostream &o)
@@ -732,20 +452,18 @@ std::unique_ptr<FreeModuleOrder> FreeModuleOrder::makeOrder(FreeModuleOrderType 
 
   switch (type) {
   case 4:
-    //return make_unique<ConcreteOrder<OrderD>>(OrderD(I, true));
   case 5:
-    //return make_unique<ConcreteOrder<OrderD>>(OrderD(I, false));
   case 1:
     return make_unique<ConcreteOrder<OrderA>>(OrderA(I->getPolyRing()));
 
   case 2:
-    //return make_unique<ConcreteOrder<OrderB>>(OrderB(I));
   case 3:
    return make_unique<ConcreteOrder<OrderC>>(OrderC(I));
+
   case 6:
-    //return make_unique<ConcreteOrder<OrderE>>(OrderE(I, true));
   case 7:
-    return make_unique<ConcreteOrder<OrderE>>(OrderE(I, false));
+    return make_unique<ConcreteOrder<OrderE>>(OrderE(I));
+
   default: break;
   }
 
