@@ -43,7 +43,7 @@ public:
   unsigned long long getSingularReductionCount() const;
 
   GroebnerBasis* getGB() { return GB.get(); }
-  MonomialTableArray* getSyzTable() { return (mSchreyerTerms.empty() && !mReverseComponents) ? Hsyz.get() : Hsyz2.get(); }
+  MonomialTableArray* getSyzTable() { return (!mDoSchreyer && !mReverseComponents) ? Hsyz.get() : Hsyz2.get(); }
   SigSPairs* getSigSPairs() { return SP.get(); }
 
   size_t getMemoryUse() const;
@@ -105,6 +105,7 @@ private:
   std::unique_ptr<SigSPairs> SP;
   std::vector<monomial> mSchreyerTerms;
   const bool mReverseComponents;
+  const bool mDoSchreyer;
   const size_t mComponentCount;
 };
 

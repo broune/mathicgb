@@ -409,8 +409,8 @@ public:
   void unscrambleSignature(monomial sig) const {}
 
   int signatureCompare(const_monomial sig, const_monomial sig2) const {
-    int da = - sig[topindex] + deg[*sig];
-    int db = -sig2[topindex] + deg[*sig2];
+    int da = - sig[topindex];// + deg[*sig];
+    int db = -sig2[topindex];// + deg[*sig2];
     if (da > db) return GT;
     if (db > da) return LT;
     int cmp = *sig  - *sig2;
@@ -419,10 +419,10 @@ public:
 
     auto a = sig;
     auto b = sig2;
-    const_monomial ma = monoms[*a];
-    const_monomial mb = monoms[*b];
+//    const_monomial ma = monoms[*a];
+    //   const_monomial mb = monoms[*b];
     for (size_t i = topindex; i >= 1; i--) {
-      int cmp = a[i] - b[i] + ma[i] - mb[i];
+      int cmp = a[i] - b[i];// + ma[i] - mb[i];
       if (cmp != 0)
         return cmp < 0 ? GT : LT;
     }
@@ -442,9 +442,9 @@ public:
     const_monomial m2,
     const_monomial sig2
   ) const {
-    int da = - sig[topindex] + deg[*sig];
+    int da = - sig[topindex];// + deg[*sig];
     int db = - m2[topindex];
-    db += -sig2[topindex] + deg[*sig2];
+    db += -sig2[topindex];// + deg[*sig2];
     if (da > db) return GT;
     if (db > da) return LT;
     int cmp = *sig  - *sig2;
@@ -453,11 +453,11 @@ public:
 
     auto a = sig;
     auto b = sig2;
-    const_monomial ma = monoms[*a];
-    const_monomial mb = monoms[*b];
+//    const_monomial ma = monoms[*a];
+    //   const_monomial mb = monoms[*b];
     for (size_t i = topindex; i >= 1; i--)
       {
-        int cmp = a[i] - b[i] + ma[i] - mb[i] - m2[i];
+        int cmp = a[i] - b[i]/* + ma[i] - mb[i]*/ - m2[i];
       if (cmp < 0) return GT;
       if (cmp > 0) return LT;
     }
@@ -644,8 +644,8 @@ public:
   void appendBasisElement(const_monomial m) {monoms.push_back(m);}
 
   int signatureCompare(const_monomial a, const_monomial b) const {
-    const_monomial ma = monoms[*a];
-    const_monomial mb = monoms[*b];
+    //const_monomial ma = monoms[*a];
+    //const_monomial mb = monoms[*b];
 
     if (*a != *b)
       {
@@ -656,7 +656,7 @@ public:
       }
 
     for (size_t i = topindex; i >= 1; i--) {
-      int cmp = a[i] - b[i] + ma[i] - mb[i];
+      int cmp = a[i] - b[i];// + ma[i] - mb[i];
       if (cmp != 0)
         return cmp < 0 ? GT : LT;
     }
@@ -671,8 +671,8 @@ public:
   void unscrambleSignature(monomial sig) const {}
 
   int signatureCompare(const_monomial a, const_monomial m2, const_monomial b) const {
-    const_monomial ma = monoms[*a];
-    const_monomial mb = monoms[*b];
+    const_monomial ma;// = monoms[*a];
+    const_monomial mb;// = monoms[*b];
     int cmp = *a - *b;
     if (cmp != 0)
       {
@@ -690,7 +690,7 @@ public:
 
     for (size_t i = topindex; i >= 1; i--)
       {
-        int cmp = a[i] - b[i] + ma[i] - mb[i] - m2[i];
+        int cmp = a[i] - b[i]/* + ma[i] - mb[i]*/ - m2[i];
       if (cmp < 0) return GT;
       if (cmp > 0) return LT;
     }
