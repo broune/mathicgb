@@ -254,8 +254,8 @@ void BuchbergerAlg::step() {
   std::vector<std::unique_ptr<Poly>> reduced;
 
   // w is the negative of the degree of the lcm's of the chosen spairs
-  MATHICGB_LOG(F4SPairDegree) << std::endl << "[degree = " << -w << "]";
-  
+  MATHICGB_LOG(F4SPairDegree) << std::endl << spairGroup.size() << " pairs in degree " << -w;
+
   mReducer.classicReduceSPolySet(spairGroup, mBasis, reduced);
 
   // sort the elements to get deterministic behavior. The order will change
