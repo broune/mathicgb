@@ -307,10 +307,8 @@ spairQueue	reducerType	divLookup	monTable	buchberger	postponeKoszul	useBaseDivis
         << reducerType << ' ' << divLookup << ' '
         << monTable << ' ' << postponeKoszul << ' ' << useBaseDivisors;
     } else {
-      if (freeModuleOrder == 2 || freeModuleOrder == 4 || freeModuleOrder == 6)
-        I->reverse();
      SignatureGB basis
-        (*I, freeModuleOrder, Reducer::reducerType(reducerType),
+       (std::move(*I), freeModuleOrder, Reducer::reducerType(reducerType),
          divLookup, monTable, postponeKoszul, useBaseDivisors,
          preferSparseReducers, useSingularCriterionEarly, spairQueue);
       basis.computeGrobnerBasis();

@@ -407,22 +407,9 @@ void GroebnerBasis::dump() const
   display(std::cerr);
 }
 
-void GroebnerBasis::unschreyer(const std::vector<Monomial>& leads) {
-  for (size_t i = 0; i < mSignatures.size(); ++i) {
-    auto sig = mSignatures[i];
-    auto c = ring().monomialGetComponent(sig);
-    MATHICGB_ASSERT(c < leads.size());
-    ring().monomialDivide(sig, leads[c], sig);
-  }
-}
-
-void GroebnerBasis::reverseComponents(const size_t componentCount) {
-  for (size_t i = 0; i < mSignatures.size(); ++i) {
-    auto sig = mSignatures[i];
-    auto c = ring().monomialGetComponent(sig);
-    MATHICGB_ASSERT(c < componentCount);
-    ring().monomialChangeComponent(sig, componentCount - 1 - c);
-  }
+void GroebnerBasis::postprocess(const MonoProcessor<PolyRing::Monoid>& processor) {
+  for (size_t i = 0; i < mSignatures.size(); ++i)
+    processor.postprocess(mSignatures[i]);
 }
 
 size_t GroebnerBasis::getMemoryUse() const

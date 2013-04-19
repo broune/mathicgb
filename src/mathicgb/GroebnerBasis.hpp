@@ -10,6 +10,7 @@
 #include "FreeModuleOrder.hpp"
 #include "DivisorLookup.hpp"
 #include "PolyBasis.hpp"
+#include "MonoProcessor.hpp"
 
 #ifndef USE_RATIO_RANK
 #define USE_RATIO_RANK true
@@ -102,13 +103,9 @@ public:
   // and returns LT, EQ or GT.
   inline int ratioCompare(size_t a, size_t b) const;
 
-  /// Divides all signatures ae_i by leads[i]. This currently breaks
-  /// all sorts of internal invariants - it's a temporary hack.
-  void unschreyer(const std::vector<Monomial>& leads);
-
-  // Replaces component i with componentCount - 1 - i. As unschreyer,
-  // this breaks internval invariants and should be replaced.
-  void reverseComponents(const size_t componentCount);
+  /// Post processes all signatures. This currently breaks all sorts
+  /// of internal invariants - it's supposed to be a temporary hack.
+  void postprocess(const MonoProcessor<PolyRing::Monoid>& processor);
 
   class StoredRatioCmp {
   public:

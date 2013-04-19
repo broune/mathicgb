@@ -13,7 +13,7 @@
 int tracingLevel = 0;
 
 SignatureGB::SignatureGB(
-  const Ideal& ideal,
+  Ideal&& ideal,
   FreeModuleOrderType typ,
   Reducer::ReducerType reductiontyp,
   int divlookup_type,
@@ -42,21 +42,24 @@ SignatureGB::SignatureGB(
   Hsyz(MonomialTableArray::make(R, montable_type, ideal.size(), !mPostponeKoszul)),
   Hsyz2(MonomialTableArray::make(R, montable_type, ideal.size(), !mPostponeKoszul)),
   reducer(Reducer::makeReducer(reductiontyp, *R)),
-  SP(make_unique<SigSPairs>(R, F.get(), GB.get(), Hsyz.get(), reducer.get(), mPostponeKoszul, mUseBaseDivisors, useSingularCriterionEarly, queueType)),
-  mReverseComponents(typ == 2 || typ == 4 || typ == 6),
-  mDoSchreyer(typ == 5 || typ == 4 || typ == 3 || typ == 2 || typ == 6 || typ == 7),
-  mComponentCount(ideal.size())
+  SP(make_unique<SigSPairs>(R, F.get(), GB.get(), Hsyz.get(), reducer.get(), mPostponeKoszul, mUseBaseDivisors, useSingularCriterionEarly, queueType))
 {
+  MonoVector schreyer(monoid());
+  if (typ == 5 || typ == 4 || typ == 3 || typ == 2 || typ == 6 || typ == 7)
+    for (size_t gen = 0; gen < ideal.size(); ++gen)
+      schreyer.push_back(ideal.getPoly(gen)->getLeadMonomial());
+  mProcessor = make_unique<MonoProcessor<Monoid>>(
+    typ == 2 || typ == 4 || typ == 6,
+    ideal.size(),
+    monoid(),
+    std::move(schreyer)
+  );
+
   // Populate GB
   for (size_t j = 0; j < ideal.size(); j++)
     GB->addComponent();
 
-  if (mDoSchreyer)
-    mSchreyerTerms.resize(ideal.size());
-
-  for (size_t j = 0; j < ideal.size(); j++) {
-    int i = !mReverseComponents ? j : ideal.size() - 1 - j;
-
+  for (size_t i = 0; i < ideal.size(); i++) {
     Poly *g = new Poly(*R);
     ideal.getPoly(i)->copy(*g);
     g->makeMonic();
@@ -64,12 +67,7 @@ SignatureGB::SignatureGB(
     monomial sig = 0;
     sig = R->allocMonomial();
     R->monomialEi(i, sig);
-    if (mDoSchreyer) {
-      auto lead = R->allocMonomial();
-      R->monomialCopy(g->getLeadMonomial(), lead);
-      mSchreyerTerms[i] = lead;
-      R->monomialMult(sig, g->getLeadMonomial(), sig);
-    }
+    mProcessor->preprocess(sig);
     {
       std::unique_ptr<Poly> autoG(g);
       GB->insert(sig, std::move(autoG));
@@ -134,24 +132,14 @@ void SignatureGB::computeGrobnerBasis()
   stats_nsecs = mTimer.getMilliseconds() / 1000.0;
   //GB->displayBrief(out);
 
-  if (mDoSchreyer)
-    GB->unschreyer(mSchreyerTerms);
-  if (mReverseComponents)
-    GB->reverseComponents(mComponentCount);
-  if (mDoSchreyer || mReverseComponents) {
+  if (mProcessor->processingNeeded()) {
+    GB->postprocess(*mProcessor);
     std::vector<const_monomial> v;
     Hsyz->getMonomials(v);
     for (size_t i = 0; i < v.size(); ++i) {
       auto sig = R->allocMonomial();
       R->monomialCopy(v[i], sig);
-      auto c = R->monomialGetComponent(sig);
-      MATHICGB_ASSERT(c < mComponentCount);
-      if (mDoSchreyer) {
-        MATHICGB_ASSERT(mComponentCount == mSchreyerTerms.size());
-        R->monomialDivide(sig, mSchreyerTerms[c], sig);
-      }
-      if (mReverseComponents)
-        R->monomialChangeComponent(sig, mComponentCount - 1 - c);
+      mProcessor->postprocess(sig);
       Hsyz2->insert(sig, 0);
     }
   }

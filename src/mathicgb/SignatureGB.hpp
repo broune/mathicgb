@@ -15,6 +15,7 @@
 #include "Reducer.hpp"
 #include "KoszulQueue.hpp"
 #include "SPairs.hpp"
+#include "MonoProcessor.hpp"
 #include <map>
 
 class SigSPairs;
@@ -22,8 +23,11 @@ class DivisorLookup;
 
 class SignatureGB {
 public:
+  typedef PolyRing::Monoid Monoid;
+  typedef Monoid::MonoVector MonoVector;
+
   SignatureGB(
-    const Ideal& ideal,
+    Ideal&& ideal,
     FreeModuleOrderType typ,
     Reducer::ReducerType reductiontyp,
     int divlookup_type,
@@ -43,7 +47,7 @@ public:
   unsigned long long getSingularReductionCount() const;
 
   GroebnerBasis* getGB() { return GB.get(); }
-  MonomialTableArray* getSyzTable() { return (!mDoSchreyer && !mReverseComponents) ? Hsyz.get() : Hsyz2.get(); }
+  MonomialTableArray* getSyzTable() { return mProcessor->processingNeeded() ? Hsyz2.get() : Hsyz.get(); }
   SigSPairs* getSigSPairs() { return SP.get(); }
 
   size_t getMemoryUse() const;
@@ -59,6 +63,8 @@ public:
   void setPrintInterval(unsigned int reductions) {
     mPrintInterval = reductions;
   }
+
+  const Monoid& monoid() const {return R->monoid();}
 
 private:
   unsigned int mBreakAfter;
@@ -103,10 +109,7 @@ private:
   std::unique_ptr<MonomialTableArray> Hsyz2;
   std::unique_ptr<Reducer> reducer;
   std::unique_ptr<SigSPairs> SP;
-  std::vector<monomial> mSchreyerTerms;
-  const bool mReverseComponents;
-  const bool mDoSchreyer;
-  const size_t mComponentCount;
+  std::unique_ptr<MonoProcessor<Monoid>> mProcessor;
 };
 
 #endif

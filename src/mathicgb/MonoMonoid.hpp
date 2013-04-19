@@ -253,6 +253,12 @@ public:
     return !(*this == monoid);
   }
 
+  /// Returns true if higher component is considered greater when
+  /// comparing module monomials. Only relevant once actually
+  /// considering the component. This is only relevant for module
+  /// monomials.
+  bool componentsAscending() const {return mLexBaseOrder;}
+
   /// Returns the number of variables. This is also the number of
   /// exponents in the exponent vector of a monomial.
   VarIndex varCount() const {return mVarCount;}
@@ -1069,6 +1075,8 @@ public:
 
   class MonoRef {
   public:
+    MonoRef(const MonoRef& mono): mMono(mono.ptr()) {}
+
     MonoPtr ptr() const {return mMono;}
 
     operator ConstMonoRef() const {return *static_cast<ConstMonoPtr>(mMono);}
@@ -1085,6 +1093,7 @@ public:
 
   class ConstMonoRef {
   public:
+    ConstMonoRef(const ConstMonoRef& mono): mMono(mono.ptr()) {}
     ConstMonoRef(const Mono& mono): mMono(mono.ptr()) {
       MATHICGB_ASSERT(!mono.isNull());
     }
@@ -1170,14 +1179,14 @@ public:
       bool operator!=(const const_iterator& it) const {return mIt != it.mIt;}
 
       ConstMonoRef operator*() {
-	MATHICGB_ASSERT(debugValid());
-	return *ConstMonoPtr(&*mIt);
+        MATHICGB_ASSERT(debugValid());
+        return *ConstMonoPtr(&*mIt);
       }
 
       const_iterator operator++() {
-	MATHICGB_ASSERT(debugValid());
-	mIt += mEntriesPerMono;
-	return *this;
+        MATHICGB_ASSERT(debugValid());
+        mIt += mEntriesPerMono;
+        return *this;
       }
 
     private:
@@ -1186,7 +1195,7 @@ public:
 
       const_iterator(
         typename RawVector::const_iterator it,
-	size_t entryCount
+        size_t entryCount
       ): mIt(it), mEntriesPerMono(entryCount) {}
       
       typename RawVector::const_iterator mIt;
