@@ -470,6 +470,53 @@ TEST(MathicGBLib, Cyclic5) {
   }
 }
 
+namespace {
+  class TestCallback : public mgb::GroebnerConfiguration::Callback {
+  public:
+    TestCallback(int count, Action action): mCount(count), mAction(action) {}
+
+    virtual Action call() {
+      --mCount;
+      return mCount == 0 ? mAction : ContinueAction;
+    }
+
+  private:
+    int mCount;
+    const Action mAction;
+  };
+}
+
+TEST(MathicGBLib, EarlyExit) {
+  typedef mgb::GroebnerConfiguration::Callback::Action Action;
+  auto check = [](bool useClassic, int count, Action action) {
+    mgb::GroebnerConfiguration configuration(101, 5);
+    const auto reducer = useClassic ?
+      mgb::GroebnerConfiguration::ClassicReducer :
+      mgb::GroebnerConfiguration::MatrixReducer;
+    configuration.setReducer(reducer);
+    TestCallback callback(count, action);
+    configuration.setCallback(&callback);
+    mgb::GroebnerInputIdealStream input(configuration);
+    makeCyclic5Basis(input);
+
+    std::ostringstream strOut;
+    mgb::IdealStreamLog<> out(strOut, 101, 5);
+    mgb::computeGroebnerBasis(input, out);
+    return strOut.str().size();
+  };
+
+  for (int useClassic = 0; useClassic < 2; ++useClassic) {
+    size_t none = check(useClassic, 5, Action::StopWithNoOutputAction);
+    size_t minSize = check(useClassic, 1, Action::StopWithPartialOutputAction);
+    size_t midSize = check(useClassic, 4, Action::StopWithPartialOutputAction);
+    size_t maxSize = check(useClassic, 1, Action::ContinueAction);
+    ASSERT_LT(none, 35); // the stream writes a header even for no output
+    ASSERT_LT(none, minSize);
+    ASSERT_LT(minSize, midSize);
+    ASSERT_LT(midSize, maxSize);
+  }
+}
+
 TEST(MathicGBLib, SimpleEliminationGB) {
   std::vector<mgb::GroebnerConfiguration::Exponent> gradings = {1,0,0,0,  1,1,1,1};
   for (int i = 0; i < 2; ++i) {

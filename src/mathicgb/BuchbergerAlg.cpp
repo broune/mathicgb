@@ -18,6 +18,7 @@ BuchbergerAlg::BuchbergerAlg(
   bool preferSparseReducers,
   size_t queueType
 ):
+  mCallback(0),
   mBreakAfter(0),
   mPrintInterval(0),
   mSPairGroupSize(reducer.preferredSetSize()),
@@ -203,11 +204,14 @@ void BuchbergerAlg::insertReducedPoly(
 void BuchbergerAlg::computeGrobnerBasis() {
   size_t counter = 0;
   mTimer.reset();
-  
+
   if (mUseAutoTailReduction)
     autoTailReduce();
 
   while (!mSPairs.empty()) {
+    if (mCallback != 0 && !mCallback->call())
+      break;
+
     step();
     if (mBreakAfter != 0 && mBasis.size() > mBreakAfter) {
       std::cerr

@@ -708,9 +708,39 @@ namespace mgbi {
   }
 }
 
+namespace {
+  class CallbackAdapter : public BuchbergerAlg::Callback {
+  public:
+    typedef mgb::GroebnerConfiguration::Callback::Action Action;
+
+    CallbackAdapter(void* data, Action (*callback) (void*)):
+      mData(data),
+      mCallback(callback),
+      mLastAction(Action::ContinueAction)
+    {
+      MATHICGB_ASSERT(mCallback != 0 || mData == 0);
+    }
+
+    const bool isNull() const {return mCallback == 0;}
+    Action lastAction() const {return mLastAction;}
+
+    virtual bool call() {
+      if (isNull())
+        return true;
+      mLastAction = mCallback(mData);
+      return mLastAction == Action::ContinueAction;
+    }
+
+  private:
+    void* const mData;
+    Action (* const mCallback) (void*);
+    Action mLastAction;
+  };
+}
+
 // ** Implementation of function mgbi::internalComputeGroebnerBasis
 namespace mgbi {
-  void internalComputeGroebnerBasis(
+  bool internalComputeGroebnerBasis(
     GroebnerInputIdealStream& inputWhichWillBeCleared,
     IdealAdapter& output
   ) {
@@ -749,6 +779,10 @@ namespace mgbi {
       break;
     }
     const auto reducer = Reducer::makeReducer(reducerType, ring);
+    CallbackAdapter callback(
+      PimplOf()(conf).mCallbackData,
+      PimplOf()(conf).mCallback
+    );
 
     // Set up and configure algorithm
     BuchbergerAlg alg(basis, 4, *reducer, 2, true, 0);
@@ -756,9 +790,16 @@ namespace mgbi {
     alg.setUseAutoTopReduction(true);
     alg.setUseAutoTailReduction(false);
     alg.setSPairGroupSize(conf.maxSPairGroupSize());
+    if (!callback.isNull())
+      alg.setCallback(&callback);
 
     // Compute Groebner basis
     alg.computeGrobnerBasis();
-    PimplOf()(output).basis = alg.basis().toBasisAndRetireAll();
+    typedef mgb::GroebnerConfiguration::Callback::Action Action;
+    if (callback.lastAction() != Action::StopWithNoOutputAction) {
+      PimplOf()(output).basis = alg.basis().toBasisAndRetireAll();
+      return true;
+    } else
+      return false;
   }
 }

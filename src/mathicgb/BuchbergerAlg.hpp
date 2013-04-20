@@ -64,7 +64,18 @@ public:
     mUseAutoTailReduction = value;
   }
 
+  class Callback {
+  public:
+    /// Stop the computation if call return false.
+    virtual bool call() = 0;
+  };
+  /// callback is called every once in a while and then it has the
+  /// option of stopping the computation. callback can be null, in
+  /// which case no call is made and the computation continues.
+  void setCallback(Callback* callback) {mCallback = callback;}
+
 private:
+  Callback* mCallback;
   unsigned int mBreakAfter;
   unsigned int mPrintInterval;
   unsigned int mSPairGroupSize;

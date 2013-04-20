@@ -130,7 +130,7 @@ namespace mgb { // Part of the public interface of MathicGB
         StopWithNoOutputAction = 1,
         StopWithPartialOutputAction = 2
       };
-      virtual Action call() const = 0;
+      virtual Action call() = 0;
     };
 
     /// Set callback to be called at various unspecified times during
@@ -143,6 +143,9 @@ namespace mgb { // Part of the public interface of MathicGB
 
   private:
     friend class mgbi::PimplOf;
+
+    void operator=(const GroebnerConfiguration&); // not available
+    bool operator==(const GroebnerConfiguration&); // not available
 
     struct MonomialOrderData {
       BaseOrder baseOrder;
@@ -694,7 +697,7 @@ namespace mgbi {
     Pimpl* mPimpl;
   };
 
-  void internalComputeGroebnerBasis(
+  bool internalComputeGroebnerBasis(
     GroebnerInputIdealStream& inputWhichWillBeCleared,
     IdealAdapter& output
   );
@@ -707,7 +710,10 @@ namespace mgb {
     OutputStream& output
   ) {
     mgbi::IdealAdapter ideal;
-    mgbi::internalComputeGroebnerBasis(inputWhichWillBeCleared, ideal);
+    const bool doOutput =
+      mgbi::internalComputeGroebnerBasis(inputWhichWillBeCleared, ideal);
+    if (!doOutput)
+      return;
 
     const auto varCount = ideal.varCount();
     const auto polyCount = ideal.polyCount();
