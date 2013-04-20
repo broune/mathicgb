@@ -122,6 +122,25 @@ namespace mgb { // Part of the public interface of MathicGB
     void setLogging(const char* logging);
     const char* logging() const;
 
+    /// Class used for setCallback().
+    class Callback {
+    public:
+      enum Action {
+        ContinueAction = 0,
+        StopWithNoOutputAction = 1,
+        StopWithPartialOutputAction = 2
+      };
+      virtual Action call() const = 0;
+    };
+
+    /// Set callback to be called at various unspecified times during
+    /// the computation. Callback has the ability to stop or continue
+    /// the computation based on its return value. If callback is null
+    /// then no function will be called.
+    void setCallback(Callback* callback);
+    Callback* callback();
+    const Callback* callback() const;
+
   private:
     friend class mgbi::PimplOf;
 
@@ -132,6 +151,10 @@ namespace mgb { // Part of the public interface of MathicGB
     };
     void setMonomialOrderInternal(MonomialOrderData order);
     MonomialOrderData monomialOrderInternal() const;
+
+    static Callback::Action callbackCaller(void* obj);
+    void setCallbackInternal(void* data, Callback::Action (*func) (void*));
+    void* callbackDataInternal() const;
 
     struct Pimpl;
     Pimpl* mPimpl;
@@ -432,8 +455,24 @@ namespace mgb {
     );
   }
 
-    
+  inline GroebnerConfiguration::Callback::Action
+  GroebnerConfiguration::callbackCaller(void* obj) {
+    return static_cast<Callback*>(obj)->call();
+  };
 
+  inline void GroebnerConfiguration::setCallback(Callback* callback) {
+    setCallbackInternal(static_cast<void*>(callback), callbackCaller);
+  }
+
+  inline const GroebnerConfiguration::Callback*
+  GroebnerConfiguration::callback() const {
+    return const_cast<GroebnerConfiguration&>(*this).callback();
+  }
+
+  inline GroebnerConfiguration::Callback*
+  GroebnerConfiguration::callback() {
+    return static_cast<Callback*>(callbackDataInternal());
+  }
 
   // ** Implementation of the class IdealStreamLog
   // This class has to be inline as it is a template.

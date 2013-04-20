@@ -318,7 +318,9 @@ namespace mgb {
       mReducer(DefaultReducer),
       mMaxSPairGroupSize(0),
       mMaxThreadCount(0),
-      mLogging()
+      mLogging(),
+      mCallbackData(0),
+      mCallback(0)
 #ifdef MATHICGB_DEBUG
       , mHasBeenDestroyed(false)
 #endif
@@ -349,6 +351,7 @@ namespace mgb {
       MATHICGB_ASSERT(baseOrderValid(mBaseOrder));
       MATHICGB_ASSERT(reducerValid(mReducer));
       MATHICGB_ASSERT(mModulus != 0);
+      MATHICGB_ASSERT(mCallback != 0 || mCallbackData == 0);
       MATHICGB_ASSERT_NO_ASSUME(!mHasBeenDestroyed);
 #endif
       return true;
@@ -362,6 +365,8 @@ namespace mgb {
     size_t mMaxSPairGroupSize;
     size_t mMaxThreadCount;
     std::string mLogging;
+    void* mCallbackData;
+    Callback::Action (*mCallback) (void*);
     MATHICGB_IF_DEBUG(bool mHasBeenDestroyed);
   };
 
@@ -432,6 +437,19 @@ namespace mgb {
       mPimpl->mGradings.size()
     };
     return data;
+  }
+
+  void GroebnerConfiguration::setCallbackInternal(
+    void* data,
+    Callback::Action (*func) (void*)
+  ) {
+    MATHICGB_ASSERT(func != 0 || data == 0);
+    mPimpl->mCallbackData = data;
+    mPimpl->mCallback = func;
+  }
+
+  void* GroebnerConfiguration::callbackDataInternal() const {
+    return mPimpl->mCallbackData;
   }
 
   void GroebnerConfiguration::setReducer(Reducer reducer) {
