@@ -21,6 +21,21 @@ namespace mgbi { // Not part of the public interface of MathicGB
 /// of MathicGB. You should not have to update your code when upgrading to a
 /// newer minor revision of MathicGB if you only use the public interface.
 namespace mgb { // Part of the public interface of MathicGB
+  /// Sets time to the number of seconds accumulated on the internal
+  /// MathicGB log named logName. Returns true if the logName log was
+  /// found and false otherwise.
+  ///
+  /// The available logs and what they measure are not part of
+  /// the public interface of MathicGB and indeed the availability of a log
+  /// depends on both compile-time and run-time events. Therefore you must
+  /// ensure that your program works even if this function always returns
+  /// false.
+  bool logTime(const char* logName, double& time);
+
+  /// As logTime, but retrieves a number associated to logName that is
+  /// not necessarily a time.
+  bool logCharacteristic(const char* logName, double& number);
+
   /// Use this class to describe a configuration of a Groebner basis algorithm
   /// that you want to run.
   ///

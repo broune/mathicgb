@@ -29,6 +29,24 @@ namespace {
 #endif
 #endif
 
+namespace mgb {
+  bool logTime(const char* logName, double& time) {
+    auto log = LogDomainSet::singleton().logDomain(logName);
+    if (log == 0 || !log->enabled())
+      return false;
+    time = log->loggedSecondsReal();
+    return true;
+  }
+
+  bool logCharacteristic(const char* logName, double& number) {
+    auto log = LogDomainSet::singleton().logDomain(logName);
+    if (log == 0 || !log->enabled())
+      return false;
+    number = static_cast<double>(log->count());
+    return true;
+  }
+}
+
 #define MATHICGB_STREAM_CHECK(X, MSG) \
   do { \
     const bool value = (X); \
