@@ -38,7 +38,7 @@ namespace mgb {
     return true;
   }
 
-  bool logCharacteristic(const char* logName, double& number) {
+  bool logNumber(const char* logName, double& number) {
     auto log = LogDomainSet::singleton().logDomain(logName);
     if (log == 0 || !log->enabled())
       return false;

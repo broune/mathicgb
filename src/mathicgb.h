@@ -34,7 +34,7 @@ namespace mgb { // Part of the public interface of MathicGB
 
   /// As logTime, but retrieves a number associated to logName that is
   /// not necessarily a time.
-  bool logCharacteristic(const char* logName, double& number);
+  bool logNumber(const char* logName, double& number);
 
   /// Use this class to describe a configuration of a Groebner basis algorithm
   /// that you want to run.
