@@ -1,22 +1,21 @@
-// Copyright 2011 Michael E. Stillman
 #include "stdinc.h"
-#include "PolyRing.hpp"
+#include "Basis.hpp"
 
+#include "PolyRing.hpp"
 #include "Poly.hpp"
 #include "FreeModuleOrder.hpp"
-#include "Ideal.hpp"
 #include <ostream>
 #include <istream>
 #include <iostream>
 #include <cctype>
 
-Ideal::~Ideal()
+Basis::~Basis()
 {
   for (size_t i = 0; i<mGenerators.size(); i++)
     delete mGenerators[i];
 }
 
-void Ideal::insert(std::unique_ptr<Poly> p) {
+void Basis::insert(std::unique_ptr<Poly> p) {
   MATHICGB_ASSERT(p.get() != 0);
   MATHICGB_ASSERT(p->termsAreInDescendingOrder());
   mGenerators.reserve(mGenerators.size() + 1);
@@ -24,9 +23,9 @@ void Ideal::insert(std::unique_ptr<Poly> p) {
 }
 
 namespace {
-  class IdealSort {
+  class BasisSort {
   public:
-    IdealSort(const FreeModuleOrder& order): mOrder(order) {}
+    BasisSort(const FreeModuleOrder& order): mOrder(order) {}
     bool operator()(const Poly* a, const Poly* b) {
       return mOrder.signatureCompare
         (a->getLeadMonomial(), b->getLeadMonomial()) == LT;
@@ -37,21 +36,17 @@ namespace {
   };
 }
 
-void Ideal::reverse() {
-  std::reverse(mGenerators.begin(), mGenerators.end());
-}
-
-void Ideal::sort(FreeModuleOrder& order) {
-  IdealSort cmp(order);
+void Basis::sort(FreeModuleOrder& order) {
+  BasisSort cmp(order);
   std::sort(mGenerators.begin(), mGenerators.end(), cmp);
 }
 
-std::unique_ptr<Ideal> Ideal::parse(std::istream& in)
+std::unique_ptr<Basis> Basis::parse(std::istream& in)
 {
   PolyRing *R = PolyRing::read(in); // todo: fix this leak
   size_t npolys;
   in >> npolys;
-  auto result = make_unique<Ideal>(*R);
+  auto result = make_unique<Basis>(*R);
   for (size_t j = 0; j < npolys; ++j) {
     auto g = make_unique<Poly>(*R);
     while (std::isspace(in.peek()))
@@ -62,7 +57,7 @@ std::unique_ptr<Ideal> Ideal::parse(std::istream& in)
   return result;
 }
 
-void Ideal::display(std::ostream& out, bool printComponent) const
+void Basis::display(std::ostream& out, bool printComponent) const
 {
   mRing.write(out);
   out << '\n' << mGenerators.size() << '\n';

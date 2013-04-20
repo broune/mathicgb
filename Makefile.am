@@ -22,7 +22,7 @@ libmathicgb_la_SOURCES = src/mathicgb/BjarkeGeobucket2.cpp				\
   src/mathicgb/FreeModuleOrder.cpp src/mathicgb/FreeModuleOrder.hpp		\
   src/mathicgb/GroebnerBasis.cpp src/mathicgb/GroebnerBasis.hpp			\
   src/mathicgb/HashTourReducer.cpp src/mathicgb/HashTourReducer.hpp		\
-  src/mathicgb/Ideal.cpp src/mathicgb/Ideal.hpp							\
+  src/mathicgb/Basis.cpp src/mathicgb/Basis.hpp							\
   src/mathicgb/io-util.cpp src/mathicgb/io-util.hpp						\
   src/mathicgb/KoszulQueue.cpp src/mathicgb/KoszulQueue.hpp				\
   src/mathicgb/MonomialHashTable.hpp src/mathicgb/MonTableDivList.hpp	\
@@ -64,7 +64,8 @@ libmathicgb_la_SOURCES = src/mathicgb/BjarkeGeobucket2.cpp				\
   src/mathicgb/F4ProtoMatrix.cpp src/mathicgb/F4MatrixProject.hpp		\
   src/mathicgb/F4MatrixProjection.cpp src/mathicgb/ScopeExit.hpp		\
   src/mathicgb.cpp src/mathicgb.h src/mathicgb/mtbb.hpp					\
-  src/mathicgb/PrimeField.hpp src/mathicgb/MonoMonoid.hpp
+  src/mathicgb/PrimeField.hpp src/mathicgb/MonoMonoid.hpp				\
+  MonoProcessor.hpp
 
 
 # The headers that libmathicgb installs.

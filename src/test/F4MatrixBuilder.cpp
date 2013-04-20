@@ -4,7 +4,7 @@
 #include "mathicgb/PolyRing.hpp"
 #include "mathicgb/F4MatrixBuilder.hpp"
 #include "mathicgb/FreeModuleOrder.hpp"
-#include "mathicgb/Ideal.hpp"
+#include "mathicgb/Basis.hpp"
 #include "mathicgb/PolyBasis.hpp"
 #include "mathicgb/io-util.hpp"
 #include "mathicgb/mtbb.hpp"
@@ -44,7 +44,7 @@ namespace {
      
   private:
     std::unique_ptr<PolyRing> mRing;
-    Ideal mIdeal;
+    Basis mIdeal;
     std::unique_ptr<FreeModuleOrder> mOrder;
     PolyBasis mBasis;
     std::unique_ptr<F4MatrixBuilder> mBuilder;

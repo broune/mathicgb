@@ -1,7 +1,5 @@
-// Copyright 2011 Michael E. Stillman
-
-#ifndef _ideal_h_
-#define _ideal_h_
+#ifndef MATHICGB_BASIS_GUARD
+#define MATHICGB_BASIS_GUARD
 
 #include <memory>
 #include <algorithm>
@@ -12,17 +10,17 @@
 class Poly;
 class FreeModuleOrder;
 
-class Ideal {
+class Basis {
   // Really: a list of polynomials
   // BUT ALSO maybe: includes memory areas for the polynomials?
 public:
-  Ideal(const PolyRing &R) : mRing(R) {}
-  ~Ideal();
+  Basis(const PolyRing &R) : mRing(R) {}
+  ~Basis();
 
   void insert(std::unique_ptr<Poly> p);
 
   /// reads ring, #gens, each generator in turn
-  static std::unique_ptr<Ideal> parse(std::istream &i);
+  static std::unique_ptr<Basis> parse(std::istream &i);
 
   /// inverse operation to parse().
   void display(std::ostream &o, bool print_comp) const;
@@ -36,7 +34,6 @@ public:
   bool empty() const {return mGenerators.empty();}
   void reserve(size_t size) {mGenerators.reserve(size);}
 
-  void reverse();
   void sort(FreeModuleOrder& order);
 
 private:

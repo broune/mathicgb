@@ -5,7 +5,7 @@
 #include "mathicgb/QuadMatrixBuilder.hpp"
 #include "mathicgb/io-util.hpp"
 #include "mathicgb/FreeModuleOrder.hpp"
-#include "mathicgb/Ideal.hpp"
+#include "mathicgb/Basis.hpp"
 #include "mathicgb/QuadMatrix.hpp"
 #include <gtest/gtest.h>
 
@@ -148,8 +148,8 @@ TEST(QuadMatrixBuilder, ColumnQuery) {
 TEST(QuadMatrixBuilder, SortColumns) {
   // construct builder and reverse lex order
   std::unique_ptr<PolyRing> ring(ringFromString("32003 6 1\n1 1 1 1 1 1"));
-  Ideal ideal(*ring);
-  std::unique_ptr<FreeModuleOrder> order(FreeModuleOrder::makeOrder(1, *ideal.getPolyRing()));
+  Basis basis(*ring);
+  std::unique_ptr<FreeModuleOrder> order(FreeModuleOrder::makeOrder(1, *basis.getPolyRing()));
   
   // one row top, no rows bottom, no columns
   {

@@ -3,7 +3,7 @@
 #include "SignatureGB.hpp"
 
 #include "FreeModuleOrder.hpp"
-#include "Ideal.hpp"
+#include "Basis.hpp"
 #include "DivisorLookup.hpp"
 #include "SigSPairs.hpp"
 #include "PolyHeap.hpp"
@@ -13,7 +13,7 @@
 int tracingLevel = 0;
 
 SignatureGB::SignatureGB(
-  Ideal&& ideal,
+  Basis&& basis,
   FreeModuleOrderType typ,
   Reducer::ReducerType reductiontyp,
   int divlookup_type,
@@ -26,8 +26,8 @@ SignatureGB::SignatureGB(
 ):
   mBreakAfter(0),
   mPrintInterval(0),
-  R(ideal.getPolyRing()),
-  F(FreeModuleOrder::makeOrder(typ, *ideal.getPolyRing())),
+  R(basis.getPolyRing()),
+  F(FreeModuleOrder::makeOrder(typ, *basis.getPolyRing())),
   mPostponeKoszul(postponeKoszul),
   mUseBaseDivisors(useBaseDivisors),
   stats_sPairSignaturesDone(0),
@@ -39,29 +39,29 @@ SignatureGB::SignatureGB(
   stats_nsecs(0.0),
   GB(make_unique<GroebnerBasis>(R, F.get(), divlookup_type, montable_type, preferSparseReducers)),
   mKoszuls(make_unique<KoszulQueue>(F.get(), *R)),
-  Hsyz(MonomialTableArray::make(R, montable_type, ideal.size(), !mPostponeKoszul)),
-  Hsyz2(MonomialTableArray::make(R, montable_type, ideal.size(), !mPostponeKoszul)),
+  Hsyz(MonomialTableArray::make(R, montable_type, basis.size(), !mPostponeKoszul)),
+  Hsyz2(MonomialTableArray::make(R, montable_type, basis.size(), !mPostponeKoszul)),
   reducer(Reducer::makeReducer(reductiontyp, *R)),
   SP(make_unique<SigSPairs>(R, F.get(), GB.get(), Hsyz.get(), reducer.get(), mPostponeKoszul, mUseBaseDivisors, useSingularCriterionEarly, queueType))
 {
   MonoVector schreyer(monoid());
   if (typ == 5 || typ == 4 || typ == 3 || typ == 2 || typ == 6 || typ == 7)
-    for (size_t gen = 0; gen < ideal.size(); ++gen)
-      schreyer.push_back(ideal.getPoly(gen)->getLeadMonomial());
+    for (size_t gen = 0; gen < basis.size(); ++gen)
+      schreyer.push_back(basis.getPoly(gen)->getLeadMonomial());
   mProcessor = make_unique<MonoProcessor<Monoid>>(
     typ == 2 || typ == 4 || typ == 6,
-    ideal.size(),
+    basis.size(),
     monoid(),
     std::move(schreyer)
   );
 
   // Populate GB
-  for (size_t j = 0; j < ideal.size(); j++)
+  for (size_t j = 0; j < basis.size(); j++)
     GB->addComponent();
 
-  for (size_t i = 0; i < ideal.size(); i++) {
+  for (size_t i = 0; i < basis.size(); i++) {
     Poly *g = new Poly(*R);
-    ideal.getPoly(i)->copy(*g);
+    basis.getPoly(i)->copy(*g);
     g->makeMonic();
 
     monomial sig = 0;
@@ -75,7 +75,7 @@ SignatureGB::SignatureGB(
   }
 
   // Populate SP
-  for (size_t i = 0; i < ideal.size(); i++)
+  for (size_t i = 0; i < basis.size(); i++)
     SP->newPairs(i);
 
   if (tracingLevel >= 2) {

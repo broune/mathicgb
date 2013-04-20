@@ -1,7 +1,7 @@
 #include "mathicgb/stdinc.h"
 #include "mathicgb.h"
 
-#include "mathicgb/Ideal.hpp"
+#include "mathicgb/Basis.hpp"
 #include "mathicgb/PolyRing.hpp"
 #include "mathicgb/Poly.hpp"
 #include "mathicgb/Reducer.hpp"
@@ -484,7 +484,7 @@ namespace mgb {
           GroebnerConfiguration::LexicographicBaseOrder,
         conf.monomialOrder().second
       ),
-      ideal(ring),
+      basis(ring),
       poly(ring),
       monomial(ring.allocMonomial()),
       conf(conf)
@@ -499,7 +499,7 @@ namespace mgb {
     }
 
     const PolyRing ring;
-    Ideal ideal;
+    Basis basis;
     Poly poly;
     Monomial monomial;
     const GroebnerConfiguration conf;
@@ -542,7 +542,7 @@ namespace mgb {
     MATHICGB_ASSERT(debugAssertValid());
     MATHICGB_IF_DEBUG(mPimpl->checker.idealBegin());
     MATHICGB_ASSERT(mPimpl->poly.isZero());
-    MATHICGB_ASSERT(mPimpl->ideal.empty());
+    MATHICGB_ASSERT(mPimpl->basis.empty());
 
     MATHICGB_ASSERT(debugAssertValid());
   }
@@ -551,9 +551,9 @@ namespace mgb {
     MATHICGB_ASSERT(debugAssertValid());
     MATHICGB_IF_DEBUG(mPimpl->checker.idealBegin(polyCount));
     MATHICGB_ASSERT(mPimpl->poly.isZero());
-    MATHICGB_ASSERT(mPimpl->ideal.empty());
+    MATHICGB_ASSERT(mPimpl->basis.empty());
 
-    mPimpl->ideal.reserve(polyCount);
+    mPimpl->basis.reserve(polyCount);
 
     MATHICGB_ASSERT(debugAssertValid());
   }
@@ -606,7 +606,7 @@ namespace mgb {
     auto poly = make_unique<Poly>(std::move(mPimpl->poly));
     if (!poly->termsAreInDescendingOrder())
       poly->sortTermsDescending();
-    mPimpl->ideal.insert(std::move(poly));
+    mPimpl->basis.insert(std::move(poly));
     mPimpl->poly.setToZero();
 
     MATHICGB_ASSERT(debugAssertValid());
@@ -623,7 +623,7 @@ namespace mgb {
     MATHICGB_ASSERT(mPimpl != 0);
     MATHICGB_ASSERT_NO_ASSUME(!mPimpl->hasBeenDestroyed);
     MATHICGB_ASSERT(!mPimpl->monomial.isNull());
-    MATHICGB_ASSERT(&mPimpl->ideal.ring() == &mPimpl->ring);
+    MATHICGB_ASSERT(&mPimpl->basis.ring() == &mPimpl->ring);
     MATHICGB_ASSERT(&mPimpl->poly.ring() == &mPimpl->ring);
     MATHICGB_ASSERT(mPimpl->ring.getNumVars() == mPimpl->conf.varCount());
     MATHICGB_ASSERT(mPimpl->ring.charac() == mPimpl->conf.modulus());
@@ -646,7 +646,7 @@ namespace mgbi {
 // ** Implementation of mgbi::IdealAdapter
 namespace mgbi {
   struct IdealAdapter::Pimpl {
-    std::unique_ptr<Ideal> ideal;
+    std::unique_ptr<Basis> basis;
   };
 
   IdealAdapter::IdealAdapter():
@@ -659,28 +659,28 @@ namespace mgbi {
   }
 
   auto IdealAdapter::varCount() const -> VarIndex {
-    MATHICGB_ASSERT(mPimpl->ideal.get() != 0);
-    return mPimpl->ideal->ring().getNumVars();
+    MATHICGB_ASSERT(mPimpl->basis.get() != 0);
+    return mPimpl->basis->ring().getNumVars();
   }
 
   size_t IdealAdapter::polyCount() const {
-    MATHICGB_ASSERT(mPimpl->ideal.get() != 0);
-    return mPimpl->ideal->size();
+    MATHICGB_ASSERT(mPimpl->basis.get() != 0);
+    return mPimpl->basis->size();
   }
 
   size_t IdealAdapter::termCount(PolyIndex poly) const {
-    MATHICGB_ASSERT(mPimpl->ideal.get() != 0);
-    MATHICGB_ASSERT(poly < mPimpl->ideal->size());
-    return mPimpl->ideal->getPoly(poly)->nTerms();
+    MATHICGB_ASSERT(mPimpl->basis.get() != 0);
+    MATHICGB_ASSERT(poly < mPimpl->basis->size());
+    return mPimpl->basis->getPoly(poly)->nTerms();
   }
 
   auto IdealAdapter::term(
     PolyIndex poly,
     TermIndex term
   ) const -> std::pair<Coefficient, const Exponent*> {
-    MATHICGB_ASSERT(mPimpl->ideal.get() != 0);
-    MATHICGB_ASSERT(poly < mPimpl->ideal->size());
-    const auto& p = *mPimpl->ideal->getPoly(poly);
+    MATHICGB_ASSERT(mPimpl->basis.get() != 0);
+    MATHICGB_ASSERT(poly < mPimpl->basis->size());
+    const auto& p = *mPimpl->basis->getPoly(poly);
 
     MATHICGB_ASSERT(term < p.nTerms());
     return std::make_pair(
@@ -700,9 +700,9 @@ namespace mgbi {
     /// polynomial-by-polynomial as data is transferred to out. Also
     /// make it so that ideal is not copied.
 
-    auto&& ideal = PimplOf()(inputWhichWillBeCleared).ideal;
+    auto&& basis = PimplOf()(inputWhichWillBeCleared).basis;
     auto&& conf = inputWhichWillBeCleared.configuration();
-    auto&& ring = ideal.ring();
+    auto&& ring = basis.ring();
     const auto varCount = ring.getNumVars();
     MATHICGB_ASSERT(PimplOf()(conf).debugAssertValid());
 
@@ -733,7 +733,7 @@ namespace mgbi {
     const auto reducer = Reducer::makeReducer(reducerType, ring);
 
     // Set up and configure algorithm
-    BuchbergerAlg alg(ideal, 4, *reducer, 2, true, 0);
+    BuchbergerAlg alg(basis, 4, *reducer, 2, true, 0);
     alg.setReducerMemoryQuantum(100 * 1024);
     alg.setUseAutoTopReduction(true);
     alg.setUseAutoTailReduction(false);
@@ -741,6 +741,6 @@ namespace mgbi {
 
     // Compute Groebner basis
     alg.computeGrobnerBasis();
-    PimplOf()(output).ideal = alg.basis().toIdealAndRetireAll();
+    PimplOf()(output).basis = alg.basis().toBasisAndRetireAll();
   }
 }

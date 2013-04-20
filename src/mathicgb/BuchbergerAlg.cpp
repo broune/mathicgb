@@ -1,6 +1,6 @@
 #include "stdinc.h"
 #include "BuchbergerAlg.hpp"
-#include "Ideal.hpp"
+#include "Basis.hpp"
 
 #include "LogDomain.hpp"
 #include <iostream>
@@ -11,7 +11,7 @@ MATHICGB_DEFINE_LOG_DOMAIN(
 );
 
 BuchbergerAlg::BuchbergerAlg(
-  const Ideal& ideal,
+  const Basis& basis,
   FreeModuleOrderType orderType,
   Reducer& reducer,
   int divisorLookupType,
@@ -23,21 +23,21 @@ BuchbergerAlg::BuchbergerAlg(
   mSPairGroupSize(reducer.preferredSetSize()),
   mUseAutoTopReduction(true),
   mUseAutoTailReduction(false),
-  mRing(*ideal.getPolyRing()),
-  mOrder(FreeModuleOrder::makeOrder(orderType, *ideal.getPolyRing())),
+  mRing(*basis.getPolyRing()),
+  mOrder(FreeModuleOrder::makeOrder(orderType, *basis.getPolyRing())),
   mReducer(reducer),
   mBasis(mRing, *mOrder, DivisorLookup::makeFactory(
-    *ideal.getPolyRing(),
+    *basis.getPolyRing(),
     divisorLookupType)->create(preferSparseReducers, true)
   ),
   mSPairs(mBasis, preferSparseReducers),
   mSPolyReductionCount(0)
 {
   // Reduce and insert the generators of the ideal into the starting basis
-  size_t const idealSize = ideal.size();
+  size_t const basisSize = basis.size();
   std::vector<std::unique_ptr<Poly> > polys;
-  for (size_t gen = 0; gen != idealSize; ++gen)
-    polys.push_back(make_unique<Poly>(*ideal.getPoly(gen)));
+  for (size_t gen = 0; gen != basisSize; ++gen)
+    polys.push_back(make_unique<Poly>(*basis.getPoly(gen)));
   insertPolys(polys);
 }
 

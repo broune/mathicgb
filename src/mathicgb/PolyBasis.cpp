@@ -1,5 +1,5 @@
 #include "stdinc.h"
-#include "Ideal.hpp"
+#include "Basis.hpp"
 #include "PolyBasis.hpp"
 
 #include "DivisorLookup.hpp"
@@ -27,18 +27,18 @@ PolyBasis::~PolyBasis() {
   }
 }
 
-std::unique_ptr<Ideal> PolyBasis::initialIdeal() const {
-  std::unique_ptr<Ideal> ideal(new Ideal(mRing));
-  size_t const idealSize = size();
-  for (size_t gen = 0; gen != idealSize; ++gen) {
+std::unique_ptr<Basis> PolyBasis::initialIdeal() const {
+  std::unique_ptr<Basis> basis(new Basis(mRing));
+  size_t const basisSize = size();
+  for (size_t gen = 0; gen != basisSize; ++gen) {
     if (!retired(gen) && leadMinimal(gen)) {
       std::unique_ptr<Poly> p(new Poly(mRing));
       p->appendTerm(1, leadMonomial(gen));
-      ideal->insert(std::move(p));
+      basis->insert(std::move(p));
     }
   }
-  ideal->sort(mOrder);
-  return ideal;
+  basis->sort(mOrder);
+  return basis;
 }
 
 void PolyBasis::insert(std::unique_ptr<Poly> poly) {
@@ -95,12 +95,12 @@ std::unique_ptr<Poly> PolyBasis::retire(size_t index) {
   return poly;
 }
 
-std::unique_ptr<Ideal> PolyBasis::toIdealAndRetireAll() {
-  auto ideal = make_unique<Ideal>(ring());
+std::unique_ptr<Basis> PolyBasis::toBasisAndRetireAll() {
+  auto basis = make_unique<Basis>(ring());
   for (size_t i = 0; i < size(); ++i)
     if (!retired(i))
-      ideal->insert(retire(i));
-  return ideal;
+      basis->insert(retire(i));
+  return basis;
 }
 
 size_t PolyBasis::divisor(const_monomial mon) const {

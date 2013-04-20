@@ -2,7 +2,7 @@
 #include "GBAction.hpp"
 
 #include "mathicgb/BuchbergerAlg.hpp"
-#include "mathicgb/Ideal.hpp"
+#include "mathicgb/Basis.hpp"
 #include "mathicgb/io-util.hpp"
 #include "mathicgb/F4Reducer.hpp"
 #include <fstream>
@@ -58,15 +58,15 @@ void GBAction::performAction() {
   const std::string projectName = mParams.inputFileNameStem(0);
 
   // read input
-  std::unique_ptr<Ideal> ideal;
+  std::unique_ptr<Basis> basis;
   {
-    const std::string inputIdealFile = projectName + ".ideal";
-    std::ifstream inputFile(inputIdealFile.c_str());
+    const std::string inputBasisFile = projectName + ".ideal";
+    std::ifstream inputFile(inputBasisFile.c_str());
     if (inputFile.fail())
-      mic::reportError("Could not read input file \"" + inputIdealFile + '\n');
-    ideal = Ideal::parse(inputFile);
+      mic::reportError("Could not read input file \"" + inputBasisFile + '\n');
+    basis = Basis::parse(inputFile);
   }
-  std::unique_ptr<PolyRing const> ring(&(ideal->ring()));
+  std::unique_ptr<PolyRing const> ring(&(basis->ring()));
 
   // run algorithm
   const auto reducerType = Reducer::reducerType(mGBParams.mReducer.value());
@@ -86,7 +86,7 @@ void GBAction::performAction() {
   }
 
   BuchbergerAlg alg(
-    *ideal,
+    *basis,
     4 /*mModuleOrder.value()*/ , // todo: alg should not take a *module* order
     *reducer,
     mGBParams.mDivisorLookup.value(),

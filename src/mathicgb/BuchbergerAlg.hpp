@@ -10,11 +10,13 @@
 #include <ostream>
 #include <vector>
 
+class Basis;
+
 /// Calculates a classic Grobner basis using Buchberger's algorithm.
 class BuchbergerAlg {
 public:
   BuchbergerAlg(
-    const Ideal& ideal,
+    const Basis& basis,
     FreeModuleOrderType orderType,
     Reducer& reducer,
     int divisorLookupType,

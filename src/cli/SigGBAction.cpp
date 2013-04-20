@@ -1,7 +1,7 @@
 #include "mathicgb/stdinc.h"
 #include "SigGBAction.hpp"
 
-#include "mathicgb/Ideal.hpp"
+#include "mathicgb/Basis.hpp"
 #include "mathicgb/SignatureGB.hpp"
 #include "mathicgb/io-util.hpp"
 #include <fstream>
@@ -48,18 +48,18 @@ void SigGBAction::performAction() {
   mGBParams.perform();
 
   // read input file
-  std::unique_ptr<Ideal> ideal;
+  std::unique_ptr<Basis> basis;
   {
-    const std::string inputIdealFile = mParams.inputFileNameStem(0) + ".ideal";
-    std::ifstream inputFile(inputIdealFile.c_str());
+    const std::string inputBasisFile = mParams.inputFileNameStem(0) + ".ideal";
+    std::ifstream inputFile(inputBasisFile.c_str());
     if (inputFile.fail())
-      mic::reportError("Could not read input file \"" + inputIdealFile + '\n');
-    ideal = Ideal::parse(inputFile);
+      mic::reportError("Could not read input file \"" + inputBasisFile + '\n');
+    basis = Basis::parse(inputFile);
   }
-  std::unique_ptr<PolyRing const> ring(&(ideal->ring()));
+  std::unique_ptr<PolyRing const> ring(&(basis->ring()));
 
   SignatureGB alg(
-    std::move(*ideal),
+    std::move(*basis),
     mModuleOrder.value(),
     Reducer::reducerType(mGBParams.mReducer.value()),
     mGBParams.mDivisorLookup.value(),

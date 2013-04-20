@@ -7,7 +7,7 @@
 #include <sstream>
 
 #include "mathicgb/Poly.hpp"
-#include "mathicgb/Ideal.hpp"
+#include "mathicgb/Basis.hpp"
 #include "mathicgb/MonTableNaive.hpp"
 #include "mathicgb/MonTableKDTree.hpp"
 #include "mathicgb/MonTableDivList.hpp"
@@ -659,7 +659,7 @@ TEST(OldMonomial, findSignatures) {
 
 TEST(Ideal,readwrite) {
   // This also tests Poly::iterator
-  std::unique_ptr<Ideal> I = idealParseFromString(ideal1);
+  std::unique_ptr<Basis> I = basisParseFromString(ideal1);
   size_t ngens = I->viewGenerators().size();
   EXPECT_TRUE(2 == ngens);
 
@@ -678,7 +678,7 @@ TEST(Ideal,readwrite) {
 
 TEST(Poly,lead) {
   // This also tests Poly::iterator, Poly::read, Poly::write
-  std::unique_ptr<Ideal> I = idealParseFromString(ideal1);
+  std::unique_ptr<Basis> I = basisParseFromString(ideal1);
   std::unique_ptr<const PolyRing> R(I->getPolyRing());
   monomial lm = stringToMonomial(R.get(), "ab");
   EXPECT_TRUE(R->monomialEQ(lm, I->getPoly(0)->getLeadMonomial()));
@@ -691,9 +691,9 @@ TEST(Poly,lead) {
 // Test reducer code /////////
 //////////////////////////////
 
-std::unique_ptr<Poly> multIdealByPolyReducer(int typ, const Ideal& ideal, const Poly& g)
+std::unique_ptr<Poly> multIdealByPolyReducer(int typ, const Basis& basis, const Poly& g)
 {
-  const PolyRing& R = ideal.ring();
+  const PolyRing& R = basis.ring();
   auto poly = make_unique<Poly>(R);
   std::unique_ptr<Reducer> H = Reducer::makeReducer(static_cast<Reducer::ReducerType>(typ), R);
   for (Poly::const_iterator i = g.begin(); i != g.end(); ++i) {
@@ -701,7 +701,7 @@ std::unique_ptr<Poly> multIdealByPolyReducer(int typ, const Ideal& ideal, const 
     R.monomialCopy(i.getMonomial(), mon);
     int x = R.monomialGetComponent(mon);
     R.monomialChangeComponent(mon, 0);
-    std::unique_ptr<Poly> h(ideal.getPoly(x)->copy());
+    std::unique_ptr<Poly> h(basis.getPoly(x)->copy());
     h->multByTerm(i.getCoefficient(), mon);
     R.monomialSetIdentity(mon);
 
@@ -715,13 +715,13 @@ std::unique_ptr<Poly> multIdealByPolyReducer(int typ, const Ideal& ideal, const 
 
 void testPolyReducer(
   Reducer::ReducerType reducerType,
-  const Ideal& ideal,
+  const Basis& basis,
   const std::string& f,
   const std::string& ans
 ) {
-  const PolyRing& ring = *ideal.getPolyRing();
+  const PolyRing& ring = *basis.getPolyRing();
   std::unique_ptr<Poly> g = polyParseFromString(&ring, f);
-  std::unique_ptr<Poly> h = multIdealByPolyReducer(reducerType, ideal, *g);
+  std::unique_ptr<Poly> h = multIdealByPolyReducer(reducerType, basis, *g);
   if (!h->isZero()) {
     Poly::iterator prev = h->begin();
     Poly::iterator it = prev;
@@ -740,7 +740,7 @@ TEST(Reducer, insert) {
   //  use this last poly to determine what to add to the heap
   // at the end, take the value of the heap, compare to answer
 
-  std::unique_ptr<Ideal> I = idealParseFromString(ideal2); // charac is 32003
+  std::unique_ptr<Basis> I = basisParseFromString(ideal2); // charac is 32003
   for (int typ = 0; typ <= 30; ++typ) {
     Reducer::ReducerType red = Reducer::ReducerType(typ);
     if (static_cast<int>(red) != typ ||

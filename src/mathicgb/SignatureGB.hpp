@@ -3,10 +3,6 @@
 #ifndef _sig_gb_h_
 #define _sig_gb_h_
 
-#ifdef Win32
-#include "StdAfx.h"
-#endif
-
 #include "PolyRing.hpp"
 #include "MTArray.hpp"
 #include "GroebnerBasis.hpp"
@@ -27,7 +23,7 @@ public:
   typedef Monoid::MonoVector MonoVector;
 
   SignatureGB(
-    Ideal&& ideal,
+    Basis&& basis,
     FreeModuleOrderType typ,
     Reducer::ReducerType reductiontyp,
     int divlookup_type,

@@ -3,7 +3,7 @@
 #include "mathicgb/stdinc.h"
 
 #include "mathicgb/Poly.hpp"
-#include "mathicgb/Ideal.hpp"
+#include "mathicgb/Basis.hpp"
 #include "mathicgb/MTArray.hpp"
 #include "mathicgb/MonTableNaive.hpp"
 #include "mathicgb/io-util.hpp"
@@ -31,7 +31,7 @@ TEST(IO, ideal) {
 -bc2+a2e \
 ";
 
-  std::unique_ptr<Ideal> I = idealParseFromString(idealA_fromStr_format);
+  std::unique_ptr<Basis> I = basisParseFromString(idealA_fromStr_format);
   EXPECT_EQ("  -bc+ad\n  -b2+af\n  -bc2+a2e\n", toString(I.get()));
 }
 
@@ -286,7 +286,7 @@ spairQueue	reducerType	divLookup	monTable	buchberger	postponeKoszul	useBaseDivis
     // check that we have a valid reducer type
     Reducer::ReducerType red = Reducer::ReducerType(reducerType);
     MATHICGB_ASSERT(static_cast<int>(red) == reducerType);
-    std::unique_ptr<Ideal> I(idealParseFromString(idealStr));
+    std::unique_ptr<Basis> I(basisParseFromString(idealStr));
     MATHICGB_ASSERT
       (Reducer::makeReducerNullOnUnknown(red, I->ring()).get() != 0);
 
@@ -301,7 +301,7 @@ spairQueue	reducerType	divLookup	monTable	buchberger	postponeKoszul	useBaseDivis
       alg.setUseAutoTailReduction(autoTailReduce);
       alg.setSPairGroupSize(sPairGroupSize);
       alg.computeGrobnerBasis();
-      std::unique_ptr<Ideal> initialIdeal =
+      std::unique_ptr<Basis> initialIdeal =
         alg.basis().initialIdeal();
       EXPECT_EQ(initialIdealStr, toString(initialIdeal.get()))
         << reducerType << ' ' << divLookup << ' '

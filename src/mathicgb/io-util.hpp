@@ -9,7 +9,7 @@ class Poly;
 class GroebnerBasis;
 class MonomialTableArray;
 class PolyBasis;
-class Ideal;
+class Basis;
 
 std::unique_ptr<PolyRing> ringFromString(std::string ringinfo);
 monomial monomialFromString(const PolyRing *R, std::string mon);
@@ -23,10 +23,10 @@ std::string monomialToString(const PolyRing *R, const Monomial& mon);
 std::string toString(GroebnerBasis *);
 std::string toString(MonomialTableArray *);
 std::string toString(GroebnerBasis *, int unused); // also displays signature
-std::string toString(Ideal *);
+std::string toString(Basis *);
 std::string toString(const Poly *);
 
-std::unique_ptr<Ideal> idealParseFromString(std::string str);
+std::unique_ptr<Basis> basisParseFromString(std::string str);
 std::unique_ptr<Poly> polyParseFromString(const PolyRing *R, const std::string &s);
 
 void output(std::ostream &o, const PolyBasis &I);

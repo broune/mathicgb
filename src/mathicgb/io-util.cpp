@@ -15,7 +15,7 @@
 #include "SignatureGB.hpp"
 #include "MTArray.hpp"
 
-#include "Ideal.hpp"
+#include "Basis.hpp"
 #include "PolyBasis.hpp"
 
 std::unique_ptr<Poly> polyParseFromString(const PolyRing *R, const std::string &s)
@@ -33,10 +33,10 @@ std::string toString(const Poly *g)
   return o.str();
 }
 
-std::unique_ptr<Ideal> idealParseFromString(std::string str)
+std::unique_ptr<Basis> basisParseFromString(std::string str)
 {
   std::istringstream i(str);
-  return std::unique_ptr<Ideal>(Ideal::parse(i));
+  return std::unique_ptr<Basis>(Basis::parse(i));
 }
 
 std::unique_ptr<PolyRing> ringFromString(std::string ringinfo)
@@ -103,7 +103,7 @@ std::string toString(MonomialTableArray* H)
   return o.str();
 }
 
-std::string toString(Ideal *I)
+std::string toString(Basis *I)
 {
   std::ostringstream o;
   for (size_t i=0; i<I->size(); i++)

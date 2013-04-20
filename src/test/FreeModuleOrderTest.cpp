@@ -1,22 +1,22 @@
 #include "mathicgb/stdinc.h"
 
 #include "mathicgb/PolyRing.hpp"
-#include "mathicgb/Ideal.hpp"
+#include "mathicgb/Basis.hpp"
 #include "mathicgb/FreeModuleOrder.hpp"
 #include "mathicgb/io-util.hpp"
 #include <gtest/gtest.h>
 #include <algorithm>
 
 void runTest(
-  const char* idealStr,
+  const char* basisStr,
   const char* signatureStr,
   const char* correctStr,
   int orderType
 ) {
   std::string line;
 
-  std::unique_ptr<Ideal> ideal = idealParseFromString(idealStr);
-  const PolyRing* ring = ideal->getPolyRing();
+  std::unique_ptr<Basis> basis = basisParseFromString(basisStr);
+  const PolyRing* ring = basis->getPolyRing();
 
   std::vector<monomial> sigs;
   std::vector<PreSPair> pairs;
@@ -44,7 +44,7 @@ void runTest(
   MATHICGB_ASSERT(sigs.size() == pairs.size());
 
   std::unique_ptr<FreeModuleOrder> order
-    (FreeModuleOrder::makeOrder(orderType, *ideal->getPolyRing()));
+    (FreeModuleOrder::makeOrder(orderType, *basis->getPolyRing()));
   order->sortSignatures(pairs);
   for (size_t i = 0; i < pairs.size(); ++i) {
     ring->freeMonomial(pairs[i].signature);
@@ -69,7 +69,7 @@ void runTest(
 }
 
 TEST(FreeModuleOrder, One) {
-  const char* ideal = 
+  const char* basis = 
 "32003 3 "
 "1 1 1 1 "
 "3 "
@@ -86,11 +86,11 @@ TEST(FreeModuleOrder, One) {
     "bc<1>\n" // 6
     "ab2c<2>\n"; // 7
 
-  runTest(ideal, sigs, "0 1 6 4 5 3 7 2", 1);
-  //runTest(ideal, sigs, "0 6 5 1 4 3 7 2", 2); 
-  //runTest(ideal, sigs, "0 6 5 1 7 4 3 2", 3); 
-  //runTest(ideal, sigs, "0 6 5 1 4 3 7 2", 4); 
-  //runTest(ideal, sigs, "0 6 5 1 4 7 3 2", 5); 
-  //runTest(ideal, sigs, "1 4 3 2 0 6 5 7", 6);
-  //runTest(ideal, sigs, "7 0 6 5 1 4 3 2", 7);
+  runTest(basis, sigs, "0 1 6 4 5 3 7 2", 1);
+  //runTest(basis, sigs, "0 6 5 1 4 3 7 2", 2); 
+  //runTest(basis, sigs, "0 6 5 1 7 4 3 2", 3); 
+  //runTest(basis, sigs, "0 6 5 1 4 3 7 2", 4); 
+  //runTest(basis, sigs, "0 6 5 1 4 7 3 2", 5); 
+  //runTest(basis, sigs, "1 4 3 2 0 6 5 7", 6);
+  //runTest(basis, sigs, "7 0 6 5 1 4 3 2", 7);
 }

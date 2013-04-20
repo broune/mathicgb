@@ -7,7 +7,7 @@
 #include <memory>
 
 class PolyRing;
-class Ideal;
+class Basis;
 class FreeModuleOrder;
 
 class PolyBasis {
@@ -22,8 +22,8 @@ public:
   // Deletes the Poly's stored in the basis.
   ~PolyBasis();
 
-  // Returns the initial monomial ideal of the basis (not the ideal).
-  std::unique_ptr<Ideal> initialIdeal() const;
+  // Returns the initial monomial basis of the basis (not the basis).
+  std::unique_ptr<Basis> initialIdeal() const;
 
   // Inserts a polynomial into the basis at index size().
   // Lead monomials must be unique among basis elements.
@@ -78,10 +78,10 @@ public:
   // to it, including the basis element polynomial, and marks it as retired. 
   std::unique_ptr<Poly> retire(size_t index);
 
-  /// Returns an ideal containing all non-retired basis elements and
+  /// Returns an basis containing all non-retired basis elements and
   /// retires all those basis elements. The point of the simultaneous
   /// retirement is that this way no polynomials need be copied.
-  std::unique_ptr<Ideal> toIdealAndRetireAll();
+  std::unique_ptr<Basis> toBasisAndRetireAll();
 
   // Returns true of the basis element at index has been retired.
   bool retired(size_t index) const {
