@@ -1,6 +1,7 @@
 #ifndef MATHICGB_MONO_MONOID_GUARD
 #define MATHICGB_MONO_MONOID_GUARD
 
+#include "MonoOrder.hpp"
 #include <vector>
 #include <algorithm>
 #include <memtailor.h>
@@ -132,6 +133,44 @@ public:
 
 
   // *** Constructors and accessors
+
+  MonoMonoid(MonoOrder<Exponent>& order):
+    mVarCount(order.varCount()),
+    mGradingCount(gradingCount()),
+    mOrderIndexBegin(HasComponent + mVarCount),
+    mOrderIndexEnd(mOrderIndexBegin + StoreOrder * mGradingCount),
+    mEntryCount // todo: use max here
+      (mOrderIndexEnd + StoreHash == 0 ? 1 : mOrderIndexEnd + StoreHash),
+    mHashCoefficients(mVarCount),
+    mGradingIsTotalDegreeRevLex(order.gradingIsTotalDegreeRevLex()),
+    mGradings(),
+    mLexBaseOrder(order.baseOrder() == MonoOrder<Exponent>::LexBaseOrder),
+    mPool(*this)
+  {
+    if (!mGradingIsTotalDegreeRevLex) {
+      // Take negative values since reverse lex makes bigger values
+      // give smaller monomials, but we need bigger degrees to give
+      // bigger monomials.
+      auto& gradings = order.gradings();
+      MATHICGB_ASSERT(varCount == 0 || gradings.size() % varCount == 0);
+      MATHICGB_ASSERT(mLexBaseOrder || (varCount == 0) == (gradings.empty()));
+
+      for (VarIndex grading = 0; grading < gradingCount(); ++grading) {
+        for (VarIndex var = 0; var < varCount; ++var) {
+          auto w = gradings[gradingsOppositeRowIndex(grading, var)];
+          if (!mLexBaseOrder)
+            w = -w;
+          mGradings[gradingsIndex(grading, var)] = w;
+        }
+      }
+    }
+
+    std::srand(0); // To use the same hash coefficients every time.
+    for (VarIndex var = 0; var < varCount; ++var)
+      mHashCoefficients[var] = static_cast<HashValue>(std::rand());      
+
+    MATHICGB_ASSERT(debugAssertValid());
+  }
 
   MonoMonoid(
     const VarIndex varCount,
