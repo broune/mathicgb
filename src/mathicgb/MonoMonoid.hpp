@@ -136,13 +136,16 @@ public:
 
   MonoMonoid(MonoOrder<Exponent>& order):
     mVarCount(order.varCount()),
-    mGradingCount(gradingCount()),
+    mGradingCount(order.gradingCount()),
     mOrderIndexBegin(HasComponent + mVarCount),
     mOrderIndexEnd(mOrderIndexBegin + StoreOrder * mGradingCount),
     mEntryCount // todo: use max here
       (mOrderIndexEnd + StoreHash == 0 ? 1 : mOrderIndexEnd + StoreHash),
     mHashCoefficients(mVarCount),
-    mGradingIsTotalDegreeRevLex(order.gradingIsTotalDegreeRevLex()),
+    mGradingIsTotalDegreeRevLex(
+      order.baseOrder() == MonoOrder<Exponent>::RevLexBaseOrder &&
+      order.isTotalDegree()
+    ),
     mGradings(),
     mLexBaseOrder(order.baseOrder() == MonoOrder<Exponent>::LexBaseOrder),
     mPool(*this)
@@ -152,11 +155,12 @@ public:
       // give smaller monomials, but we need bigger degrees to give
       // bigger monomials.
       auto& gradings = order.gradings();
-      MATHICGB_ASSERT(varCount == 0 || gradings.size() % varCount == 0);
-      MATHICGB_ASSERT(mLexBaseOrder || (varCount == 0) == (gradings.empty()));
+      mGradings.resize(gradings.size());
+      MATHICGB_ASSERT(varCount() == 0 || gradings.size() % varCount() == 0);
+      MATHICGB_ASSERT(mLexBaseOrder || (varCount() == 0) == (gradings.empty()));
 
       for (VarIndex grading = 0; grading < gradingCount(); ++grading) {
-        for (VarIndex var = 0; var < varCount; ++var) {
+        for (VarIndex var = 0; var < varCount(); ++var) {
           auto w = gradings[gradingsOppositeRowIndex(grading, var)];
           if (!mLexBaseOrder)
             w = -w;
@@ -166,7 +170,7 @@ public:
     }
 
     std::srand(0); // To use the same hash coefficients every time.
-    for (VarIndex var = 0; var < varCount; ++var)
+    for (VarIndex var = 0; var < varCount(); ++var)
       mHashCoefficients[var] = static_cast<HashValue>(std::rand());      
 
     MATHICGB_ASSERT(debugAssertValid());
@@ -1741,6 +1745,15 @@ auto MonoMonoid<E, HC, SH, SO>::readMonoid(std::istream& in) -> MonoMonoid {
     in >> e;
     gradings[w] = static_cast<Exponent>(e);
   }
+  typedef MonoOrder<Exponent> Order;
+  Order order(
+    varCount,
+    std::move(gradings),
+    lexBaseOrder ? Order::LexBaseOrder : Order::RevLexBaseOrder,
+    Order::ComponentAfterBaseOrder
+  );
+  return MonoMonoid(order);
+
   return MonoMonoid(varCount, lexBaseOrder, gradings);
 }
 
