@@ -24,8 +24,8 @@ MATHICGB_DEFINE_LOG_ALIAS(
 
 SPairs::SPairs(const PolyBasis& basis, bool preferSparseSPairs):
   mMonoid(basis.ring().monoid()),
-  mOrderMonoid(mMonoid),
-  mBareMonoid(mMonoid),
+  mOrderMonoid(OrderMonoid::create(mMonoid)),
+  mBareMonoid(BareMonoid::create(mMonoid)),
   mQueue(QueueConfiguration(basis, mOrderMonoid, preferSparseSPairs)),
   mBasis(basis)
  {}

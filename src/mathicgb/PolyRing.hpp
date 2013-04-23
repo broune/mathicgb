@@ -204,9 +204,9 @@ public:
     coefficient charac,
     int nvars,
     bool lexBaseOrder,
-    const std::vector<exponent>& weights
+    std::vector<exponent>&& weights
   );
-  PolyRing(const Field& field, const Monoid& monoid);
+  PolyRing(const Field& field, Monoid&& monoid);
 
   size_t getMemoryUse() const {
     // todo: Make this more accurate.

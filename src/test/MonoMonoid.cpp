@@ -571,6 +571,7 @@ TYPED_TEST(Monoid, LcmColon) {
 
 TYPED_TEST(Monoid, Order) {
   typedef TypeParam Monoid;
+  typedef typename Monoid::Order Order;
   typedef typename Monoid::Exponent Exponent;
 
   auto check = [](const Monoid& m, const char* sorted) -> void {
@@ -595,16 +596,28 @@ TYPED_TEST(Monoid, Order) {
   const auto sortedTotalDegreeRevLex =
     "1 Z A z c b a c2 bc ac b2 ab a2 c3 abc b3 a3";
   check(Monoid(52), sortedTotalDegreeRevLex);
-  check
-    (Monoid(52, false, std::vector<Exponent>(52, 1)), sortedTotalDegreeRevLex);
-  check
-    (Monoid(52, false, std::vector<Exponent>(52, 7)), sortedTotalDegreeRevLex);
+  check(
+    Monoid(Order(52, std::vector<Exponent>(52, 1), Order::RevLexBaseOrder)),
+    sortedTotalDegreeRevLex
+  );
+  check(
+    Monoid(Order(52, std::vector<Exponent>(52, 7), Order::RevLexBaseOrder)),
+    sortedTotalDegreeRevLex
+  );
   std::vector<Exponent> revLexGradings(52, 1);
   for (size_t grading = 51; grading != static_cast<size_t>(-1); --grading)
     for (size_t var = 0; var < 52; ++var)
       revLexGradings.push_back(var == grading ? -1 : 0);
-  check(Monoid(52, false, revLexGradings), sortedTotalDegreeRevLex);
-  check(Monoid(52, true, revLexGradings), sortedTotalDegreeRevLex);
+  check(
+    Monoid(
+      Order(52, std::vector<Exponent>(revLexGradings), Order::RevLexBaseOrder)
+    ),
+    sortedTotalDegreeRevLex
+  );
+  check(
+    Monoid(Order(52, std::move(revLexGradings), Order::LexBaseOrder)),
+    sortedTotalDegreeRevLex
+  );
 
   std::vector<Exponent> dupGradings = {
      5, 2, 3,
@@ -624,7 +637,10 @@ TYPED_TEST(Monoid, Order) {
   // bc3: 11 21
   // ab3: 11 21
   const auto sortedDupGradingsRevLex = "1 b c a bc c2 b3 bc3 ab3";
-  check(Monoid(3, false, dupGradings), sortedDupGradingsRevLex);
+  check(
+    Monoid(Order(3, std::move(dupGradings), Order::RevLexBaseOrder)),
+    sortedDupGradingsRevLex
+  );
 
   std::vector<Exponent> lexGradings = {
     0, 0, 1,
@@ -633,9 +649,16 @@ TYPED_TEST(Monoid, Order) {
   };
   const auto sortedLex =
     "1 a a2 a3 b ab a2b b2 ab2 b3 c ac bc abc c2 ac2 bc2 c3";
-  check(Monoid(3, false, lexGradings), sortedLex);
-  check(Monoid(3, true, lexGradings), sortedLex);
-  check(Monoid(3, true, std::vector<Exponent>()), sortedLex);
+  check(
+    Monoid(
+      Order(3, std::vector<Exponent>(lexGradings), Order::RevLexBaseOrder)
+    ),
+    sortedLex
+  );
+  check
+    (Monoid(Order(3, std::move(lexGradings), Order::LexBaseOrder)), sortedLex);
+  check
+    (Monoid(Order(3, std::vector<Exponent>(), Order::LexBaseOrder)), sortedLex);
 }
 
 TYPED_TEST(Monoid, RelativelyPrime) {
@@ -671,15 +694,21 @@ TYPED_TEST(Monoid, SetExponents) {
 
 TYPED_TEST(Monoid, HasAmpleCapacityTotalDegree) {
   typedef TypeParam Monoid;
+  typedef typename Monoid::Order Order;
   typedef typename Monoid::Exponent Exponent;
   typedef typename Monoid::VarIndex VarIndex;
 
   for (VarIndex varCount = 1; varCount < 33; ++varCount) {
     Monoid monoidTotalDegree(varCount);
-    std::vector<Exponent> v(varCount, 1);
-    Monoid monoidTotalDegreeImplicit(varCount, false, v);
-    v[0] = 7;
-    Monoid monoidGeneral(varCount, false, v);
+    
+    std::vector<Exponent> ones(varCount, 1);
+    Monoid monoidTotalDegreeImplicit
+      (Order(varCount, std::move(ones), Order::RevLexBaseOrder));
+
+    std::vector<Exponent> mostlyOnes(varCount, 1);
+    mostlyOnes[0] = 7;
+    Monoid monoidGeneral
+      (Order(varCount, std::move(mostlyOnes), Order::RevLexBaseOrder));
 
     Monoid* monoids[] = {
       &monoidTotalDegree,
@@ -688,7 +717,7 @@ TYPED_TEST(Monoid, HasAmpleCapacityTotalDegree) {
     };
     for (int j = 0; j < 3; ++j) {
       auto& m = *monoids[j];
-      const auto firstDeg = (j == 2 ? v[0] : 1);
+      const auto firstDeg = (j == 2 ? 7 : 1);
       ASSERT_EQ(varCount, m.varCount());
 
       typename Monoid::MonoPool p(m);
@@ -726,15 +755,18 @@ TYPED_TEST(Monoid, HasAmpleCapacityTotalDegree) {
 
 TYPED_TEST(Monoid, CopyEqualConversion) {
   typedef TypeParam Monoid;
+  typedef typename Monoid::Order Order;
   typedef typename Monoid::Exponent Exponent;
   typedef typename Monoid::VarIndex VarIndex;
   static const bool HasComponent = Monoid::HasComponent;
   typedef MonoMonoid<Exponent, HasComponent, false, false> MonoidNone;
   typedef MonoMonoid<Exponent, HasComponent, true, true> MonoidAll;
   for (VarIndex varCount = 1; varCount < 33; ++varCount) {
-    MonoidNone none(varCount, false, std::vector<Exponent>(varCount, 1));
-    Monoid some(none);
-    MonoidAll all(some);
+    const Order order
+      (varCount, std::vector<Exponent>(varCount, 1), Order::RevLexBaseOrder);
+    MonoidNone none(order);
+    Monoid some(Monoid::create(none));
+    MonoidAll all(MonoidAll::create(some));
 
     auto none1 = none.alloc();
     auto none2 = none.alloc();

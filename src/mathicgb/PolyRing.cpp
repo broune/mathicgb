@@ -11,17 +11,26 @@
 #include <cstdlib>
 #include <limits>
 
-PolyRing::PolyRing(const Field& field, const Monoid& monoid):
-  mField(field), mMonoid(monoid)
+PolyRing::PolyRing(const Field& field, Monoid&& monoid):
+  mField(field), mMonoid(std::move(monoid))
 {}
 
 PolyRing::PolyRing(
   coefficient p0,
   int nvars,
   bool lexBaseOrder,
-  const std::vector<exponent>& weights
+  std::vector<exponent>&& weights
 ):
-  mField(p0), mMonoid(nvars, lexBaseOrder, weights)
+  mField(p0),
+  mMonoid(
+    MonoOrder<exponent>(
+      nvars,
+      std::move(weights),
+      lexBaseOrder ?
+        MonoOrder<exponent>::LexBaseOrder :
+        MonoOrder<exponent>::RevLexBaseOrder
+    )
+  )
 {}
 
 ///////////////////////////////////////

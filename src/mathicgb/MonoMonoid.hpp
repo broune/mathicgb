@@ -7,6 +7,7 @@
 #include <memtailor.h>
 #include <type_traits>
 #include <istream>
+#include <utility>
 #include <ostream>
 #include <cstdlib>
 #include <cstring>
@@ -37,45 +38,205 @@ template<
 >
 class MonoMonoid;
 
+namespace MonoMonoidInternal {
+  template<class E, bool HC, bool SH, bool SO>
+  class Base {
+  public:
+    static const bool HasComponent = HC;
+    static const bool StoreHash = SH;
+    static const bool StoreOrder = SO;
+
+    typedef size_t VarIndex;
+    typedef E Exponent;
+    typedef typename std::make_unsigned<E>::type Component;
+    typedef typename std::make_unsigned<E>::type HashValue;
+    typedef const Exponent* const_iterator;
+    typedef MonoOrder<Exponent> Order;
+
+    Base(const Order& order):
+      mVarCount(order.varCount()),
+      mGradingCount(order.gradingCount()),
+      mOrderIndexBegin(HasComponent + order.varCount()),
+      mOrderIndexEnd(mOrderIndexBegin + StoreOrder * order.gradingCount()),
+      mEntryCount(std::max<VarIndex>(mOrderIndexEnd + StoreHash, 1)),
+      mHashCoefficients(makeHashCoefficients(order.varCount())),
+      mOrderIsTotalDegreeRevLex
+        (order.baseOrder() == Order::RevLexBaseOrder && order.isTotalDegree()),
+      mLexBaseOrder(order.baseOrder() == Order::LexBaseOrder),
+      mGradings(mOrderIsTotalDegreeRevLex ? Gradings() : makeGradings(order))
+    {}
+
+    VarIndex varCount() const {return mVarCount;}
+    VarIndex gradingCount() const {return mGradingCount;}
+
+    VarIndex entryCount() const {return mEntryCount;}
+    VarIndex orderIndexEnd() const {return mOrderIndexEnd;}
+    VarIndex orderIndexBegin() const {return mOrderIndexBegin;}
+    VarIndex hashIndex() const {return mOrderIndexEnd;}
+
+
+  protected:
+    typedef std::vector<Exponent> HashCoefficients;
+    typedef std::vector<Exponent> Gradings;
+
+    static Gradings makeGradings(const Order& order) {
+      auto gradings = order.gradings();
+      reverseGradings(order.varCount(), gradings);
+      if (order.baseOrder() == Order::RevLexBaseOrder)
+        negateGradings(gradings);
+      return gradings;
+    }
+
+    /// Reverse the relative order among the gradings - the first one
+    /// becomes the last one, the second first becomes the second last
+    /// and so on.
+    static void reverseGradings(const VarIndex varCount, Gradings& gradings) {
+      if (varCount == 0)
+        return;
+      MATHICGB_ASSERT(gradings.size() % varCount == 0);
+      const auto gradingCount = gradings.size() / varCount;
+
+      for (VarIndex grading = 0; grading < gradingCount / 2; ++grading) {
+        for (VarIndex var = 0; var < varCount; ++var) {
+          const auto index = gradingsIndex(grading, var, varCount);
+          const auto oppositeIndex = gradingsOppositeRowIndex
+            (grading, gradingCount, var, varCount);
+          std::swap(gradings[index], gradings[oppositeIndex]);
+        }
+      }
+    }
+
+    /// Replace each entry in the grading matrix with its negative.
+    static void negateGradings(Gradings& gradings) {
+      const auto size = gradings.size();
+      for (size_t i = 0; i < size; ++i)
+        gradings[i] = -gradings[i];
+    }
+
+    const HashCoefficients& hashCoefficients() const {return mHashCoefficients;}
+    bool orderIsTotalDegreeRevLex() const {return mOrderIsTotalDegreeRevLex;}
+    Gradings& gradings() {return mGradings;} // todo: remove this overload
+    const Gradings& gradings() const {return mGradings;}
+    bool isLexBaseOrder() const {return mLexBaseOrder;}
+
+    static size_t gradingsIndex(
+      const VarIndex grading,
+      const VarIndex var,
+      const VarIndex varCount
+    ) {
+      MATHICGB_ASSERT(var < varCount);
+      return grading * static_cast<size_t>(varCount) + var;
+    }
+
+    size_t gradingsIndex(const VarIndex grading, const VarIndex var) const {
+      MATHICGB_ASSERT(grading < gradingCount());
+      MATHICGB_ASSERT(var < varCount());
+      const auto index = gradingsIndex(grading, var, varCount());
+      MATHICGB_ASSERT(index < gradings().size());
+      return index;
+    }
+
+    static size_t gradingsOppositeRowIndex(
+      const VarIndex grading,
+      const VarIndex gradingCount,
+      const VarIndex var,
+      const VarIndex varCount
+    ) {
+      MATHICGB_ASSERT(grading < gradingCount);
+      MATHICGB_ASSERT(var < varCount);
+      return gradingsIndex(gradingCount - 1 - grading, var, varCount);
+    }
+
+    size_t gradingsOppositeRowIndex(
+      const VarIndex grading,
+      const VarIndex var
+    ) const {
+      MATHICGB_ASSERT(grading < gradingCount());
+      MATHICGB_ASSERT(var < varCount());
+      const auto index =
+        gradingsOppositeRowIndex(grading, gradingCount(), var, varCount());
+      MATHICGB_ASSERT(index < gradings().size());
+      return index;
+    }
+
+  private:
+    HashCoefficients static makeHashCoefficients(const VarIndex varCount) {
+      std::srand(0); // To use the same hash coefficients every time.
+      HashCoefficients coeffs(varCount);
+      for (VarIndex var = 0; var < varCount; ++var)
+        coeffs[var] = static_cast<HashValue>(std::rand());
+      return coeffs;
+    }
+
+    const VarIndex mVarCount;
+    const VarIndex mGradingCount;
+    const VarIndex mOrderIndexBegin;
+    const VarIndex mOrderIndexEnd;
+    const VarIndex mEntryCount;
+
+    /// Take dot product of exponents with this vector to get hash value.
+    const HashCoefficients mHashCoefficients;
+
+    /// This is initialized before mGradings, so it has to be ordered
+    /// above mGradings. 
+    const bool mOrderIsTotalDegreeRevLex;
+
+    /// If true then lex is used to break ties. Otherwise, revlex is
+    /// used. This applies as well to degrees, which implies that
+    /// degrees have to be stored negated if doing revlex.
+    const bool mLexBaseOrder;
+    
+    /// Defines a matrix where each row is a grading. The degree of a
+    /// monomial with respect to grading g is the dot product of the
+    /// exponent vector of that monomial with row g of the matrix
+    /// (starting at g=0). The matrix is stored in row-major order. If
+    /// mOrderIsTotalDegreeRevLex is true then mGradings is empty but
+    /// implicitly it is a single grading consisting of all 1s and the
+    /// base order is revlex.
+    std::vector<Exponent> mGradings;    
+  };
+}
 
 template<class E, bool HC, bool SH, bool SO>
-class MonoMonoid {
+class MonoMonoid : private MonoMonoidInternal::Base<E, HC, SH, SO> {
+private:
+  typedef MonoMonoidInternal::Base<E, HC, SH, SO> Base;
+
 public:
   static_assert(std::numeric_limits<E>::is_signed, "");
-
 
   // *** Types
 
   // Integer index representing a variable. Indices start at 0 and go
   // up to varCount() - 1 where varCount() is the number of variables.
-  typedef size_t VarIndex;
+  typedef typename Base::VarIndex VarIndex;
 
   /// The type of each exponent of a monomial.
-  typedef E Exponent;
+  typedef typename Base::Exponent Exponent;
 
   /// Is true if the monomials come from a module.
-  static const bool HasComponent = HC;
+  using Base::HasComponent;
 
   /// Is true if the hash value is stored rather than computed at each 
   /// hash request. This imposes extra computation when updating a monomial,
   /// but for most operations that overhead is much less than the time for
   /// computing a hash value from scratch.
-  static const bool StoreHash = SH;
+  using Base::StoreHash;
 
   /// Is true if data to compare monomials is stored rather than computed
   /// at each comparison. As storeHash, there is overhead for this, but it
   /// is not much for most operations.
-  static const bool StoreOrder = SO;
+  using Base::StoreOrder;
 
   /// Type used to indicate the component of a module monomial. For example,
   /// the component of xe_3 is 3.
-  typedef typename std::make_unsigned<E>::type Component;
+  typedef typename Base::Component Component;
 
   /// Type used to store hash values of monomials.
-  typedef typename std::make_unsigned<E>::type HashValue;
+  typedef typename Base::HashValue HashValue;
 
   /// Iterator for the exponents in a monomial.
-  typedef const Exponent* const_iterator;
+  typedef typename Base::const_iterator const_iterator;
 
   /// Represents a monomial and manages the memory underlying it. To
   /// refer to a non-owned monomial or to refer to a Mono, use MonoRef
@@ -124,6 +285,9 @@ public:
     GreaterThan = 1
   };
 
+  /// Used to describe a monomial order when constructing a monoid.
+  typedef typename Base::Order Order;
+
   // *** Temporary compatibility code for migrating off PolyRing
   friend class PolyRing;
   static MonoRef toRef(Exponent* e) {return MonoRef(e);}
@@ -134,151 +298,43 @@ public:
 
   // *** Constructors and accessors
 
-  MonoMonoid(MonoOrder<Exponent>& order):
-    mVarCount(order.varCount()),
-    mGradingCount(gradingCount()),
-    mOrderIndexBegin(HasComponent + mVarCount),
-    mOrderIndexEnd(mOrderIndexBegin + StoreOrder * mGradingCount),
-    mEntryCount // todo: use max here
-      (mOrderIndexEnd + StoreHash == 0 ? 1 : mOrderIndexEnd + StoreHash),
-    mHashCoefficients(mVarCount),
-    mGradingIsTotalDegreeRevLex(order.gradingIsTotalDegreeRevLex()),
-    mGradings(),
-    mLexBaseOrder(order.baseOrder() == MonoOrder<Exponent>::LexBaseOrder),
-    mPool(*this)
-  {
-    if (!mGradingIsTotalDegreeRevLex) {
-      // Take negative values since reverse lex makes bigger values
-      // give smaller monomials, but we need bigger degrees to give
-      // bigger monomials.
-      auto& gradings = order.gradings();
-      MATHICGB_ASSERT(varCount == 0 || gradings.size() % varCount == 0);
-      MATHICGB_ASSERT(mLexBaseOrder || (varCount == 0) == (gradings.empty()));
-
-      for (VarIndex grading = 0; grading < gradingCount(); ++grading) {
-        for (VarIndex var = 0; var < varCount; ++var) {
-          auto w = gradings[gradingsOppositeRowIndex(grading, var)];
-          if (!mLexBaseOrder)
-            w = -w;
-          mGradings[gradingsIndex(grading, var)] = w;
-        }
-      }
-    }
-
-    std::srand(0); // To use the same hash coefficients every time.
-    for (VarIndex var = 0; var < varCount; ++var)
-      mHashCoefficients[var] = static_cast<HashValue>(std::rand());      
-
+  MonoMonoid(MonoMonoid&& monoid): Base(std::move(monoid)), mPool(*this) {
     MATHICGB_ASSERT(debugAssertValid());
   }
 
-  MonoMonoid(
-    const VarIndex varCount,
-    const bool lexBaseOrder,
-    const std::vector<Exponent>& gradings
-  ):
-    mVarCount(varCount),
-    mGradingCount(varCount == 0 ? 0 : gradings.size() / varCount),
-    mOrderIndexBegin(HasComponent + varCount),
-    mOrderIndexEnd(mOrderIndexBegin + StoreOrder * mGradingCount),
-    mEntryCount
-      (mOrderIndexEnd + StoreHash == 0 ? 1 : mOrderIndexEnd + StoreHash),
-    mHashCoefficients(varCount),
-    mGradingIsTotalDegreeRevLex(
-      [&]() {
-        MATHICGB_ASSERT(varCount == 0 || gradings.size() % varCount == 0);
-        MATHICGB_ASSERT(lexBaseOrder || (varCount == 0) == (gradings.empty()));
-        if (lexBaseOrder || gradings.size() != varCount || varCount == 0)
-          return false;
-        for (auto it = gradings.begin(); it != gradings.end(); ++it)
-          if (*it != 1)
-            return false;
-        return true;
-      }()
-    ),
-    mGradings(),
-    mLexBaseOrder(lexBaseOrder),
-    mPool(*this)
-  {
-    MATHICGB_ASSERT(varCount == 0 || gradings.size() % varCount == 0);
-    MATHICGB_ASSERT(lexBaseOrder || (varCount == 0) == (gradings.empty()));
-    if (!mGradingIsTotalDegreeRevLex) {
-      mGradings.resize(gradings.size());
-      // Take negative values since reverse lex makes bigger values
-      // give smaller monomials, but we need bigger degrees to give
-      // bigger monomials.
-      for (VarIndex grading = 0; grading < gradingCount(); ++grading) {
-        for (VarIndex var = 0; var < varCount; ++var) {
-          auto w = gradings[gradingsOppositeRowIndex(grading, var)];
-          if (!mLexBaseOrder)
-            w = -w;
-          mGradings[gradingsIndex(grading, var)] = w;
-        }
-      }
-    }
-
-    std::srand(0); // To use the same hash coefficients every time.
-    for (VarIndex var = 0; var < varCount; ++var)
-      mHashCoefficients[var] = static_cast<HashValue>(std::rand());      
-
+  MonoMonoid(const MonoMonoid& monoid): Base(monoid), mPool(*this) {
     MATHICGB_ASSERT(debugAssertValid());
   }
 
-  MonoMonoid(const VarIndex varCount):
-    mVarCount(varCount),
-    mGradingCount(1),
-    mOrderIndexBegin(HasComponent + mVarCount),
-    mOrderIndexEnd(mOrderIndexBegin + StoreOrder * mGradingCount),
-    mEntryCount
-      (mOrderIndexEnd + StoreHash == 0 ? 1 : mOrderIndexEnd + StoreHash),
-    mHashCoefficients(mVarCount),
-    mGradingIsTotalDegreeRevLex(true),
-    mGradings(),
-    mLexBaseOrder(false),
-    mPool(*this)
-  {
-    std::srand(0); // To use the same hash coefficients every time.
-    for (VarIndex var = 0; var < varCount; ++var)
-      mHashCoefficients[var] = static_cast<HashValue>(std::rand());      
+  MonoMonoid(const Order& order): Base(order), mPool(*this) {
     MATHICGB_ASSERT(debugAssertValid());
   }
 
-  /// Copies the ordering and varCount from monoid.
+  /// Creates a compatible copy of monoid.
   template<class E2, bool HC2, bool SH2, bool SO2>
-  MonoMonoid(const MonoMonoid<E2, HC2, SH2, SO2>& monoid):
-    mVarCount(monoid.varCount()),
-    mGradingCount(monoid.gradingCount()),
-    mOrderIndexBegin(HasComponent + mVarCount),
-    mOrderIndexEnd(mOrderIndexBegin + StoreOrder * mGradingCount),
-    mEntryCount
-      (mOrderIndexEnd + StoreHash == 0 ? 1 : mOrderIndexEnd + StoreHash),
-    mHashCoefficients(monoid.mHashCoefficients),
-    mGradingIsTotalDegreeRevLex(monoid.mGradingIsTotalDegreeRevLex),
-    mGradings(monoid.mGradings),
-    mLexBaseOrder(monoid.mLexBaseOrder),
-    mPool(*this)
-  {
-    MATHICGB_ASSERT(debugAssertValid());
-  }
-
-  // the compiler-generated copy constructor is a better match for overload
-  // resolution than the template constructor above, so we need to provide
-  // our own copy constructor to prevent the compiler-generated one from
-  // being used.
-  MonoMonoid(const MonoMonoid& monoid):
-    mVarCount(monoid.varCount()),
-    mGradingCount(monoid.gradingCount()),
-    mOrderIndexBegin(HasComponent + mVarCount),
-    mOrderIndexEnd(mOrderIndexBegin + StoreOrder * mGradingCount),
-    mEntryCount
-      (mOrderIndexEnd + StoreHash == 0 ? 1 : mOrderIndexEnd + StoreHash),
-    mHashCoefficients(monoid.mHashCoefficients),
-    mGradingIsTotalDegreeRevLex(monoid.mGradingIsTotalDegreeRevLex),
-    mGradings(monoid.mGradings),
-    mLexBaseOrder(monoid.mLexBaseOrder),
-    mPool(*this)
-  {
-    MATHICGB_ASSERT(debugAssertValid());
+  static MonoMonoid create(const MonoMonoid<E2, HC2, SH2, SO2>& monoid) {
+    std::vector<Exponent> gradings(monoid.varCount(), 1);
+    if (!monoid.orderIsTotalDegreeRevLex()) {
+      gradings = monoid.gradings();
+      reverseGradings(monoid.varCount(), gradings);
+      if (monoid.isLexBaseOrder())
+        negateGradings(gradings);
+/*
+      gradings.resize(monoid.gradings().size());
+      for (VarIndex grading = 0; grading < monoid.gradingCount(); ++grading) {
+        for (VarIndex var = 0; var < monoid.varCount(); ++var) {
+          auto w = monoid.gradings()[monoid.gradingsOppositeRowIndex(grading, var)];
+          if (!monoid.isLexBaseOrder())
+            w = -w;
+          gradings[monoid.gradingsIndex(grading, var)] = w;
+        }
+      }
+*/
+    }
+    Order order(monoid.varCount(), std::move(gradings),
+                monoid.isLexBaseOrder() ? 
+                Order::LexBaseOrder : Order::RevLexBaseOrder);
+    return MonoMonoid(order);
   }
 
   static MonoMonoid readMonoid(std::istream& in);
@@ -296,11 +352,12 @@ public:
   /// comparing module monomials. Only relevant once actually
   /// considering the component. This is only relevant for module
   /// monomials.
-  bool componentsAscending() const {return mLexBaseOrder;}
+  bool componentsAscending() const {return isLexBaseOrder();}
 
   /// Returns the number of variables. This is also the number of
   /// exponents in the exponent vector of a monomial.
-  VarIndex varCount() const {return mVarCount;}
+  using Base::varCount;
+  //VarIndex varCount() const {return mVarCount;}
 
 
   // *** Monomial accessors and queries
@@ -595,8 +652,8 @@ public:
       while (grading != 0) {
         --grading;
         const auto cmp = degree(a, grading) - degree(b, grading);
-        if (cmp < 0) return mLexBaseOrder ? LessThan : GreaterThan;
-        if (cmp > 0) return mLexBaseOrder ? GreaterThan : LessThan;
+        if (cmp < 0) return isLexBaseOrder() ? LessThan : GreaterThan;
+        if (cmp > 0) return isLexBaseOrder() ? GreaterThan : LessThan;
       }
       index = exponentsIndexEnd();
     }
@@ -607,8 +664,8 @@ public:
     while (index != entriesIndexBegin()) {
       --index;
       const auto cmp = access(a, index) - access(b, index);
-      if (cmp < 0) return mLexBaseOrder ? LessThan : GreaterThan;
-      if (cmp > 0) return mLexBaseOrder ? GreaterThan : LessThan;
+      if (cmp < 0) return isLexBaseOrder() ? LessThan : GreaterThan;
+      if (cmp > 0) return isLexBaseOrder() ? GreaterThan : LessThan;
     }
     return EqualTo;
   }
@@ -632,8 +689,8 @@ public:
         --grading;
         const auto cmp =
           degree(a, grading) - (degree(b1, grading) + degree(b2, grading));
-        if (cmp < 0) return mLexBaseOrder ? LessThan : GreaterThan;
-        if (cmp > 0) return mLexBaseOrder ? GreaterThan : LessThan;
+        if (cmp < 0) return isLexBaseOrder() ? LessThan : GreaterThan;
+        if (cmp > 0) return isLexBaseOrder() ? GreaterThan : LessThan;
       }
       index = exponentsIndexEnd();
     }
@@ -645,8 +702,8 @@ public:
       --index;
       const auto cmp =
         access(a, index) - (access(b1, index) + access(b2, index));
-      if (cmp < 0) return mLexBaseOrder ? LessThan : GreaterThan;
-      if (cmp > 0) return mLexBaseOrder ? GreaterThan : LessThan;
+      if (cmp < 0) return isLexBaseOrder() ? LessThan : GreaterThan;
+      if (cmp > 0) return isLexBaseOrder() ? GreaterThan : LessThan;
     }
     return EqualTo;
   }
@@ -704,7 +761,7 @@ public:
   }
 
   /// Returns the number of gradings.
-  size_t gradingCount() const {return mGradingCount;}
+  using Base::gradingCount;
 
 
   // *** Monomial mutating computations
@@ -1378,6 +1435,8 @@ public:
 
 
 private:
+  void operator=(MonoMonoid&); // not available
+
   // Grants access to other template instantiations.
   template<class E2, bool HC2, bool SH2, bool SO2>
   friend class MonoMonoid;
@@ -1398,20 +1457,20 @@ private:
     const auto storedDegrees = StoreOrder * gradingCount();
     MATHICGB_ASSERT(orderIndexEnd() == orderIndexBegin() + storedDegrees);
     MATHICGB_ASSERT(orderIndexEnd() <= entryCount());
-    if (mOrderIndexEnd + StoreHash == 0) {
+    if (orderIndexEnd() + StoreHash == 0) {
       MATHICGB_ASSERT(entryCount() == 1);
     } else {
-      MATHICGB_ASSERT(entryCount() == mOrderIndexEnd + StoreHash);
+      MATHICGB_ASSERT(entryCount() == orderIndexEnd() + StoreHash);
     }
 
-    MATHICGB_ASSERT(mLexBaseOrder || varCount() == 0 || gradingCount() >= 1);
+    MATHICGB_ASSERT(isLexBaseOrder() || varCount() == 0 || gradingCount() >= 1);
 
-    if (mGradingIsTotalDegreeRevLex) {
-      MATHICGB_ASSERT(!mLexBaseOrder);
-      MATHICGB_ASSERT(mGradings.empty());
+    if (orderIsTotalDegreeRevLex()) {
+      MATHICGB_ASSERT(!isLexBaseOrder());
+      MATHICGB_ASSERT(gradings().empty());
       MATHICGB_ASSERT(gradingCount() == 1);
     } else {
-      MATHICGB_ASSERT(mGradings.size() == gradingCount() * varCount());
+      MATHICGB_ASSERT(gradings().size() == gradingCount() * varCount());
     }
 
     // ** Hash checks
@@ -1419,7 +1478,7 @@ private:
       MATHICGB_ASSERT(hashIndex() < entryCount());
       MATHICGB_ASSERT(hashIndex() == orderIndexEnd());
     }
-    MATHICGB_ASSERT(mHashCoefficients.size() == varCount());
+    MATHICGB_ASSERT(hashCoefficients().size() == varCount());
 #endif
     return true;
   }
@@ -1484,19 +1543,11 @@ private:
   }
 
   // *** Implementation of monomial ordering
-  size_t gradingsIndex(VarIndex grading, VarIndex var) const {
-    MATHICGB_ASSERT(grading < gradingCount());
-    MATHICGB_ASSERT(var < varCount());
-    const auto index = grading * static_cast<size_t>(varCount()) + var;
-    MATHICGB_ASSERT(index < mGradings.size());
-    return index;
-  }
 
-  size_t gradingsOppositeRowIndex(VarIndex grading, VarIndex var) const {
-    MATHICGB_ASSERT(grading < gradingCount());
-    MATHICGB_ASSERT(var < varCount());
-    return gradingsIndex(gradingCount() - 1 - grading, var);
-  }
+  using Base::gradingsOppositeRowIndex;
+  using Base::gradingsIndex;
+  using Base::reverseGradings;
+  using Base::negateGradings;
 
   bool debugOrderValid(ConstMonoRef mono) const {
 #ifdef MATHICGB_DEBUG
@@ -1531,16 +1582,16 @@ private:
       return;
 
     MATHICGB_ASSERT(var < varCount());
-    if (mGradingIsTotalDegreeRevLex) {
-      MATHICGB_ASSERT(!mLexBaseOrder);
+    if (orderIsTotalDegreeRevLex()) {
+      MATHICGB_ASSERT(!isLexBaseOrder());
       MATHICGB_ASSERT(gradingCount() == 1);
       rawPtr(mono)[orderIndexBegin()] -= newExponent - oldExponent;
     } else {
-      MATHICGB_ASSERT(mGradings.size() == gradingCount() * varCount());
+      MATHICGB_ASSERT(gradings().size() == gradingCount() * varCount());
       const auto degrees = ptr(mono, orderIndexBegin());
       for (VarIndex grading = 0; grading < gradingCount(); ++grading) {
         const auto index = gradingsIndex(grading, var);
-        degrees[grading] += mGradings[index] * ( newExponent - oldExponent);
+        degrees[grading] += gradings()[index] * ( newExponent - oldExponent);
       }
     }
     MATHICGB_ASSERT(debugOrderValid(mono));
@@ -1550,15 +1601,15 @@ private:
     MATHICGB_ASSERT(grading < gradingCount());
 
     Exponent degree = 0;
-    if (mGradingIsTotalDegreeRevLex) {
+    if (orderIsTotalDegreeRevLex()) {
       MATHICGB_ASSERT(grading == 0);
       for (auto var = 0; var < varCount(); ++var)
         degree -= exponent(mono, var);
     } else {
-      MATHICGB_ASSERT(mGradings.size() == gradingCount() * varCount());
+      MATHICGB_ASSERT(gradings().size() == gradingCount() * varCount());
       for (auto var = 0; var < varCount(); ++var) {
         const auto index = gradingsIndex(grading, var);
-        degree += exponent(mono, var) * mGradings[index];
+        degree += exponent(mono, var) * gradings()[index];
       }
     }
     return degree;
@@ -1582,7 +1633,7 @@ private:
     HashValue hash = HasComponent ? component(mono) : 0;
     for (VarIndex var = 0; var < varCount(); ++var) {
       hash +=
-        static_cast<HashValue>(exponent(mono, var)) * mHashCoefficients[var];
+        static_cast<HashValue>(exponent(mono, var)) * hashCoefficients()[var];
     }
 
     // Hash values are stored as exponents. If the cast to an exponent
@@ -1620,7 +1671,7 @@ private:
       return;
     MATHICGB_ASSERT(var < varCount());
     rawPtr(mono)[hashIndex()] +=
-      (newExponent - oldExponent) * mHashCoefficients[var];
+      (newExponent - oldExponent) * hashCoefficients()[var];
     MATHICGB_ASSERT(debugHashValid(mono));
   }
 
@@ -1632,7 +1683,8 @@ private:
   /// Returns how many Exponents are necessary to store a
   /// monomial. This can include other data than the exponents, so
   /// this number can be larger than varCount().
-  size_t entryCount() const {return mEntryCount;}
+  using Base::entryCount;
+  //size_t entryCount() const {return mEntryCount;}
 
   VarIndex componentIndex() const {
     //static_assert(HasComponent, "");
@@ -1643,52 +1695,19 @@ private:
   VarIndex exponentsIndexEnd() const {return exponentsIndexBegin() + varCount();}
   VarIndex lastExponentIndex() const {return exponentsIndexEnd() - 1;}
 
-  VarIndex orderIndexBegin() const {
-    //static_assert(StoreOrder, "");
-    return mOrderIndexBegin;
-  }
-
-  VarIndex orderIndexEnd() const {
-    //static_assert(StoreOrder, "");
-    return mOrderIndexEnd;
-  }
-
-  VarIndex hashIndex() const {
-    //static_assert(StoreHash, "");
-    return mOrderIndexEnd;
-  }
+  using Base::orderIndexBegin;
+  using Base::orderIndexEnd;
+  using Base::hashIndex;
+  using Base::orderIsTotalDegreeRevLex;
+  using Base::gradings;
+  using Base::isLexBaseOrder;
 
   VarIndex entriesIndexBegin() const {return 0;}
   VarIndex entriesIndexEnd() const {return entryCount();}
   VarIndex beforeEntriesIndexBegin() const {return entriesIndexBegin() - 1;}
   VarIndex lastEntryIndex() const {return entriesIndexEnd() - 1;}
 
-  const VarIndex mVarCount;
-  const VarIndex mGradingCount;
-  const VarIndex mOrderIndexBegin;
-  const VarIndex mOrderIndexEnd;
-  const VarIndex mEntryCount;
-
-  /// Take dot product of exponents with this vector to get hash value.
-  std::vector<HashValue> mHashCoefficients;
-
-  /// This is initialized before mGradings, so it has to be ordered
-  /// above mGradings. 
-  const bool mGradingIsTotalDegreeRevLex;
-
-  /// Defines a matrix where each row is a grading. The degree of a
-  /// monomial with respect to grading g is the dot product of the
-  /// exponent vector of that monomial with row g of the matrix
-  /// (starting at g=0). The matrix is stored in row-major order. If
-  /// mGradingIsTotalDegreeRevLex is true then mGradings is empty but
-  /// implicitly it is a single grading consisting of all 1s and the
-  /// base order is revlex.
-  std::vector<Exponent> mGradings;
-
-  /// If true then lex is used to break ties. Otherwise, revlex is
-  /// used. This applies as well to degrees, which implies that
-  /// degrees have to be stored negated if doing revlex.
-  const bool mLexBaseOrder;
+  using Base::hashCoefficients;
 
   mutable MonoPool mPool;
 };
@@ -1741,7 +1760,13 @@ auto MonoMonoid<E, HC, SH, SO>::readMonoid(std::istream& in) -> MonoMonoid {
     in >> e;
     gradings[w] = static_cast<Exponent>(e);
   }
-  return MonoMonoid(varCount, lexBaseOrder, gradings);
+  Order order(
+    varCount,
+    std::move(gradings),
+    lexBaseOrder ? Order::LexBaseOrder : Order::RevLexBaseOrder,
+    Order::ComponentAfterBaseOrder
+  );
+  return MonoMonoid(order);
 }
 
 template<class E, bool HC, bool SH, bool SO>
@@ -1750,20 +1775,20 @@ void MonoMonoid<E, HC, SH, SO>::printMonoid(std::ostream& out) const {
   typedef typename unchar<Exponent>::type UncharredExponent;
 
   out << varCount() << '\n'
-      << (mLexBaseOrder ? "lex" : "revlex")
+      << (isLexBaseOrder() ? "lex" : "revlex")
       << ' ' << gradingCount() << '\n';
-  if (mGradingIsTotalDegreeRevLex) {
-    MATHICGB_ASSERT(!mLexBaseOrder);
-    MATHICGB_ASSERT(mGradings.empty());
+  if (orderIsTotalDegreeRevLex()) {
+    MATHICGB_ASSERT(!isLexBaseOrder());
+    MATHICGB_ASSERT(gradings().empty());
     for (VarIndex var = 0; var < varCount(); ++var)
       out << " 1";
     out << '\n';
   } else {
-    MATHICGB_ASSERT(mGradings.size() == gradingCount() * varCount());
+    MATHICGB_ASSERT(gradings().size() == gradingCount() * varCount());
     for (VarIndex grading = 0; grading < gradingCount(); ++grading) {
       for (VarIndex var = 0; var < varCount(); ++var) {
-        auto w = mGradings[gradingsOppositeRowIndex(grading, var)];
-        if (!mLexBaseOrder)
+        auto w = gradings()[gradingsOppositeRowIndex(grading, var)];
+        if (!isLexBaseOrder())
           w = -w;
         out << ' ' << static_cast<UncharredExponent>(w);
       }

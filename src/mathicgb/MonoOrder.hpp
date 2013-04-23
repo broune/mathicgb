@@ -8,7 +8,8 @@
 /// actual comparisons.
 ///
 /// You can extend the functionality for ordering offered here for
-/// module mononials by pre- and post-processing. See MonoProcessor.
+/// module mononials by pre- and post-processing of monomials. See
+/// MonoProcessor.
 template<class Weight>
 class MonoOrder;
 
@@ -18,80 +19,151 @@ public:
   typedef W Weight;
   typedef size_t VarIndex;
 
-  MonoOrder(const VarIndex varCount):
+  static const size_t ComponentAfterBaseOrder = static_cast<size_t>(-1);
+
+  enum BaseOrder {
+    /// Lexicographic order with x0 < x1 < ... < x_n.
+    LexBaseOrder = 0,
+
+    /// Reverse lexicographic order with x0 > x1 > ... > x_n.
+    RevLexBaseOrder = 1
+  };
+
+  /// Same as MonoOrder(varCount, varOrder, gradings, componentBefore)
+  /// where gradings has a single row of varCount 1's.
+  MonoOrder(
+    const VarIndex varCount,
+    const BaseOrder baseOrder = RevLexBaseOrder,
+    const size_t componentBefore = ComponentAfterBaseOrder
+  ):
     mVarCount(varCount),
-    mGradings(false),
-    mTotalDegreeGrading(true),
-    mBaseOrder(RevLexBaseOrder),
-    mComponentBefore(ComponentLast),
-    mUseSchreyerOrder(true),
-    mComponentsAscendingDesired(true)
+    mGradings(varCount, 1),
+    mBaseOrder(baseOrder),
+    mComponentBefore(ComponentAfterBaseOrder)
+  {}
+
+  /// The specified base order is graded by the gradings matrix.
+  ///
+  /// The layout of the gradings matrix is row-major. For comparisons,
+  /// the degree with respect to the first row is considered first,
+  /// then the degree with respect to the second row and so on. The
+  /// base order is used as a tie-breaker. The gradings vector can be
+  /// empty. The order must be a monomial order - in particular, 1
+  /// must be strictly less than all other monomials.
+  ///
+  /// For module monomials, the component is considered too. When the
+  /// component is considered depens on componentBefore. If
+  /// componentBefore == 0 then the component is considered before
+  /// anything else. If componentBefore < gradingCount(), then the
+  /// component is considered before the grading with index
+  /// componentBefore and after the grading with index componentBefore
+  /// - 1. If componentBefore == gradingCount(), then the component is
+  /// considered after all gradings and before the base order. If
+  /// componentBefore = ComponentAfterBaseOrder then the component is
+  /// considered after everything else.
+  ///
+  /// The ordering represented by this object will be equivalent to
+  /// the specified order, but it may be encoded differently. For
+  /// example, if varCount == 0, then all orders are equivalent so all
+  /// the other parameters are ignored and the encoding will be chosen
+  /// to be the minimal-overhead one: ungraded lex with component
+  /// considered last (do not depend on this particular choice - it
+  /// may change). Therefore, you cannot count on any setting of this
+  /// order to match what you passed in as a parameter.
+  ///
+  /// If the ordering you hav specified is not a monomial order, then
+  /// the only guarantee in terms of encoding is that isMonomialOrder
+  /// will return false.
+  MonoOrder(
+    const VarIndex varCount,
+    std::vector<Weight>&& gradings,
+    const BaseOrder baseOrder = RevLexBaseOrder,
+    const size_t componentBefore = ComponentAfterBaseOrder
+  ):
+    mVarCount(varCount),
+    mGradings(std::move(gradings)),
+    mBaseOrder(baseOrder),
+    mComponentBefore(componentBefore)
   {}
 
   const VarIndex varCount() const {return mVarCount;}
 
-  /// Set the matrix that defines the order. The entry layout is row
-  /// major. The first row is considered first, then the second row
-  /// and so on.
-  void setGradings(std::vector<Weight>&& gradings) {
-    MATHICGB_ASSERT(varCount() > 0 || gradings.empty());
-    MATHICGB_ASSERT(varCount() == 0 || gradings.size() % varCount() == 0);
-    mGradings = std::move(gradings);
-    mTotalDegreeGrading = false;
-  }
-
-  /// As calling setGradings with a vector of varCount() 1's.
-  void setTotalDegreeGrading() const {
-    mGradings.clear();
-    mTotalDegreeGrading = true;
-  }
-
-  std::vector<Weight>& gradings() {
-    if (mTotalDegreeGrading && mGradings.empty())
-      mGradings.resize(varCount(), 1);
-    return mGradings;
-  }
-
-  bool gradingIsTotalDegreeRevLex() const {
-    return baseOrder() == RevLexBaseOrder && mTotalDegreeGrading;
-  }
-
   /// Returns the number of rows in the grading vector.
-  size_t gradingCount() const {return mGradings.size() / varCount();}
+  size_t gradingCount() const {
+    return varCount() == 0 ? 0 : mGradings.size() / varCount();
+  }
 
-  enum BaseOrder {
-    LexBaseOrder = 0,
-    RevLexBaseOrder = 1
-  };
-  /// Set the order to use as a tie-braker for the grading matrix.
-  void setBaseOrder(BaseOrder baseOrder) {mBaseOrder = baseOrder;}
+  /// Returns the grading matrix in row-major layout.
+  const std::vector<Weight>& gradings() const {return mGradings;}
+
+  /// Returns true if the grading matrix is a single row of 1's.
+  bool isTotalDegree() const {
+    if (varCount() == 0 || mGradings.size() != varCount())
+      return false;
+    for (VarIndex var = 0; var < varCount(); ++var)
+      if (mGradings[var] != 1)
+        return false;
+    return true;
+  }
+
   BaseOrder baseOrder() const {return mBaseOrder;}
 
-  static const size_t ComponentLast = static_cast<size_t>(-1);
-
-  /// The component is considered before row (grading) and after row
-  /// (grading - 1) in the order matrix. If grading == 0 then the
-  /// component is considered before anything else. If grading ==
-  /// gradingCount() then grading is considered after the grading
-  /// matrix but before the base order. If grading is ComponentLast,
-  /// then the component is used as the final tie breaker after both
-  /// the grading matrix and the base order. All values of this setting
-  /// except for ComponentLast imply overhead equivalent to one extra row
-  /// in the grading matrix even for monoids without components.
-  /// ComponentLast has no overhead.
-  void setComponentBefore(const size_t grading) const {
-    MATHICGB_ASSERT(grading == ComponentLast || grading <= gradingCount);
-    mComponentBefore = grading;
+  /// Returns true if the order is a monomial order. A monomial order
+  /// is a total order on monomials where a>b => ac>bc for all
+  /// monomials a,b,c and where the order is a well order. Only the
+  /// well order property could currently fail. It is equivalent to
+  /// stating that x>1 for all variables x.
+  bool isMonomialOrder() const {
+    for (VarIndex var = 0; var < varCount(); ++var) {
+      // Check that x_var > 1.
+      for (size_t grading = 0; ; ++grading) {
+        if (grading == gradingCount) {
+          // The column was entirely zero, so x_var > 1 if and only if the
+          // base ordering is lex.
+          if (baseOrder() != LexBaseOrder)
+            return false;
+          break;
+        }
+        const auto index = grading * gradingCount() + var;
+        MATHICGB_ASSERT(index < mGradings.size());
+        const auto weight = mGradings[index];
+        if (weight != 0) {
+          // We have found the first non-zero weight in this column,
+          // so x_var > 1 if and only if this weight is positive.
+          if (weight < 0)
+            return false;
+          break;
+        }
+      }
+    }
+    return true;
   }
 
 private:
+  bool debugAssertValid() {
+#ifdef MATHICGB_DEBUG
+    MATHICGB_ASSERT(mGradings.size() == gradingCount() * varCount());
+    MATHICGB_ASSERT(
+      mComponentBefore == ComponentAfterBaseOrder ||
+      mComponentBefore <= gradingCount()
+    );
+    MATHICGB_ASSERT(
+      mBaseOrder == LexBaseOrder ||
+      mBaseOrder == RevLexBaseOrder
+    );
+    if (varCount() == 0) {
+      MATHICGB_ASSERT(mGradings.empty());
+      MATHICGB_ASSERT(baseOrder() == RevLexBaseOrder());
+      MATHICGB_ASSERT(mComponentBefore == ComponentAfterBaseOrder);
+    }
+#endif
+    return true;
+  }
+
   const VarIndex mVarCount;
-  std::vector<Weight> mGradings;
-  bool mTotalDegreeGrading;
-  BaseOrder mBaseOrder;
-  size_t mComponentBefore;
-  bool mUseSchreyerOrder;
-  bool mComponentsAscendingDesired;
+  const std::vector<Weight> mGradings;
+  const BaseOrder mBaseOrder;
+  const size_t mComponentBefore;
 };
 
 #endif
