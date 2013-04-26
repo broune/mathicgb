@@ -1760,6 +1760,7 @@ auto MonoMonoid<E, HC, SH, SO>::readMonoid(std::istream& in) -> MonoMonoid {
     in >> e;
     gradings[w] = static_cast<Exponent>(e);
   }
+
   Order order(
     varCount,
     std::move(gradings),
