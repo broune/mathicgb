@@ -15,6 +15,7 @@ int tracingLevel = 0;
 SignatureGB::SignatureGB(
   Basis&& basis,
   FreeModuleOrderType typ,
+  bool componentsAscendingDesired,
   Reducer::ReducerType reductiontyp,
   int divlookup_type,
   int montable_type,
@@ -48,12 +49,10 @@ SignatureGB::SignatureGB(
   if (typ == 5 || typ == 4 || typ == 3 || typ == 2 || typ == 6 || typ == 7)
     for (size_t gen = 0; gen < basis.size(); ++gen)
       schreyer.push_back(basis.getPoly(gen)->getLeadMonomial());
-  mProcessor = make_unique<MonoProcessor<Monoid>>(
-    typ == 2 || typ == 4 || typ == 6,
-    basis.size(),
-    monoid(),
-    std::move(schreyer)
-  );
+  mProcessor = make_unique<MonoProcessor<Monoid>>(monoid());
+  mProcessor->setComponentsAscendingDesired(componentsAscendingDesired);
+  mProcessor->setComponentCount(basis.size());
+  mProcessor->setModuleAdjustments(std::move(schreyer));
 
   // Populate GB
   for (size_t j = 0; j < basis.size(); j++)

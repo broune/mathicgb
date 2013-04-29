@@ -41,20 +41,30 @@ void Basis::sort(FreeModuleOrder& order) {
   std::sort(mGenerators.begin(), mGenerators.end(), cmp);
 }
 
-std::unique_ptr<Basis> Basis::parse(std::istream& in)
+auto Basis::parse(std::istream& in) -> Parsed
 {
-  PolyRing* R = PolyRing::read(in).first; // todo: fix this leak
-  size_t npolys;
-  in >> npolys;
-  auto result = make_unique<Basis>(*R);
-  for (size_t j = 0; j < npolys; ++j) {
-    auto g = make_unique<Poly>(*R);
+  auto r = PolyRing::read(in);
+  auto ring = make_unique<PolyRing>(std::move(*r.first));
+  delete r.first;
+
+  auto basis = make_unique<Basis>(*ring);
+  auto processor = make_unique<MonoProcessor<Monoid>>(ring->monoid());
+  processor->setComponentsAscendingDesired(r.second);
+
+  size_t polyCount;
+  in >> polyCount;
+  for (size_t i = 0; i < polyCount; ++i) {
+    auto poly = make_unique<Poly>(*ring);
     while (std::isspace(in.peek()))
       in.get();
-    g->parse(in);
-    result->insert(std::move(g));
+    poly->parse(in);
+    basis->insert(std::move(poly));
   }
-  return result;
+  return std::make_tuple(
+    std::move(ring),
+    std::move(basis),
+    std::move(processor)
+  );
 }
 
 void Basis::display(std::ostream& out, bool printComponent, bool componentIncreasingDesired) const

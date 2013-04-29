@@ -58,14 +58,14 @@ void GBAction::performAction() {
   const std::string projectName = mParams.inputFileNameStem(0);
 
   // read input
-  std::unique_ptr<Basis> basis;
-  {
-    const std::string inputBasisFile = projectName + ".ideal";
-    std::ifstream inputFile(inputBasisFile.c_str());
-    if (inputFile.fail())
-      mic::reportError("Could not read input file \"" + inputBasisFile + '\n');
-    basis = Basis::parse(inputFile);
-  }
+  const std::string inputBasisFile = projectName + ".ideal";
+  std::ifstream inputFile(inputBasisFile.c_str());
+  if (inputFile.fail())
+    mic::reportError("Could not read input file \"" + inputBasisFile + '\n');
+  auto tuple = Basis::parse(inputFile);
+  auto& basis = std::get<1>(tuple);
+
+
   std::unique_ptr<PolyRing const> ring(&(basis->ring()));
 
   // run algorithm

@@ -335,7 +335,7 @@ public:
   /// desired that i>j => e_i > e_j.
   static std::pair<MonoMonoid, bool> readMonoid(std::istream& in);
   void printMonoid
-    (const bool componentIncreasingDesired, std::ostream& out) const;
+    (const bool componentsAscendingDesired, std::ostream& out) const;
 
   bool operator==(const MonoMonoid& monoid) const {
     return this == &monoid;
@@ -1768,7 +1768,7 @@ auto MonoMonoid<E, HC, SH, SO>::readMonoid(std::istream& in) ->
   in >> gradingCount;
 
   Gradings gradings(static_cast<size_t>(varCount) * gradingCount);
-  bool componentIncreasingDesired = true;
+  bool componentsAscendingDesired = true;
   auto componentCompareIndex = Order::ComponentAfterBaseOrder;
   size_t w = 0;
   for (VarIndex grading = 0; grading <  gradingCount; ++grading) {
@@ -1779,9 +1779,9 @@ auto MonoMonoid<E, HC, SH, SO>::readMonoid(std::istream& in) ->
       std::string str;
       in >> str;
       if (str == "component")
-        componentIncreasingDesired = true;
+        componentsAscendingDesired = true;
       else if (str == "revcomponent")
-        componentIncreasingDesired = false;
+        componentsAscendingDesired = false;
       else
         mathic::reportError
           ("Expected component or revcomponent but read \"" + str + "\".");
@@ -1808,12 +1808,12 @@ auto MonoMonoid<E, HC, SH, SO>::readMonoid(std::istream& in) ->
     lexBaseOrder ? Order::LexBaseOrder : Order::RevLexBaseOrder,
     componentCompareIndex
   );
-  return std::make_pair(MonoMonoid(order), componentIncreasingDesired);
+  return std::make_pair(MonoMonoid(order), componentsAscendingDesired);
 }
 
 template<class E, bool HC, bool SH, bool SO>
 void MonoMonoid<E, HC, SH, SO>::printMonoid(
-  const bool componentIncreasingDesired,
+  const bool componentsAscendingDesired,
   std::ostream& out
 ) const {
   using MonoMonoidHelper::unchar;
@@ -1828,7 +1828,7 @@ void MonoMonoid<E, HC, SH, SO>::printMonoid(
       HasComponent &&
       grading == gradingCount() - 1 - componentGradingIndex()
     ) {
-      out << (componentIncreasingDesired ? " component\n" : " revcomponent\n");
+      out << (componentsAscendingDesired ? " component\n" : " revcomponent\n");
       continue;
     }
 

@@ -25,6 +25,7 @@ public:
   SignatureGB(
     Basis&& basis,
     FreeModuleOrderType typ,
+    bool componentsAscendingDesired,
     Reducer::ReducerType reductiontyp,
     int divlookup_type,
     int montable_type,

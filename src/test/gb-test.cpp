@@ -286,7 +286,19 @@ spairQueue	reducerType	divLookup	monTable	buchberger	postponeKoszul	useBaseDivis
     // check that we have a valid reducer type
     Reducer::ReducerType red = Reducer::ReducerType(reducerType);
     MATHICGB_ASSERT(static_cast<int>(red) == reducerType);
-    std::unique_ptr<Basis> I(basisParseFromString(idealStr));
+
+
+    std::istringstream in(idealStr);
+    auto tuple = Basis::parse(in);
+    auto& I = std::get<1>(tuple);
+
+    auto typ = freeModuleOrder;
+    if (typ == 2 || typ == 4)
+      std::get<2>(tuple)->setComponentsAscendingDesired(true);
+    else if (typ == 0 || typ == 1 || typ == 3 || typ == 5)
+      std::get<2>(tuple)->setComponentsAscendingDesired(false);
+    // xxx
+
     MATHICGB_ASSERT
       (Reducer::makeReducerNullOnUnknown(red, I->ring()).get() != 0);
 
@@ -307,10 +319,19 @@ spairQueue	reducerType	divLookup	monTable	buchberger	postponeKoszul	useBaseDivis
         << reducerType << ' ' << divLookup << ' '
         << monTable << ' ' << postponeKoszul << ' ' << useBaseDivisors;
     } else {
-     SignatureGB basis
-       (std::move(*I), freeModuleOrder, Reducer::reducerType(reducerType),
-         divLookup, monTable, postponeKoszul, useBaseDivisors,
-         preferSparseReducers, useSingularCriterionEarly, spairQueue);
+      SignatureGB basis(
+        std::move(*I),
+        freeModuleOrder,
+        std::get<2>(tuple)->componentsAscendingDesired(),
+        Reducer::reducerType(reducerType),
+        divLookup,
+        monTable,
+        postponeKoszul,
+        useBaseDivisors,
+        preferSparseReducers,
+        useSingularCriterionEarly,
+        spairQueue
+      );
       basis.computeGrobnerBasis();
       EXPECT_EQ(sigBasisStr, toString(basis.getGB(), 1))
         << reducerType << ' ' << divLookup << ' '
@@ -373,7 +394,7 @@ TEST(GB, gerdt93_0_5) {
 }
 
 TEST(GB, gerdt93_0_6) {
-  testGB(6, gerdt93Ideal(), gerdt93_gb_strat0_free6,
+  testGB(6, gerdt93IdealComponentFirst(true), gerdt93_gb_strat0_free6,
          gerdt93_syzygies_strat0_free6, gerdt93_initial_strat0_free6, 7);
 }
 

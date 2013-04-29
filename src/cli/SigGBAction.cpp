@@ -48,19 +48,19 @@ void SigGBAction::performAction() {
   mGBParams.perform();
 
   // read input file
-  std::unique_ptr<Basis> basis;
-  {
-    const std::string inputBasisFile = mParams.inputFileNameStem(0) + ".ideal";
-    std::ifstream inputFile(inputBasisFile.c_str());
-    if (inputFile.fail())
-      mic::reportError("Could not read input file \"" + inputBasisFile + '\n');
-    basis = Basis::parse(inputFile);
-  }
+  const std::string inputBasisFile = mParams.inputFileNameStem(0) + ".ideal";
+  std::ifstream inputFile(inputBasisFile.c_str());
+  if (inputFile.fail())
+    mic::reportError("Could not read input file \"" + inputBasisFile + '\n');
+  auto tuple = Basis::parse(inputFile);
+  auto& basis = std::get<1>(tuple);
+
   std::unique_ptr<PolyRing const> ring(&(basis->ring()));
 
   SignatureGB alg(
     std::move(*basis),
     mModuleOrder.value(),
+    std::get<2>(tuple)->componentsAscendingDesired(),
     Reducer::reducerType(mGBParams.mReducer.value()),
     mGBParams.mDivisorLookup.value(),
     mGBParams.mMonomialTable.value(),
@@ -117,7 +117,7 @@ const char* SigGBAction::description() const {
 const char* SigGBAction::shortDescription() const {
   return "Compute a signature Grobner basis";
 }
-  
+
 void SigGBAction::pushBackParameters(
   std::vector<mic::CliParameter*>& parameters
 ) {

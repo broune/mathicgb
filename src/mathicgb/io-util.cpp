@@ -35,8 +35,12 @@ std::string toString(const Poly *g)
 
 std::unique_ptr<Basis> basisParseFromString(std::string str)
 {
-  std::istringstream i(str);
-  return std::unique_ptr<Basis>(Basis::parse(i));
+  // todo: fix the leak
+  std::istringstream in(str);
+  auto t = Basis::parse(in);
+  std::get<0>(t).release();
+  std::get<2>(t).release();
+  return std::move(std::get<1>(t));
 }
 
 std::unique_ptr<PolyRing> ringFromString(std::string ringinfo)

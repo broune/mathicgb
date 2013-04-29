@@ -329,43 +329,6 @@ private:
   const size_t topindex;
 };
 
-// Let l(ae_i) be the leading monomial of ag_i.
-// Indexes are considered from high to low
-// rule 1: higher component wins (if mUp is true)
-// rule 1': lower components wins (if mUp is false)
-// rule 2: higher degree of l(ae_I) wins
-// rule 3: reverse lex on l(ae_i)
-class OrderE
-{
-public:
-  OrderE(const PolyRing& ring):
-    mRing(&ring), topindex(ring.maxMonomialSize() - 2)
-  {}
-
-  int signatureCompare(const_monomial a, const_monomial b) const {
-    if (*a != *b)
-      return *a < *b ? GT : LT;
-    return mRing->monomialCompare(a, b);
-  }
-
-  int signatureCompare(const_monomial a, const_monomial m2, const_monomial b) const {
-    int cmp = *a - *b;
-    if (cmp != 0) {
-      if (cmp < 0) return GT;
-      if (cmp > 0) return LT;
-    }
-    return mRing->monomialCompare(a, m2, b);
-  }
-
-  virtual char const* description() const {
-    return "IndexDown SchreyerGrevLex";
-  }
-
-private:
-  PolyRing const* const mRing;
-  size_t const topindex; // taken from R
-};
-
 void FreeModuleOrder::displayOrderTypes(std::ostream &o)
 {
   o << "FreeModule orders:" << std::endl;
@@ -387,15 +350,13 @@ std::unique_ptr<FreeModuleOrder> FreeModuleOrder::makeOrder(FreeModuleOrderType 
   case 4:
   case 5:
   case 1:
+  case 6:
+  case 7:
     return make_unique<ConcreteOrder<OrderA>>(ring);
 
   case 2:
   case 3:
    return make_unique<ConcreteOrder<OrderC>>(ring);
-
-  case 6:
-  case 7:
-    return make_unique<ConcreteOrder<OrderE>>(ring);
 
   default: break;
   }

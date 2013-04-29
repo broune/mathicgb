@@ -1,8 +1,6 @@
 #ifndef MATHICGB_MONO_PROCESSOR_GUARD
 #define MATHICGB_MONO_PROCESSOR_GUARD
 
-#include "MonoMonoid.hpp"
-
 /// Does pre- and post-processing of monomials to implement monomial
 /// orders not directly supported by the monoid. This is so far only
 /// relevant for module monomials.
@@ -22,25 +20,19 @@ public:
   typedef typename Monoid::ConstMonoRef ConstMonoRef;
   typedef typename Monoid::ConstMonoPtr ConstMonoPtr;
 
-  static_assert(Monoid::HasComponent, "");
+  MonoProcessor(const Monoid& monoid):
+    mComponentsAscendingDesired(true),
+    mComponentCount(0),
+    mModuleAdjustmentsMemory(monoid)
+  {}
 
-  MonoProcessor(
-    bool componentsAscendingDesired, // todo: replace with MonoOrder
-    VarIndex componentCount, // todo: replace with MonoOrder
-    const Monoid& monoid,
-    MonoVector&& moduleAdjustments
-  ):
-    mMonoid(monoid),
-    mComponentsAscendingDesired(componentsAscendingDesired),
-    mComponentCount(componentCount),
-    mModuleAdjustmentsMemory(std::move(moduleAdjustments))
-  {
-    MATHICGB_ASSERT(mModuleAdjustmentsMemory.monoid() == this->monoid());
+  void setModuleAdjustments(MonoVector&& moduleAdjustments) {
+    MATHICGB_ASSERT(moduleAdjustments.monoid() == monoid());
     MATHICGB_ASSERT(mModuleAdjustmentsMemory.empty() ||
-      mModuleAdjustmentsMemory.size() == this->componentCount());
-    // todo: add a component count to the monoid and get it from there
-    // instead of storing it here.
+      mModuleAdjustmentsMemory.size() == componentCount());
+    mModuleAdjustmentsMemory = std::move(moduleAdjustments);
 
+    mModuleAdjustments.clear();
     for (
       auto it = mModuleAdjustmentsMemory.begin();
       it != mModuleAdjustmentsMemory.end();
@@ -79,15 +71,21 @@ public:
 
   bool needToReverseComponents() const {
     return Monoid::HasComponent &&
-      mComponentsAscendingDesired != mMonoid.componentsAscending();
+      componentsAscendingDesired() != monoid().componentsAscending();
   }
+
+  void setComponentsAscendingDesired(bool value) {
+    mComponentsAscendingDesired = value;
+  }
+  bool componentsAscendingDesired() const {return mComponentsAscendingDesired;}
 
   bool hasModuleAdjustments() const {
     return !mModuleAdjustments.empty();
   }
 
+  void setComponentCount(VarIndex count) {mComponentCount = count;}
   VarIndex componentCount() const {return mComponentCount;}
-  const Monoid& monoid() const {return mMonoid;}
+  const Monoid& monoid() const {return mModuleAdjustmentsMemory.monoid();}
 
 private:
   void operator==(const MonoProcessor&) const; // not available
@@ -106,9 +104,8 @@ private:
     return *mModuleAdjustments[component];
   }
 
-  const Monoid& mMonoid;
-  const bool mComponentsAscendingDesired;
-  const VarIndex mComponentCount;
+  bool mComponentsAscendingDesired;
+  VarIndex mComponentCount;
   MonoVector mModuleAdjustmentsMemory;
   std::vector<ConstMonoPtr> mModuleAdjustments;
 };
