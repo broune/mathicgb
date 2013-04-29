@@ -14,8 +14,7 @@ int tracingLevel = 0;
 
 SignatureGB::SignatureGB(
   Basis&& basis,
-  FreeModuleOrderType typ,
-  bool componentsAscendingDesired,
+  Processor&& processor,
   Reducer::ReducerType reductiontyp,
   int divlookup_type,
   int montable_type,
@@ -28,7 +27,7 @@ SignatureGB::SignatureGB(
   mBreakAfter(0),
   mPrintInterval(0),
   R(basis.getPolyRing()),
-  F(FreeModuleOrder::makeOrder(typ, *basis.getPolyRing())),
+  F(FreeModuleOrder::makeOrder(0, *basis.getPolyRing())),
   mPostponeKoszul(postponeKoszul),
   mUseBaseDivisors(useBaseDivisors),
   stats_sPairSignaturesDone(0),
@@ -45,14 +44,8 @@ SignatureGB::SignatureGB(
   reducer(Reducer::makeReducer(reductiontyp, *R)),
   SP(make_unique<SigSPairs>(R, F.get(), GB.get(), Hsyz.get(), reducer.get(), mPostponeKoszul, mUseBaseDivisors, useSingularCriterionEarly, queueType))
 {
-  MonoVector schreyer(monoid());
-  if (typ == 5 || typ == 4 || typ == 3 || typ == 2 || typ == 6 || typ == 7)
-    for (size_t gen = 0; gen < basis.size(); ++gen)
-      schreyer.push_back(basis.getPoly(gen)->getLeadMonomial());
-  mProcessor = make_unique<MonoProcessor<Monoid>>(monoid());
-  mProcessor->setComponentsAscendingDesired(componentsAscendingDesired);
+  mProcessor = make_unique<MonoProcessor<Monoid>>(std::move(processor));
   mProcessor->setComponentCount(basis.size());
-  mProcessor->setModuleAdjustments(std::move(schreyer));
 
   // Populate GB
   for (size_t j = 0; j < basis.size(); j++)

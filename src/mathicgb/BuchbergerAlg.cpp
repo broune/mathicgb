@@ -12,7 +12,6 @@ MATHICGB_DEFINE_LOG_DOMAIN(
 
 BuchbergerAlg::BuchbergerAlg(
   const Basis& basis,
-  FreeModuleOrderType orderType,
   Reducer& reducer,
   int divisorLookupType,
   bool preferSparseReducers,
@@ -25,7 +24,7 @@ BuchbergerAlg::BuchbergerAlg(
   mUseAutoTopReduction(true),
   mUseAutoTailReduction(false),
   mRing(*basis.getPolyRing()),
-  mOrder(FreeModuleOrder::makeOrder(orderType, *basis.getPolyRing())),
+  mOrder(FreeModuleOrder::makeOrder(0, *basis.getPolyRing())), // todo: remove
   mReducer(reducer),
   mBasis(mRing, *mOrder, DivisorLookup::makeFactory(
     *basis.getPolyRing(),

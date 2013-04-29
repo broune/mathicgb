@@ -35,13 +35,13 @@ TEST(IO, ideal) {
   EXPECT_EQ("  -bc+ad\n  -b2+af\n  -bc2+a2e\n", toString(I.get()));
 }
 
-void testGB(int freeModuleOrder,
-            std::string idealStr,
-            std::string sigBasisStr,
-            std::string syzygiesStr,
-            std::string initialIdealStr,
-            size_t nonSingularReductions)
-{
+void testGB(
+  std::string idealStr,
+  std::string sigBasisStr,
+  std::string syzygiesStr,
+  std::string initialIdealStr,
+  size_t nonSingularReductions
+) {
   // Put the contents of pict.out into allPairsTest as a string. This
   // works because pict.out does not have any commas and we do not
   // care about whitespace. pict.out contains a set of tests such that
@@ -300,7 +300,7 @@ spairQueue	reducerType	divLookup	monTable	buchberger	postponeKoszul	useBaseDivis
       const auto reducer = Reducer::makeReducer
         (Reducer::reducerType(reducerType), I->ring());
       BuchbergerAlg alg
-        (*I, freeModuleOrder, *reducer,
+        (*I, *reducer,
          divLookup, preferSparseReducers, spairQueue);
       alg.setUseAutoTopReduction(autoTopReduce);
       alg.setUseAutoTailReduction(autoTailReduce);
@@ -314,8 +314,7 @@ spairQueue	reducerType	divLookup	monTable	buchberger	postponeKoszul	useBaseDivis
     } else {
       SignatureGB basis(
         std::move(*I),
-        freeModuleOrder,
-        std::get<2>(tuple)->componentsAscendingDesired(),
+        std::move(*std::get<2>(tuple)),
         Reducer::reducerType(reducerType),
         divLookup,
         monTable,
@@ -343,59 +342,59 @@ spairQueue	reducerType	divLookup	monTable	buchberger	postponeKoszul	useBaseDivis
 }
 
 TEST(GB, small) {
-  testGB(1, smallIdealComponentLastDescending(),
+  testGB(smallIdealComponentLastDescending(),
          idealSmallBasis, idealSmallSyzygies, idealSmallInitial, 7);
 }
 
 TEST(GB, liu_0_1) {
-  testGB(1, liuIdealComponentLastDescending(), liu_gb_strat0_free1,
+  testGB(liuIdealComponentLastDescending(), liu_gb_strat0_free1,
     liu_syzygies_strat0_free1, liu_initial_strat0_free1, 13);
 }
 
 TEST(GB, weispfennig97_0_4) {
-  testGB(4, weispfennig97IdealComponentLast(true),
+  testGB(weispfennig97IdealComponentLast(true),
          weispfennig97_gb_strat0_free4,
          weispfennig97_syzygies_strat0_free4, weispfennig97_initial_strat0_free4, 31);
 }
 
 TEST(GB, weispfennig97_0_5) {
-  testGB(5, weispfennig97IdealComponentLast(false),
+  testGB(weispfennig97IdealComponentLast(false),
          weispfennig97_gb_strat0_free5,
          weispfennig97_syzygies_strat0_free5, weispfennig97_initial_strat0_free5, 27);
 }
 
 TEST(GB, gerdt93_0_1) {
-  testGB(1, gerdt93IdealComponentLast(false), gerdt93_gb_strat0_free1,
+  testGB(gerdt93IdealComponentLast(false, false), gerdt93_gb_strat0_free1,
          gerdt93_syzygies_strat0_free1, gerdt93_initial_strat0_free1, 9);
 }
 
 TEST(GB, gerdt93_0_2) {
-  testGB(2, gerdt93IdealComponentMiddle(true), gerdt93_gb_strat0_free2,
+  testGB(gerdt93IdealComponentMiddle(true), gerdt93_gb_strat0_free2,
          gerdt93_syzygies_strat0_free2, gerdt93_initial_strat0_free2, 7);
 }
 
 TEST(GB, gerdt93_0_3) {
-  testGB(3, gerdt93IdealComponentMiddle(false), gerdt93_gb_strat0_free3,
+  testGB(gerdt93IdealComponentMiddle(false), gerdt93_gb_strat0_free3,
          gerdt93_syzygies_strat0_free3, gerdt93_initial_strat0_free3, 9);
 }
 
 TEST(GB, gerdt93_0_4) {
-  testGB(4, gerdt93IdealComponentLast(true), gerdt93_gb_strat0_free4,
+  testGB(gerdt93IdealComponentLast(true, true), gerdt93_gb_strat0_free4,
          gerdt93_syzygies_strat0_free4, gerdt93_initial_strat0_free4, 7);
 }
 
 TEST(GB, gerdt93_0_5) {
-  testGB(5, gerdt93IdealComponentLast(false), gerdt93_gb_strat0_free5,
+  testGB(gerdt93IdealComponentLast(false, true), gerdt93_gb_strat0_free5,
          gerdt93_syzygies_strat0_free5, gerdt93_initial_strat0_free5, 7);
 }
 
 TEST(GB, gerdt93_0_6) {
-  testGB(6, gerdt93IdealComponentFirst(true), gerdt93_gb_strat0_free6,
+  testGB(gerdt93IdealComponentFirst(true), gerdt93_gb_strat0_free6,
          gerdt93_syzygies_strat0_free6, gerdt93_initial_strat0_free6, 7);
 }
 
 TEST(GB, gerdt93_0_7) {
-  testGB(7, gerdt93IdealComponentFirst(false), gerdt93_gb_strat0_free7,
+  testGB(gerdt93IdealComponentFirst(false), gerdt93_gb_strat0_free7,
          gerdt93_syzygies_strat0_free7, gerdt93_initial_strat0_free7, 9);
 }
 

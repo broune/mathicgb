@@ -49,7 +49,7 @@ auto Basis::parse(std::istream& in) -> Parsed
 
   auto basis = make_unique<Basis>(*ring);
   auto processor = make_unique<MonoProcessor<Monoid>>(ring->monoid());
-  processor->setComponentsAscendingDesired(r.second);
+  processor->setComponentsAscendingDesired(r.second.first);
 
   size_t polyCount;
   in >> polyCount;
@@ -60,6 +60,14 @@ auto Basis::parse(std::istream& in) -> Parsed
     poly->parse(in);
     basis->insert(std::move(poly));
   }
+
+  if (r.second.second) {
+    Monoid::MonoVector schreyer(ring->monoid());
+    for (size_t gen = 0; gen < basis->size(); ++gen)
+      schreyer.push_back(basis->getPoly(gen)->getLeadMonomial());
+    processor->setModuleAdjustments(std::move(schreyer));
+  }
+
   return std::make_tuple(
     std::move(ring),
     std::move(basis),

@@ -211,7 +211,7 @@ TYPED_TEST(Monoid, ReadWriteMonoid) {
       const auto& m = p.first;
 
       std::ostringstream out;
-      m.printMonoid(p.second, out);
+      m.printMonoid(p.second.first, out);
       ASSERT_EQ(outStr, out.str());
       ASSERT_EQ(varCount, m.varCount());
       ASSERT_EQ(gradingCount, m.gradingCount());

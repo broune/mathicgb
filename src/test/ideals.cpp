@@ -72,7 +72,7 @@ const char* liu_initial_strat0_free1 =
 
 std::string weispfennig97IdealComponentLast(bool componentsAscending) {
   std::ostringstream out;
-  out << "7583 4 1\n";
+  out << "7583 4 schreyer revlex 1\n";
   if (componentsAscending)
     out << "1 1 1 1 _revlex component\n";
   else
@@ -170,35 +170,38 @@ const char* Gert93RawIdeal =
   "a3+b2c-a2d\n";
 
 
-std::string gerdt93IdealComponentLast(bool componentsAscending) {
+std::string gerdt93IdealComponentLast(bool componentsAscending, bool schreyer) {
   std::ostringstream out;
-  out << "7583 6 ";
+  out << "7583 6\n";
+  if (schreyer)
+    out << "schreyer ";
+  out << "revlex 1\n";
   if (componentsAscending)
-    out << "1 1 1 1 1 1 1 _revlex component\n";
+    out << " 1 1 1 1 1 1 _revlex component\n";
   else
-    out << "1 1 1 1 1 1 1 _revlex revcomponent\n";
+    out << " 1 1 1 1 1 1 _revlex revcomponent\n";
   out << Gert93RawIdeal;
   return out.str();
 }
 
 std::string gerdt93IdealComponentFirst(bool componentsAscending) {
   std::ostringstream out;
-  out << "7583 6 ";
+  out << "7583 6 schreyer revlex 2\n";
   if (componentsAscending)
-    out << "2 component 1 1 1 1 1 1\n";
+    out << " component\n 1 1 1 1 1 1\n";
   else
-    out << "2 revcomponent 1 1 1 1 1 1\n";
+    out << " revcomponent\n 1 1 1 1 1 1\n";
   out << Gert93RawIdeal;
   return out.str();
 }
 
 std::string gerdt93IdealComponentMiddle(bool componentsAscending) {
   std::ostringstream out;
-  out << "7583 6 ";
+  out << "7583 6 schreyer revlex 2\n";
   if (componentsAscending)
-    out << "2 1 1 1 1 1 1 component\n";
+    out << "1 1 1 1 1 1\n component\n";
   else
-    out << "2 1 1 1 1 1 1 revcomponent\n";
+    out << "1 1 1 1 1 1\n revcomponent\n";
   out << Gert93RawIdeal;
   return out.str();
 }

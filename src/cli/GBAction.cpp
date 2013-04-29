@@ -21,11 +21,6 @@ GBAction::GBAction():
     "classic Buchberger algorithm.",
     true),
 
-  //mTermOrder("termOrder",
-  //  "The term order to compute a Grobner basis with respect to. This is "
-  //  "currently actually a free module term order, but that should be changed.",
-  //  4),
-
   mSPairGroupSize("sPairGroupSize",
     "Specifies how many S-pair to reduce at one time. A value of 0 "
     "indicates to use an appropriate default.",
@@ -39,11 +34,7 @@ GBAction::GBAction():
    0),
 
    mParams(1, 1)
-{
-  std::ostringstream orderOut;
-  FreeModuleOrder::displayOrderTypes(orderOut);
-  //mTermOrder.appendToDescription(orderOut.str());
-}
+{}
 
 void GBAction::directOptions(
   std::vector<std::string> tokens,
@@ -87,7 +78,6 @@ void GBAction::performAction() {
 
   BuchbergerAlg alg(
     *basis,
-    4 /*mModuleOrder.value()*/ , // todo: alg should not take a *module* order
     *reducer,
     mGBParams.mDivisorLookup.value(),
     mGBParams.mPreferSparseReducers.value(),

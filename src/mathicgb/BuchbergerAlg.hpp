@@ -17,7 +17,6 @@ class BuchbergerAlg {
 public:
   BuchbergerAlg(
     const Basis& basis,
-    FreeModuleOrderType orderType,
     Reducer& reducer,
     int divisorLookupType,
     bool preferSparseReducers,
@@ -93,7 +92,7 @@ private:
   void insertPolys(std::vector<std::unique_ptr<Poly> >& polynomials);
 
   const PolyRing& mRing;
-  std::unique_ptr<FreeModuleOrder> mOrder;
+  std::unique_ptr<FreeModuleOrder> mOrder; // todo: remove
   Reducer& mReducer;
   PolyBasis mBasis;
   SPairs mSPairs;

@@ -228,7 +228,7 @@ void PolyRing::printMonomialFrobbyM2Format(std::ostream& out, ConstMonomial m) c
     out << '1';
 }
 
-std::pair<PolyRing*, bool> PolyRing::read(std::istream &i)
+std::pair<PolyRing*, std::pair<bool, bool>> PolyRing::read(std::istream &i)
 {
   int64 characInt;
   coefficient charac;

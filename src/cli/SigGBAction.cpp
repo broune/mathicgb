@@ -25,16 +25,8 @@ SigGBAction::SigGBAction():
     "S-spairs quickly based on signature.",
     true),
 
-  mModuleOrder("moduleOrder",
-    "The free module term order.\n",
-    4),
-
   mParams(1, 1)
-{
-  std::ostringstream orderOut;
-  FreeModuleOrder::displayOrderTypes(orderOut);
-  mModuleOrder.appendToDescription(orderOut.str());
-}
+{}
 
 void SigGBAction::directOptions(
   std::vector<std::string> tokens,
@@ -59,8 +51,7 @@ void SigGBAction::performAction() {
 
   SignatureGB alg(
     std::move(*basis),
-    mModuleOrder.value(),
-    std::get<2>(tuple)->componentsAscendingDesired(),
+    std::move(*std::get<2>(tuple)),
     Reducer::reducerType(mGBParams.mReducer.value()),
     mGBParams.mDivisorLookup.value(),
     mGBParams.mMonomialTable.value(),
@@ -126,5 +117,4 @@ void SigGBAction::pushBackParameters(
   parameters.push_back(&mUseSingularCriterionEarly);
   parameters.push_back(&mPostponeKoszul);
   parameters.push_back(&mUseBaseDivisors);
-  parameters.push_back(&mModuleOrder);
 }

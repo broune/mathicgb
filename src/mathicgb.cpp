@@ -803,7 +803,7 @@ namespace mgbi {
     );
 
     // Set up and configure algorithm
-    BuchbergerAlg alg(basis, 4, *reducer, 2, true, 0);
+    BuchbergerAlg alg(basis, *reducer, 2, true, 0);
     alg.setReducerMemoryQuantum(100 * 1024);
     alg.setUseAutoTopReduction(true);
     alg.setUseAutoTailReduction(false);

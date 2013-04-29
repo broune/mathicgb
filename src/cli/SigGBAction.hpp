@@ -30,7 +30,6 @@ private:
   mic::BoolParameter mUseSingularCriterionEarly;
   mic::BoolParameter mPostponeKoszul;
   mic::BoolParameter mUseBaseDivisors;
-  mic::IntegerParameter mModuleOrder;
 };
 
 #endif

@@ -21,11 +21,11 @@ class SignatureGB {
 public:
   typedef PolyRing::Monoid Monoid;
   typedef Monoid::MonoVector MonoVector;
+  typedef MonoProcessor<Monoid> Processor;
 
   SignatureGB(
     Basis&& basis,
-    FreeModuleOrderType typ,
-    bool componentsAscendingDesired,
+    Processor&& processor,
     Reducer::ReducerType reductiontyp,
     int divlookup_type,
     int montable_type,
@@ -74,7 +74,7 @@ private:
   bool step();
 
   const PolyRing *R;
-  std::unique_ptr<FreeModuleOrder> F;
+  std::unique_ptr<FreeModuleOrder> F; // todo: remove
 
   
 

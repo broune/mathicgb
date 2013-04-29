@@ -29,7 +29,7 @@ extern const char* weispfennig97_initial_strat0_free5;
 // gerdt93
 std::string gerdt93IdealComponentFirst(bool componentsAscending);
 std::string gerdt93IdealComponentMiddle(bool componentsAscending);
-std::string gerdt93IdealComponentLast(bool componentsAscending);
+std::string gerdt93IdealComponentLast(bool componentsAscending, bool schreyer);
 
 extern const char* gerdt93_gb_strat0_free1;
 extern const char* gerdt93_syzygies_strat0_free1;

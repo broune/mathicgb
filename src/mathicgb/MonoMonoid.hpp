@@ -331,9 +331,12 @@ public:
     return MonoMonoid(order);
   }
 
-  /// The second component of the return pair indicates whether it is
-  /// desired that i>j => e_i > e_j.
-  static std::pair<MonoMonoid, bool> readMonoid(std::istream& in);
+  /// The second.first value of the return pair indicates whether it
+  /// is desired that i>j => e_i > e_j. the second.second value
+  /// indicates whether to do a Schreyer order. TODO: clearly this is
+  /// a mess that needs to be cleaned up. Step 1 is to move IO out of
+  /// MonoMonoid entirely.
+  static std::pair<MonoMonoid, std::pair<bool, bool>> readMonoid(std::istream& in);
   void printMonoid
     (const bool componentsAscendingDesired, std::ostream& out) const;
 
@@ -1742,12 +1745,13 @@ namespace MonoMonoidHelper {
 
 template<class E, bool HC, bool SH, bool SO>
 auto MonoMonoid<E, HC, SH, SO>::readMonoid(std::istream& in) ->
-  std::pair<MonoMonoid, bool>
+  std::pair<MonoMonoid, std::pair<bool, bool>>
 {
   using MonoMonoidHelper::unchar;
   VarIndex varCount;
   in >> varCount;
 
+  bool doSchreyer = false;
   bool lexBaseOrder = false;
   std::string str;
   char c;
@@ -1756,6 +1760,11 @@ auto MonoMonoid<E, HC, SH, SO>::readMonoid(std::istream& in) ->
   if (!std::isdigit(c)) {
     std::string str;
     in >> str;
+    if (str == "schreyer") {
+      doSchreyer = true;
+      in >> str;
+    }
+
     if (str == "revlex")
       lexBaseOrder = false;
     else if (str == "lex")
@@ -1835,7 +1844,10 @@ auto MonoMonoid<E, HC, SH, SO>::readMonoid(std::istream& in) ->
     lexBaseOrder ? Order::LexBaseOrder : Order::RevLexBaseOrder,
     componentCompareIndex
   );
-  return std::make_pair(MonoMonoid(order), componentsAscendingDesired);
+  return std::make_pair(
+    MonoMonoid(order),
+    std::make_pair(componentsAscendingDesired, doSchreyer)
+  );
 }
 
 template<class E, bool HC, bool SH, bool SO>
