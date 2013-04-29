@@ -219,8 +219,8 @@ public:
   //       const std::vector<int> &degs,
   //       const std::string &monorder);
 
-  static PolyRing *read(std::istream &i);
-  void write(std::ostream &o) const;
+  static std::pair<PolyRing*, bool> read(std::istream &i);
+  void write(std::ostream &o, bool componentIncreasingDesired) const;
   // Format for ring
   //   <char> <mNumVars> <deg1> ... <deg_n> <monorder>
 

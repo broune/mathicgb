@@ -23,7 +23,7 @@ public:
   static std::unique_ptr<Basis> parse(std::istream &i);
 
   /// inverse operation to parse().
-  void display(std::ostream &o, bool print_comp) const;
+  void display(std::ostream &o, bool print_comp, bool componentIncreasingDesired) const;
 
   const PolyRing& ring() const { return mRing; }
 

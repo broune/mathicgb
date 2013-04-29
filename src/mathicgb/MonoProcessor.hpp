@@ -32,9 +32,7 @@ public:
   ):
     mMonoid(monoid),
     mComponentsAscendingDesired(componentsAscendingDesired),
-    //mComponentsAscendingDesired(order.componentsAscendingDesired),
     mComponentCount(componentCount),
-    //mComponentCount(order.componentCount()),
     mModuleAdjustmentsMemory(std::move(moduleAdjustments))
   {
     MATHICGB_ASSERT(mModuleAdjustmentsMemory.monoid() == this->monoid());

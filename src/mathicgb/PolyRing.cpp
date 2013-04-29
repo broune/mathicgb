@@ -228,19 +228,20 @@ void PolyRing::printMonomialFrobbyM2Format(std::ostream& out, ConstMonomial m) c
     out << '1';
 }
 
-PolyRing *PolyRing::read(std::istream &i)
+std::pair<PolyRing*, bool> PolyRing::read(std::istream &i)
 {
   int64 characInt;
   coefficient charac;
   i >> characInt;
   charac = static_cast<exponent>(characInt);
-  return new PolyRing(charac, Monoid::readMonoid(i));
+  auto p = Monoid::readMonoid(i);
+  return std::make_pair(new PolyRing(charac, std::move(p.first)), p.second);
 }
 
-void PolyRing::write(std::ostream &o) const
+void PolyRing::write(std::ostream &o, bool componentIncreasingDesired) const
 {
   o << charac() << ' ';
-  monoid().printMonoid(o);
+  monoid().printMonoid(componentIncreasingDesired, o);
 }
 
 // Local Variables:

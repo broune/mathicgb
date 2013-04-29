@@ -17,10 +17,13 @@ MATHICGB_DEFINE_LOG_DOMAIN_WITH_DEFAULTS(
   0, 0, 1
 );
 
-MATHICGB_DEFINE_LOG_ALIAS(
-  "SPairs",
-  "SPairEarly,SPairLate"
+MATHICGB_DEFINE_LOG_DOMAIN(
+  SPairLcm,
+  "Displays the lcm of the S-pairs being considered in Buchberger's algorithm."
 );
+
+MATHICGB_DEFINE_LOG_ALIAS("SPairs", "SPairEarly,SPairLate");
+MATHICGB_DEFINE_LOG_ALIAS("SPairsDetail", "SPairs,SPairDegree,SPairLcm");
 
 SPairs::SPairs(const PolyBasis& basis, bool preferSparseSPairs):
   mMonoid(basis.ring().monoid()),
@@ -85,6 +88,11 @@ std::pair<size_t, size_t> SPairs::pop(exponent& w) {
       break;
     mQueue.pop();
     mEliminated.setBit(p.first, p.second, true);
+    MATHICGB_IF_STREAM_LOG(SPairLcm) {
+      stream << "Scheduling S-pair with lcm ";
+      bareMonoid().printM2(lcm, stream);
+      stream << '.' << std::endl;
+    };
     return p;
   }
   return std::make_pair(static_cast<size_t>(-1), static_cast<size_t>(-1));

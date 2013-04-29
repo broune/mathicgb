@@ -348,37 +348,37 @@ TEST(GB, weispfennig97_0_5) {
 }
 
 TEST(GB, gerdt93_0_1) {
-  testGB(1, gerdt93_ideal, gerdt93_gb_strat0_free1,
+  testGB(1, gerdt93Ideal(), gerdt93_gb_strat0_free1,
          gerdt93_syzygies_strat0_free1, gerdt93_initial_strat0_free1, 9);
 }
 
 TEST(GB, gerdt93_0_2) {
-  testGB(2, gerdt93_ideal, gerdt93_gb_strat0_free2,
+  testGB(2, gerdt93Ideal(), gerdt93_gb_strat0_free2,
          gerdt93_syzygies_strat0_free2, gerdt93_initial_strat0_free2, 7);
 }
 
 TEST(GB, gerdt93_0_3) {
-  testGB(3, gerdt93_ideal, gerdt93_gb_strat0_free3,
+  testGB(3, gerdt93Ideal(), gerdt93_gb_strat0_free3,
          gerdt93_syzygies_strat0_free3, gerdt93_initial_strat0_free3, 9);
 }
 
 TEST(GB, gerdt93_0_4) {
-  testGB(4, gerdt93_ideal, gerdt93_gb_strat0_free4,
+  testGB(4, gerdt93Ideal(), gerdt93_gb_strat0_free4,
          gerdt93_syzygies_strat0_free4, gerdt93_initial_strat0_free4, 7);
 }
 
 TEST(GB, gerdt93_0_5) {
-  testGB(5, gerdt93_ideal, gerdt93_gb_strat0_free5,
+  testGB(5, gerdt93Ideal(), gerdt93_gb_strat0_free5,
          gerdt93_syzygies_strat0_free5, gerdt93_initial_strat0_free5, 7);
 }
 
 TEST(GB, gerdt93_0_6) {
-  testGB(6, gerdt93_ideal, gerdt93_gb_strat0_free6,
+  testGB(6, gerdt93Ideal(), gerdt93_gb_strat0_free6,
          gerdt93_syzygies_strat0_free6, gerdt93_initial_strat0_free6, 7);
 }
 
 TEST(GB, gerdt93_0_7) {
-  testGB(7, gerdt93_ideal, gerdt93_gb_strat0_free7,
+  testGB(7, gerdt93IdealComponentFirst(false), gerdt93_gb_strat0_free7,
          gerdt93_syzygies_strat0_free7, gerdt93_initial_strat0_free7, 9);
 }
 

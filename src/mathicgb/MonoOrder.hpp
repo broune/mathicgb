@@ -2,6 +2,7 @@
 #define MATHICGB_MONO_ORDER_GUARD
 
 #include <vector>
+#include <algorithm>
 
 /// Class used to describe an monomial order or a module monomial
 /// order. Use this class to construct a monoid. The monoid does the
@@ -18,6 +19,7 @@ class MonoOrder {
 public:
   typedef W Weight;
   typedef size_t VarIndex;
+  typedef std::vector<Weight> Gradings;
 
   static const size_t ComponentAfterBaseOrder = static_cast<size_t>(-1);
 
@@ -37,9 +39,10 @@ public:
     const size_t componentBefore = ComponentAfterBaseOrder
   ):
     mVarCount(varCount),
-    mGradings(varCount, 1),
+    mGradings
+      (addComponentGrading(Gradings(varCount, 1), varCount, componentBefore)),
     mBaseOrder(baseOrder),
-    mComponentBefore(ComponentAfterBaseOrder)
+    mComponentGradingIndex(componentBefore)
   {}
 
   /// The specified base order is graded by the gradings matrix.
@@ -76,17 +79,27 @@ public:
   /// will return false.
   MonoOrder(
     const VarIndex varCount,
-    std::vector<Weight>&& gradings,
+    Gradings&& gradings,
     const BaseOrder baseOrder = RevLexBaseOrder,
     const size_t componentBefore = ComponentAfterBaseOrder
   ):
     mVarCount(varCount),
     mGradings(std::move(gradings)),
     mBaseOrder(baseOrder),
-    mComponentBefore(componentBefore)
-  {}
+    mComponentGradingIndex(componentBefore)
+  {
+#ifdef MATHCGB_DEBUG
+    if (componentBefore != ComponentAfterBaseOrder) {
+      for (VarIndex var = 0; var < varCount(); ++var) {
+        MATHICGB_ASSERT(mGradings[var] == 0);
+      }
+    }
+#endif
+  }
 
-  const VarIndex varCount() const {return mVarCount;}
+  VarIndex varCount() const {return mVarCount;}
+
+  VarIndex componentGradingIndex() const {return mComponentGradingIndex;}
 
   /// Returns the number of rows in the grading vector.
   size_t gradingCount() const {
@@ -94,7 +107,7 @@ public:
   }
 
   /// Returns the grading matrix in row-major layout.
-  const std::vector<Weight>& gradings() const {return mGradings;}
+  const Gradings& gradings() const {return mGradings;}
 
   /// Returns true if the grading matrix is a single row of 1's.
   bool isTotalDegree() const {
@@ -140,12 +153,27 @@ public:
   }
 
 private:
+  static Gradings addComponentGrading(
+    Gradings&& gradings,
+    const VarIndex varCount,
+    const VarIndex componentBefore
+  ) {
+    if (componentBefore == ComponentAfterBaseOrder)
+      return std::move(gradings);
+    MATHICGB_ASSERT(componentBefore <= varCount);
+    gradings.resize(gradings.size() + varCount);
+    const auto newRow = gradings.begin() + varCount * componentBefore;
+    std::copy_n(newRow, varCount, newRow + varCount);
+    std::fill_n(newRow, varCount, static_cast<Weight>(0));
+    return std::move(gradings);
+  }
+
   bool debugAssertValid() {
 #ifdef MATHICGB_DEBUG
     MATHICGB_ASSERT(mGradings.size() == gradingCount() * varCount());
     MATHICGB_ASSERT(
-      mComponentBefore == ComponentAfterBaseOrder ||
-      mComponentBefore <= gradingCount()
+      mComponentGradingIndex == ComponentAfterBaseOrder ||
+      mComponentGradingIndex < gradingCount()
     );
     MATHICGB_ASSERT(
       mBaseOrder == LexBaseOrder ||
@@ -154,16 +182,16 @@ private:
     if (varCount() == 0) {
       MATHICGB_ASSERT(mGradings.empty());
       MATHICGB_ASSERT(baseOrder() == RevLexBaseOrder());
-      MATHICGB_ASSERT(mComponentBefore == ComponentAfterBaseOrder);
+      MATHICGB_ASSERT(mComponentGradingIndex == ComponentAfterBaseOrder);
     }
 #endif
     return true;
   }
 
   const VarIndex mVarCount;
-  const std::vector<Weight> mGradings;
+  const Gradings mGradings;
   const BaseOrder mBaseOrder;
-  const size_t mComponentBefore;
+  const size_t mComponentGradingIndex;
 };
 
 #endif

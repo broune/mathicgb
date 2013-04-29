@@ -196,7 +196,9 @@ namespace LogDomainInternal {
     return r;
   }
   template<class L, class T>
-  void operator+(LambdaRunner<L> runner, T&& lambda) {lambda(runner.log);}
+  void operator+(LambdaRunner<L> runner, T&& lambda) {
+    lambda(runner.log, runner.log.stream());
+  }
 
   struct LogAliasRegisterer {
     LogAliasRegisterer(const char* alias, const char* of);
@@ -268,20 +270,21 @@ namespace LogDomainInternal {
 #define MATHICGB_LOGGER_TYPE(DOMAIN) ::logs::Type##DOMAIN
 
 /// Runs the code in the following scope delimited by braces {} if the
-/// indicated logger is enabled for streaming - otherwise does nothing.
-/// Within the following scope there is a local reference variable log
-/// that refers to the indicated logger.
+/// indicated logger is enabled for streaming - otherwise does
+/// nothing.  Within the following scope there is a local reference
+/// variable log that refers to the indicated logger and a local
+/// reference variable stream that refers to log.stream().
 ///
 /// Example:
 ///   MATHICGB_IF_STREAM_LOG(MyDomain) {
 ///     std::string msg;
 ///     expensiveFunction(msg);
-///     log << msg;
+///     stream << msg; // or log.stream() << msg;
 ///   }
 #define MATHICGB_IF_STREAM_LOG(DOMAIN) \
   if (MATHICGB_LOGGER(DOMAIN).streamEnabled()) \
     LogDomainInternal::lambdaRunner(MATHICGB_LOGGER(DOMAIN)) + \
-      [&](MATHICGB_LOGGER_TYPE(DOMAIN)& log)
+      [&](MATHICGB_LOGGER_TYPE(DOMAIN)& log, std::ostream& stream)
 
 /// Display information to the log using <<.
 /// If domain is not enabled and stream enabled then the log message is not

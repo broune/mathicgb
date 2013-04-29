@@ -207,13 +207,14 @@ TYPED_TEST(Monoid, ReadWriteMonoid) {
         continue;
 
       std::istringstream in(str);
-      const auto m = Monoid::readMonoid(in);
+      const auto p = Monoid::readMonoid(in);
+      const auto& m = p.first;
+
+      std::ostringstream out;
+      m.printMonoid(p.second, out);
+      ASSERT_EQ(outStr, out.str());
       ASSERT_EQ(varCount, m.varCount());
       ASSERT_EQ(gradingCount, m.gradingCount());
-      
-      std::ostringstream out;
-      m.printMonoid(out);
-      ASSERT_EQ(outStr, out.str());
     }
   };
   check("0 0\n", "0\nrevlex 0\n", 0, 0);
@@ -227,6 +228,15 @@ TYPED_TEST(Monoid, ReadWriteMonoid) {
   check("1 lex 2 3 4", "1\nlex 2\n 3\n 4\n", 1, 2);
   check("2 lex 2 3 4 5 6", "2\nlex 2\n 3 4\n 5 6\n", 2, 2);
   check("4 lex 1 1 1 1 1", "4\nlex 1\n 1 1 1 1\n", 4, 1);
+
+  if (Monoid::HasComponent) {
+    check("2 2\n component\n 5 6\n", "2\nrevlex 2\n component\n 5 6\n", 2, 2);
+    check
+      ("2 2\n 3 4\n revcomponent\n","2\nrevlex 2\n 3 4\n revcomponent\n", 2, 2);
+    check("0 lex 1 component", "0\nlex 0\n", 0, 0);
+    check("1 lex 1 revcomponent", "1\nlex 1\n revcomponent\n", 1, 1);
+    check("5 lex 1 revcomponent", "5\nlex 1\n revcomponent\n", 5, 1);
+  }
 }
 
 TYPED_TEST(Monoid, MonoPool) {

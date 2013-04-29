@@ -47,7 +47,7 @@ TEST(PolyRing, read) {
   std::stringstream o;
   std::string ringinfo = "32003 6\n1 1 1 1 1 1";
   std::unique_ptr<PolyRing> R(ringFromString(ringinfo));
-  R->write(o);
+  R->write(o, true);
 
   EXPECT_EQ("32003 6\nrevlex 1\n 1 1 1 1 1 1\n", o.str());
 }

@@ -43,7 +43,7 @@ void Basis::sort(FreeModuleOrder& order) {
 
 std::unique_ptr<Basis> Basis::parse(std::istream& in)
 {
-  PolyRing *R = PolyRing::read(in); // todo: fix this leak
+  PolyRing* R = PolyRing::read(in).first; // todo: fix this leak
   size_t npolys;
   in >> npolys;
   auto result = make_unique<Basis>(*R);
@@ -57,9 +57,9 @@ std::unique_ptr<Basis> Basis::parse(std::istream& in)
   return result;
 }
 
-void Basis::display(std::ostream& out, bool printComponent) const
+void Basis::display(std::ostream& out, bool printComponent, bool componentIncreasingDesired) const
 {
-  mRing.write(out);
+  mRing.write(out, componentIncreasingDesired);
   out << '\n' << mGenerators.size() << '\n';
   for (size_t i = 0; i < mGenerators.size(); ++i) {
     mGenerators[i]->display(out, printComponent);

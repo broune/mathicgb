@@ -6,8 +6,8 @@
 #include <iostream>
 
 MATHICGB_DEFINE_LOG_DOMAIN(
-  F4SPairDegree,
-  "Displays the degree of the S-pairs being considered in F4 Reducers"
+  SPairDegree,
+  "Displays the degree of the S-pairs being considered in Buchberger's algorithm."
 );
 
 BuchbergerAlg::BuchbergerAlg(
@@ -258,7 +258,8 @@ void BuchbergerAlg::step() {
   std::vector<std::unique_ptr<Poly>> reduced;
 
   // w is the negative of the degree of the lcm's of the chosen spairs
-  MATHICGB_LOG(F4SPairDegree) << std::endl << spairGroup.size() << " pairs in degree " << -w;
+  MATHICGB_LOG(SPairDegree) <<
+    spairGroup.size() << " pairs in degree " << -w << std::endl;
 
   mReducer.classicReduceSPolySet(spairGroup, mBasis, reduced);
 

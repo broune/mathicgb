@@ -1,6 +1,8 @@
 #include "mathicgb/stdinc.h"
 #include "test/ideals.hpp"
 
+#include <sstream>
+
 const char* idealSmall =
 "32003 6 \
 1 1 1 1 1 1 1 \
@@ -148,13 +150,29 @@ const char* weispfennig97_syzygies_strat0_free5 =
 const char* weispfennig97_initial_strat0_free5 =
   "  b4\n  a2b2c\n  a3b2\n  a4d2\n  b3c4\n  ab3c3\n  a2bc3d2\n  a3c3d2\n  ab3c2d2\n  a3bc4\n  a3bd5\n  a2c5d2\n  ab2c4d2\n  a2b3d5\n  b2c6d2\n  abc6d2\n  a2c4d5\n  bc8d2\n  ac6d5\n  abc5d5\n  bc7d5\n  c9d5\n";
 
-const char* gerdt93_ideal = 
+std::string gerdt93Ideal() {
+  return
   "7583 6 1 1 1 1 1 1 1\n\
    3\n\
    ab-b2-4bc+ae\n\
    a2c-6bc2+a2f\n\
    a3+b2c-a2d\n\
   ";
+}
+
+std::string gerdt93IdealComponentFirst(bool componentIncreasing) {
+  std::ostringstream out;
+  out << "7583 6 ";
+  if (componentIncreasing)
+    out << "2 component 1 1 1 1 1 1\n";
+  else
+    out << "2 revcomponent 1 1 1 1 1 1\n";
+  out << "3\n"
+    " ab-b2-4bc+ae\n"
+    " a2c-6bc2+a2f\n"
+    " a3+b2c-a2d\n";
+  return out.str();
+}
 
 const char* gerdt93_gb_strat0_free1 = "\
 0 <0>  ab-b2-4bc+ae\n\

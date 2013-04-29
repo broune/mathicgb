@@ -173,24 +173,25 @@ private:
       mPreferSparseSPairs(preferSparseSPairs) {}
 
     typedef OrderMonoid::Mono PairData;
-	void computePairData(size_t col, size_t row, OrderMonoid::MonoRef m) const;
+    void computePairData
+    (size_t col, size_t row, OrderMonoid::MonoRef m) const;
 
-	typedef bool CompareResult;
-	bool compare(
+    typedef bool CompareResult;
+    bool compare(
       size_t colA, size_t rowA, OrderMonoid::ConstMonoRef a,
       size_t colB, size_t rowB, OrderMonoid::ConstMonoRef b
-    ) const {
+      ) const {
       const auto cmp = orderMonoid().compare(a, b);
       if (cmp == GT)
         return true;
       if (cmp == LT)
         return false;
-
+      
       const bool aRetired = mBasis.retired(rowA) || mBasis.retired(colA);
       const bool bRetired = mBasis.retired(rowB) || mBasis.retired(colB);
       if (aRetired || bRetired)
         return !bRetired;
-
+      
       if (mPreferSparseSPairs) {
         const auto termCountA =
           mBasis.basisElement(colA).termCount() +
@@ -204,8 +205,8 @@ private:
           return false;
       }
       return colA + rowA > colB + rowB;
-	}
-	bool cmpLessThan(bool v) const {return v;}
+    }
+    bool cmpLessThan(bool v) const {return v;}
 
     // The following methods are not required of a configuration.
 	OrderMonoid::Mono allocPairData() {return orderMonoid().alloc();}
