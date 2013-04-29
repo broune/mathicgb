@@ -338,36 +338,12 @@ void FreeModuleOrder::displayOrderTypes(std::ostream &o)
   o << "  4   SchreyerGrevLexUp" << std::endl; // done
   o << "  5   SchreyerGrevLexDown" << std::endl; // done
   o << "  6   IndexUp SchreyerGrevLex" << std::endl; // done
-  o << "  7   IndexDown SchreyerGrevLex" << std::endl;
+  o << "  7   IndexDown SchreyerGrevLex" << std::endl; // done
 }
 
 std::unique_ptr<FreeModuleOrder> FreeModuleOrder::makeOrder(FreeModuleOrderType type, const PolyRing& ring)
 {
-  if (type == 0)
-    type = 1;  // Set the default
-
-  switch (type) {
-  case 4:
-  case 5:
-  case 1:
-  case 6:
-  case 7:
-    return make_unique<ConcreteOrder<OrderA>>(ring);
-
-  case 2:
-  case 3:
-   return make_unique<ConcreteOrder<OrderC>>(ring);
-
-  default: break;
-  }
-
-  std::cerr << "unknown free module order type" << std::endl;
-  std::cerr << "possible orders are: " << std::endl;
-  for (size_t i = 1; i <= 7; ++i) {
-    auto order = makeOrder(static_cast<FreeModuleOrderType>(i), ring);
-    std::cerr << "  " << i << ": " << order->description() << std::endl;
-  }
-  exit(1);
+  return make_unique<ConcreteOrder<OrderA>>(ring);
 }
 
 // Local Variables:

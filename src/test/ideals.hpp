@@ -2,19 +2,21 @@
 #define _test_ideals_h_
 
 // small
-extern const char* idealSmall;
+std::string smallIdealComponentLastDescending();
+
 extern const char* idealSmallBasis;
 extern const char* idealSmallSyzygies;
 extern const char* idealSmallInitial;
 
 // liu
-extern const char* liu_ideal;
+std::string liuIdealComponentLastDescending();
+
 extern const char* liu_gb_strat0_free1;
 extern const char* liu_syzygies_strat0_free1;
 extern const char* liu_initial_strat0_free1;
 
 // weispfennig97
-extern const char* weispfennig97_ideal;
+std::string weispfennig97IdealComponentLast(bool componentsAscending);
 
 extern const char* weispfennig97_gb_strat0_free4;
 extern const char* weispfennig97_syzygies_strat0_free4;
@@ -25,8 +27,9 @@ extern const char* weispfennig97_syzygies_strat0_free5;
 extern const char* weispfennig97_initial_strat0_free5;
 
 // gerdt93
-std::string gerdt93Ideal();
-std::string gerdt93IdealComponentFirst(bool componentIncreasing);
+std::string gerdt93IdealComponentFirst(bool componentsAscending);
+std::string gerdt93IdealComponentMiddle(bool componentsAscending);
+std::string gerdt93IdealComponentLast(bool componentsAscending);
 
 extern const char* gerdt93_gb_strat0_free1;
 extern const char* gerdt93_syzygies_strat0_free1;

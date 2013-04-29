@@ -292,13 +292,6 @@ spairQueue	reducerType	divLookup	monTable	buchberger	postponeKoszul	useBaseDivis
     auto tuple = Basis::parse(in);
     auto& I = std::get<1>(tuple);
 
-    auto typ = freeModuleOrder;
-    if (typ == 2 || typ == 4)
-      std::get<2>(tuple)->setComponentsAscendingDesired(true);
-    else if (typ == 0 || typ == 1 || typ == 3 || typ == 5)
-      std::get<2>(tuple)->setComponentsAscendingDesired(false);
-    // xxx
-
     MATHICGB_ASSERT
       (Reducer::makeReducerNullOnUnknown(red, I->ring()).get() != 0);
 
@@ -350,46 +343,49 @@ spairQueue	reducerType	divLookup	monTable	buchberger	postponeKoszul	useBaseDivis
 }
 
 TEST(GB, small) {
-  testGB(0, idealSmall, idealSmallBasis, idealSmallSyzygies, idealSmallInitial, 7);
+  testGB(1, smallIdealComponentLastDescending(),
+         idealSmallBasis, idealSmallSyzygies, idealSmallInitial, 7);
 }
 
 TEST(GB, liu_0_1) {
-  testGB(1, liu_ideal, liu_gb_strat0_free1,
+  testGB(1, liuIdealComponentLastDescending(), liu_gb_strat0_free1,
     liu_syzygies_strat0_free1, liu_initial_strat0_free1, 13);
 }
 
 TEST(GB, weispfennig97_0_4) {
-  testGB(4, weispfennig97_ideal, weispfennig97_gb_strat0_free4,
+  testGB(4, weispfennig97IdealComponentLast(true),
+         weispfennig97_gb_strat0_free4,
          weispfennig97_syzygies_strat0_free4, weispfennig97_initial_strat0_free4, 31);
 }
 
 TEST(GB, weispfennig97_0_5) {
-  testGB(5, weispfennig97_ideal, weispfennig97_gb_strat0_free5,
+  testGB(5, weispfennig97IdealComponentLast(false),
+         weispfennig97_gb_strat0_free5,
          weispfennig97_syzygies_strat0_free5, weispfennig97_initial_strat0_free5, 27);
 }
 
 TEST(GB, gerdt93_0_1) {
-  testGB(1, gerdt93Ideal(), gerdt93_gb_strat0_free1,
+  testGB(1, gerdt93IdealComponentLast(false), gerdt93_gb_strat0_free1,
          gerdt93_syzygies_strat0_free1, gerdt93_initial_strat0_free1, 9);
 }
 
 TEST(GB, gerdt93_0_2) {
-  testGB(2, gerdt93Ideal(), gerdt93_gb_strat0_free2,
+  testGB(2, gerdt93IdealComponentMiddle(true), gerdt93_gb_strat0_free2,
          gerdt93_syzygies_strat0_free2, gerdt93_initial_strat0_free2, 7);
 }
 
 TEST(GB, gerdt93_0_3) {
-  testGB(3, gerdt93Ideal(), gerdt93_gb_strat0_free3,
+  testGB(3, gerdt93IdealComponentMiddle(false), gerdt93_gb_strat0_free3,
          gerdt93_syzygies_strat0_free3, gerdt93_initial_strat0_free3, 9);
 }
 
 TEST(GB, gerdt93_0_4) {
-  testGB(4, gerdt93Ideal(), gerdt93_gb_strat0_free4,
+  testGB(4, gerdt93IdealComponentLast(true), gerdt93_gb_strat0_free4,
          gerdt93_syzygies_strat0_free4, gerdt93_initial_strat0_free4, 7);
 }
 
 TEST(GB, gerdt93_0_5) {
-  testGB(5, gerdt93Ideal(), gerdt93_gb_strat0_free5,
+  testGB(5, gerdt93IdealComponentLast(false), gerdt93_gb_strat0_free5,
          gerdt93_syzygies_strat0_free5, gerdt93_initial_strat0_free5, 7);
 }
 

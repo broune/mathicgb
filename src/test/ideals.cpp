@@ -3,13 +3,16 @@
 
 #include <sstream>
 
-const char* idealSmall =
-"32003 6 \
-1 1 1 1 1 1 1 \
-3 \
--bc+ad \
--b2+af \
--bc2+a2e";
+std::string smallIdealComponentLastDescending() {
+  return 
+    "32003 6\n"
+    "1 1 1 1 1 1 1\n"
+    "_revlex revcomponent\n"
+    "3\n"
+    "-bc+ad\n"
+    "-b2+af\n"
+    "-bc2+a2e\n";
+}
 
 const char* idealSmallBasis = "\
 0 <0>  bc-ad\n\
@@ -29,15 +32,17 @@ const char* idealSmallSyzygies =
 const char* idealSmallInitial =
   "  bc\n  b2\n  acd\n  abd\n  a2be\n  a2d2\n  a3de\n  a4e2\n";
 
-const char* liu_ideal = 
-"2 6 \
-1 1 1 1 1 1 1 \
-4 \
-bc+bd+af+ef \
-ac+cd+bf+ef \
-ad+bd+cf+ef \
-ab+ac+df+ef \
-";
+std::string liuIdealComponentLastDescending() {
+  return 
+    "2 6\n"
+    "1 1 1 1 1 1 1\n"
+    "_revlex revcomponent\n"
+    "4\n"
+    "bc+bd+af+ef\n"
+    "ac+cd+bf+ef\n"
+    "ad+bd+cf+ef\n"
+    "ab+ac+df+ef\n";
+}
 
 const char* liu_gb_strat0_free1 = 
 "\
@@ -65,13 +70,21 @@ const char* liu_syzygies_strat0_free1 =
 const char* liu_initial_strat0_free1 =
   "  ad\n  bc\n  ac\n  ab\n  a2f\n  bd2\n  c2d\n  b2d\n  cd2f\n  c3f\n  b3f\n  b2ef2\n  bde2f2\n  c2e2f3\n  cde2f4\n  d2e3f4\n";
 
-const char* weispfennig97_ideal = 
-"7583 4 1 1 1 1 1 \
-3 \
-b4+ab2c+a2d2-2abd2+b2d2+c2d2 \
-a2b2c-bc4+a3d2+ab2d2+ac2d2+3d5 \
-a3b2-abc3+a2d3+b2d3+c2d3 \
-";
+std::string weispfennig97IdealComponentLast(bool componentsAscending) {
+  std::ostringstream out;
+  out << "7583 4 1\n";
+  if (componentsAscending)
+    out << "1 1 1 1 _revlex component\n";
+  else
+    out << "1 1 1 1 _revlex revcomponent\n";
+  out <<
+    "3\n"
+    "b4+ab2c+a2d2-2abd2+b2d2+c2d2 \n"
+    "a2b2c-bc4+a3d2+ab2d2+ac2d2+3d5 \n"
+    "a3b2-abc3+a2d3+b2d3+c2d3\n";
+  return out.str();
+}
+
 
 const char* weispfennig97_gb_strat0_free4 = "\
 0 <0>  b4+ab2c+a2d2-2abd2+b2d2+c2d2\n\
@@ -150,27 +163,43 @@ const char* weispfennig97_syzygies_strat0_free5 =
 const char* weispfennig97_initial_strat0_free5 =
   "  b4\n  a2b2c\n  a3b2\n  a4d2\n  b3c4\n  ab3c3\n  a2bc3d2\n  a3c3d2\n  ab3c2d2\n  a3bc4\n  a3bd5\n  a2c5d2\n  ab2c4d2\n  a2b3d5\n  b2c6d2\n  abc6d2\n  a2c4d5\n  bc8d2\n  ac6d5\n  abc5d5\n  bc7d5\n  c9d5\n";
 
-std::string gerdt93Ideal() {
-  return
-  "7583 6 1 1 1 1 1 1 1\n\
-   3\n\
-   ab-b2-4bc+ae\n\
-   a2c-6bc2+a2f\n\
-   a3+b2c-a2d\n\
-  ";
-}
+const char* Gert93RawIdeal = 
+  "3\n"
+  "ab-b2-4bc+ae\n"
+  "a2c-6bc2+a2f\n"
+  "a3+b2c-a2d\n";
 
-std::string gerdt93IdealComponentFirst(bool componentIncreasing) {
+
+std::string gerdt93IdealComponentLast(bool componentsAscending) {
   std::ostringstream out;
   out << "7583 6 ";
-  if (componentIncreasing)
+  if (componentsAscending)
+    out << "1 1 1 1 1 1 1 _revlex component\n";
+  else
+    out << "1 1 1 1 1 1 1 _revlex revcomponent\n";
+  out << Gert93RawIdeal;
+  return out.str();
+}
+
+std::string gerdt93IdealComponentFirst(bool componentsAscending) {
+  std::ostringstream out;
+  out << "7583 6 ";
+  if (componentsAscending)
     out << "2 component 1 1 1 1 1 1\n";
   else
     out << "2 revcomponent 1 1 1 1 1 1\n";
-  out << "3\n"
-    " ab-b2-4bc+ae\n"
-    " a2c-6bc2+a2f\n"
-    " a3+b2c-a2d\n";
+  out << Gert93RawIdeal;
+  return out.str();
+}
+
+std::string gerdt93IdealComponentMiddle(bool componentsAscending) {
+  std::ostringstream out;
+  out << "7583 6 ";
+  if (componentsAscending)
+    out << "2 1 1 1 1 1 1 component\n";
+  else
+    out << "2 1 1 1 1 1 1 revcomponent\n";
+  out << Gert93RawIdeal;
   return out.str();
 }
 

@@ -1778,6 +1778,7 @@ auto MonoMonoid<E, HC, SH, SO>::readMonoid(std::istream& in) ->
     if (!std::isdigit(c)) {
       std::string str;
       in >> str;
+    
       if (str == "component")
         componentsAscendingDesired = true;
       else if (str == "revcomponent")
@@ -1801,6 +1802,32 @@ auto MonoMonoid<E, HC, SH, SO>::readMonoid(std::istream& in) ->
     }
   }
   MATHICGB_ASSERT(w == gradings.size());
+
+  in >> c;
+  in.unget();
+  if (c == '_') {
+    in >> str;
+
+    if (str == "_revlex")
+      lexBaseOrder = false;
+    else if (str == "_lex")
+      lexBaseOrder = true;
+    else
+      mathic::reportError("Expected _lex or _revlex but read \"" + str + "\".");
+
+    in >> c;
+    in.unget();
+    if (!std::isdigit(c)) {
+      in >> str;
+      if (str == "component")
+        componentsAscendingDesired = true;
+      else if (str == "revcomponent")
+        componentsAscendingDesired = false;
+      else
+        mathic::reportError
+          ("Expected component or revcomponent but read \"" + str + "\".");
+    }
+  }
 
   Order order(
     varCount,
