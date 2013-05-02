@@ -6,6 +6,15 @@
 #include <sstream>
 #include <cstring>
 
+static const size_t BufferSize =
+#ifdef MATHICGB_DEBUG
+  1;
+#else
+  10 * 1024;
+#endif
+
+
+
 void reportSyntaxError(std::string s) {
   mathic::reportError(s);
 }
@@ -14,7 +23,6 @@ void Scanner::reportError(std::string msg) const {
   reportSyntaxError(msg);
 }
 
-static const size_t BufferSize = 10 * 1024;
 
 Scanner::Scanner(FILE* input):
   mFile(input),
@@ -44,14 +52,45 @@ Scanner::Scanner(const char* const input):
   mLineCount(1),
   mChar(' '),
   mBuffer(input, input + std::strlen(input)),
-  mBufferPos(mBuffer.end())
+  mBufferPos(mBuffer.begin())
 {
   get();
 }
 
+Scanner::Scanner(const std::string& input):
+  mFile(0),
+  mStream(0),
+  mLineCount(1),
+  mChar(' '),
+  mBuffer(input.begin(), input.end()),
+  mBufferPos(mBuffer.begin())
+{
+  get();
+}
+
+bool Scanner::match(const char* const str) {
+  eatWhite();
+  MATHICGB_ASSERT(str != 0);
+  const auto size = std::strlen(str);
+  if (!ensureBuffer(size - 1))
+    return false;
+  if (size == 0)
+    return true;
+  if (peek() != *str)
+    return false;
+  if (std::strncmp(&*mBufferPos, str + 1, size - 1) != 0)
+    return false;
+  ignore(size);
+  return true;
+}
+
+bool Scanner::ensureBuffer(size_t min) {
+  const auto got = std::distance(mBufferPos, mBuffer.end()) + 1;
+  return got >= min || readBuffer(min - got);
+}
+
 void Scanner::expect(const char* str) {
   MATHICGB_ASSERT(str != 0);
-
   eatWhite();
 
   const char* it = str;
@@ -121,27 +160,22 @@ void Scanner::reportErrorUnexpectedToken(
   reportSyntaxError(errorMsg.str());
 }
 
-int Scanner::readBuffer() {
-  size_t read;
+bool Scanner::readBuffer(size_t minRead) {
+  auto saveCount = std::distance(mBufferPos, mBuffer.end());
+  if (mBufferPos != mBuffer.begin() && mBufferPos != mBuffer.end())
+    std::copy(mBufferPos, mBuffer.end(), mBuffer.begin());
+  mBuffer.resize(std::max(saveCount + minRead, mBuffer.capacity()));
+  auto readInto = reinterpret_cast<char*>(mBuffer.data() + saveCount);
+  auto readCount = mBuffer.size() - saveCount;
+
+  size_t didReadCount = 0;
   if (mFile != 0) {
-    if (mBuffer.size() < mBuffer.capacity() && (feof(mFile) || ferror(mFile)))
-      return EOF;
-    mBuffer.resize(mBuffer.capacity());
-    read = fread(&mBuffer[0], 1, mBuffer.capacity(), mFile);
+    didReadCount = fread(readInto, 1, readCount, mFile);
   } else if (mStream != 0) {
-    MATHICGB_ASSERT(mStream != 0);
-    if (mBuffer.size() < mBuffer.capacity() && !mStream->good())
-      return EOF;
-    mBuffer.resize(mBuffer.capacity());
-    mStream->read(reinterpret_cast<char*>(mBuffer.data()), mBuffer.size());
-    read = mStream->gcount();
-  } else
-    return EOF;
-  mBuffer.resize(read);
+    mStream->read(readInto, readCount);
+    didReadCount = mStream->gcount();
+  }
+  mBuffer.resize(didReadCount);
   mBufferPos = mBuffer.begin();
-  if (read == 0)
-    return EOF;
-  const char c = *mBufferPos;
-  ++mBufferPos;
-  return c;
+  return didReadCount >= minRead;
 }

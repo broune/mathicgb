@@ -45,8 +45,14 @@ public:
   /// Construct a Scanner object reading from the input string.
   Scanner(const char* const input);
 
+  /// Construct a Scanner object reading from the input string.
+  Scanner(const std::string& input);
+
   /// Reads a single character from the stream.
   int get();
+
+  /// Takes count characters off the stream.
+  void ignore(size_t count);
 
   /// Return true if the next character is c, and in that case skip
   /// past it.
@@ -54,6 +60,8 @@ public:
 
   /// Return true if no more input.
   bool matchEOF();
+
+  bool match(const char* const str);
 
   /// Require the next character to be equal to expected. This
   /// character is skipped past.
@@ -91,6 +99,8 @@ public:
   /// whitespace.
   bool peekDigit() {return std::isdigit(peek());}
 
+  bool peekAlpha() {return std::isalpha(peek());}
+
   /// Returns true if the next character is whitespace. Does not skip
   /// whitespace. Whitespace is defined by std::isspace().
   bool peekWhite() {return isspace(peek());}
@@ -112,7 +122,8 @@ private:
   void reportErrorUnexpectedToken
     (const std::string& expected, const std::string& got);
 
-  int readBuffer();
+  bool ensureBuffer(size_t min);
+  bool readBuffer(size_t minRead);
 
   FILE* mFile;
   std::istream* mStream;
@@ -160,19 +171,22 @@ inline int Scanner::get() {
   if (mChar == '\n')
     ++mLineCount;
   int oldChar = mChar;
-  if (mBufferPos == mBuffer.end())
-    mChar = readBuffer();
+  if (mBufferPos == mBuffer.end() && !readBuffer(1))
+    mChar = EOF;
   else {
     mChar = *mBufferPos;
     ++mBufferPos;
   }
-  std::cout << "read '" << char(oldChar) << "' (" << oldChar << ")\n";
   return oldChar;
+}
+
+inline void Scanner::ignore(size_t count) {
+  for (size_t i = 0; i < count; ++i)
+    get();
 }
 
 template<class T>
 T Scanner::readInteger(const bool negate) {
-  std::cout << "***" << std::endl;
   static_assert(std::numeric_limits<T>::is_integer, "");
 
   eatWhite();

@@ -2,7 +2,6 @@
 #include "mathicgb/Scanner.hpp"
 
 #include <gtest/gtest.h>
-#include <iterator>
 
 namespace {
   const char* const alpha = "abcdefghijkl";
@@ -44,8 +43,7 @@ TEST(Scanner, ExpectChar) {
 }
 
 TEST(Scanner, ExpectTwoChars) {
-  std::stringstream s(alphaSpaced);
-  Scanner in(s);
+  Scanner in(alphaSpaced);
   for (size_t i = 0; alpha[i] != '\0'; ++i) {
     if (i % 2 == 0)
       in.expect('!', alpha[i]);
@@ -56,14 +54,23 @@ TEST(Scanner, ExpectTwoChars) {
 }
 
 TEST(Scanner, ExpectString) {
-  std::stringstream s(alphaSpaced);
-  Scanner in(s);
+  Scanner in{std::string(alphaSpaced)};
   const auto size = sizeof(alphas) / sizeof(*alphas);
   for (size_t i = 0; i < size; ++i) {
     if (i % 2 == 0)
       in.expect(alphas[i]);
     else
       in.expect(std::string(alphas[i]));
+  }
+}
+
+TEST(Scanner, MatchString) {
+  Scanner in{std::string(alphaSpaced)};
+  const auto size = sizeof(alphas) / sizeof(*alphas);
+  for (size_t i = 0; i < size; ++i) {
+    ASSERT_FALSE(in.match("ef"));
+    ASSERT_FALSE(in.match("deq"));
+    ASSERT_TRUE(in.match(alphas[i]));
   }
 }
 
