@@ -65,9 +65,8 @@ namespace MonoMonoidInternal {
       mLexBaseOrder(order.baseOrder() == Order::LexBaseOrder),
       mGradings(makeGradings(order)),
       mComponentGradingIndex(
-        order.componentGradingIndex() == Order::ComponentAfterBaseOrder ?
-          Order::ComponentAfterBaseOrder :
-          order.gradingCount() - 1 - order.componentGradingIndex()
+        reverseComponentGradingIndex
+          (order.gradingCount(), order.componentGradingIndex())
       )
     {
     }
@@ -117,6 +116,19 @@ namespace MonoMonoidInternal {
       const auto size = gradings.size();
       for (size_t i = 0; i < size; ++i)
         gradings[i] = -gradings[i];
+    }
+
+    /// Since comparisons go opposite direction, we need to reverse
+    /// the component grading index, unless it's the special value
+    /// indicating that it goes last.
+    static VarIndex reverseComponentGradingIndex(
+      const VarIndex gradingCount,
+      const VarIndex componentGradingIndex
+    ) {
+      if (componentGradingIndex == Order::ComponentAfterBaseOrder)
+        return Order::ComponentAfterBaseOrder;
+      else
+        return gradingCount - 1 - componentGradingIndex;
     }
 
     const HashCoefficients& hashCoefficients() const {return mHashCoefficients;}
@@ -339,6 +351,30 @@ public:
   static std::pair<MonoMonoid, std::pair<bool, bool>> readMonoid(std::istream& in);
   void printMonoid
     (const bool componentsAscendingDesired, std::ostream& out) const;
+
+  /// Returns an Order object that is equivalent to the order that
+  /// this monoid was constructed with. The settings not handled by
+  /// the monoid, and therefore not known by the monoid, are passed in
+  /// as parameters. The purpose of that is to make it clear that this
+  /// information must be supplied separately.
+  Order makeOrder(
+    const bool componentsAscendingDesired,
+    const bool schreyering
+  ) const {
+    std::vector<Exponent> orderGradings(gradings());
+    reverseGradings(varCount(), orderGradings);
+    if (!isLexBaseOrder())
+      negateGradings(orderGradings);
+    return Order(
+      varCount(),
+      std::move(orderGradings),
+      isLexBaseOrder() ? Order::LexBaseOrder : Order::RevLexBaseOrder,
+      Base::reverseComponentGradingIndex
+        (gradingCount(), componentGradingIndex()),
+      componentsAscendingDesired,
+      schreyering
+    );
+  }
 
   bool operator==(const MonoMonoid& monoid) const {
     return this == &monoid;

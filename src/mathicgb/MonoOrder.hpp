@@ -4,7 +4,7 @@
 #include <vector>
 #include <algorithm>
 
-/// Class used to describe an monomial order or a module monomial
+/// Class used to describe an monomial order and/or a module monomial
 /// order. Use this class to construct a monoid. The monoid does the
 /// actual comparisons.
 ///
@@ -36,13 +36,17 @@ public:
   MonoOrder(
     const VarIndex varCount,
     const BaseOrder baseOrder = RevLexBaseOrder,
-    const size_t componentBefore = ComponentAfterBaseOrder
+    const size_t componentBefore = ComponentAfterBaseOrder,
+    const bool componentsAscendingDesired = true,
+    const bool schreyering = true
   ):
     mVarCount(varCount),
     mGradings
       (addComponentGrading(Gradings(varCount, 1), varCount, componentBefore)),
     mBaseOrder(baseOrder),
-    mComponentGradingIndex(componentBefore)
+    mComponentGradingIndex(componentBefore),
+    mComponentsAscendingDesired(componentsAscendingDesired),
+    mSchreyering(schreyering)
   {}
 
   /// The specified base order is graded by the gradings matrix.
@@ -81,12 +85,16 @@ public:
     const VarIndex varCount,
     Gradings&& gradings,
     const BaseOrder baseOrder = RevLexBaseOrder,
-    const size_t componentBefore = ComponentAfterBaseOrder
+    const size_t componentBefore = ComponentAfterBaseOrder,
+    const bool componentsAscendingDesired = true,
+    const bool schreyering = true
   ):
     mVarCount(varCount),
     mGradings(std::move(gradings)),
     mBaseOrder(baseOrder),
-    mComponentGradingIndex(componentBefore)
+    mComponentGradingIndex(componentBefore),
+    mComponentsAscendingDesired(componentsAscendingDesired),
+    mSchreyering(schreyering)
   {
 #ifdef MATHCGB_DEBUG
     if (componentBefore != ComponentAfterBaseOrder) {
@@ -152,6 +160,9 @@ public:
     return true;
   }
 
+  bool componentsAscendingDesired() const {return mComponentsAscendingDesired;}
+  bool schreyering() const {return mSchreyering;}
+
 private:
   static Gradings addComponentGrading(
     Gradings&& gradings,
@@ -189,9 +200,12 @@ private:
   }
 
   const VarIndex mVarCount;
+
   const Gradings mGradings;
   const BaseOrder mBaseOrder;
   const size_t mComponentGradingIndex;
+  const bool mSchreyering;
+  const bool mComponentsAscendingDesired;
 };
 
 #endif

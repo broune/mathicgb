@@ -175,7 +175,8 @@ bool Scanner::readBuffer(size_t minRead) {
     mStream->read(readInto, readCount);
     didReadCount = mStream->gcount();
   }
-  mBuffer.resize(didReadCount);
+  mBuffer.resize(saveCount + didReadCount);
   mBufferPos = mBuffer.begin();
+
   return didReadCount >= minRead;
 }

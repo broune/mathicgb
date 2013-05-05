@@ -13,59 +13,61 @@ libmathicgb_la_LIBADD= $(DEPS_LIBS)
 
 # the sources that are built to make libmathicgb. Listing the headers in
 # sources ensure that those files are included in distributions.
-libmathicgb_la_SOURCES = src/mathicgb/BjarkeGeobucket2.cpp				\
+libmathicgb_la_SOURCES = src/mathicgb/BjarkeGeobucket2.cpp		\
   src/mathicgb/BjarkeGeobucket2.hpp src/mathicgb/BjarkeGeobucket.cpp	\
-  src/mathicgb/BjarkeGeobucket.hpp src/mathicgb/BuchbergerAlg.cpp		\
-  src/mathicgb/BuchbergerAlg.hpp src/mathicgb/ChainedHashTable.cpp		\
-  src/mathicgb/ChainedHashTable.hpp src/mathicgb/DivisorLookup.hpp		\
-  src/mathicgb/DivisorLookup.cpp src/mathicgb/DivLookup.hpp				\
-  src/mathicgb/FreeModuleOrder.cpp src/mathicgb/FreeModuleOrder.hpp		\
-  src/mathicgb/GroebnerBasis.cpp src/mathicgb/GroebnerBasis.hpp			\
-  src/mathicgb/HashTourReducer.cpp src/mathicgb/HashTourReducer.hpp		\
-  src/mathicgb/Basis.cpp src/mathicgb/Basis.hpp							\
-  src/mathicgb/io-util.cpp src/mathicgb/io-util.hpp						\
-  src/mathicgb/KoszulQueue.cpp src/mathicgb/KoszulQueue.hpp				\
+  src/mathicgb/BjarkeGeobucket.hpp src/mathicgb/BuchbergerAlg.cpp	\
+  src/mathicgb/BuchbergerAlg.hpp src/mathicgb/ChainedHashTable.cpp	\
+  src/mathicgb/ChainedHashTable.hpp src/mathicgb/DivisorLookup.hpp	\
+  src/mathicgb/DivisorLookup.cpp src/mathicgb/DivLookup.hpp		\
+  src/mathicgb/FreeModuleOrder.cpp src/mathicgb/FreeModuleOrder.hpp	\
+  src/mathicgb/GroebnerBasis.cpp src/mathicgb/GroebnerBasis.hpp		\
+  src/mathicgb/HashTourReducer.cpp src/mathicgb/HashTourReducer.hpp	\
+  src/mathicgb/Basis.cpp src/mathicgb/Basis.hpp				\
+  src/mathicgb/io-util.cpp src/mathicgb/io-util.hpp			\
+  src/mathicgb/KoszulQueue.cpp src/mathicgb/KoszulQueue.hpp		\
   src/mathicgb/MonomialHashTable.hpp src/mathicgb/MonTableDivList.hpp	\
-  src/mathicgb/MonTableKDTree.hpp src/mathicgb/MonTableNaive.cpp		\
-  src/mathicgb/MonTableNaive.hpp src/mathicgb/MTArray.cpp				\
-  src/mathicgb/MTArray.hpp src/mathicgb/PairTriangle.cpp				\
-  src/mathicgb/PairTriangle.hpp src/mathicgb/Poly.cpp					\
-  src/mathicgb/Poly.hpp src/mathicgb/PolyBasis.cpp						\
-  src/mathicgb/PolyBasis.hpp src/mathicgb/PolyGeoBucket.cpp				\
-  src/mathicgb/PolyGeoBucket.hpp src/mathicgb/PolyHashReducer.cpp		\
-  src/mathicgb/PolyHashReducer.hpp src/mathicgb/PolyHashTable.cpp		\
-  src/mathicgb/PolyHashTable.hpp src/mathicgb/PolyHeap.cpp				\
-  src/mathicgb/PolyHeap.hpp src/mathicgb/PolyReducer.cpp				\
-  src/mathicgb/PolyReducer.hpp src/mathicgb/PolyRing.cpp				\
-  src/mathicgb/PolyRing.hpp src/mathicgb/Reducer.cpp					\
-  src/mathicgb/Reducer.hpp src/mathicgb/ReducerDedup.hpp				\
-  src/mathicgb/ReducerHash.hpp src/mathicgb/ReducerHashPack.hpp			\
-  src/mathicgb/ReducerHelper.hpp src/mathicgb/ReducerNoDedup.hpp		\
-  src/mathicgb/ReducerPack.hpp src/mathicgb/ReducerPackDedup.hpp		\
-  src/mathicgb/SignatureGB.cpp src/mathicgb/SignatureGB.hpp				\
-  src/mathicgb/SigSPairs.cpp src/mathicgb/SigSPairs.hpp					\
-  src/mathicgb/SPairs.cpp src/mathicgb/SPairs.hpp						\
-  src/mathicgb/stdinc.h src/mathicgb/TournamentReducer.cpp				\
-  src/mathicgb/TournamentReducer.hpp src/mathicgb/SigSPairQueue.hpp		\
-  src/mathicgb/SigSPairQueue.cpp src/mathicgb/SparseMatrix.hpp			\
-  src/mathicgb/SparseMatrix.cpp src/mathicgb/QuadMatrixBuilder.hpp		\
+  src/mathicgb/MonTableKDTree.hpp src/mathicgb/MonTableNaive.cpp	\
+  src/mathicgb/MonTableNaive.hpp src/mathicgb/MTArray.cpp		\
+  src/mathicgb/MTArray.hpp src/mathicgb/PairTriangle.cpp		\
+  src/mathicgb/PairTriangle.hpp src/mathicgb/Poly.cpp			\
+  src/mathicgb/Poly.hpp src/mathicgb/PolyBasis.cpp			\
+  src/mathicgb/PolyBasis.hpp src/mathicgb/PolyGeoBucket.cpp		\
+  src/mathicgb/PolyGeoBucket.hpp src/mathicgb/PolyHashReducer.cpp	\
+  src/mathicgb/PolyHashReducer.hpp src/mathicgb/PolyHashTable.cpp	\
+  src/mathicgb/PolyHashTable.hpp src/mathicgb/PolyHeap.cpp		\
+  src/mathicgb/PolyHeap.hpp src/mathicgb/PolyReducer.cpp		\
+  src/mathicgb/PolyReducer.hpp src/mathicgb/PolyRing.cpp		\
+  src/mathicgb/PolyRing.hpp src/mathicgb/Reducer.cpp			\
+  src/mathicgb/Reducer.hpp src/mathicgb/ReducerDedup.hpp		\
+  src/mathicgb/ReducerHash.hpp src/mathicgb/ReducerHashPack.hpp		\
+  src/mathicgb/ReducerHelper.hpp src/mathicgb/ReducerNoDedup.hpp	\
+  src/mathicgb/ReducerPack.hpp src/mathicgb/ReducerPackDedup.hpp	\
+  src/mathicgb/SignatureGB.cpp src/mathicgb/SignatureGB.hpp		\
+  src/mathicgb/SigSPairs.cpp src/mathicgb/SigSPairs.hpp			\
+  src/mathicgb/SPairs.cpp src/mathicgb/SPairs.hpp			\
+  src/mathicgb/stdinc.h src/mathicgb/TournamentReducer.cpp		\
+  src/mathicgb/TournamentReducer.hpp src/mathicgb/SigSPairQueue.hpp	\
+  src/mathicgb/SigSPairQueue.cpp src/mathicgb/SparseMatrix.hpp		\
+  src/mathicgb/SparseMatrix.cpp src/mathicgb/QuadMatrixBuilder.hpp	\
   src/mathicgb/QuadMatrixBuilder.cpp src/mathicgb/TypicalReducer.cpp	\
-  src/mathicgb/TypicalReducer.hpp src/mathicgb/F4Reducer.hpp			\
-  src/mathicgb/F4Reducer.cpp src/mathicgb/F4MatrixBuilder.hpp			\
-  src/mathicgb/F4MatrixBuilder.cpp src/mathicgb/QuadMatrix.hpp			\
-  src/mathicgb/QuadMatrix.cpp src/mathicgb/F4MatrixReducer.cpp			\
-  src/mathicgb/F4MatrixReducer.hpp src/mathicgb/MonomialMap.hpp			\
-  src/mathicgb/RawVector.hpp src/mathicgb/Atomic.hpp					\
-  src/mathicgb/FixedSizeMonomialMap.hpp src/mathicgb/CFile.hpp			\
-  src/mathicgb/CFile.cpp src/mathicgb/LogDomain.hpp						\
-  src/mathicgb/LogDomain.cpp src/mathicgb/LogDomainSet.hpp				\
+  src/mathicgb/TypicalReducer.hpp src/mathicgb/F4Reducer.hpp		\
+  src/mathicgb/F4Reducer.cpp src/mathicgb/F4MatrixBuilder.hpp		\
+  src/mathicgb/F4MatrixBuilder.cpp src/mathicgb/QuadMatrix.hpp		\
+  src/mathicgb/QuadMatrix.cpp src/mathicgb/F4MatrixReducer.cpp		\
+  src/mathicgb/F4MatrixReducer.hpp src/mathicgb/MonomialMap.hpp		\
+  src/mathicgb/RawVector.hpp src/mathicgb/Atomic.hpp			\
+  src/mathicgb/FixedSizeMonomialMap.hpp src/mathicgb/CFile.hpp		\
+  src/mathicgb/CFile.cpp src/mathicgb/LogDomain.hpp			\
+  src/mathicgb/LogDomain.cpp src/mathicgb/LogDomainSet.hpp		\
   src/mathicgb/F4MatrixBuilder2.hpp src/mathicgb/F4MatrixBuilder2.cpp	\
-  src/mathicgb/LogDomainSet.cpp src/mathicgb/F4ProtoMatrix.hpp			\
-  src/mathicgb/F4ProtoMatrix.cpp src/mathicgb/F4MatrixProject.hpp		\
-  src/mathicgb/F4MatrixProjection.cpp src/mathicgb/ScopeExit.hpp		\
-  src/mathicgb.cpp src/mathicgb.h src/mathicgb/mtbb.hpp					\
-  src/mathicgb/PrimeField.hpp src/mathicgb/MonoMonoid.hpp				\
-  src/mathicgb/MonoProcessor.hpp src/mathicgb/MonoOrder.hpp
+  src/mathicgb/LogDomainSet.cpp src/mathicgb/F4ProtoMatrix.hpp		\
+  src/mathicgb/F4ProtoMatrix.cpp src/mathicgb/F4MatrixProject.hpp	\
+  src/mathicgb/F4MatrixProjection.cpp src/mathicgb/ScopeExit.hpp	\
+  src/mathicgb.cpp src/mathicgb.h src/mathicgb/mtbb.hpp			\
+  src/mathicgb/PrimeField.hpp src/mathicgb/MonoMonoid.hpp		\
+  src/mathicgb/MonoProcessor.hpp src/mathicgb/MonoOrder.hpp		\
+  src/mathicgb/Scanner.hpp src/mathicgb/Scanner.cpp			\
+  src/mathicgb/Unchar.hpp
 
 
 # The headers that libmathicgb installs.
@@ -103,12 +105,14 @@ check_PROGRAMS=$(TESTS)
 unittest_LDADD = $(DEPS_LIBS) $(top_builddir)/libmathicgb.la
 
 test_LIBS=
-unittest_SOURCES=src/test/FreeModuleOrderTest.cpp						\
-  src/test/gtestInclude.cpp src/test/testMain.cpp src/test/gb-test.cpp	\
-  src/test/ideals.cpp src/test/poly-test.cpp src/test/ideals.hpp		\
-  src/test/SparseMatrix.cpp src/test/QuadMatrixBuilder.cpp				\
-  src/test/F4MatrixBuilder.cpp src/test/F4MatrixReducer.cpp             \
-  src/test/mathicgb.cpp src/test/PrimeField.cpp src/test/MonoMonoid.cpp
+unittest_SOURCES=src/test/FreeModuleOrderTest.cpp			\
+  src/test/gtestInclude.cpp src/test/testMain.cpp			\
+  src/test/gb-test.cpp src/test/ideals.cpp src/test/poly-test.cpp	\
+  src/test/ideals.hpp src/test/SparseMatrix.cpp				\
+  src/test/QuadMatrixBuilder.cpp src/test/F4MatrixBuilder.cpp		\
+  src/test/F4MatrixReducer.cpp src/test/mathicgb.cpp			\
+  src/test/PrimeField.cpp src/test/MonoMonoid.cpp			\
+  src/test/Scanner.cpp src/test/MathicIO.cpp
 
 else
 

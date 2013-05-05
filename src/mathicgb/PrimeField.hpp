@@ -11,6 +11,8 @@
 template<class T>
 class PrimeField {
 public:
+  typedef T RawElement;
+
   class Element {
   public:
     static_assert(!std::numeric_limits<T>::is_signed, "");
@@ -39,6 +41,7 @@ public:
 
   Element zero() const {return Element(0);}
   Element one() const {return Element(1);}
+  Element minusOne() const {return Element(charac() - 1);}
 
   bool isZero(const Element a) const {return a == zero();}
   bool isOne(const Element a) const {return a == one();}

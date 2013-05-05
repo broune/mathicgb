@@ -20,9 +20,14 @@ public:
   typedef typename Monoid::ConstMonoRef ConstMonoRef;
   typedef typename Monoid::ConstMonoPtr ConstMonoPtr;
 
-  MonoProcessor(const Monoid& monoid):
-    mComponentsAscendingDesired(true),
+  MonoProcessor(
+    const Monoid& monoid,
+    const bool componentsAscendingDesired,
+    const bool schreyering
+  ):
+    mComponentsAscendingDesired(componentsAscendingDesired),
     mComponentCount(0),
+    mSchreyering(schreyering),
     mModuleAdjustmentsMemory(monoid)
   {}
 
@@ -83,6 +88,9 @@ public:
     return !mModuleAdjustments.empty();
   }
 
+  void setSchreyering(bool value) {mSchreyering = true;}
+  bool schreyering() const {return mSchreyering;}
+
   void setComponentCount(VarIndex count) {mComponentCount = count;}
   VarIndex componentCount() const {return mComponentCount;}
   const Monoid& monoid() const {return mModuleAdjustmentsMemory.monoid();}
@@ -106,6 +114,7 @@ private:
 
   bool mComponentsAscendingDesired;
   VarIndex mComponentCount;
+  bool mSchreyering;
   MonoVector mModuleAdjustmentsMemory;
   std::vector<ConstMonoPtr> mModuleAdjustments;
 };

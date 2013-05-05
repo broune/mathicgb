@@ -48,8 +48,8 @@ auto Basis::parse(std::istream& in) -> Parsed
   delete r.first;
 
   auto basis = make_unique<Basis>(*ring);
-  auto processor = make_unique<MonoProcessor<Monoid>>(ring->monoid());
-  processor->setComponentsAscendingDesired(r.second.first);
+  auto processor =
+    make_unique<MonoProcessor<Monoid>>(ring->monoid(), r.second.first, false);
 
   size_t polyCount;
   in >> polyCount;
