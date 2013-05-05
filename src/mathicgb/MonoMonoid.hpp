@@ -332,15 +332,7 @@ public:
   /// Creates a compatible copy of monoid.
   template<class E2, bool HC2, bool SH2, bool SO2>
   static MonoMonoid create(const MonoMonoid<E2, HC2, SH2, SO2>& monoid) {
-    std::vector<Exponent> gradings(monoid.varCount(), 1);
-    gradings = monoid.gradings();
-    reverseGradings(monoid.varCount(), gradings);
-    if (!monoid.isLexBaseOrder())
-      negateGradings(gradings);
-    Order order(monoid.varCount(), std::move(gradings),
-                monoid.isLexBaseOrder() ? 
-                Order::LexBaseOrder : Order::RevLexBaseOrder);
-    return MonoMonoid(order);
+    return MonoMonoid(monoid.makeOrder(false, false));
   }
 
   /// The second.first value of the return pair indicates whether it
