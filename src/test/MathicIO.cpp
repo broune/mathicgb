@@ -104,7 +104,75 @@ TEST(MathicIO, ReadWriteMonomial) {
   check("ab<2>", 2,  0,1,  1,1);
 }
 
-// TODO: check readTerm
+TEST(MathicIO, ReadWriteTerm) {
+  typedef PolyRing::Monoid Monoid;
+  typedef Monoid::VarIndex VarIndex;
+  typedef Monoid::Exponent Exponent;
+  typedef PolyRing::Field Field;
+  typedef Field::Element Coefficient;
+  typedef Field::RawElement RawCoefficient;
+  static const auto NoComponent = static_cast<Exponent>(-1);
+
+  PolyRing ring(Field(101), Monoid(28));
+  auto&& m = ring.monoid();
+  auto&& f = ring.field();
+
+  auto check = [&](
+    const char* const inStr,
+    const char* const outStr,
+    const bool doComponent,
+    const RawCoefficient coef
+  ) {
+    for (int i = 0; i < 2; ++i) {
+      const char* str = i == 0 ? inStr : outStr;
+      if (str == 0)
+        continue;
+
+      // read term from string
+      auto monoRead = m.alloc();
+      Coefficient readCoef = f.zero();
+      Scanner in(str);
+      MathicIO().readTerm(ring, doComponent, readCoef, monoRead, in);
+      
+      ASSERT_EQ(coef, readCoef.value());
+
+      // print monomial
+      std::ostringstream out;
+      MathicIO().writeTerm(ring, doComponent, readCoef, monoRead, out);
+      const auto correctStr = outStr == 0 ? inStr : outStr;
+      ASSERT_EQ(correctStr, out.str());
+    }
+  };
+
+  check("1", 0, false, 1);
+  check("+1", "1", false, 1);
+  check("2", 0, false, 2);
+  check("+102", "1", false, 1);
+
+  check("1<0>", 0, true, 1);
+  check("+1<2>", "1<2>", true, 1);
+  check("2<3>", 0, true, 2);
+  check("+3<4>", "3<4>", true, 3);
+
+  check("+1a<0>", "a<0>", true, 1);
+  check("+2b", "2b", false, 2);
+  
+
+/*
+  check("1<0>", 0, 0);
+  check("1<1>", 1);
+  check("1<999>", 999);
+
+  check("a1", NoComponent,  0,1,  -1,-1,  "a");
+  check("b10<0>", 0,   1,10);
+  check("A11", NoComponent,  26,11);
+  check("B99<1>", 1,   27,99);
+
+  check("ab", NoComponent,  0,1,  1,1);
+  check("ba", NoComponent,  0,1,  1,1,  "ab");
+  check("a0c3b1", NoComponent,  1,1,  2,3,  "bc3");
+  check("ab<2>", 2,  0,1,  1,1);*/
+}
 
 TEST(MathicIO, ReadWriteBaseField) {
   Scanner in("101");

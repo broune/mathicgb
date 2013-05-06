@@ -70,6 +70,14 @@ public:
     Scanner& in
   );
 
+  void writeTerm(
+    const PolyRing& ring,
+    const bool writeComponent,
+    const Coefficient coef,
+    ConstMonoRef mono,
+    std::ostream& out
+  );
+
   /// Read a monomial with no coefficient. A 1 on its own is not
   /// considered a coefficient here - it is the monomial with all
   /// exponents zero and no coefficient.
@@ -82,6 +90,14 @@ public:
     Scanner& in
   );
 
+  /// Print a monomial with no coefficient.
+  void writeMonomial(
+    const Monoid& monoid,
+    const bool writeComponent,
+    ConstMonoRef mono,
+    std::ostream& out
+  );
+
   /// Read the trailing indicator of the component of a module monomial.
   void readComponent(
     const Monoid& monoid,
@@ -89,10 +105,8 @@ public:
     Scanner& in
   );
 
-  /// Print a monomial with no coefficient.
-  void writeMonomial(
+  void writeComponent(
     const Monoid& monoid,
-    const bool writeComponent,
     ConstMonoRef mono,
     std::ostream& out
   );
@@ -355,23 +369,42 @@ void MathicIO::readTerm(
 ) {
   // ** Read coefficient, if any.
   const auto& field = ring.field();
+  const auto& monoid = ring.monoid();
   const bool negate = !in.match('+') && in.match('-');
-  if (in.peekDigit())
+  if (in.peekDigit()) {
     coef = field.toElement(in.readInteger<RawCoefficient>(negate));
-  else if (negate)
+
+    if (!in.peekAlpha()) {
+      // Identify a number c on its own as the monomial 1 times c.
+      monoid.setIdentity(mono);
+      if (readComponent)
+        this->readComponent(monoid, mono, in);
+      return;
+    }
+  } else if (negate)
     coef = field.minusOne();
   else
     coef = field.one();
 
-  // ** Read monomial
-  auto& monoid = ring.monoid();
-  if (field.isOne(coef) && !in.peekAlpha()) {
-    // Detect the monomial 1.
-    monoid.setIdentity(mono);
-    if (readComponent)
-      this->readComponent(monoid, mono, in);
-  } else
-    readMonomial(monoid, readComponent, mono, in);
+  readMonomial(monoid, readComponent, mono, in);
+}
+
+void MathicIO::writeTerm(
+  const PolyRing& ring,
+  const bool writeComponent,
+  const Coefficient coef,
+  ConstMonoRef mono,
+  std::ostream& out
+) {
+  if (!ring.field().isOne(coef)) {
+    out << unchar(coef.value());
+    if (ring.monoid().isIdentity(mono)) {
+      if (writeComponent)
+        this->writeComponent(ring.monoid(), mono, out);
+      return;
+    }
+  } 
+  writeMonomial(ring.monoid(), writeComponent, mono, out);
 }
 
 void MathicIO::readMonomial(
@@ -451,6 +484,15 @@ void MathicIO::readComponent(
   in.expect('>');
 }
 
+void MathicIO::writeComponent(
+  const Monoid& monoid,
+  ConstMonoRef mono,
+  std::ostream& out
+) {
+  MATHICGB_ASSERT(Monoid::HasComponent);
+  out << '<' << unchar(monoid.component(mono)) << '>';
+}
+
 /// Print a monomial with no coefficient.
 void MathicIO::writeMonomial(
   const Monoid& monoid,
@@ -480,10 +522,8 @@ void MathicIO::writeMonomial(
   }
   if (!printedSome)
     out << '1';
-  if (writeComponent) {
-    MATHICGB_ASSERT(Monoid::HasComponent);
-    out << '<' << unchar(monoid.component(mono)) << '>';
-  }
+  if (writeComponent)
+    this->writeComponent(monoid, mono, out);
 }
 
 #endif
