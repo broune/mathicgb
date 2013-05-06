@@ -249,95 +249,30 @@ void MathicIO::writeOrder(
   }
 }
 
-/*
-auto MathicIO::readBasis() -> BasisData {
-  typedef PolyRing::Monoid Monoid;
-  typedef Monoid::VarIndex VarIndex;
-  typedef Monoid::Gradings Gradings;
-
-  // ** Read prime field
-  const auto charac = mIn.readInteger<coefficient>();
-
-  // ** Read 
-  const auto varCount = mIn.readInteger<VarIndex>();
-  const bool doSchreyer = mIn.match("schreyer");
-
-  bool lexBaseOrder = false;
-  if (mIn.match("lex"))
-    lexBaseOrder = true;
-  else if (mIn.match("revlex"))
-    lexBaseOrder = false;
-
-  const auto gradingCount = mIn.readInteger<VarIndex>();
-  bool componentsAscendingDesired = true;
-  auto componentCompareIndex = Order::ComponentAfterBaseOrder;
-  Gradings gradings(static_cast<size_t>(varCount) * gradingCount);
-  size_t index = 0;
-  for (VarIndex grading = 0; grading <  gradingCount; ++grading) {
-    const bool com = mIn.match("component");
-    const bool revcom = !com && mIn.match("revcomponent");
-    if (com || revcom) {
-      if (!HasComponent)
-        mIn.reportError("Cannot specify component comparison for non-modules.");
-      componentsAscendingDesired = com;
-      if (componentCompareIndex != Order::ComponentAfterBaseOrder)
-        mIn.reportError("Component comparison must be specified at most once.");
-      componentCompareIndex = grading;
-      index += varCount;
-    } else {
-      for (VarIndex i = 0; i < varCount; ++i, ++index)
-        gradings[index] = mIn.readInteger<Exponent>();
-    }
-  }
-  MATHICGB_ASSERT(index == gradings.size());
-
-  const bool moreRevlex = mIn.match("revlex");
-  const bool moreLex = !moreRevlex && mIn.match("lex");
-  if (moreRevlex || moreLex) {
-    lexBaseOrder = moreLex;
-
-    const bool moreCom = mIn.match("component");
-    const bool moreRevcom = !moreCom && mIn.match("revcomponent");
-    if (com || revcom)
-      componentsAscendingDesired = moreCom;
-  }
-
-  auto ring = make_unique<PolyRing>(
-    charac,
-    Order(
-      varCount,
-      std::move(gradings),
-      lexBaseOrder ? Order::LexBaseOrder : Order::RevLexBaseOrder,
-      componentCompareIndex
-    )
-  );
-  auto basis = make_unique<Basis>(*ring);
-  auto processor = make_unique<MonoProcessor<Monoid>>(ring->monoid());
-  processor->setComponentsAscendingDesired(componentsAscendingDesired);
-
-  // ** Read polynomials
+Basis MathicIO::readBasis(
+  const PolyRing& ring,
+  const bool readComponent,
+  Scanner& in
+) {
   const auto polyCount = mIn.readInteger<size_t>();
   for (size_t i = 0; i < polyCount; ++i) {
-    auto p = readPolynomial();
+    auto p = make_unique<Poly>(readPoly(ring, readComponent, in));
     p->sortTermsDescending();
     basis->insert(std::move(p));
   }
-
-  if (doSchreyer) {
-    Monoid::MonoVector schreyer(ring->monoid());
-    for (size_t gen = 0; gen < basis->size(); ++gen)
-      schreyer.push_back(basis->getPoly(gen)->getLeadMonomial());
-    processor->setModuleAdjustments(std::move(schreyer));
-  }
-
-  return std::make_tuple(
-    std::move(ring),
-    std::move(basis),
-    std::move(processor)
-  );
 }
 
-*/
+void MathicIO::writeBasis(
+  const Basis& basis,
+  std::ostream& out
+) {
+  out << basis.size() << '\n';
+  for (size_t i = 0; i < basis.size(); ++i) {
+    out << ' ';
+    writePoly(*basis.getPoly(i), out);
+    out << '\n';
+  }
+}
 
 Poly MathicIO::readPoly(
   const PolyRing& ring,
