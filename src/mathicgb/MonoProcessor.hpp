@@ -1,6 +1,8 @@
 #ifndef MATHICGB_MONO_PROCESSOR_GUARD
 #define MATHICGB_MONO_PROCESSOR_GUARD
 
+#include "Basis.hpp"
+
 /// Does pre- and post-processing of monomials to implement monomial
 /// orders not directly supported by the monoid. This is so far only
 /// relevant for module monomials.
@@ -28,19 +30,29 @@ public:
     mComponentsAscendingDesired(componentsAscendingDesired),
     mComponentCount(0),
     mSchreyering(schreyering),
-    mModuleAdjustmentsMemory(monoid)
+    mSchreyerMultipliersMemory(monoid)
   {}
 
-  void setModuleAdjustments(MonoVector&& moduleAdjustments) {
-    MATHICGB_ASSERT(moduleAdjustments.monoid() == monoid());
-    MATHICGB_ASSERT(mModuleAdjustmentsMemory.empty() ||
-      mModuleAdjustmentsMemory.size() == componentCount());
-    mModuleAdjustmentsMemory = std::move(moduleAdjustments);
+  void setSchreyering(bool value) {mSchreyering = true;}
+  bool schreyering() const {return mSchreyering;}
 
-    mModuleAdjustments.clear();
+  void setSchreyerMultipliers(const Basis& basis) {
+    MonoVector schreyer(monoid());
+    for (size_t gen = 0; gen < basis.size(); ++gen)
+      schreyer.push_back(basis.getPoly(gen)->getLeadMonomial());
+    setSchreyerMultipliers(std::move(schreyer));
+  }
+
+  void setSchreyerMultipliers(MonoVector&& moduleAdjustments) {
+    MATHICGB_ASSERT(moduleAdjustments.monoid() == monoid());
+    MATHICGB_ASSERT(mSchreyerMultipliersMemory.empty() ||
+      mSchreyerMultipliersMemory.size() == componentCount());
+    mSchreyerMultipliersMemory = std::move(moduleAdjustments);
+
+    mSchreyerMultipliers.clear();
     for (
-      auto it = mModuleAdjustmentsMemory.begin();
-      it != mModuleAdjustmentsMemory.end();
+      auto it = mSchreyerMultipliersMemory.begin();
+      it != mSchreyerMultipliersMemory.end();
       ++it
     ) {
       // in the absence of a separate monoid for (non-module) monomials,
@@ -49,13 +61,13 @@ public:
 
       // todo: there should be a better way of indexing into a
       // MonoVector.
-      mModuleAdjustments.emplace_back((*it).ptr());
+      mSchreyerMultipliers.emplace_back((*it).ptr());
     }
   }
     
 
   void preprocess(MonoRef mono) const {
-    if (hasModuleAdjustments())
+    if (hasSchreyerMultipliers())
       monoid().multiplyInPlace(moduleAdjustment(mono), mono);
     if (needToReverseComponents())
       reverseComponent(mono);
@@ -64,14 +76,14 @@ public:
   void postprocess(MonoRef mono) const {
     if (needToReverseComponents())
       reverseComponent(mono);
-    if (hasModuleAdjustments()) {
+    if (hasSchreyerMultipliers()) {
       MATHICGB_ASSERT(monoid().divides(moduleAdjustment(mono), mono));
       monoid().divideInPlace(moduleAdjustment(mono), mono);
     }
   }
 
   bool processingNeeded() const {
-    return needToReverseComponents() || hasModuleAdjustments();
+    return needToReverseComponents() || hasSchreyerMultipliers();
   }
 
   bool needToReverseComponents() const {
@@ -84,16 +96,13 @@ public:
   }
   bool componentsAscendingDesired() const {return mComponentsAscendingDesired;}
 
-  bool hasModuleAdjustments() const {
-    return !mModuleAdjustments.empty();
+  bool hasSchreyerMultipliers() const {
+    return !mSchreyerMultipliers.empty();
   }
-
-  void setSchreyering(bool value) {mSchreyering = true;}
-  bool schreyering() const {return mSchreyering;}
 
   void setComponentCount(VarIndex count) {mComponentCount = count;}
   VarIndex componentCount() const {return mComponentCount;}
-  const Monoid& monoid() const {return mModuleAdjustmentsMemory.monoid();}
+  const Monoid& monoid() const {return mSchreyerMultipliersMemory.monoid();}
 
 private:
   void operator==(const MonoProcessor&) const; // not available
@@ -105,18 +114,18 @@ private:
   }
 
   ConstMonoRef moduleAdjustment(ConstMonoRef mono) const {
-    MATHICGB_ASSERT(hasModuleAdjustments());
+    MATHICGB_ASSERT(hasSchreyerMultipliers());
     const auto component = monoid().component(mono);
     MATHICGB_ASSERT(component < componentCount());
-    MATHICGB_ASSERT(mModuleAdjustments.size() == componentCount());
-    return *mModuleAdjustments[component];
+    MATHICGB_ASSERT(mSchreyerMultipliers.size() == componentCount());
+    return *mSchreyerMultipliers[component];
   }
 
   bool mComponentsAscendingDesired;
   VarIndex mComponentCount;
   bool mSchreyering;
-  MonoVector mModuleAdjustmentsMemory;
-  std::vector<ConstMonoPtr> mModuleAdjustments;
+  MonoVector mSchreyerMultipliersMemory;
+  std::vector<ConstMonoPtr> mSchreyerMultipliers;
 };
 
 #endif

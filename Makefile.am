@@ -67,7 +67,8 @@ libmathicgb_la_SOURCES = src/mathicgb/BjarkeGeobucket2.cpp		\
   src/mathicgb/PrimeField.hpp src/mathicgb/MonoMonoid.hpp		\
   src/mathicgb/MonoProcessor.hpp src/mathicgb/MonoOrder.hpp		\
   src/mathicgb/Scanner.hpp src/mathicgb/Scanner.cpp			\
-  src/mathicgb/Unchar.hpp
+  src/mathicgb/Unchar.hpp src/mathicgb/MathicIO.hpp			\
+  src/mathicgb/MathicIO.cpp
 
 
 # The headers that libmathicgb installs.
@@ -88,11 +89,11 @@ bin_PROGRAMS = mgb
 
 # set up the console program. Listing the headers in sources ensure that
 # those files are included in distributions.
-mgb_SOURCES = src/cli/GBMain.cpp src/cli/CommonParams.hpp				\
+mgb_SOURCES = src/cli/GBMain.cpp src/cli/CommonParams.hpp		\
   src/cli/CommonParams.cpp src/cli/GBAction.hpp src/cli/GBAction.cpp	\
-  src/cli/GBCommonParams.hpp src/cli/GBCommonParams.cpp					\
-  src/cli/MatrixAction.cpp src/cli/MatrixAction.hpp						\
-  src/cli/SigGBAction.hpp src/cli/SigGBAction.cpp						\
+  src/cli/GBCommonParams.hpp src/cli/GBCommonParams.cpp			\
+  src/cli/MatrixAction.cpp src/cli/MatrixAction.hpp			\
+  src/cli/SigGBAction.hpp src/cli/SigGBAction.cpp			\
   src/cli/HelpAction.hpp src/cli/HelpAction.cpp
 mgb_LDADD = $(top_builddir)/libmathicgb.la $(DEPS_LIBS)
 

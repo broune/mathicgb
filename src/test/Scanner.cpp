@@ -74,6 +74,22 @@ TEST(Scanner, MatchString) {
   }
 }
 
+TEST(Scanner, readModular) {
+  PrimeField<unsigned char> f(11);
+  std::stringstream s("0 1 1 +0 -0 +1 -1 15 255 -255");
+  Scanner in(s);
+  ASSERT_EQ(f.zero(), in.readModular(f));
+  ASSERT_EQ(f.one(), in.readModular(f));
+  ASSERT_EQ(f.minusOne(), in.readModular(f, true));
+  ASSERT_EQ(f.zero(), in.readModular(f));
+  ASSERT_EQ(f.zero(), in.readModular(f));
+  ASSERT_EQ(f.one(), in.readModular(f));
+  ASSERT_EQ(f.minusOne(), in.readModular(f));
+  ASSERT_EQ(f.toElement(4), in.readModular(f));
+  ASSERT_EQ(f.toElement(2), in.readModular(f));
+  ASSERT_EQ(f.toElement(9), in.readModular(f));
+}
+
 TEST(Scanner, readInteger) {
   std::stringstream s("0 1 +0 -0 +1 -1 127 -128 128");
   Scanner in(s);

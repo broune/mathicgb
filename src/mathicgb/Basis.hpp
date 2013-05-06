@@ -3,7 +3,6 @@
 
 #include "Poly.hpp"
 #include "PolyRing.hpp"
-#include "MonoProcessor.hpp"
 #include <tuple>
 #include <memory>
 #include <algorithm>
@@ -20,14 +19,6 @@ public:
   Basis(Basis&& basis): mRing(basis.ring()), mGenerators(std::move(basis.mGenerators)) {}
 
   void insert(std::unique_ptr<Poly>&& p);
-
-  /// reads ring, #gens, each generator in turn
-  typedef std::tuple<
-    std::unique_ptr<PolyRing>,
-    std::unique_ptr<Basis>,
-    std::unique_ptr<MonoProcessor<PolyRing::Monoid>>
-  > Parsed;
-  static Parsed parse(std::istream &i);
 
   /// inverse operation to parse().
   void display(std::ostream &o, bool print_comp, bool componentIncreasingDesired) const;

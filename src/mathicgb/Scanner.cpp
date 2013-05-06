@@ -15,12 +15,14 @@ static const size_t BufferSize =
 
 
 
-void reportSyntaxError(std::string s) {
-  mathic::reportError(s);
+void reportSyntaxError(std::string s, uint64 lineNumber) {
+  std::ostringstream out;
+  out << "Syntax error on line " << lineNumber << ": " << s;
+  mathic::reportError(out.str());
 }
 
 void Scanner::reportError(std::string msg) const {
-  reportSyntaxError(msg);
+  reportSyntaxError(msg, lineCount());
 }
 
 
@@ -72,7 +74,7 @@ bool Scanner::match(const char* const str) {
   eatWhite();
   MATHICGB_ASSERT(str != 0);
   const auto size = std::strlen(str);
-  if (!ensureBuffer(size - 1))
+  if (!ensureBuffer(size))
     return false;
   if (size == 0)
     return true;
@@ -157,7 +159,7 @@ void Scanner::reportErrorUnexpectedToken(
   if (got != "")
     errorMsg << ", but got " << got;
   errorMsg << '.';
-  reportSyntaxError(errorMsg.str());
+  reportError(errorMsg.str());
 }
 
 bool Scanner::readBuffer(size_t minRead) {

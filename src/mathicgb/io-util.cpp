@@ -8,6 +8,8 @@
 #include "Poly.hpp"
 #include "MTArray.hpp"
 #include "io-util.hpp"
+#include "Scanner.hpp"
+#include "MathicIO.hpp"
 
 #include "PolyHeap.hpp"
 #include "PolyGeoBucket.hpp"
@@ -35,12 +37,11 @@ std::string toString(const Poly *g)
 
 std::unique_ptr<Basis> basisParseFromString(std::string str)
 {
-  // todo: fix the leak
-  std::istringstream in(str);
-  auto t = Basis::parse(in);
-  std::get<0>(t).release();
-  std::get<2>(t).release();
-  return std::move(std::get<1>(t));
+  std::istringstream inStream(str);
+  Scanner in(inStream);
+  auto p = MathicIO().readRing(true, in);
+  auto& ring = *p.first.release(); // todo: fix leak
+  return make_unique<Basis>(MathicIO().readBasis(ring, false, in));
 }
 
 std::unique_ptr<PolyRing> ringFromString(std::string ringinfo)

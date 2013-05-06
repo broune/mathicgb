@@ -3,6 +3,22 @@
 
 #include <gtest/gtest.h>
 
+TEST(MathicIO, Combined) {
+  const char* const str =
+    "32003 6\n"
+    "1 1 1 1 1 1 1\n"
+    "_revlex revcomponent\n"
+    "3\n"
+    " -bc+ad\n"
+    " -b2+af\n"
+    " -bc2+a2e\n";
+  std::istringstream inStream(str);
+  Scanner in(inStream);
+  auto p = MathicIO().readRing(true, in);
+  auto& ring = *p.first;
+  auto basis = MathicIO().readBasis(ring, false, in);
+}
+
 TEST(MathicIO, ReadWriteRing) {
   typedef PolyRing::Monoid Monoid;
   typedef Monoid::VarIndex VarIndex;
@@ -23,13 +39,14 @@ TEST(MathicIO, ReadWriteRing) {
       if (str == 0)
         continue;
       Scanner in(str);
-      auto p = MathicIO().readRing(withComponent, in);
-      auto& monoid = p.first.monoid();
-      ASSERT_EQ(charac, p.first.field().charac());
+      const auto p = MathicIO().readRing(withComponent, in);
+      const auto& monoid = p.first->monoid();
+      const auto& field = p.first->field();
+      ASSERT_EQ(charac, field.charac());
       ASSERT_EQ(varCount, monoid.varCount());
       ASSERT_EQ(gradingCount, monoid.gradingCount());
       std::ostringstream out;
-      MathicIO().writeRing(p.first, p.second, withComponent, out);
+      MathicIO().writeRing(*p.first, p.second, withComponent, out);
       ASSERT_EQ(outStr, out.str());
     }
   };
@@ -216,6 +233,7 @@ TEST(MathicIO, ReadWriteTerm) {
   };
 
   check("1", 0, false, 1);
+  check("-1", "100", false, f.minusOne().value());
   check("+1", "1", false, 1);
   check("2", 0, false, 2);
   check("+102", "1", false, 1);
@@ -224,6 +242,7 @@ TEST(MathicIO, ReadWriteTerm) {
   check("+1<2>", "1<2>", true, 1);
   check("2<3>", 0, true, 2);
   check("+3<4>", "3<4>", true, 3);
+  check("-3<4>", "98<4>", true, f.negative(f.toElement(3)).value());
 
   check("+1a<0>", "a<0>", true, 1);
   check("+2b", "2b", false, 2);
@@ -287,8 +306,8 @@ TEST(MathicIO, ReadWriteOrder) {
   check("lex 1 revcomponent", "lex 1\n revcomponent\n", 5, 1, 1, 0, 0);
 
   check(
-    "schreyer lex 1 1 _lex revcomponent",
-    "schreyer lex 1\n 1\n _lex\n revcomponent\n",
+    "schreyer lex 1 1 _revlex revcomponent",
+    "schreyer revlex 1\n 1\n _revlex\n revcomponent\n",
     1, 1, 1, 0, 1
   );
 }

@@ -4,6 +4,7 @@
 #include "PolyRing.hpp"
 #include "Poly.hpp"
 #include "FreeModuleOrder.hpp"
+#include "MathicIO.hpp"
 #include <ostream>
 #include <istream>
 #include <iostream>
@@ -35,40 +36,6 @@ namespace {
 void Basis::sort(FreeModuleOrder& order) {
   BasisSort cmp(order);
   std::sort(mGenerators.begin(), mGenerators.end(), cmp);
-}
-
-auto Basis::parse(std::istream& in) -> Parsed
-{
-  auto r = PolyRing::read(in);
-  auto ring = make_unique<PolyRing>(std::move(*r.first));
-  delete r.first;
-
-  auto basis = make_unique<Basis>(*ring);
-  auto processor =
-    make_unique<MonoProcessor<Monoid>>(ring->monoid(), r.second.first, false);
-
-  size_t polyCount;
-  in >> polyCount;
-  for (size_t i = 0; i < polyCount; ++i) {
-    auto poly = make_unique<Poly>(*ring);
-    while (std::isspace(in.peek()))
-      in.get();
-    poly->parse(in);
-    basis->insert(std::move(poly));
-  }
-
-  if (r.second.second) {
-    Monoid::MonoVector schreyer(ring->monoid());
-    for (size_t gen = 0; gen < basis->size(); ++gen)
-      schreyer.push_back(basis->getPoly(gen)->getLeadMonomial());
-    processor->setModuleAdjustments(std::move(schreyer));
-  }
-
-  return std::make_tuple(
-    std::move(ring),
-    std::move(basis),
-    std::move(processor)
-  );
 }
 
 void Basis::display(std::ostream& out, bool printComponent, bool componentIncreasingDesired) const

@@ -4,6 +4,8 @@
 #include "mathicgb/Basis.hpp"
 #include "mathicgb/SignatureGB.hpp"
 #include "mathicgb/io-util.hpp"
+#include "mathicgb/Scanner.hpp"
+#include "mathicgb/MathicIO.hpp"
 #include <fstream>
 #include <iostream>
 
@@ -44,14 +46,19 @@ void SigGBAction::performAction() {
   std::ifstream inputFile(inputBasisFile.c_str());
   if (inputFile.fail())
     mic::reportError("Could not read input file \"" + inputBasisFile + '\n');
-  auto tuple = Basis::parse(inputFile);
-  auto& basis = std::get<1>(tuple);
 
-  std::unique_ptr<PolyRing const> ring(&(basis->ring()));
+
+  Scanner in(inputFile);
+  auto p = MathicIO().readRing(true, in);
+  auto& ring = *p.first;
+  auto& processor = p.second;
+  auto basis = MathicIO().readBasis(ring, false, in);
+  if (processor.schreyering())
+    processor.setSchreyerMultipliers(basis);
 
   SignatureGB alg(
-    std::move(*basis),
-    std::move(*std::get<2>(tuple)),
+    std::move(basis),
+    std::move(processor),
     Reducer::reducerType(mGBParams.mReducer.value()),
     mGBParams.mDivisorLookup.value(),
     mGBParams.mMonomialTable.value(),

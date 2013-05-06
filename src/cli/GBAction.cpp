@@ -5,6 +5,8 @@
 #include "mathicgb/Basis.hpp"
 #include "mathicgb/io-util.hpp"
 #include "mathicgb/F4Reducer.hpp"
+#include "mathicgb/Scanner.hpp"
+#include "mathicgb/MathicIO.hpp"
 #include <fstream>
 #include <iostream>
 
@@ -53,11 +55,11 @@ void GBAction::performAction() {
   std::ifstream inputFile(inputBasisFile.c_str());
   if (inputFile.fail())
     mic::reportError("Could not read input file \"" + inputBasisFile + '\n');
-  auto tuple = Basis::parse(inputFile);
-  auto& basis = std::get<1>(tuple);
 
-
-  std::unique_ptr<PolyRing const> ring(&(basis->ring()));
+  Scanner in(inputFile);
+  auto p = MathicIO().readRing(true, in);
+  auto& ring = *p.first;
+  auto basis = MathicIO().readBasis(ring, false, in);
 
   // run algorithm
   const auto reducerType = Reducer::reducerType(mGBParams.mReducer.value());
@@ -66,18 +68,18 @@ void GBAction::performAction() {
     reducerType != Reducer::Reducer_F4_Old &&
     reducerType != Reducer::Reducer_F4_New
   ) {
-    reducer = Reducer::makeReducer(reducerType, *ring);
+    reducer = Reducer::makeReducer(reducerType, ring);
   } else {
     const auto type = reducerType == Reducer::Reducer_F4_Old ?
       F4Reducer::OldType : F4Reducer::NewType;
-    auto f4Reducer = make_unique<F4Reducer>(*ring, type);
+    auto f4Reducer = make_unique<F4Reducer>(ring, type);
     if (mMinMatrixToStore.value() > 0)
       f4Reducer->writeMatricesTo(projectName, mMinMatrixToStore);
     reducer = std::move(f4Reducer);
   }
 
   BuchbergerAlg alg(
-    *basis,
+    basis,
     *reducer,
     mGBParams.mDivisorLookup.value(),
     mGBParams.mPreferSparseReducers.value(),

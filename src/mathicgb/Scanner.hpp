@@ -1,10 +1,12 @@
 #ifndef MATHICGB_SCANNER_GUARD
 #define MATHICGB_SCANNER_GUARD
 
+#include "PrimeField.hpp"
 #include "Unchar.hpp"
 #include <string>
 #include <cstdio>
 #include <vector>
+#include <type_traits>
 #include <limits>
 #include <sstream>
 #include <istream>
@@ -87,6 +89,12 @@ public:
   template<class T>
   T readInteger(bool negate = false);
 
+  template<class T>
+  typename PrimeField<T>::Element readModular(
+    const PrimeField<T>& field,
+    const bool negate = false
+  );
+
   /// Reads a T if it is there. Does not recognize + or - as the start
   /// of an integer.
   template<class T>
@@ -104,6 +112,10 @@ public:
   /// Returns true if the next character is whitespace. Does not skip
   /// whitespace. Whitespace is defined by std::isspace().
   bool peekWhite() {return isspace(peek());}
+
+  /// Returns true if the next character is + or -. Does not skip
+  /// whitespace.
+  bool peekSign() {return peek() == '+' || peek() == '-';}
 
   /// Returns the number of newlines seen plus one. Does not skip
   /// whitespace.
@@ -185,6 +197,8 @@ inline void Scanner::ignore(size_t count) {
     get();
 }
 
+
+
 template<class T>
 T Scanner::readInteger(const bool negate) {
   static_assert(std::numeric_limits<T>::is_integer, "");
@@ -225,6 +239,26 @@ T Scanner::readInteger(const bool negate) {
   }
   MATHICGB_ASSERT(t != static_cast<T>(0)); // We already handled zero above.
   return t;
+}
+
+template<class T>
+typename PrimeField<T>::Element Scanner::readModular(
+  const PrimeField<T>& field,
+  const bool negate
+) {
+  static_assert(std::numeric_limits<T>::is_integer, "");
+
+  // Otherwise we need to consider that the most negative value's
+  // negative cannot be represented as a positive number when reading.
+  static_assert(!std::is_signed<T>::value, "");
+
+  eatWhite();
+  const bool minus = !match('+') && match('-');
+  const bool positive = minus == negate;
+  if (!peekDigit())
+    reportErrorUnexpectedToken("an integer", "");
+  const auto e = field.toElement(readInteger<T>(false));
+  return positive ? e : field.negative(e);
 }
 
 template<class T>

@@ -12,6 +12,8 @@
 #include "mathicgb/SignatureGB.hpp"
 #include "mathicgb/BuchbergerAlg.hpp"
 #include "mathicgb/mtbb.hpp"
+#include "mathicgb/MathicIO.hpp"
+#include "mathicgb/Scanner.hpp"
 #include "test/ideals.hpp"
 
 #include <cstdio>
@@ -287,21 +289,29 @@ spairQueue	reducerType	divLookup	monTable	buchberger	postponeKoszul	useBaseDivis
     Reducer::ReducerType red = Reducer::ReducerType(reducerType);
     MATHICGB_ASSERT(static_cast<int>(red) == reducerType);
 
+    std::istringstream inStream(idealStr);
 
-    std::istringstream in(idealStr);
-    auto tuple = Basis::parse(in);
-    auto& I = std::get<1>(tuple);
+    Scanner in(inStream);
+    auto p = MathicIO().readRing(true, in);
+    auto& ring = *p.first;
+    auto& processor = p.second;
+    auto basis = MathicIO().readBasis(ring, false, in);
+    if (processor.schreyering())
+      processor.setSchreyerMultipliers(basis);
 
-    MATHICGB_ASSERT
-      (Reducer::makeReducerNullOnUnknown(red, I->ring()).get() != 0);
+    MATHICGB_ASSERT(Reducer::makeReducerNullOnUnknown(red, ring).get() != 0);
 
     mgb::tbb::task_scheduler_init scheduler(threadCount);
     if (buchberger) {
       const auto reducer = Reducer::makeReducer
-        (Reducer::reducerType(reducerType), I->ring());
-      BuchbergerAlg alg
-        (*I, *reducer,
-         divLookup, preferSparseReducers, spairQueue);
+        (Reducer::reducerType(reducerType), ring);
+      BuchbergerAlg alg(
+        std::move(basis),
+        *reducer,
+        divLookup,
+        preferSparseReducers,
+        spairQueue
+      );
       alg.setUseAutoTopReduction(autoTopReduce);
       alg.setUseAutoTailReduction(autoTailReduce);
       alg.setSPairGroupSize(sPairGroupSize);
@@ -312,9 +322,9 @@ spairQueue	reducerType	divLookup	monTable	buchberger	postponeKoszul	useBaseDivis
         << reducerType << ' ' << divLookup << ' '
         << monTable << ' ' << postponeKoszul << ' ' << useBaseDivisors;
     } else {
-      SignatureGB basis(
-        std::move(*I),
-        std::move(*std::get<2>(tuple)),
+      SignatureGB alg(
+        std::move(basis),
+        std::move(processor),
         Reducer::reducerType(reducerType),
         divLookup,
         monTable,
@@ -324,16 +334,16 @@ spairQueue	reducerType	divLookup	monTable	buchberger	postponeKoszul	useBaseDivis
         useSingularCriterionEarly,
         spairQueue
       );
-      basis.computeGrobnerBasis();
-      EXPECT_EQ(sigBasisStr, toString(basis.getGB(), 1))
+      alg.computeGrobnerBasis();
+      EXPECT_EQ(sigBasisStr, toString(alg.getGB(), 1))
         << reducerType << ' ' << divLookup << ' '
         << monTable << ' ' << ' ' << postponeKoszul << ' '
         << useBaseDivisors;
-      EXPECT_EQ(syzygiesStr, toString(basis.getSyzTable()))
+      EXPECT_EQ(syzygiesStr, toString(alg.getSyzTable()))
         << reducerType << ' ' << divLookup << ' '
         << monTable << ' ' << ' ' << postponeKoszul << ' '
         << useBaseDivisors;
-      EXPECT_EQ(nonSingularReductions, basis.getSigReductionCount() - basis.getSingularReductionCount())
+      EXPECT_EQ(nonSingularReductions, alg.getSigReductionCount() - alg.getSingularReductionCount())
         << reducerType << ' ' << divLookup << ' '
         << monTable << ' ' << ' ' << postponeKoszul << ' '
         << useBaseDivisors;
