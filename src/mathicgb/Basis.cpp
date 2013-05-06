@@ -9,24 +9,20 @@
 #include <iostream>
 #include <cctype>
 
-Basis::~Basis()
-{
-  for (size_t i = 0; i<mGenerators.size(); i++)
-    delete mGenerators[i];
-}
-
-void Basis::insert(std::unique_ptr<Poly> p) {
+void Basis::insert(std::unique_ptr<Poly>&& p) {
   MATHICGB_ASSERT(p.get() != 0);
   MATHICGB_ASSERT(p->termsAreInDescendingOrder());
-  mGenerators.reserve(mGenerators.size() + 1);
-  mGenerators.push_back(p.release());
+  mGenerators.push_back(std::move(p));
 }
 
 namespace {
   class BasisSort {
   public:
     BasisSort(const FreeModuleOrder& order): mOrder(order) {}
-    bool operator()(const Poly* a, const Poly* b) {
+    bool operator()(
+      const std::unique_ptr<Poly>& a,
+      const std::unique_ptr<Poly>& b
+    ) {
       return mOrder.signatureCompare
         (a->getLeadMonomial(), b->getLeadMonomial()) == LT;
     }

@@ -1,10 +1,11 @@
 #ifndef MATHICGB_MATHIC_IO_GUARD
 #define MATHICGB_MATHIC_IO_GUARD
 
+#include "Basis.hpp"
+#include "Poly.hpp"
 #include "Scanner.hpp"
 #include "PolyRing.hpp"
 #include "MonoProcessor.hpp"
-#include "Poly.hpp"
 #include <ostream>
 #include <string>
 
@@ -60,6 +61,18 @@ public:
   void writeOrder(
     const Order& order,
     const bool withComponent,
+    std::ostream& out
+  );
+
+  Basis readBasis(
+    const PolyRing& ring,
+    const bool readComponent,
+    Scanner& in
+  );
+
+  void writeBasis(
+    const Basis& basis,
+    const bool writeComponent,
     std::ostream& out
   );
 
@@ -254,22 +267,25 @@ Basis MathicIO::readBasis(
   const bool readComponent,
   Scanner& in
 ) {
-  const auto polyCount = mIn.readInteger<size_t>();
+  const auto polyCount = in.readInteger<size_t>();
+  Basis basis(ring);
   for (size_t i = 0; i < polyCount; ++i) {
     auto p = make_unique<Poly>(readPoly(ring, readComponent, in));
     p->sortTermsDescending();
-    basis->insert(std::move(p));
+    basis.insert(std::move(p));
   }
+  return std::move(basis);
 }
 
 void MathicIO::writeBasis(
   const Basis& basis,
+  const bool writeComponent,
   std::ostream& out
 ) {
   out << basis.size() << '\n';
   for (size_t i = 0; i < basis.size(); ++i) {
     out << ' ';
-    writePoly(*basis.getPoly(i), out);
+    writePoly(*basis.getPoly(i), writeComponent, out);
     out << '\n';
   }
 }

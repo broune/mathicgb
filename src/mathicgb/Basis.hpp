@@ -17,9 +17,9 @@ class FreeModuleOrder;
 class Basis {
 public:
   Basis(const PolyRing &R) : mRing(R) {}
-  ~Basis();
+  Basis(Basis&& basis): mRing(basis.ring()), mGenerators(std::move(basis.mGenerators)) {}
 
-  void insert(std::unique_ptr<Poly> p);
+  void insert(std::unique_ptr<Poly>&& p);
 
   /// reads ring, #gens, each generator in turn
   typedef std::tuple<
@@ -35,8 +35,13 @@ public:
   const PolyRing& ring() const { return mRing; }
 
   const PolyRing *getPolyRing() const { return &mRing; }
-  const std::vector<Poly *>& viewGenerators() { return mGenerators; }
-  const Poly *getPoly(size_t i) const { return mGenerators[i]; }
+  const std::vector<std::unique_ptr<Poly>>& viewGenerators() {
+    return mGenerators;
+  }
+  const Poly *getPoly(size_t i) const {
+    MATHICGB_ASSERT(i < size());
+    return mGenerators[i].get();
+  }
   size_t size() const {return mGenerators.size();}
   bool empty() const {return mGenerators.empty();}
   void reserve(size_t size) {mGenerators.reserve(size);}
@@ -44,8 +49,10 @@ public:
   void sort(FreeModuleOrder& order);
 
 private:
+  Basis(const Basis&); // not available
+
   const PolyRing& mRing;
-  std::vector<Poly*> mGenerators;
+  std::vector<std::unique_ptr<Poly>> mGenerators;
 };
 
 #endif
