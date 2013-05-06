@@ -93,6 +93,7 @@ public:
 
   /// all iterators are invalid after this
   void appendTerm(coefficient a, const_monomial m);
+  void appendTerm(coefficient a, PolyRing::Monoid::ConstMonoRef m);
 
   /// Hint that space for termCount terms is going to be needed so the internal
   /// storage should be expanded to fit that many terms.
@@ -181,6 +182,16 @@ inline void Poly::appendTerm(coefficient a, const_monomial m)
   exponent const * e = m.unsafeGetRepresentation();
   monoms.insert(monoms.end(), e, e + len);
 }
+
+inline void Poly::appendTerm(coefficient a, PolyRing::Monoid::ConstMonoRef m) {
+  coeffs.push_back(a);
+  size_t len = R->maxMonomialSize();
+  auto& monoid = ring().monoid();
+  const auto offset = monoms.size();
+  monoms.resize(offset + monoid.entryCount());
+  monoid.copy(m, *PolyRing::Monoid::MonoPtr(monoms.data() + offset));
+}
+
 
 #endif
 

@@ -4,6 +4,7 @@
 #include "Scanner.hpp"
 #include "PolyRing.hpp"
 #include "MonoProcessor.hpp"
+#include "Poly.hpp"
 #include <ostream>
 #include <string>
 
@@ -59,6 +60,18 @@ public:
   void writeOrder(
     const Order& order,
     const bool withComponent,
+    std::ostream& out
+  );
+
+  Poly readPoly(
+    const PolyRing& ring,
+    const bool readComponent,
+    Scanner& in
+  );
+
+  void writePoly(
+    const Poly& poly,
+    const bool writeComponent,
     std::ostream& out
   );
 
@@ -324,41 +337,54 @@ auto MathicIO::readBasis() -> BasisData {
   );
 }
 
-std::unique_ptr<Poly> MathicIO::readPolynomial(const PolyRing& ring) {
+*/
+
+Poly MathicIO::readPoly(
+  const PolyRing& ring,
+  const bool readComponent,
+  Scanner& in
+) {
   Poly p(ring);
-  if (mIn.match('0'))
-    return;
+
+  // also skips whitespace
+  if (in.match('0') || in.match("+0") || in.match("-0"))
+    return std::move(p);
+  MATHICGB_ASSERT(!in.peekWhite());
 
   auto mono = ring.monoid().alloc();
-  while (true) {
-    if (!isdigit(next) && !isalpha(next) && next != '<')
-      break;
+  auto coef = ring.field().zero();
+  do {
+    if (!p.isZero())
+      in.expect('+');
+    readTerm(ring, readComponent, coef, mono, in);
+    p.appendTerm(coef.value(), mono);
+  } while (!in.peekWhite() && !in.matchEOF());
+  return std::move(p);
+}
 
+void MathicIO::writePoly(
+  const Poly& poly,
+  const bool writeComponent,
+  std::ostream& out
+) {
+  if (poly.isZero()) {
+    out << '0';
+    return;
+  }
 
-    // read coefficient
-    const bool negate = !mIn.match('+') && mIn.match('-');
-    coefficient coef = negate ? -1 : 1;
-    mIn.matchReadInteger(coef, negate);
-
-    // read monomial
-    read
-    
-    ring.monoid().setToIdentity(mono);
-    
-
-    const size_t firstLocation = monoms.size();
-    monoms.resize(firstLocation + R->maxMonomialSize());
-    monomial m = &monoms[firstLocation];
-    if (isalpha(next) || next == '<')
-      R->monomialParse(i, m);
-    else
-      R->monomialSetIdentity(m); // have to do this to set hash value
-    next = i.peek();
-    if (next == '>')
-      i.get();
+  const auto end = poly.end();
+  for (auto it = poly.begin(); it != end; ++it) {
+    if (it != poly.begin())
+      out << '+';
+    writeTerm(
+      poly.ring(),
+      writeComponent,
+      poly.ring().field().toElement(it.getCoefficient()),
+      it.getMonomial(),
+      out
+    );
   }
 }
-*/
 
 void MathicIO::readTerm(
   const PolyRing& ring,

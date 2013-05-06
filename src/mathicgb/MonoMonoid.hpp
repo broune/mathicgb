@@ -309,6 +309,7 @@ public:
 
   // *** Temporary compatibility code for migrating off PolyRing
   friend class PolyRing;
+  friend class Poly;
   static MonoRef toRef(Exponent* e) {return MonoRef(e);}
   static ConstMonoRef toRef(const Exponent* e) {return ConstMonoRef(e);}
   static Exponent* toOld(MonoRef e) {return rawPtr(e);}
@@ -1130,6 +1131,7 @@ public:
   private:
     friend class MonoMonoid;
     friend class PolyRing; // todo: remove
+    friend class Poly; // todo: remove
 
     Exponent* internalRawPtr() const {return mMono;}
     MonoPtr(Exponent* mono): mMono(mono) {}

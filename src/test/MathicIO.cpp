@@ -104,6 +104,44 @@ TEST(MathicIO, ReadWriteMonomial) {
   check("ab<2>", 2,  0,1,  1,1);
 }
 
+TEST(MathicIO, ReadWritePoly) {
+  typedef PolyRing::Monoid Monoid;
+  typedef PolyRing::Field Field;
+
+  PolyRing ring(Field(101), Monoid(28));
+
+  auto check = [&](
+    const char* const inStr,
+    const char* const outStr,
+    const bool doComponent
+  ) {
+    for (int i = 0; i < 2; ++i) {
+      const char* str = i == 0 ? inStr : outStr;
+      if (str == 0)
+        continue;
+
+      Scanner in(str);
+      const auto poly = MathicIO().readPoly(ring, doComponent, in);
+      std::ostringstream out;
+      MathicIO().writePoly(poly, doComponent, out);
+      const auto correctStr = outStr == 0 ? inStr : outStr;
+      ASSERT_EQ(correctStr, out.str());
+    }
+  };
+
+  check("+0", "0", false);
+  check("-0", "0", false);
+  check("+1", "1", false);
+  check("\t  a\t", "a", false);
+  check("3a+1b5+2c6", "3a+b5+2c6", false);
+
+  check("+0", "0", true);
+  check("-0", "0", true);
+  check("+1<5>", "1<5>", true);
+  check("\t  a<0>\t", "a<0>", true);
+  check("3a<1>+1b5<2>+2c6<3>", "3a<1>+b5<2>+2c6<3>", true);
+}
+
 TEST(MathicIO, ReadWriteTerm) {
   typedef PolyRing::Monoid Monoid;
   typedef Monoid::VarIndex VarIndex;
@@ -156,22 +194,6 @@ TEST(MathicIO, ReadWriteTerm) {
 
   check("+1a<0>", "a<0>", true, 1);
   check("+2b", "2b", false, 2);
-  
-
-/*
-  check("1<0>", 0, 0);
-  check("1<1>", 1);
-  check("1<999>", 999);
-
-  check("a1", NoComponent,  0,1,  -1,-1,  "a");
-  check("b10<0>", 0,   1,10);
-  check("A11", NoComponent,  26,11);
-  check("B99<1>", 1,   27,99);
-
-  check("ab", NoComponent,  0,1,  1,1);
-  check("ba", NoComponent,  0,1,  1,1,  "ab");
-  check("a0c3b1", NoComponent,  1,1,  2,3,  "bc3");
-  check("ab<2>", 2,  0,1,  1,1);*/
 }
 
 TEST(MathicIO, ReadWriteBaseField) {
