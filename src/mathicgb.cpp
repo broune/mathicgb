@@ -333,6 +333,9 @@ namespace mgb {
       mVarCount(varCount),
       mBaseOrder(ReverseLexicographicBaseOrder),
       mGradings(varCount, 1),
+      mComponentBefore(ComponentAfterBaseOrder),
+      mComponentsAscending(true),
+      mSchreyering(true),
       mReducer(DefaultReducer),
       mMaxSPairGroupSize(0),
       mMaxThreadCount(0),
@@ -379,6 +382,9 @@ namespace mgb {
     const VarIndex mVarCount;
     BaseOrder mBaseOrder;
     std::vector<Exponent> mGradings;
+    size_t mComponentBefore;
+    bool mComponentsAscending;
+    bool mSchreyering;
     Reducer mReducer;
     size_t mMaxSPairGroupSize;
     size_t mMaxThreadCount;
@@ -470,6 +476,30 @@ namespace mgb {
     return mPimpl->mCallbackData;
   }
 
+  void GroebnerConfiguration::setComponentBefore(size_t value) {
+    mPimpl->mComponentBefore = value;
+  }
+
+  size_t GroebnerConfiguration::componentBefore() const {
+    return mPimpl->mComponentBefore;
+  }
+
+  void GroebnerConfiguration::setComponentsAscending(bool value) {
+    mPimpl->mComponentsAscending;
+  }
+
+  bool GroebnerConfiguration::componentsAscending() const {
+    return mPimpl->mComponentsAscending;
+  }
+
+  void GroebnerConfiguration::setSchreyering(bool value) {
+    mPimpl->mSchreyering = value;
+  }
+
+  bool GroebnerConfiguration::schreyering() const {
+    return mPimpl->mSchreyering;
+  }
+
   void GroebnerConfiguration::setReducer(Reducer reducer) {
     MATHICGB_ASSERT(Pimpl::reducerValid(reducer));
     mPimpl->mReducer = reducer;
@@ -511,14 +541,19 @@ namespace mgb {
 namespace mgb {
   struct GroebnerInputIdealStream::Pimpl {
     Pimpl(const GroebnerConfiguration& conf):
-      // @todo: varCount should not be int. Fix PolyRing constructor,
-      // then remove this static_cast.
       ring(
-        conf.modulus(),
-        static_cast<int>(conf.varCount()),
-        conf.monomialOrder().first ==
-          GroebnerConfiguration::LexicographicBaseOrder,
-        conf.monomialOrder().second
+        PolyRing::Field(conf.modulus()),
+        PolyRing::Monoid::Order(
+          conf.varCount(),
+          std::move(conf.monomialOrder().second),
+          conf.monomialOrder().first ==
+            GroebnerConfiguration::LexicographicBaseOrder ?
+            PolyRing::Monoid::Order::LexBaseOrder :
+            PolyRing::Monoid::Order::RevLexBaseOrder,
+          conf.componentBefore(),
+          conf.componentsAscending(),
+          conf.schreyering()
+        )
       ),
       basis(ring),
       poly(ring),

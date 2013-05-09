@@ -87,14 +87,12 @@ namespace mgb { // Part of the public interface of MathicGB
     /// tie.
     ///
     /// You must ensure that the combination of grading and base order in fact
-    /// defines a monomial order. For example, ungraded reverse lex does not
-    /// define a monomial order so you must not ask for a Groebner basis with
+    /// defines a monomial order. For example, ungraded reverse lex is not
+    /// a monomial order, so you must not ask for a Groebner basis with
     /// respect to that order.
     ///
     /// Each row of the matrix adds overhead to the Groebner basis
-    /// computation both in terms of time and space. Total degree grading,
-    /// that is a grading where gradings contains exactly varCount()
-    /// 1's, adds less overhead than other gradings.
+    /// computation both in terms of time and space.
     /// 
     /// The default grading is (1, ..., 1)-graded reverse lex.
     void setMonomialOrder(
@@ -102,6 +100,72 @@ namespace mgb { // Part of the public interface of MathicGB
       const std::vector<Exponent>& gradings
     );
     std::pair<BaseOrder, std::vector<Exponent>> monomialOrder() const;
+
+    static const size_t ComponentAfterBaseOrder = static_cast<size_t>(-1);
+
+    /// Sets the module monomial order. This order extends the
+    /// monomial order in the sense that a<b <=> aM<bM for a,b
+    /// monomials and M a module monomial. So if you want to change
+    /// the matrix of the comparison, change the monomial order instead.
+    ///
+    /// componentBefore specifies at what point to compare the
+    /// components of two module monomials. If componentBefore == 0
+    /// then the component is considered before anything else. Let R
+    /// be the number of rows in the grading matrix. If
+    /// componentBefore < R, then the component is considered before the
+    /// grading with index componentBefore and after the grading with index
+    /// componentBefore - 1. If componentBefore == R, then the
+    /// component is considered after all gradings and before the base
+    /// order. If componentBefore == ComponentAfterBaseOrder, then the
+    /// component is considered after everything else.
+    ///
+    /// If componentBefore > R and componentBefore !=
+    /// ComponentAfterBaseOrder, then that is an invalid value and you
+    /// will experience undefined behavior. This is only checked at a
+    /// later stage, so there is no problem in setting a value that
+    /// was invalid at the time but that becomes valid later, either
+    /// because you reset it to something valid or because you change the
+    /// matrix.
+    ///
+    /// Setting this value to anything other than
+    /// ComponentAfterBaseOrder incurs overhead similar to adding a
+    /// row to the comparison matrix.
+    ///
+    /// The default value is ComponentAfterBaseOrder.
+    void setComponentBefore(size_t value);
+    VarIndex componentBefore() const;
+
+    /// This setting modifies the module monomial order.
+    /// If componentsAscending is true then a comparison of components
+    /// is done such that a module monomial with greater component is
+    /// considered greater once we get the point where components are
+    /// compared. So when not using the Schreyer setting, the impact is:
+    ///
+    ///   true value: e_0 < e_1 < ... < e_n
+    ///  false value: e_n < ... < e_1 < e_0.
+    ///
+    /// The default value is true. Either setting is implemented with a
+    /// pre-processing step, so there is little-to-no overhead for it.
+    void setComponentsAscending(bool value);
+    bool componentsAscending() const;
+
+    /// This setting modifies the module monomial order.
+    /// We are Schreyering if we are using an ordering <' that is
+    /// derived from the usual module mononial order < in the
+    /// following way. Let c_i be the leading monomial of the input
+    /// basis element with index i. Then
+    ///
+    ///   ae_i <' be_i   if and only if   ac_ie_i < bc_je_j.
+    ///
+    /// The default value is true. Either setting is implemented with a
+    /// pre-processing step, so there is little-to-no overhead.
+    ///
+    /// A possible future extension would be to allow setting the c_i
+    /// to be something other than leading monomials. This would be useful
+    /// for the higher levels in computation of resolutions. This
+    /// functionality is not currently available.
+    void setSchreyering(bool value);
+    bool schreyering() const;
 
     enum Reducer {
       DefaultReducer = 0, /// Let the library decide for itself.

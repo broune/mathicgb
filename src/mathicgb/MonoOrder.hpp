@@ -59,7 +59,7 @@ public:
   /// must be strictly less than all other monomials.
   ///
   /// For module monomials, the component is considered too. When the
-  /// component is considered depens on componentBefore. If
+  /// component is considered depends on componentBefore. If
   /// componentBefore == 0 then the component is considered before
   /// anything else. If componentBefore < gradingCount(), then the
   /// component is considered before the grading with index
