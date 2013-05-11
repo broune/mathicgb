@@ -4,9 +4,8 @@
 #include <limits>
 #include <stdexcept>
 
-PairTriangle::PairTriangle(const FreeModuleOrder& order, const PolyRing& ring, size_t queueType):
+PairTriangle::PairTriangle(const PolyRing& ring, size_t queueType):
   mColumnCount(0),
-  mOrder(order),
   mRing(ring),
   mPairQueue(*this) {
 }

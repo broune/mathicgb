@@ -24,7 +24,6 @@ BuchbergerAlg::BuchbergerAlg(
   mUseAutoTopReduction(true),
   mUseAutoTailReduction(false),
   mRing(*basis.getPolyRing()),
-  mOrder(FreeModuleOrder::makeOrder(0, *basis.getPolyRing())), // todo: remove
   mReducer(reducer),
   mBasis(mRing, DivisorLookup::makeFactory(
     *basis.getPolyRing(),

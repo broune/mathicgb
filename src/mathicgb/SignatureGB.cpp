@@ -2,7 +2,6 @@
 #include "stdinc.h"
 #include "SignatureGB.hpp"
 
-#include "FreeModuleOrder.hpp"
 #include "Basis.hpp"
 #include "DivisorLookup.hpp"
 #include "SigSPairs.hpp"
@@ -27,7 +26,6 @@ SignatureGB::SignatureGB(
   mBreakAfter(0),
   mPrintInterval(0),
   R(basis.getPolyRing()),
-  F(FreeModuleOrder::makeOrder(0, *basis.getPolyRing())),
   mPostponeKoszul(postponeKoszul),
   mUseBaseDivisors(useBaseDivisors),
   stats_sPairSignaturesDone(0),
@@ -176,8 +174,8 @@ bool SignatureGB::processSPair
   // new basis element
   MATHICGB_ASSERT(!GB->isSingularTopReducibleSlow(*f, sig));
   {
-    std::unique_ptr<Poly> autoF(f);
-    GB->insert(sig, std::move(autoF));
+    std::unique_ptr<Poly> uniqueF(f);
+    GB->insert(sig, std::move(uniqueF));
   }
   Hsyz->addComponent();
   SP->newPairs(GB->size()-1);
@@ -303,7 +301,6 @@ void SignatureGB::displayStats(std::ostream &o) const
   o << " strategy: signature"
     << (mPostponeKoszul ? "-postpone" : "")
     << (mUseBaseDivisors ? "-basediv" : "") << '\n';
-  o << " sig-order:      " << F->description() << '\n';
   o << " reduction type: " << reducer->description() << '\n';
   o << " divisor tab type: " << GB->basis().divisorLookup().getName() << '\n';
   o << " syzygy tab type: " << Hsyz->description() << '\n';

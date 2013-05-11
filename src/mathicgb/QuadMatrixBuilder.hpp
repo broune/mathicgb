@@ -11,7 +11,6 @@
 #include <string>
 #include <ostream>
 #include <memtailor.h>
-class FreeModuleOrder;
 class QuadMatrix;
 
 /** Builder for QuadMatrix. This is not quite the builder pattern in

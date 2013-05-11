@@ -8,7 +8,6 @@
 #include "GroebnerBasis.hpp"
 #include "DivisorLookup.hpp"
 #include "PolyRing.hpp"
-#include "FreeModuleOrder.hpp"
 
 /** Configuration class for interface to KDTree, DivList */
 /* As such, it has entries that both will expect */
@@ -511,60 +510,6 @@ private:
     const bool mPreferSparse;
     size_t mReducer;
   };
-
-  /*
-  // Class used in findDivisor()
-  class DO {
-  public:
-        DO(const FreeModuleOrder *F0, const PolyRing *R0, const_monomial sig, const_monomial monom, size_t &val, monomial &result_multiplier)
-          : F(F0),
-                R(R0),
-                _sig(sig),
-                _monom(monom),
-                _val(val),
-                _multiplier(result_multiplier),
-                _found(false)
-        {}
-
-        bool proceed(const Entry &e)
-        {
-          bool result = true;
-          // MATHICGB_ASSERT(R->monomialDivide(_monom, e.monom, _multiplier));
-          //      stats_n_reducer_divides++;
-          R->monomialDivide(_monom, e.monom, _multiplier);
-          // stats_n_reducer_sig_compares++;
-          if (GT == F->signatureCompare(_sig, _multiplier, e.sig))
-                {
-                  //if (divisors) divisors[hashval] = i;
-                  _val = e.index;
-                  _found = true;
-                  result = false;
-                }
-          if (tracingLevel==11)
-                {
-                  std::cerr << "  PR: " << result << " _monom= ";
-                  R->monomialDisplay(std::cerr, _monom);
-                  std::cerr << "e.monom= ";
-                  R->monomialDisplay(std::cerr, e.monom);
-                  std::cerr << " _multiplier= ";
-                  R->monomialDisplay(std::cerr, _multiplier);
-                  std::cerr << std::endl;
-                }
-          return result;
-        }
-
-        bool found() const { return _found; }
-  private:
-        const FreeModuleOrder *F;
-        const PolyRing *R;
-        const_monomial _sig;
-        const_monomial _monom;
-        // output values (the first two are references elsewhere, so no interface to them is needed).
-        size_t &_val;
-        monomial &_multiplier;
-        bool _found;
-  };
-  */
 
   class DOCheckAll {
   public:

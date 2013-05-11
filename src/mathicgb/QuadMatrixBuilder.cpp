@@ -1,7 +1,6 @@
 #include "stdinc.h"
 #include "QuadMatrixBuilder.hpp"
 
-#include "FreeModuleOrder.hpp"
 #include "QuadMatrix.hpp"
 #include <mathic.h>
 #include <sstream>

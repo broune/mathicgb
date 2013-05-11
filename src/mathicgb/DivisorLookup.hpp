@@ -8,7 +8,6 @@
 
 class PolyBasis;
 class GroebnerBasis;
-class FreeModuleOrder;
 
 // Supports queries on the lead terms of the monomials in a PolyBasis.
 // todo: rename to MonomialLookup.

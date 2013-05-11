@@ -2,7 +2,6 @@
 #define MATHICGB_BUCHBERGER_ALG_GUARD
 
 #include "Reducer.hpp"
-#include "FreeModuleOrder.hpp"
 #include "SPairs.hpp"
 #include "PolyBasis.hpp"
 #include <mathic.h>
@@ -92,7 +91,6 @@ private:
   void insertPolys(std::vector<std::unique_ptr<Poly> >& polynomials);
 
   const PolyRing& mRing;
-  std::unique_ptr<FreeModuleOrder> mOrder; // todo: remove
   Reducer& mReducer;
   PolyBasis mBasis;
   SPairs mSPairs;

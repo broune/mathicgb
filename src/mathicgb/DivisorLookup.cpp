@@ -5,7 +5,6 @@
 
 #include <mathic.h>
 #include "GroebnerBasis.hpp"
-#include "FreeModuleOrder.hpp"
 #include "DivLookup.hpp"
 
 namespace {

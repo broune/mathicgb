@@ -19,7 +19,6 @@ libmathicgb_la_SOURCES = src/mathicgb/BjarkeGeobucket2.cpp		\
   src/mathicgb/BuchbergerAlg.hpp src/mathicgb/ChainedHashTable.cpp	\
   src/mathicgb/ChainedHashTable.hpp src/mathicgb/DivisorLookup.hpp	\
   src/mathicgb/DivisorLookup.cpp src/mathicgb/DivLookup.hpp		\
-  src/mathicgb/FreeModuleOrder.cpp src/mathicgb/FreeModuleOrder.hpp	\
   src/mathicgb/GroebnerBasis.cpp src/mathicgb/GroebnerBasis.hpp		\
   src/mathicgb/HashTourReducer.cpp src/mathicgb/HashTourReducer.hpp	\
   src/mathicgb/Basis.cpp src/mathicgb/Basis.hpp				\

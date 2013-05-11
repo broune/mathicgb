@@ -6,7 +6,6 @@
 #include "PolyRing.hpp"
 #include "MTArray.hpp"
 #include "GroebnerBasis.hpp"
-#include "FreeModuleOrder.hpp"
 #include "SigSPairs.hpp"
 #include "Reducer.hpp"
 #include "KoszulQueue.hpp"
@@ -74,10 +73,6 @@ private:
   bool step();
 
   const PolyRing *R;
-  std::unique_ptr<FreeModuleOrder> F; // todo: remove
-
-  
-
 
   bool const mPostponeKoszul;
 
