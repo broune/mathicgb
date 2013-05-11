@@ -3,7 +3,6 @@
 
 #include "PolyRing.hpp"
 #include "Poly.hpp"
-#include "FreeModuleOrder.hpp"
 #include "MathicIO.hpp"
 #include <ostream>
 #include <istream>
@@ -16,25 +15,14 @@ void Basis::insert(std::unique_ptr<Poly>&& p) {
   mGenerators.push_back(std::move(p));
 }
 
-namespace {
-  class BasisSort {
-  public:
-    BasisSort(const FreeModuleOrder& order): mOrder(order) {}
-    bool operator()(
-      const std::unique_ptr<Poly>& a,
-      const std::unique_ptr<Poly>& b
-    ) {
-      return mOrder.signatureCompare
-        (a->getLeadMonomial(), b->getLeadMonomial()) == LT;
-    }
-
-  private:
-    const FreeModuleOrder& mOrder;
-  };
-}
-
 void Basis::sort(FreeModuleOrder& order) {
-  BasisSort cmp(order);
+  const auto& monoid = ring().monoid();
+  const auto cmp = [&monoid](
+    const std::unique_ptr<Poly>& a,
+    const std::unique_ptr<Poly>& b
+  ) {
+    return monoid.lessThan(a->getLeadMonomial(), b->getLeadMonomial());
+  };
   std::sort(mGenerators.begin(), mGenerators.end(), cmp);
 }
 

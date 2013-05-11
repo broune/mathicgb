@@ -38,11 +38,11 @@ SignatureGB::SignatureGB(
   stats_pairsReduced(0),
   stats_nsecs(0.0),
   GB(make_unique<GroebnerBasis>(R, F.get(), divlookup_type, montable_type, preferSparseReducers)),
-  mKoszuls(make_unique<KoszulQueue>(F.get(), *R)),
+  mKoszuls(*R),
   Hsyz(MonomialTableArray::make(R, montable_type, basis.size(), !mPostponeKoszul)),
   Hsyz2(MonomialTableArray::make(R, montable_type, basis.size(), !mPostponeKoszul)),
   reducer(Reducer::makeReducer(reductiontyp, *R)),
-  SP(make_unique<SigSPairs>(R, F.get(), GB.get(), Hsyz.get(), reducer.get(), mPostponeKoszul, mUseBaseDivisors, useSingularCriterionEarly, queueType))
+  SP(make_unique<SigSPairs>(R, GB.get(), Hsyz.get(), reducer.get(), mPostponeKoszul, mUseBaseDivisors, useSingularCriterionEarly, queueType))
 {
   mProcessor = make_unique<MonoProcessor<Monoid>>(std::move(processor));
   mProcessor->setComponentCount(basis.size());
@@ -222,13 +222,13 @@ bool SignatureGB::step()
 
   // Not a known syzygy
 
-  while (!mKoszuls->empty()
-         && F->signatureCompare(mKoszuls->top(), sig) == LT)
+  while (!mKoszuls.empty()
+         && F->signatureCompare(mKoszuls.top(), sig) == LT)
     {
-      mKoszuls->pop();
+      mKoszuls.pop();
     }
 
-  if (!mKoszuls->empty() && R->monomialEQ(mKoszuls->top(), sig))
+  if (!mKoszuls.empty() && R->monomialEQ(mKoszuls.top(), sig))
     {
       ++stats_koszulEliminated;
       // This signature is of a syzygy that is not in Hsyz, so add it
@@ -282,23 +282,20 @@ bool SignatureGB::step()
     if (Hsyz->member(koszul, dummy))
       R->freeMonomial(koszul);
     else
-      mKoszuls->push(koszul);
+      mKoszuls.push(koszul);
   }
   return true;
 }
 
 size_t SignatureGB::getMemoryUse() const {
-  size_t sum =
+  return
     GB->getMemoryUse() +
     Hsyz->getMemoryUse() +
     R->getMemoryUse() +
     reducer->getMemoryUse() +
-    mSpairTmp.capacity() * sizeof(mSpairTmp.front());
-  sum += SP->getMemoryUse();
-
-  if (mKoszuls.get() != 0)
-    mKoszuls->getMemoryUse();
-  return sum;
+    mSpairTmp.capacity() * sizeof(mSpairTmp.front()) +
+    SP->getMemoryUse() +
+    mKoszuls.getMemoryUse();
 }
 
 void SignatureGB::displayStats(std::ostream &o) const
@@ -519,7 +516,7 @@ void SignatureGB::displaySomeStats(std::ostream& out) const {
   extra << mic::ColumnPrinter::oneDecimal(syzBasisRatio)
     << " syzygies per basis element\n";
 
-  const size_t queuedKoszuls = mKoszuls->size();
+  const size_t queuedKoszuls = mKoszuls.size();
   const double quedRatio = static_cast<double>(queuedKoszuls) / minSyz;
   name << "Queued Koszul syzygies:\n";
   value << mic::ColumnPrinter::commafy(queuedKoszuls) << '\n';
@@ -699,7 +696,7 @@ void SignatureGB::displayMemoryUse(std::ostream& out) const
     extra << mic::ColumnPrinter::percentInteger(syzMem, total) << '\n';
   }
   { // Koszul queue
-    const size_t syzQueueMem = mKoszuls->getMemoryUse();
+    const size_t syzQueueMem = mKoszuls.getMemoryUse();
     name << "Koszul queue:\n";
     value << mic::ColumnPrinter::bytesInUnit(syzQueueMem) << '\n';
     extra << mic::ColumnPrinter::percentInteger(syzQueueMem, total) << '\n';

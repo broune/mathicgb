@@ -4,7 +4,6 @@
 
 #include "GroebnerBasis.hpp"
 #include "MTArray.hpp"
-#include "FreeModuleOrder.hpp"
 #include "Reducer.hpp"
 #include <limits>
 #include <stdexcept>
@@ -12,7 +11,6 @@
 
 SigSPairs::SigSPairs(
   const PolyRing *R0,
-  FreeModuleOrder *F0,
   const GroebnerBasis *GB0,
   MonomialTableArray *Hsyz0,
   Reducer* reducer,
@@ -22,7 +20,6 @@ SigSPairs::SigSPairs(
   size_t queueType
 ):
   R(R0),
-  F(F0),
   mUseSingularCriterionEarly(useSingularCriterionEarly),
   mUseBaseDivisors(useBaseDivisors),
   mUseHighBaseDivisors(useBaseDivisors),
@@ -40,12 +37,6 @@ SigSPairs::~SigSPairs()
 
 void SigSPairs::newSyzygy(const_monomial sig) {
   MATHICGB_ASSERT(Hsyz->member(sig));
-}
-
-SigSPairs::Stats SigSPairs::getStats() const
-{
-  F->getStats(mStats.comparisons, mStats.precomparisons);
-  return mStats;
 }
 
 monomial SigSPairs::popSignature(PairContainer& pairs) {

@@ -1,18 +1,14 @@
 #ifndef koszul_queue_guard
 #define koszul_queue_guard
 
-#include <memtailor.h>
-#include <mathic.h>
 #include "PolyRing.hpp"
+#include "NonCopyable.hpp"
+#include <mathic.h>
 
-class FreeModuleOrder;
-
-class KoszulQueue
-{
+class KoszulQueue : public NonCopyable<KoszulQueue> {
 public:
-  KoszulQueue(const FreeModuleOrder *order, const PolyRing& ring):
-    mQueue(Configuration(order, ring))
-  {}
+  KoszulQueue(const PolyRing& ring): mQueue(Configuration(ring)) {}
+  KoszulQueue(KoszulQueue&& kq): mQueue(std::move(kq.mQueue)) {}
 
   const_monomial top() const {
     MATHICGB_ASSERT(!empty());
@@ -37,22 +33,23 @@ public:
   size_t getMemoryUse() const {return mQueue.getMemoryUse();}
 
 private:
+  KoszulQueue(const KoszulQueue&); // unavailable
+  
+
   class Configuration
   {
   public:
     typedef monomial Entry;
 
-    Configuration(const FreeModuleOrder *order, const PolyRing& ring):
-      mOrder(order), mRing(ring)
-    {
-      MATHICGB_ASSERT(mOrder != 0);
-    }
+    Configuration(const PolyRing& ring): mRing(ring) {}
 
     const PolyRing& ring() const {return mRing;}
 
     typedef int CompareResult; /* LT, EQ, GT */
 
-    CompareResult compare(const Entry& a, const Entry& b) const;
+    CompareResult compare(const Entry& a, const Entry& b) const {
+      return ring().monoid().compare(a, b);
+    }
 
     bool cmpLessThan(CompareResult r) const {return r == GT;}
 
@@ -66,7 +63,6 @@ private:
       return a;
     }
   private:
-    const FreeModuleOrder *mOrder;
     const PolyRing& mRing;
   };
 

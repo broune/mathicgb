@@ -101,7 +101,7 @@ private:
   double stats_nsecs;
 
   std::unique_ptr<GroebnerBasis> GB;
-  std::unique_ptr<KoszulQueue> mKoszuls;
+  KoszulQueue mKoszuls;
   std::unique_ptr<MonomialTableArray> Hsyz;
   std::unique_ptr<MonomialTableArray> Hsyz2;
   std::unique_ptr<Reducer> reducer;
