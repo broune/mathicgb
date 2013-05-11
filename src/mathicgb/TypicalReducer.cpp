@@ -183,8 +183,10 @@ std::unique_ptr<Poly> TypicalReducer::classicReduce
 
     size_t reducer = basis.classicReducer(v.monom);
     if (reducer == static_cast<size_t>(-1)) { // no reducer found
-      MATHICGB_ASSERT(result->isZero() ||
-        basis.order().signatureCompare(v.monom, result->backMonomial()) == LT);
+      MATHICGB_ASSERT(
+        result->isZero() ||
+        basis.monoid().lessThan(v.monom, result->backMonomial())
+      );
       result->appendTerm(v.coeff, v.monom);
       removeLeadTerm();
     } else { // reduce by reducer

@@ -15,7 +15,7 @@ void Basis::insert(std::unique_ptr<Poly>&& p) {
   mGenerators.push_back(std::move(p));
 }
 
-void Basis::sort(FreeModuleOrder& order) {
+void Basis::sort() {
   const auto& monoid = ring().monoid();
   const auto cmp = [&monoid](
     const std::unique_ptr<Poly>& a,

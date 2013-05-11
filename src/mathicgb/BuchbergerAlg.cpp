@@ -26,7 +26,7 @@ BuchbergerAlg::BuchbergerAlg(
   mRing(*basis.getPolyRing()),
   mOrder(FreeModuleOrder::makeOrder(0, *basis.getPolyRing())), // todo: remove
   mReducer(reducer),
-  mBasis(mRing, *mOrder, DivisorLookup::makeFactory(
+  mBasis(mRing, DivisorLookup::makeFactory(
     *basis.getPolyRing(),
     divisorLookupType)->create(preferSparseReducers, true)
   ),
@@ -326,7 +326,6 @@ size_t BuchbergerAlg::getMemoryUse() const {
 }
 
 void BuchbergerAlg::printStats(std::ostream& out) const {
-  out << " term order:         " << mBasis.order().description() << '\n';
   out << " reduction type:     " << mReducer.description() << '\n';
   out << " divisor tab type:   " << mBasis.divisorLookup().getName() << '\n';
   out << " S-pair queue type:  " << mSPairs.name() << '\n';

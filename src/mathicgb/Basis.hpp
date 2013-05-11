@@ -9,7 +9,6 @@
 #include <vector>
 
 class Poly;
-class FreeModuleOrder;
 
 // Really: a list of polynomials
 // BUT ALSO maybe: includes memory areas for the polynomials?
@@ -37,7 +36,7 @@ public:
   bool empty() const {return mGenerators.empty();}
   void reserve(size_t size) {mGenerators.reserve(size);}
 
-  void sort(FreeModuleOrder& order);
+  void sort();
 
 private:
   Basis(const Basis&); // not available

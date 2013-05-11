@@ -64,7 +64,12 @@ namespace {
 }
 
 void PairTriangle::endColumn() {
-  mOrder.sortSignatures(mPrePairs);
+  const auto& monoid = mRing.monoid();
+  const auto cmp = [&monoid](const PreSPair& a, const PreSPair& b) {
+    return monoid.lessThan(a.signature, b.signature);
+  };
+  std::sort(mPrePairs.begin(), mPrePairs.end(), cmp);
+
   typedef IndexIterator<std::vector<PreSPair>::const_iterator> Iter;
   mPairQueue.addColumnDescending
 	(Iter(mPrePairs.begin()), Iter(mPrePairs.end()));

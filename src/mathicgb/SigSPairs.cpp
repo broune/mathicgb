@@ -27,8 +27,8 @@ SigSPairs::SigSPairs(
   GB(GB0),
   mReducer(reducer),
   mPostponeKoszuls(postponeKoszuls),
-  mQueue(GB->order().createSigSPairQueue(*GB)) {
-}
+  mQueue(SigSPairQueue::create(*GB))
+{}
 
 SigSPairs::~SigSPairs()
 {

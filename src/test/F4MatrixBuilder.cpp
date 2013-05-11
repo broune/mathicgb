@@ -3,7 +3,6 @@
 #include "mathicgb/Poly.hpp"
 #include "mathicgb/PolyRing.hpp"
 #include "mathicgb/F4MatrixBuilder.hpp"
-#include "mathicgb/FreeModuleOrder.hpp"
 #include "mathicgb/Basis.hpp"
 #include "mathicgb/PolyBasis.hpp"
 #include "mathicgb/io-util.hpp"
@@ -22,8 +21,7 @@ namespace {
     BuilderMaker():
       mRing(ringFromString("101 6 1\n1 1 1 1 1 1")),
       mIdeal(*mRing),
-      mOrder(FreeModuleOrder::makeOrder(1, *mIdeal.getPolyRing())),
-      mBasis(*mRing, *mOrder, DivisorLookup::makeFactory(*mRing, 1)->create(true, true)) {
+      mBasis(*mRing, DivisorLookup::makeFactory(*mRing, 1)->create(true, true)) {
     }
 
     const Poly& addBasisElement(const std::string& str) {
@@ -45,7 +43,6 @@ namespace {
   private:
     std::unique_ptr<PolyRing> mRing;
     Basis mIdeal;
-    std::unique_ptr<FreeModuleOrder> mOrder;
     PolyBasis mBasis;
     std::unique_ptr<F4MatrixBuilder> mBuilder;
   };

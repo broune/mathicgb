@@ -27,21 +27,10 @@ public:
     const_monomial sig2
   ) const = 0;
 
-  // Sorts in ascending order of signature.
-  virtual void sortSignatures(std::vector<PreSPair>& pairs) const = 0;
-
-  virtual void getStats(size_t& comparisons, size_t& preComparisons) const = 0;
-
   virtual std::string description() const = 0;
-
-  virtual std::unique_ptr<SigSPairQueue>
-  createSigSPairQueue(GroebnerBasis const& basis) const = 0;
 
   /// @todo: We need at least an enum to make this clearer
   static std::unique_ptr<FreeModuleOrder> makeOrder(FreeModuleOrderType type, const PolyRing& ring);
-
-  static void displayOrderTypes(std::ostream &o);
-
 };
 
 #endif

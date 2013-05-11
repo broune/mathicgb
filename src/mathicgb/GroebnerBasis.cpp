@@ -1,6 +1,5 @@
 // Copyright 2011 Michael E. Stillman
 
-#define MATHICGB_SLOW_DEBUG
 #include "stdinc.h"
 #include <iostream>
 #include <iomanip>
@@ -10,15 +9,14 @@
 
 GroebnerBasis::GroebnerBasis(
   const PolyRing* R0,
-  FreeModuleOrder* order,
   int divisorLookupType,
   int monTableType,
   bool preferSparseReducers):
   mDivisorLookupFactory
     (DivisorLookup::makeFactory(*R0, divisorLookupType)),
-  mRatioSorted(RatioOrder(sigLeadRatio, *order)),
+  mRatioSorted(RatioOrder(sigLeadRatio, R0->monoid())),
   mMinimalDivisorLookup(mDivisorLookupFactory->create(preferSparseReducers, true)),
-  mBasis(*R0, *order, mDivisorLookupFactory->create(preferSparseReducers, true)),
+  mBasis(*R0, mDivisorLookupFactory->create(preferSparseReducers, true)),
   mPreferSparseReducers(preferSparseReducers)
 {
   mTmp = mBasis.ring().allocMonomial();
@@ -147,7 +145,7 @@ again:
   mRatioRanks.push_back(rank);
   MATHICGB_ASSERT(mRatioRanks.size() == index + 1);
 
-#ifdef DEBUG
+#ifdef MATHICGB_DEBUG
     // Check that at least one space has been left between every rank
     MATHICGB_ASSERT(mRatioRanks[*mRatioSorted.begin()] > 0);
     MATHICGB_ASSERT(mRatioRanks[*mRatioSorted.rbegin()] <
@@ -178,7 +176,7 @@ size_t GroebnerBasis::regularReducer(
       (ring().monomialIsDivisibleBy(term, getLeadMonomial(reducer)));
     ring().monomialDivide(term, getLeadMonomial(reducer), m);
     ring().monomialMultTo(m, getSignature(reducer));
-    MATHICGB_SLOW_ASSERT(order().signatureCompare(sig, m) == GT);
+    MATHICGB_SLOW_ASSERT(monoid().lessThan(m, sig));
     ring().freeMonomial(m);
   }
 #endif
@@ -196,7 +194,7 @@ size_t GroebnerBasis::regularReducerSlow(
       continue;
     ring().monomialDivide(term, getLeadMonomial(be), m);
     ring().monomialMultTo(m, getSignature(be));
-    if (order().signatureCompare(sig, m) == GT) {
+    if (monoid().lessThan(m, sig)) {
       ring().freeMonomial(m);
       return be;
     }
@@ -215,7 +213,7 @@ void GroebnerBasis::lowBaseDivisors(
   const size_t component = ring().monomialGetComponent(sigNew);
   mSignatureLookup[component]->
     lowBaseDivisors(divisors, maxDivisors, newGenerator);
-#ifdef DEBUG
+#ifdef MATHICGB_DEBUG
   std::vector<size_t> debugValue;
   lowBaseDivisorsSlow(debugValue, maxDivisors, newGenerator);
   MATHICGB_ASSERT(divisors.size() <= maxDivisors);
@@ -265,7 +263,7 @@ void GroebnerBasis::lowBaseDivisorsSlow(
 size_t GroebnerBasis::highBaseDivisor(size_t newGenerator) const {
   MATHICGB_ASSERT(newGenerator < size());
   size_t highDivisor = divisorLookup().highBaseDivisor(newGenerator);
-#ifdef DEBUG
+#ifdef MATHICGB_DEBUG
   size_t debugValue = highBaseDivisorSlow(newGenerator);
   MATHICGB_ASSERT((highDivisor == static_cast<size_t>(-1)) ==
     (debugValue == static_cast<size_t>(-1)));
@@ -317,10 +315,10 @@ size_t GroebnerBasis::minimalLeadInSigSlow(const_monomial sig) const {
     ring().monomialDivide(sig, getSignature(gen), multiplier);
     if (minLeadGen != static_cast<size_t>(-1)) {
       const_monomial genLead = getLeadMonomial(gen);
-      int leadCmp = order().signatureCompare(minLead, multiplier, genLead);
-      if (leadCmp == LT)
+      const auto leadCmp = monoid().compare(minLead, multiplier, genLead);
+      if (leadCmp == Monoid::LessThan)
         continue;
-      if (leadCmp == EQ) {
+      if (leadCmp == Monoid::EqualTo) {
         // If same lead monomial in signature, pick the one with fewer terms
         // as that one might be less effort to reduce.
         const size_t minTerms = poly(minLeadGen).nTerms();
@@ -334,8 +332,10 @@ size_t GroebnerBasis::minimalLeadInSigSlow(const_monomial sig) const {
           // is less.
           const const_monomial minSig = getSignature(minLeadGen);
           const const_monomial genSig = getSignature(gen);
-          int sigCmp = order().signatureCompare(minSig, genSig);
-          MATHICGB_ASSERT(sigCmp != EQ); // no two generators have same signature
+          int sigCmp = monoid().compare(minSig, genSig);
+
+          // no two generators have same signature
+          MATHICGB_ASSERT(sigCmp != Monoid::EqualTo);
           if (sigCmp == GT)
             continue;
         }
@@ -363,7 +363,7 @@ bool GroebnerBasis::isSingularTopReducibleSlow
     if (!ring().monomialIsDivisibleBy(polyLead, getLeadMonomial(i)))
       continue;
     ring().monomialDivide(polyLead, getLeadMonomial(i), multiplier);
-    if (order().signatureCompare(sig, multiplier, getSignature(i)) == EQ)
+    if (monoid().compare(sig, multiplier, getSignature(i)) == EQ)
       return true;
   }
   ring().freeMonomial(multiplier);
@@ -451,10 +451,10 @@ size_t GroebnerBasis::ratioRank(const_monomial ratio) const {
       std::numeric_limits<Rank>::max());
     return std::numeric_limits<Rank>::max();
   } else {
-    if (order().signatureCompare(ratio, getSigLeadRatio(*pos)) == EQ)
+    if (monoid().equal(ratio, getSigLeadRatio(*pos)))
       return ratioRank(*pos);
     MATHICGB_ASSERT(ratioRank(*pos) > 0);
-#ifdef DEBUG
+#ifdef MATHICGB_DEBUG
     if (pos != mRatioSorted.begin()) {
       RatioSortedType::iterator prev = pos;
       --prev;

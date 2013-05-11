@@ -10,12 +10,11 @@
 #include <iostream>
 
 SigGBAction::SigGBAction():
-  mUseSingularCriterionEarly("earlySingularCriterion",
+  mUseSingularCriterionEarly(
+    "earlySingularCriterion",
     "Apply the singular S-pair elimination criterion before queueing "
     "that S-pair. Otherwise, the criterion is only checked just before "
-    "the S-pair would otherwise cause a polynomial reduction to occur. "
-    "This criterion is only relevant to the signature Buchberger "
-    "algorithm.",
+    "the S-pair would otherwise cause a polynomial reduction to occur. ",
     false),
 
   mPostponeKoszul("postponeKoszul",

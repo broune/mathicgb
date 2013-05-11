@@ -6,11 +6,9 @@
 
 PolyBasis::PolyBasis(
   const PolyRing& ring,
-  FreeModuleOrder& order,
   std::unique_ptr<DivisorLookup> divisorLookup
 ):
   mRing(ring),
-  mOrder(order),
   mDivisorLookup(std::move(divisorLookup))
 {
   MATHICGB_ASSERT(mDivisorLookup.get() != 0);
@@ -37,7 +35,7 @@ std::unique_ptr<Basis> PolyBasis::initialIdeal() const {
       basis->insert(std::move(p));
     }
   }
-  basis->sort(mOrder);
+  basis->sort();
   return basis;
 }
 

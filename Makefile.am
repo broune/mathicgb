@@ -106,8 +106,7 @@ check_PROGRAMS=$(TESTS)
 unittest_LDADD = $(DEPS_LIBS) $(top_builddir)/libmathicgb.la
 
 test_LIBS=
-unittest_SOURCES=src/test/FreeModuleOrderTest.cpp			\
-  src/test/gtestInclude.cpp src/test/testMain.cpp			\
+unittest_SOURCES= src/test/gtestInclude.cpp src/test/testMain.cpp	\
   src/test/gb-test.cpp src/test/ideals.cpp src/test/poly-test.cpp	\
   src/test/ideals.hpp src/test/SparseMatrix.cpp				\
   src/test/QuadMatrixBuilder.cpp src/test/F4MatrixBuilder.cpp		\

@@ -8,16 +8,17 @@
 
 class PolyRing;
 class Basis;
-class FreeModuleOrder;
 
 class PolyBasis {
 public:
-  // Ring and order must live for as long as this object. divisorLookupFactory
+  typedef PolyRing::Monoid Monoid;
+
+  // Ring must live for as long as this object. divisorLookupFactory
   // only needs to live for the duration of the constructor.
   PolyBasis(
     const PolyRing& ring,
-    FreeModuleOrder& order,
-    std::unique_ptr<DivisorLookup> divisorLookup);
+    std::unique_ptr<DivisorLookup> divisorLookup
+  );
 
   // Deletes the Poly's stored in the basis.
   ~PolyBasis();
@@ -67,8 +68,7 @@ public:
   // Returns the ambient polynomial ring of the polynomials in the basis.
   const PolyRing& ring() const {return mRing;}
 
-  // Returns the term order on the basis.
-  const FreeModuleOrder& order() const {return mOrder;}
+  const Monoid& monoid() const {return ring().monoid();}
 
   // Returns a data structure containing the lead monomial of each lead
   // monomial.
@@ -219,7 +219,6 @@ private:
   typedef EntryCont::const_iterator EntryCIter;
 
   const PolyRing& mRing;
-  FreeModuleOrder& mOrder;
   std::unique_ptr<DivisorLookup> mDivisorLookup;
   std::vector<Entry> mEntries;
 };

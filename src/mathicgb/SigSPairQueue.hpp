@@ -13,14 +13,16 @@ struct PreSPair {
   monomial signature;
 };
 
+class GroebnerBasis;
+
 // A priority queue on S-pairs where the priority is based on a
 // signature as in signature Grobner basis algorithms. The class is
 // not responsible for eliminating S-pairs or doing anything beyond
 // order the S-pairs.
-//
-// You create these queues from a module term order.
 class SigSPairQueue {
 public:
+  typedef PolyRing::Monoid Monoid;
+
   virtual ~SigSPairQueue();
 
   typedef std::pair<size_t, size_t> Pair;
@@ -64,6 +66,8 @@ public:
 
   // Returns number of bytes of memory used.
   virtual size_t memoryUse() const = 0;
+
+  static std::unique_ptr<SigSPairQueue> create(GroebnerBasis const& basis);
 };
 
 #endif

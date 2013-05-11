@@ -456,7 +456,7 @@ private:
             // ensures deterministic behavior.
             const const_monomial minSig = mSigBasis.getSignature(mMinLeadGen);
             const const_monomial genSig = mSigBasis.getSignature(entry.index);
-            int sigCmp = mSigBasis.order().signatureCompare(minSig, genSig);
+            int sigCmp = mSigBasis.monoid().compare(minSig, genSig);
             MATHICGB_ASSERT(sigCmp != EQ); // no two generators have same signature
             if (sigCmp == GT)
               return true;
@@ -621,17 +621,6 @@ public:
         _finder.insert(Entry(mon, val));
   }
 
-#if 0
-  virtual bool findDivisor(const_monomial sig, const_monomial mon, size_t &val, monomial &result_multiplier)
-  {
-        DO out(getConfiguration().order(), getConfiguration().getPolyRing(), sig, mon, val, result_multiplier);
-        _finder.findAllDivisors(mon, out);
-        return out.found();
-  }
-#endif
-  // ifdef the above code to 0 and this to 1, if you wish to use: choose divisor to be a one wih minimal number
-  // of monomial that satisfies sig and divisibility criteria.
-#if 1
   virtual size_t regularReducer(const_monomial sig, const_monomial mon) const
   {
     DOCheckAll out(
@@ -643,7 +632,7 @@ public:
     _finder.findAllDivisors(mon, out);
     return out.reducer();
   }
-#endif
+
   unsigned long long getExpQueryCount() const {
     return _finder.getConfiguration().getExpQueryCount();
   }
