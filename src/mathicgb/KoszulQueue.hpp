@@ -7,63 +7,62 @@
 
 class KoszulQueue : public NonCopyable<KoszulQueue> {
 public:
-  KoszulQueue(const PolyRing& ring): mQueue(Configuration(ring)) {}
+  typedef PolyRing::Monoid Monoid;
+  typedef Monoid::Mono Mono;
+  typedef Monoid::ConstMonoRef ConstMonoRef;
+
+  KoszulQueue(const Monoid& monoid): mQueue(Configuration(monoid)) {}
   KoszulQueue(KoszulQueue&& kq): mQueue(std::move(kq.mQueue)) {}
 
-  const_monomial top() const {
+  ConstMonoRef top() const {
     MATHICGB_ASSERT(!empty());
     return mQueue.top();
   }
 
-  monomial popRelease() {
-    MATHICGB_ASSERT(!empty());
-    return mQueue.pop();
-  }
-
   void pop() {
     MATHICGB_ASSERT(!empty());
-    auto toFree = popRelease().unsafeGetRepresentation();
-    mQueue.getConfiguration().ring().freeMonomial(toFree);
+    monoid().freeRaw(mQueue.pop());
   }
 
-  void push(monomial sig) {mQueue.push(sig);}
+  void push(ConstMonoRef sig) {
+    auto m = monoid().alloc();
+    monoid().copy(sig, m);
+    mQueue.push(*m.release());
+  }
   bool empty() const {return mQueue.empty();}
   size_t size() const {return mQueue.size();}
 
   size_t getMemoryUse() const {return mQueue.getMemoryUse();}
 
+  const Monoid& monoid() const {return mQueue.getConfiguration().monoid();}
+
 private:
-  KoszulQueue(const KoszulQueue&); // unavailable
-  
-
-  class Configuration
-  {
+  class Configuration {
   public:
-    typedef monomial Entry;
+    typedef Monoid::MonoRef Entry;
 
-    Configuration(const PolyRing& ring): mRing(ring) {}
+    Configuration(const Monoid& monoid): mMonoid(monoid) {}
 
-    const PolyRing& ring() const {return mRing;}
-
-    typedef int CompareResult; /* LT, EQ, GT */
-
+    typedef Monoid::CompareResult CompareResult;
     CompareResult compare(const Entry& a, const Entry& b) const {
       return ring().monoid().compare(a, b);
     }
-
-    bool cmpLessThan(CompareResult r) const {return r == GT;}
+    bool cmpLessThan(CompareResult r) const {return r == Monoid::GreaterThan;}
 
     static const bool fastIndex = false;
     static const bool supportDeduplication = true;
-    bool cmpEqual(CompareResult r) const {return r == EQ;}
+    bool cmpEqual(CompareResult r) const {return r == Monoid::EqualTo;}
 
     Entry deduplicate(Entry a, Entry b)
     {
-      ring().freeMonomial(b.unsafeGetRepresentation());
+      monoid().freeRaw(b);
       return a;
     }
+
+    const Monoid& monoid() const {return mMonoid;}
+
   private:
-    const PolyRing& mRing;
+    const Monoid& mMonoid;
   };
 
   mic::Heap<Configuration> mQueue;
