@@ -10,24 +10,32 @@ public:
   typedef PolyRing::Monoid Monoid;
   typedef Monoid::Mono Mono;
   typedef Monoid::ConstMonoRef ConstMonoRef;
+  typedef Monoid::MonoPool MonoPool;
 
-  KoszulQueue(const Monoid& monoid): mQueue(Configuration(monoid)) {}
-  KoszulQueue(KoszulQueue&& kq): mQueue(std::move(kq.mQueue)) {}
+  KoszulQueue(const Monoid& monoid):
+    mPool(monoid),
+    mQueue(Configuration(monoid, mPool))
+  {}
+
+  KoszulQueue(KoszulQueue&& kq):
+    mQueue(std::move(kq.mQueue)),
+    mPool(std::move(kq.mPool))
+  {}
 
   ConstMonoRef top() const {
     MATHICGB_ASSERT(!empty());
-    return mQueue.top();
+    return *mQueue.top();
   }
 
   void pop() {
     MATHICGB_ASSERT(!empty());
-    monoid().freeRaw(mQueue.pop());
+    mPool.freeRaw(*mQueue.pop());
   }
 
   void push(ConstMonoRef sig) {
-    auto m = monoid().alloc();
+    auto m = mPool.alloc();
     monoid().copy(sig, m);
-    mQueue.push(*m.release());
+    mQueue.push(m.release());
   }
   bool empty() const {return mQueue.empty();}
   size_t size() const {return mQueue.size();}
@@ -39,13 +47,14 @@ public:
 private:
   class Configuration {
   public:
-    typedef Monoid::MonoRef Entry;
+    typedef Monoid::MonoPtr Entry;
 
-    Configuration(const Monoid& monoid): mMonoid(monoid) {}
+    Configuration(const Monoid& monoid, MonoPool& pool):
+      mMonoid(monoid), mPool(pool) {}
 
     typedef Monoid::CompareResult CompareResult;
     CompareResult compare(const Entry& a, const Entry& b) const {
-      return ring().monoid().compare(a, b);
+      return monoid().compare(*a, *b);
     }
     bool cmpLessThan(CompareResult r) const {return r == Monoid::GreaterThan;}
 
@@ -53,9 +62,8 @@ private:
     static const bool supportDeduplication = true;
     bool cmpEqual(CompareResult r) const {return r == Monoid::EqualTo;}
 
-    Entry deduplicate(Entry a, Entry b)
-    {
-      monoid().freeRaw(b);
+    Entry deduplicate(Entry a, Entry b) {
+      mPool.freeRaw(*b);
       return a;
     }
 
@@ -63,14 +71,11 @@ private:
 
   private:
     const Monoid& mMonoid;
+    MonoPool& mPool;
   };
 
+  MonoPool mPool;
   mic::Heap<Configuration> mQueue;
 };
 
 #endif
-
-// Local Variables:
-// compile-command: "make -C .. "
-// indent-tabs-mode: nil
-// End:

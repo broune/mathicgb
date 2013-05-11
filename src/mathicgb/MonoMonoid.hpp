@@ -1227,11 +1227,17 @@ public:
 
   // *** Classes that provide memory resources for monomials
 
-  class MonoPool {
+  class MonoPool : public NonCopyable<MonoPool> {
   public:
     MonoPool(const MonoMonoid& monoid):
       mMonoid(monoid),
-      mPool(sizeof(Exponent) * mMonoid.entryCount()) {}
+      mPool(sizeof(Exponent) * mMonoid.entryCount())
+    {}
+
+    MonoPool(MonoPool&& pool):
+      mMonoid(pool.mMonoid),
+      mPool(std::move(pool.mPool))
+    {}
 
     Mono alloc() {
       const auto ptr = static_cast<Exponent*>(mPool.alloc());
@@ -1256,9 +1262,6 @@ public:
     }
 
   private:
-    MonoPool(const MonoPool&); // not available
-    void operator=(const MonoPool&); // not available
-
     const MonoMonoid& mMonoid;
     memt::BufferPool mPool;
   };

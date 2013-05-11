@@ -38,7 +38,7 @@ SignatureGB::SignatureGB(
   stats_pairsReduced(0),
   stats_nsecs(0.0),
   GB(make_unique<GroebnerBasis>(R, F.get(), divlookup_type, montable_type, preferSparseReducers)),
-  mKoszuls(*R),
+  mKoszuls(R->monoid()),
   Hsyz(MonomialTableArray::make(R, montable_type, basis.size(), !mPostponeKoszul)),
   Hsyz2(MonomialTableArray::make(R, montable_type, basis.size(), !mPostponeKoszul)),
   reducer(Reducer::makeReducer(reductiontyp, *R)),
@@ -222,13 +222,12 @@ bool SignatureGB::step()
 
   // Not a known syzygy
 
-  while (!mKoszuls.empty()
-         && F->signatureCompare(mKoszuls.top(), sig) == LT)
+  while (!mKoszuls.empty() && R->monoid().lessThan(mKoszuls.top(), sig))
     {
       mKoszuls.pop();
     }
 
-  if (!mKoszuls.empty() && R->monomialEQ(mKoszuls.top(), sig))
+  if (!mKoszuls.empty() && R->monoid().equal(mKoszuls.top(), sig))
     {
       ++stats_koszulEliminated;
       // This signature is of a syzygy that is not in Hsyz, so add it
