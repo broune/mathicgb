@@ -1,7 +1,7 @@
 #include "stdinc.h"
 #include "SigSPairQueue.hpp"
 
-#include "GroebnerBasis.hpp"
+#include "SigPolyBasis.hpp"
 
 SigSPairQueue::~SigSPairQueue() {}
 
@@ -50,7 +50,7 @@ namespace {
 
 class ConcreteSigSPairQueue : public SigSPairQueue {
 public:
-  ConcreteSigSPairQueue(GroebnerBasis const& basis):
+  ConcreteSigSPairQueue(SigPolyBasis const& basis):
   mPairQueue(Configuration(basis)) {}
 
   virtual monomial popSignature(Pairs& pairs) {
@@ -111,7 +111,7 @@ private:
   // Configuration of mathic::PairTriangle for use with signature queues.
   class Configuration {
   public:
-    Configuration(GroebnerBasis const& basis): mBasis(basis) {}
+    Configuration(SigPolyBasis const& basis): mBasis(basis) {}
 
     typedef monomial PairData;
     void computePairData(size_t col, size_t row, monomial sig) {
@@ -132,15 +132,15 @@ private:
     }
     bool cmpLessThan(bool v) const {return v;}
 
-    GroebnerBasis const& basis() const {return mBasis;}
+    SigPolyBasis const& basis() const {return mBasis;}
 
   private:
-    GroebnerBasis const& mBasis;
+    SigPolyBasis const& mBasis;
   };
 
   // the compiler should be able to resolve these accessors into a direct
   // offset as though these were member variables.
-  const GroebnerBasis& basis() const {
+  const SigPolyBasis& basis() const {
     return mPairQueue.configuration().basis();
   }
   PolyRing const& ring() const {return basis().ring();}
@@ -179,7 +179,7 @@ namespace mathic {
 }
 
 std::unique_ptr<SigSPairQueue> SigSPairQueue::create(
-  GroebnerBasis const& basis
+  SigPolyBasis const& basis
 ) {
   return make_unique<ConcreteSigSPairQueue>(basis);
 }

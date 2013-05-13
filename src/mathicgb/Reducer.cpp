@@ -16,7 +16,7 @@
 #include "ReducerHashPack.hpp"
 #include "F4Reducer.hpp"
 
-#include "GroebnerBasis.hpp"
+#include "SigPolyBasis.hpp"
 #include <iostream>
 #include <algorithm>
 

@@ -11,7 +11,7 @@
 
 class Poly;
 class MonomialTableArray;
-class GroebnerBasis;
+class SigPolyBasis;
 class Reducer;
 
 // Handles S-pairs in signature Grobner basis algorithms. Responsible
@@ -21,7 +21,7 @@ class SigSPairs
 public:
   SigSPairs(
     const PolyRing *R0,
-    const GroebnerBasis *GB0,
+    const SigPolyBasis *GB0,
     MonomialTableArray *Hsyz0,
     Reducer* reducer,
     bool postponeKoszuls,
@@ -115,7 +115,7 @@ private:
 
   // From elsewhere
   MonomialTableArray *Hsyz; // we often modify this
-  const GroebnerBasis *GB;
+  const SigPolyBasis *GB;
   Reducer* mReducer;
   const bool mPostponeKoszuls;
 

@@ -6,7 +6,7 @@
 #include "PolyRing.hpp"
 
 class Poly;
-class GroebnerBasis;
+class SigPolyBasis;
 class MonomialTableArray;
 class PolyBasis;
 class Basis;
@@ -20,9 +20,9 @@ std::string monomialDisplay(const PolyRing *R, const_monomial mon);
 Monomial stringToMonomial(const PolyRing *R, std::string mon);
 std::string monomialToString(const PolyRing *R, const Monomial& mon);
 
-std::string toString(GroebnerBasis *);
+std::string toString(SigPolyBasis *);
 std::string toString(MonomialTableArray *);
-std::string toString(GroebnerBasis *, int unused); // also displays signature
+std::string toString(SigPolyBasis *, int unused); // also displays signature
 std::string toString(Basis *);
 std::string toString(const Poly *);
 

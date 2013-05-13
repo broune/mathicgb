@@ -15,11 +15,11 @@ libmathicgb_la_LIBADD= $(DEPS_LIBS)
 # sources ensure that those files are included in distributions.
 libmathicgb_la_SOURCES = src/mathicgb/BjarkeGeobucket2.cpp		\
   src/mathicgb/BjarkeGeobucket2.hpp src/mathicgb/BjarkeGeobucket.cpp	\
-  src/mathicgb/BjarkeGeobucket.hpp src/mathicgb/BuchbergerAlg.cpp	\
-  src/mathicgb/BuchbergerAlg.hpp src/mathicgb/ChainedHashTable.cpp	\
+  src/mathicgb/BjarkeGeobucket.hpp src/mathicgb/ClassicGBAlg.cpp	\
+  src/mathicgb/ClassicGBAlg.hpp src/mathicgb/ChainedHashTable.cpp	\
   src/mathicgb/ChainedHashTable.hpp src/mathicgb/DivisorLookup.hpp	\
   src/mathicgb/DivisorLookup.cpp src/mathicgb/DivLookup.hpp		\
-  src/mathicgb/GroebnerBasis.cpp src/mathicgb/GroebnerBasis.hpp		\
+  src/mathicgb/SigPolyBasis.cpp src/mathicgb/SigPolyBasis.hpp		\
   src/mathicgb/HashTourReducer.cpp src/mathicgb/HashTourReducer.hpp	\
   src/mathicgb/Basis.cpp src/mathicgb/Basis.hpp				\
   src/mathicgb/io-util.cpp src/mathicgb/io-util.hpp			\

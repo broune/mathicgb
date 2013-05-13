@@ -13,7 +13,7 @@ struct PreSPair {
   monomial signature;
 };
 
-class GroebnerBasis;
+class SigPolyBasis;
 
 // A priority queue on S-pairs where the priority is based on a
 // signature as in signature Grobner basis algorithms. The class is
@@ -67,7 +67,7 @@ public:
   // Returns number of bytes of memory used.
   virtual size_t memoryUse() const = 0;
 
-  static std::unique_ptr<SigSPairQueue> create(GroebnerBasis const& basis);
+  static std::unique_ptr<SigSPairQueue> create(SigPolyBasis const& basis);
 };
 
 #endif

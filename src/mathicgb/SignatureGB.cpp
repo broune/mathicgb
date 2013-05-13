@@ -35,7 +35,7 @@ SignatureGB::SignatureGB(
   stats_relativelyPrimeEliminated(0),
   stats_pairsReduced(0),
   stats_nsecs(0.0),
-  GB(make_unique<GroebnerBasis>(R, divlookup_type, montable_type, preferSparseReducers)),
+  GB(make_unique<SigPolyBasis>(R, divlookup_type, montable_type, preferSparseReducers)),
   mKoszuls(R->monoid()),
   Hsyz(MonomialTableArray::make(R, montable_type, basis.size(), !mPostponeKoszul)),
   Hsyz2(MonomialTableArray::make(R, montable_type, basis.size(), !mPostponeKoszul)),

@@ -8,9 +8,9 @@
 #include "mathicgb/MonTableNaive.hpp"
 #include "mathicgb/io-util.hpp"
 #include "mathicgb/PolyHeap.hpp"
-#include "mathicgb/GroebnerBasis.hpp"
+#include "mathicgb/SigPolyBasis.hpp"
 #include "mathicgb/SignatureGB.hpp"
-#include "mathicgb/BuchbergerAlg.hpp"
+#include "mathicgb/ClassicGBAlg.hpp"
 #include "mathicgb/mtbb.hpp"
 #include "mathicgb/MathicIO.hpp"
 #include "mathicgb/Scanner.hpp"
@@ -305,7 +305,7 @@ spairQueue	reducerType	divLookup	monTable	buchberger	postponeKoszul	useBaseDivis
     if (buchberger) {
       const auto reducer = Reducer::makeReducer
         (Reducer::reducerType(reducerType), ring);
-      BuchbergerAlg alg(
+      ClassicGBAlg alg(
         std::move(basis),
         *reducer,
         divLookup,

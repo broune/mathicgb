@@ -5,7 +5,7 @@
 #include "mathicgb/PolyRing.hpp"
 #include "mathicgb/Poly.hpp"
 #include "mathicgb/Reducer.hpp"
-#include "mathicgb/BuchbergerAlg.hpp"
+#include "mathicgb/ClassicGBAlg.hpp"
 #include "mathicgb/mtbb.hpp"
 #include "mathicgb/LogDomainSet.hpp"
 #include <mathic.h>
@@ -762,7 +762,7 @@ namespace mgbi {
 }
 
 namespace {
-  class CallbackAdapter : public BuchbergerAlg::Callback {
+  class CallbackAdapter : public ClassicGBAlg::Callback {
   public:
     typedef mgb::GroebnerConfiguration::Callback::Action Action;
 
@@ -838,7 +838,7 @@ namespace mgbi {
     );
 
     // Set up and configure algorithm
-    BuchbergerAlg alg(basis, *reducer, 2, true, 0);
+    ClassicGBAlg alg(basis, *reducer, 2, true, 0);
     alg.setReducerMemoryQuantum(100 * 1024);
     alg.setUseAutoTopReduction(true);
     alg.setUseAutoTailReduction(false);

@@ -1,7 +1,7 @@
 #include "mathicgb/stdinc.h"
 #include "GBAction.hpp"
 
-#include "mathicgb/BuchbergerAlg.hpp"
+#include "mathicgb/ClassicGBAlg.hpp"
 #include "mathicgb/Basis.hpp"
 #include "mathicgb/io-util.hpp"
 #include "mathicgb/F4Reducer.hpp"
@@ -78,7 +78,7 @@ void GBAction::performAction() {
     reducer = std::move(f4Reducer);
   }
 
-  BuchbergerAlg alg(
+  ClassicGBAlg alg(
     basis,
     *reducer,
     mGBParams.mDivisorLookup.value(),

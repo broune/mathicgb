@@ -2,7 +2,7 @@
 #include "stdinc.h"
 #include "SigSPairs.hpp"
 
-#include "GroebnerBasis.hpp"
+#include "SigPolyBasis.hpp"
 #include "MTArray.hpp"
 #include "Reducer.hpp"
 #include <limits>
@@ -11,7 +11,7 @@
 
 SigSPairs::SigSPairs(
   const PolyRing *R0,
-  const GroebnerBasis *GB0,
+  const SigPolyBasis *GB0,
   MonomialTableArray *Hsyz0,
   Reducer* reducer,
   bool postponeKoszuls,

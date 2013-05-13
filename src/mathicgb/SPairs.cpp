@@ -1,7 +1,7 @@
 #include "stdinc.h"
 #include "SPairs.hpp"
 
-#include "GroebnerBasis.hpp"
+#include "SigPolyBasis.hpp"
 #include "LogDomain.hpp"
 #include <iostream>
 

@@ -5,7 +5,7 @@
 
 #include "PolyRing.hpp"
 #include "MTArray.hpp"
-#include "GroebnerBasis.hpp"
+#include "SigPolyBasis.hpp"
 #include "SigSPairs.hpp"
 #include "Reducer.hpp"
 #include "KoszulQueue.hpp"
@@ -42,7 +42,7 @@ public:
   // How many reductions were singular
   unsigned long long getSingularReductionCount() const;
 
-  GroebnerBasis* getGB() { return GB.get(); }
+  SigPolyBasis* getGB() { return GB.get(); }
   MonomialTableArray* getSyzTable() { return mProcessor->processingNeeded() ? Hsyz2.get() : Hsyz.get(); }
   SigSPairs* getSigSPairs() { return SP.get(); }
 
@@ -95,7 +95,7 @@ private:
   mic::Timer mTimer;
   double stats_nsecs;
 
-  std::unique_ptr<GroebnerBasis> GB;
+  std::unique_ptr<SigPolyBasis> GB;
   KoszulQueue mKoszuls;
   std::unique_ptr<MonomialTableArray> Hsyz;
   std::unique_ptr<MonomialTableArray> Hsyz2;

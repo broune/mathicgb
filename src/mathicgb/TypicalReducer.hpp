@@ -4,7 +4,7 @@
 #include "Reducer.hpp"
 #include "Poly.hpp"
 #include "PolyRing.hpp"
-class GroebnerBasis;
+class SigPolyBasis;
 class PolyBasis;
 
 /** Uses the template method pattern (not C++ templates) to implement
@@ -24,7 +24,7 @@ public:
     const_monomial sig,
     const_monomial multiple,
     size_t basisElement,
-    const GroebnerBasis& basis);
+    const SigPolyBasis& basis);
 
   virtual std::unique_ptr<Poly> classicReduce
   (const Poly& poly, const PolyBasis& basis);

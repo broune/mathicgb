@@ -8,7 +8,7 @@
 #include <memtailor.h>
 #include <memory>
 
-class GroebnerBasis;
+class SigPolyBasis;
 class PolyBasis;
 
 /** Abstract base class for classes that allow reduction of polynomials.
@@ -67,7 +67,7 @@ public:
     const_monomial sig,
     const_monomial multiple,
     size_t basisElement,
-    const GroebnerBasis& basis) = 0;
+    const SigPolyBasis& basis) = 0;
 
   /** Sets how many bytes of memory to increase the memory use by
     at a time - if such a thing is appropriate for the reducer. */

@@ -13,8 +13,7 @@ class PolyBasis {
 public:
   typedef PolyRing::Monoid Monoid;
 
-  // Ring must live for as long as this object. divisorLookupFactory
-  // only needs to live for the duration of the constructor.
+  // Ring must live for as long as this object.
   PolyBasis(
     const PolyRing& ring,
     std::unique_ptr<DivisorLookup> divisorLookup
@@ -23,7 +22,7 @@ public:
   // Deletes the Poly's stored in the basis.
   ~PolyBasis();
 
-  // Returns the initial monomial basis of the basis (not the basis).
+  // Returns the initial monomial basis of the basis.
   std::unique_ptr<Basis> initialIdeal() const;
 
   // Inserts a polynomial into the basis at index size().
@@ -36,7 +35,7 @@ public:
   size_t divisor(const_monomial mon) const;
 
   // As divisor(mon), but if there is more than one divisor then the divisor
-  // is chosen in according to a notion of which reducer is better.
+  // is chosen according to some notion of which reducer is better.
   size_t classicReducer(const_monomial mon) const;
 
   // As the non-slow version, but uses simpler and slower code.
@@ -58,9 +57,6 @@ public:
     mDivisorLookup->insert(leadMonomial(index), index);    
     MATHICGB_ASSERT(mEntries[index].poly != 0);
   }
-
-  // As the non-slow version, but uses simpler and slower code.
-  bool buchbergerLcmCriterionSlow(size_t a, size_t b) const;
 
   // Returns the number of basis elements, including retired elements.
   size_t size() const {return mEntries.size();}

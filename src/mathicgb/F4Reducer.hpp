@@ -48,7 +48,7 @@ public:
     const_monomial sig,
     const_monomial multiple,
     size_t basisElement,
-    const GroebnerBasis& basis
+    const SigPolyBasis& basis
   );
 
   virtual void setMemoryQuantum(size_t quantum);

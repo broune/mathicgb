@@ -4,7 +4,7 @@
 #include "DivisorLookup.hpp"
 
 #include <mathic.h>
-#include "GroebnerBasis.hpp"
+#include "SigPolyBasis.hpp"
 #include "DivLookup.hpp"
 
 namespace {

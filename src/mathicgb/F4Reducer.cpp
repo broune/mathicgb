@@ -236,7 +236,7 @@ Poly* F4Reducer::regularReduce(
   const_monomial sig,
   const_monomial multiple,
   size_t basisElement,
-  const GroebnerBasis& basis
+  const SigPolyBasis& basis
 ) {
   if (tracingLevel >= 2)
     std::cerr <<

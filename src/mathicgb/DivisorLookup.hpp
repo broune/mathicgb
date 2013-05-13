@@ -7,7 +7,7 @@
 #include <vector>
 
 class PolyBasis;
-class GroebnerBasis;
+class SigPolyBasis;
 
 // Supports queries on the lead terms of the monomials in a PolyBasis.
 // todo: rename to MonomialLookup.
@@ -20,7 +20,7 @@ public:
 
   // Call after construction. Can be called multiple times, but only if the
   // parameter object is the same each time.
-  virtual void setSigBasis(const GroebnerBasis& sigBasis) = 0;
+  virtual void setSigBasis(const SigPolyBasis& sigBasis) = 0;
 
   virtual ~DivisorLookup() {}
 

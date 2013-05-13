@@ -5,7 +5,7 @@
 #include <vector>
 #include <iostream>
 
-#include "GroebnerBasis.hpp"
+#include "SigPolyBasis.hpp"
 #include "DivisorLookup.hpp"
 #include "PolyRing.hpp"
 
@@ -55,7 +55,7 @@ public:
     mBasis = &basis;
   }
 
-  void setSigBasis(const GroebnerBasis& sigBasis) {
+  void setSigBasis(const SigPolyBasis& sigBasis) {
     if (mSigBasis == &sigBasis)
       return;
     MATHICGB_ASSERT(mSigBasis == 0);
@@ -208,7 +208,7 @@ public:
   void displayStats(std::ostream &o) const;
 
 ///////////////////////////
-  const GroebnerBasis* sigBasis() const {return mSigBasis;}
+  const SigPolyBasis* sigBasis() const {return mSigBasis;}
   const PolyBasis* basis() const {return mBasis;}
   const PolyRing* getPolyRing() const {return mRing;}
   unsigned long long getExpQueryCount() const {return _expQueryCount;}
@@ -217,7 +217,7 @@ public:
 
 private:
   PolyBasis const* mBasis;
-  GroebnerBasis const* mSigBasis;
+  SigPolyBasis const* mSigBasis;
   const PolyRing* mRing;
   const size_t _varCount;
   const bool _minimize_on_insert;
@@ -252,7 +252,7 @@ class DivLookup : public DivisorLookup {
     _finder.getConfiguration().setBasis(basis);
   }
 
-  virtual void setSigBasis(const GroebnerBasis& sigBasis) {
+  virtual void setSigBasis(const SigPolyBasis& sigBasis) {
     _finder.getConfiguration().setSigBasis(sigBasis);
   }
 
@@ -264,7 +264,7 @@ class DivLookup : public DivisorLookup {
     size_t maxDivisors,
     size_t newGenerator
   ) const {
-    const GroebnerBasis* GB = _finder.getConfiguration().sigBasis();
+    const SigPolyBasis* GB = _finder.getConfiguration().sigBasis();
 
     const_monomial sigNew = GB->getSignature(newGenerator);
 
@@ -274,7 +274,7 @@ class DivLookup : public DivisorLookup {
   }
 
   virtual size_t highBaseDivisor(size_t newGenerator) const {
-    const GroebnerBasis* basis = _finder.getConfiguration().sigBasis();
+    const SigPolyBasis* basis = _finder.getConfiguration().sigBasis();
     MATHICGB_ASSERT(newGenerator < basis->size());
 
     HighBaseDivisor searchObject(*basis, newGenerator);
@@ -347,7 +347,7 @@ private:
   class LowBaseDivisor {
   public:
     LowBaseDivisor(
-      const GroebnerBasis& basis,
+      const SigPolyBasis& basis,
       std::vector<size_t>& divisors,
       size_t maxDivisors,
       size_t newGenerator
@@ -383,7 +383,7 @@ private:
       return true;
     }
   private:
-    const GroebnerBasis& mSigBasis;
+    const SigPolyBasis& mSigBasis;
     std::vector<size_t>& mDivisors;
     const size_t mMaxDivisors;
     const size_t mNewGenerator;
@@ -392,7 +392,7 @@ private:
   // Class used in highBaseDivisor()
   class HighBaseDivisor {
   public:
-    HighBaseDivisor(const GroebnerBasis& basis, size_t newGenerator):
+    HighBaseDivisor(const SigPolyBasis& basis, size_t newGenerator):
       mSigBasis(basis),
       mNewGenerator(newGenerator),
       mHighDivisor(static_cast<size_t>(-1)) {}
@@ -411,7 +411,7 @@ private:
     }
     size_t highDivisor() const {return mHighDivisor;}
   private:
-    const GroebnerBasis& mSigBasis;
+    const SigPolyBasis& mSigBasis;
     const size_t mNewGenerator;
     size_t mHighDivisor;
   };
@@ -419,7 +419,7 @@ private:
   // Class used in minimalLeadInSig()
   class MinimalLeadInSig {
   public:
-    MinimalLeadInSig(const GroebnerBasis& basis):
+    MinimalLeadInSig(const SigPolyBasis& basis):
       mSigBasis(basis),
       mMinLeadGen(static_cast<size_t>(-1)) {}
 
@@ -468,7 +468,7 @@ private:
 
     size_t minLeadGen() const {return mMinLeadGen;}
   private:
-    const GroebnerBasis& mSigBasis;
+    const SigPolyBasis& mSigBasis;
     size_t mMinLeadGen;
   };
 
@@ -514,7 +514,7 @@ private:
   class DOCheckAll {
   public:
     DOCheckAll(
-      const GroebnerBasis& basis,
+      const SigPolyBasis& basis,
       const_monomial sig,
       const_monomial monom,
       bool preferSparseReducers
@@ -555,8 +555,8 @@ private:
     size_t reducer() {return mReducer;}
 
   private:
-    GroebnerBasis::StoredRatioCmp const mRatioCmp;
-    GroebnerBasis const& mSigBasis;
+    SigPolyBasis::StoredRatioCmp const mRatioCmp;
+    SigPolyBasis const& mSigBasis;
     size_t mReducer;
     bool const mPreferSparseReducers;
   };

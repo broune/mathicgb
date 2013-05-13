@@ -1,5 +1,5 @@
-#ifndef MATHICGB_BUCHBERGER_ALG_GUARD
-#define MATHICGB_BUCHBERGER_ALG_GUARD
+#ifndef MATHICGB_CLASSIC_GB_ALG_GUARD
+#define MATHICGB_CLASSIC_GB_ALG_GUARD
 
 #include "Reducer.hpp"
 #include "SPairs.hpp"
@@ -12,14 +12,15 @@
 class Basis;
 
 /// Calculates a classic Grobner basis using Buchberger's algorithm.
-class BuchbergerAlg {
+class ClassicGBAlg {
 public:
-  BuchbergerAlg(
+  ClassicGBAlg(
     const Basis& basis,
     Reducer& reducer,
     int divisorLookupType,
     bool preferSparseReducers,
-    size_t queueType);
+    size_t queueType
+  );
 
   // Replaces the current basis with a Grobner basis of the same ideal.
   void computeGrobnerBasis();

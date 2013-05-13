@@ -1,31 +1,31 @@
-// Copyright 2011 Michael E. Stillman
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
+#ifndef MATHICGB_SIG_POLY_BASIS_GUARD
+#define MATHICGB_SIG_POLY_BASIS_GUARD
 
-#ifndef _groebner_basis_h_
-#define _groebner_basis_h_
-
-#include <vector>
-#include <set>
 #include "PolyRing.hpp"
 #include "Poly.hpp"
 #include "DivisorLookup.hpp"
 #include "PolyBasis.hpp"
 #include "MonoProcessor.hpp"
+#include <vector>
+#include <set>
 
 #ifndef USE_RATIO_RANK
 #define USE_RATIO_RANK true
 #endif
 
-class GroebnerBasis {
+class SigPolyBasis {
 public:
   typedef PolyRing::Monoid Monoid;
 
-  GroebnerBasis(
+  SigPolyBasis(
     const PolyRing* R,
     int divisorLookupType,
     int monTableType,
     bool preferSparseReducers
   );
-  ~GroebnerBasis();
+  ~SigPolyBasis();
 
   const Monoid& monoid() const {return ring().monoid();}
   const PolyRing& ring() const {return mBasis.ring();}
@@ -114,7 +114,7 @@ public:
     StoredRatioCmp(
       const_monomial numerator,
       const_monomial denominator,
-      const GroebnerBasis& basis);
+      const SigPolyBasis& basis);
     ~StoredRatioCmp();
 
     // compares the stored ratio to the basis element with index be.
@@ -124,7 +124,7 @@ public:
     StoredRatioCmp(const StoredRatioCmp&); // not available
     void operator=(const StoredRatioCmp&); // not available
 
-    const GroebnerBasis& mBasis;
+    const SigPolyBasis& mBasis;
     size_t mRatioRank;
     monomial mRatio;
     mutable monomial mTmp;
@@ -194,7 +194,7 @@ private:
   mutable monomial mTmp;
 };
 
-inline int GroebnerBasis::ratioCompare(size_t a, size_t b) const {
+inline int SigPolyBasis::ratioCompare(size_t a, size_t b) const {
   if (mUseRatioRank) {
 #ifdef MATHICGB_DEBUG
     int const value =
@@ -221,13 +221,13 @@ inline int GroebnerBasis::ratioCompare(size_t a, size_t b) const {
   }
 }
 
-inline int GroebnerBasis::StoredRatioCmp::compare(size_t be) const {
-  if (GroebnerBasis::mUseStoredRatioRank) {
+inline int SigPolyBasis::StoredRatioCmp::compare(size_t be) const {
+  if (SigPolyBasis::mUseStoredRatioRank) {
 #ifdef MATHICGB_DEBUG
     const auto value =
       mBasis.monoid().compare(mRatio, mBasis.getSigLeadRatio(be));
 #endif
-    GroebnerBasis::Rank otherRank = mBasis.ratioRank(be);
+    SigPolyBasis::Rank otherRank = mBasis.ratioRank(be);
     if (mRatioRank < otherRank) {
       MATHICGB_ASSERT_NO_ASSUME(value == LT);
       return LT;

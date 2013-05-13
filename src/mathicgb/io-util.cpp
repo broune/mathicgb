@@ -13,7 +13,7 @@
 
 #include "PolyHeap.hpp"
 #include "PolyGeoBucket.hpp"
-#include "GroebnerBasis.hpp"
+#include "SigPolyBasis.hpp"
 #include "SignatureGB.hpp"
 #include "MTArray.hpp"
 
@@ -82,7 +82,7 @@ std::string monomialDisplay(const PolyRing *R, const_monomial mon)
 }
 ////////////////////////////////////////////////////////////////
 
-std::string toString(GroebnerBasis *I)
+std::string toString(SigPolyBasis *I)
 {
   std::ostringstream o;
   for (size_t i=0; i<I->size(); i++)
@@ -94,7 +94,7 @@ std::string toString(GroebnerBasis *I)
   return o.str();
 }
 
-std::string toString(GroebnerBasis *I, int)
+std::string toString(SigPolyBasis *I, int)
 {
   std::ostringstream o;
   I->display(o);

@@ -1,7 +1,7 @@
 #include "stdinc.h"
 #include "TypicalReducer.hpp"
 
-#include "GroebnerBasis.hpp"
+#include "SigPolyBasis.hpp"
 #include "PolyBasis.hpp"
 #include <iostream>
 
@@ -23,7 +23,7 @@ Poly* TypicalReducer::regularReduce(
   const_monomial sig,
   const_monomial multiple,
   size_t basisElement,
-  const GroebnerBasis& basis)
+  const SigPolyBasis& basis)
 {
   const PolyRing& ring = basis.ring();
   ++mSigStats.reductions;

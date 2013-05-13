@@ -1,5 +1,5 @@
 #include "stdinc.h"
-#include "BuchbergerAlg.hpp"
+#include "ClassicGBAlg.hpp"
 #include "Basis.hpp"
 
 #include "LogDomain.hpp"
@@ -10,7 +10,7 @@ MATHICGB_DEFINE_LOG_DOMAIN(
   "Displays the degree of the S-pairs being considered in Buchberger's algorithm."
 );
 
-BuchbergerAlg::BuchbergerAlg(
+ClassicGBAlg::ClassicGBAlg(
   const Basis& basis,
   Reducer& reducer,
   int divisorLookupType,
@@ -40,14 +40,14 @@ BuchbergerAlg::BuchbergerAlg(
   insertPolys(polys);
 }
 
-void BuchbergerAlg::setSPairGroupSize(unsigned int groupSize) {
+void ClassicGBAlg::setSPairGroupSize(unsigned int groupSize) {
   if (groupSize == 0)
     groupSize = mReducer.preferredSetSize();
   else
     mSPairGroupSize = groupSize;
 }
 
-void BuchbergerAlg::insertPolys
+void ClassicGBAlg::insertPolys
 (std::vector<std::unique_ptr<Poly> >& polynomials)
 {
   if (!mUseAutoTopReduction) {
@@ -113,7 +113,7 @@ void BuchbergerAlg::insertPolys
   MATHICGB_ASSERT(toReduce.empty());
 }
 
-void BuchbergerAlg::insertReducedPoly(
+void ClassicGBAlg::insertReducedPoly(
   std::unique_ptr<Poly> polyToInsert
 ) {
   MATHICGB_ASSERT(polyToInsert.get() != 0);
@@ -199,7 +199,7 @@ void BuchbergerAlg::insertReducedPoly(
   MATHICGB_ASSERT(toRetireAndReduce.empty());
 }
 
-void BuchbergerAlg::computeGrobnerBasis() {
+void ClassicGBAlg::computeGrobnerBasis() {
   size_t counter = 0;
   mTimer.reset();
 
@@ -230,7 +230,7 @@ void BuchbergerAlg::computeGrobnerBasis() {
         */
 }
 
-void BuchbergerAlg::step() {
+void ClassicGBAlg::step() {
   MATHICGB_ASSERT(!mSPairs.empty());
   if (tracingLevel > 30)
     std::cerr << "Determining next S-pair" << std::endl;
@@ -303,7 +303,7 @@ void BuchbergerAlg::step() {
     autoTailReduce();
 }
 
-void BuchbergerAlg::autoTailReduce() {
+void ClassicGBAlg::autoTailReduce() {
   MATHICGB_ASSERT(mUseAutoTailReduction);
 
   for (size_t i = 0; i < mBasis.size(); ++i) {
@@ -316,7 +316,7 @@ void BuchbergerAlg::autoTailReduce() {
   }
 }
 
-size_t BuchbergerAlg::getMemoryUse() const {
+size_t ClassicGBAlg::getMemoryUse() const {
   return
     mBasis.getMemoryUse() +
     mRing.getMemoryUse() +
@@ -324,7 +324,7 @@ size_t BuchbergerAlg::getMemoryUse() const {
     mSPairs.getMemoryUse();
 }
 
-void BuchbergerAlg::printStats(std::ostream& out) const {
+void ClassicGBAlg::printStats(std::ostream& out) const {
   out << " reduction type:     " << mReducer.description() << '\n';
   out << " divisor tab type:   " << mBasis.divisorLookup().getName() << '\n';
   out << " S-pair queue type:  " << mSPairs.name() << '\n';
@@ -496,7 +496,7 @@ void BuchbergerAlg::printStats(std::ostream& out) const {
       << pr << std::flush;
 }
 
-void BuchbergerAlg::printMemoryUse(std::ostream& out) const
+void ClassicGBAlg::printMemoryUse(std::ostream& out) const
 {
   // Set up printer
   mic::ColumnPrinter pr;
