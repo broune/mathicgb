@@ -1,10 +1,12 @@
-// Copyright 2011 Michael E. Stillman
-
-#ifndef _divisor_lookup_h_
-#define _divisor_lookup_h_
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
+#ifndef MATHICGB_DIVISOR_LOOKUP_GUARD
+#define MATHICGB_DIVISOR_LOOKUP_GUARD
 
 #include "PolyRing.hpp"
 #include <vector>
+
+MATHICGB_NAMESPACE_BEGIN
 
 class PolyBasis;
 class SigPolyBasis;
@@ -38,27 +40,28 @@ public:
   // but the outcome must be deterministic.
   virtual size_t classicReducer(const_monomial mon) const = 0;
 
-  virtual std::string getName() const = 0;
+  virtual ::std::string getName() const = 0;
 
   virtual size_t getMemoryUse() const = 0;
 
   virtual size_t highBaseDivisor(size_t newGenerator) const = 0;
   virtual void lowBaseDivisors(
-    std::vector<size_t>& divisors,
+    ::std::vector<size_t>& divisors,
     size_t maxDivisors,
     size_t newGenerator) const = 0;
   virtual size_t minimalLeadInSig(const_monomial sig) const = 0;
 
   virtual int type() const = 0;
 
-  static void displayDivisorLookupTypes(std::ostream &o);
+  static void displayDivisorLookupTypes(::std::ostream &o);
 
   class Factory {
   public:
-    virtual std::unique_ptr<DivisorLookup> create
+    virtual ::std::unique_ptr<DivisorLookup> create
       (bool preferSparseReducers, bool allowRemovals) const = 0;
   };
-  static std::unique_ptr<Factory> makeFactory(const PolyRing& ring, int type);
+  static ::std::unique_ptr<Factory> makeFactory
+    (const PolyRing& ring, int type);
   // choices for type: 1: divlist, 2:kdtree.
 
   class EntryOutput {
@@ -88,9 +91,5 @@ public:
   virtual size_t size() const = 0;
 };
 
+MATHICGB_NAMESPACE_END
 #endif
-
-// Local Variables:
-// compile-command: "make -C .. "
-// indent-tabs-mode: nil
-// End:

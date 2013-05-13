@@ -1,7 +1,9 @@
-// Copyright 2011 Michael E. Stillman
-
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
 #include "stdinc.h"
 #include "PolyHashReducer.hpp"
+
+MATHICGB_NAMESPACE_BEGIN
 
 PolyHashReducer::PolyHashReducer(const PolyRing *R0):
   R_(R0), H_(R0,15)
@@ -164,7 +166,4 @@ void PolyHashReducer::dump() const
   H_.dump(0);
 }
 
-// Local Variables:
-// compile-command: "make -C .. "
-// indent-tabs-mode: nil
-// End:
+MATHICGB_NAMESPACE_END

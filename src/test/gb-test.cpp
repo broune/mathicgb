@@ -1,5 +1,5 @@
-// Copyright 2011 Michael E. Stillman
-
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
 #include "mathicgb/stdinc.h"
 
 #include "mathicgb/Poly.hpp"
@@ -15,13 +15,14 @@
 #include "mathicgb/MathicIO.hpp"
 #include "mathicgb/Scanner.hpp"
 #include "test/ideals.hpp"
-
 #include <cstdio>
 #include <string>
 #include <iostream>
 #include <sstream>
 #include <memory>
 #include <gtest/gtest.h>
+
+using namespace mgb;
 
 TEST(IO, ideal) {
   const char* idealA_fromStr_format = 
@@ -407,8 +408,3 @@ TEST(GB, gerdt93_0_7) {
   testGB(gerdt93IdealComponentFirst(false), gerdt93_gb_strat0_free7,
          gerdt93_syzygies_strat0_free7, gerdt93_initial_strat0_free7, 9);
 }
-
-// Local Variables:
-// compile-command: "make -C .. "
-// indent-tabs-mode: nil
-// End:

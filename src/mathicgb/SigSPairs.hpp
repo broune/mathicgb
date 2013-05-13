@@ -1,6 +1,7 @@
-
-#ifndef _spair_handler_h_
-#define _spair_handler_h_
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
+#ifndef MATHICGB_SIG_S_PAIRS_GUARD
+#define MATHICGB_SIG_S_PAIRS_GUARD
 
 #include "PolyRing.hpp"
 #include "KoszulQueue.hpp"
@@ -8,6 +9,8 @@
 #include <mathic.h>
 #include <memtailor.h>
 #include <vector>
+
+MATHICGB_NAMESPACE_BEGIN
 
 class Poly;
 class MonomialTableArray;
@@ -127,9 +130,5 @@ private:
   mutable Stats mStats;
 };
 
+MATHICGB_NAMESPACE_END
 #endif
-
-// Local Variables:
-// compile-command: "make -C .. "
-// indent-tabs-mode: nil
-// End:

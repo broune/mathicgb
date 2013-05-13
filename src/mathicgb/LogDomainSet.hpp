@@ -1,3 +1,5 @@
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
 #ifndef MATHICGB_LOG_DOMAIN_SET_GUARD
 #define MATHICGB_LOG_DOMAIN_SET_GUARD
 
@@ -8,6 +10,8 @@
 #include <algorithm>
 #include <cstring>
 #include <ostream>
+
+MATHICGB_NAMESPACE_BEGIN
 
 class LogDomainSet {
 public:
@@ -87,4 +91,5 @@ private:
   mgb::tbb::tick_count mStartTime;
 };
 
+MATHICGB_NAMESPACE_END
 #endif

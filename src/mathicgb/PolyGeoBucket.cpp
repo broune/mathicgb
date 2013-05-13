@@ -1,8 +1,11 @@
-// Copyright 2011 Michael E. Stillman
-
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
 #include "stdinc.h"
 #include "PolyGeoBucket.hpp"
+
 #include <mathic.h>
+
+MATHICGB_NAMESPACE_BEGIN
 
 const size_t heap_size[GEOHEAP_SIZE] = {4, 16, 64, 256, 1024, 4096,
                                16384, 65536, 262144, 1048576, 4194304,
@@ -259,7 +262,4 @@ void PolyGeoBucket::dump() const
 {
 }
 
-// Local Variables:
-// compile-command: "make -C .. "
-// indent-tabs-mode: nil
-// End:
+MATHICGB_NAMESPACE_END

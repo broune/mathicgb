@@ -1,3 +1,5 @@
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
 #ifndef MATHICGB_MONOMIAL_MAP_GUARD
 #define MATHICGB_MONOMIAL_MAP_GUARD
 
@@ -9,6 +11,8 @@
 #include <limits>
 #include <vector>
 #include <algorithm>
+
+MATHICGB_NAMESPACE_BEGIN
 
 /// A concurrent hash map from monomials to T. This map can resize itself
 /// if there are too few buckets compared to entries.
@@ -44,10 +48,10 @@ public:
   MonomialMap(const PolyRing& ring):
     mMap(new FixedSizeMap(InitialBucketCount, ring)),
     mCapacityUntilGrowth
-    (maxEntries(mMap.load(std::memory_order_relaxed)->bucketCount())),
+    (maxEntries(mMap.load(::std::memory_order_relaxed)->bucketCount())),
     mRing(ring)
   {
-    // We can load mMap as std::memory_order_relaxed because we just stored it
+    // We can load mMap as ::std::memory_order_relaxed because we just stored it
     // and the constructor cannot run concurrently.
   }
 
@@ -77,9 +81,9 @@ public:
   class Reader {
   public:
     Reader(const MonomialMap<T>& map):
-      mMap(*map.mMap.load(std::memory_order_seq_cst))
+      mMap(*map.mMap.load(::std::memory_order_seq_cst))
     {
-      // We grab the hash table pointer with std::memory_order_seq_cst in order
+      // We grab the hash table pointer with ::std::memory_order_seq_cst in order
       // to force a CPU cache flush - in this way we are more likely to get an
       // up to date value.
     }
@@ -88,14 +92,14 @@ public:
     /// inserted. Also returns the internal monomial that matches mono if such
     /// a monomial exists. Misses can be spurious! Read the comments on the parent
     /// class.
-    std::pair<const mapped_type*, ConstMonomial>
+    ::std::pair<const mapped_type*, ConstMonomial>
     find(const_monomial mono) const {
       return mMap.find(mono);
     }
 
     // As find but looks for the product of a and b and also returns the
     // monomal that is the product.
-    std::pair<const mapped_type*, ConstMonomial> findProduct(
+    ::std::pair<const mapped_type*, ConstMonomial> findProduct(
       const const_monomial a,
       const const_monomial b
     ) const {
@@ -106,7 +110,7 @@ public:
     /// simultaneously. The purpose of this is similar to that of unrolling a
     /// loop.
     MATHICGB_INLINE
-    std::pair<const mapped_type*, const mapped_type*> findTwoProducts(
+    ::std::pair<const mapped_type*, const mapped_type*> findTwoProducts(
       const const_monomial a1,
       const const_monomial a2,
       const const_monomial b
@@ -137,13 +141,13 @@ public:
   /// equal value.second if an insertion was not performed - unless the
   /// inserted value equals the already present value. p.first.second is an
   /// internal monomial that equals value.first.
-  std::pair<std::pair<const mapped_type*, ConstMonomial>, bool>
+  ::std::pair< ::std::pair<const mapped_type*, ConstMonomial>, bool>
   insert(const value_type& value) {
     const mgb::tbb::mutex::scoped_lock lockGuard(mInsertionMutex);
 
-    // We can load mMap as std::memory_order_relaxed because we have already
+    // We can load mMap as ::std::memory_order_relaxed because we have already
     // synchronized with all other mutators by locking mInsertionMutex;
-    auto map = mMap.load(std::memory_order_relaxed);
+    auto map = mMap.load(::std::memory_order_relaxed);
 
     // this is a loop since it is possible to set the growth factor and
     // the initial size so low that several rounds are required. This should
@@ -152,21 +156,21 @@ public:
     while (mCapacityUntilGrowth == 0) {
       // Resize the table by making a bigger one and using that instead.
       if (map->bucketCount() > // check overflow
-        std::numeric_limits<size_t>::max() / GrowthFactor)
+        ::std::numeric_limits<size_t>::max() / GrowthFactor)
       {
-        throw std::bad_alloc();
+        throw ::std::bad_alloc();
       }
       const size_t newBucketCount = map->bucketCount() * GrowthFactor;
       auto nextMap =
-        make_unique<FixedSizeMap>(newBucketCount, std::move(*map));
+        make_unique<FixedSizeMap>(newBucketCount, ::std::move(*map));
       mOldMaps.emplace_back(map);
       mCapacityUntilGrowth =
         maxEntries(nextMap->bucketCount()) - maxEntries(map->bucketCount());
 
-      // Store with std::memory_order_seq_cst to force a memory flush so that
+      // Store with ::std::memory_order_seq_cst to force a memory flush so that
       // readers see the new table as soon as possible.
       map = nextMap.release();
-      mMap.store(map, std::memory_order_seq_cst);
+      mMap.store(map, ::std::memory_order_seq_cst);
     }
     MATHICGB_ASSERT(mCapacityUntilGrowth > 0);
 
@@ -180,9 +184,9 @@ public:
   /// call too much. The count may have 
   size_t entryCount() const {
     const mgb::tbb::mutex::scoped_lock lockGuard(mInsertionMutex);
-    // We can load with std::memory_order_relaxed because we are holding the
+    // We can load with ::std::memory_order_relaxed because we are holding the
     // lock.
-    auto& map = *mMap.load(std::memory_order_relaxed);
+    auto& map = *mMap.load(::std::memory_order_relaxed);
     return maxEntries(map.bucketCount()) - mCapacityUntilGrowth;
   }
 
@@ -207,7 +211,8 @@ private:
   /// keep these around as we have no way to determine if there are still
   /// readers looking at them. This could be changed at the cost of
   /// more overhead in the Reader constructor and destructor.
-  std::vector<std::unique_ptr<FixedSizeMap>> mOldMaps;
+  ::std::vector< ::std::unique_ptr<FixedSizeMap>> mOldMaps;
 };
 
+MATHICGB_NAMESPACE_END
 #endif

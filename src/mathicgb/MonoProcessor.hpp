@@ -1,7 +1,11 @@
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
 #ifndef MATHICGB_MONO_PROCESSOR_GUARD
 #define MATHICGB_MONO_PROCESSOR_GUARD
 
 #include "Basis.hpp"
+
+MATHICGB_NAMESPACE_BEGIN
 
 /// Does pre- and post-processing of monomials to implement monomial
 /// orders not directly supported by the monoid. This is so far only
@@ -128,4 +132,5 @@ private:
   std::vector<ConstMonoPtr> mSchreyerMultipliers;
 };
 
+MATHICGB_NAMESPACE_END
 #endif

@@ -1,13 +1,16 @@
-#ifndef __div_lookup_guard_
-#define __div_lookup_guard_
-
-#include <string>
-#include <vector>
-#include <iostream>
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
+#ifndef MATHICGB_DIV_LOOKUP_GUARD
+#define MATHICGB_DIV_LOOKUP_GUARD
 
 #include "SigPolyBasis.hpp"
 #include "DivisorLookup.hpp"
 #include "PolyRing.hpp"
+#include <string>
+#include <vector>
+#include <iostream>
+
+MATHICGB_NAMESPACE_BEGIN
 
 /** Configuration class for interface to KDTree, DivList */
 /* As such, it has entries that both will expect */
@@ -602,9 +605,5 @@ size_t DivLookup<C>::getMemoryUse() const
   return 4 * sizeof(void *) * _finder.size();  // NOT CORRECT!!
 }
 
+MATHICGB_NAMESPACE_END
 #endif
-
-// Local Variables:
-// compile-command: "make -C .. "
-// indent-tabs-mode: nil
-// End:

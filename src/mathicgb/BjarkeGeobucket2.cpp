@@ -1,8 +1,11 @@
-// Copyright 2011 Michael E. Stillman
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
 #include "stdinc.h"
 #include "BjarkeGeobucket2.hpp"
 
 #include <iostream>
+
+MATHICGB_NAMESPACE_BEGIN
 
 BjarkeGeobucket2::BjarkeGeobucket2(const PolyRing *R0):
   mRing(*R0),
@@ -125,7 +128,4 @@ void BjarkeGeobucket2::dump() const
   mHashTableOLD.dump(0);
 }
 
-// Local Variables:
-// compile-command: "make -C $MATHIC/mathicgb "
-// indent-tabs-mode: nil
-// End:
+MATHICGB_NAMESPACE_END

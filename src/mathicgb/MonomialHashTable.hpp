@@ -1,11 +1,12 @@
 // MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
 // NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
-
-#ifndef _MonomialHashTable_h_
-#define _MonomialHashTable_h_
+#ifndef MATHICGB_MONOMIAL_HASH_TABLE_GUARD
+#define MATHICGB_MONOMIAL_HASH_TABLE_GUARD
 
 #include "ChainedHashTable.hpp"
 #include "PolyRing.hpp"
+
+MATHICGB_NAMESPACE_BEGIN
 
 class MonomialHashControl
 {
@@ -82,9 +83,6 @@ private:
   memt::Arena mMonomialPool;
   MonomialHashTableBasic H_;
 };
-#endif
 
-// Local Variables:
-// compile-command: "make -C .. "
-// indent-tabs-mode: nil
-// End:
+MATHICGB_NAMESPACE_END
+#endif

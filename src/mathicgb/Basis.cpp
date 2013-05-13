@@ -1,3 +1,5 @@
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
 #include "stdinc.h"
 #include "Basis.hpp"
 
@@ -8,6 +10,8 @@
 #include <istream>
 #include <iostream>
 #include <cctype>
+
+MATHICGB_NAMESPACE_BEGIN
 
 void Basis::insert(std::unique_ptr<Poly>&& p) {
   MATHICGB_ASSERT(p.get() != 0);
@@ -36,7 +40,4 @@ void Basis::display(std::ostream& out, bool printComponent, bool componentIncrea
   }
 }
 
-// Local Variables:
-// compile-command: "make -C .. "
-// indent-tabs-mode: nil
-// End:
+MATHICGB_NAMESPACE_END

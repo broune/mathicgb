@@ -1,7 +1,11 @@
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
 #include "stdinc.h"
 #include "F4MatrixProjection.hpp"
 
 #include "ScopeExit.hpp"
+
+MATHICGB_NAMESPACE_BEGIN
 
 F4MatrixProjection::F4MatrixProjection(
   const PolyRing& ring,
@@ -43,27 +47,27 @@ struct RowData : F4ProtoMatrix::Row {
   RowData(const F4ProtoMatrix::Row& row): F4ProtoMatrix::Row(row) {}
 };
 
-typedef std::pair<RowData, SparseMatrix::Scalar> RowProjectFrom;
+typedef ::std::pair<RowData, SparseMatrix::Scalar> RowProjectFrom;
 
 
 template<class Row>
 class F4MatrixProjection::TopBottom {
 public:
-  typedef std::pair<Row, Scalar> RowMultiple;
-  typedef std::vector<RowMultiple> RowVector;
+  typedef ::std::pair<Row, Scalar> RowMultiple;
+  typedef ::std::vector<RowMultiple> RowVector;
 
   TopBottom(const size_t leftColCount, const PolyRing& ring):
     mModulus(static_cast<Scalar>(ring.charac())),
     mTopRows(leftColCount)
   {
-    MATHICGB_ASSERT(ring.charac() <= std::numeric_limits<Scalar>::max());
-    MATHICGB_ASSERT(leftColCount <= std::numeric_limits<ColIndex>::max());
+    MATHICGB_ASSERT(ring.charac() <= ::std::numeric_limits<Scalar>::max());
+    MATHICGB_ASSERT(leftColCount <= ::std::numeric_limits<ColIndex>::max());
   }
 
   void addRow(const Row& row, ColIndex leadIndex, Scalar leadScalar) {
     if (row.entryCount == 0)
       return; // Skip zero rows.
-    if (leadIndex == std::numeric_limits<ColIndex>::max()) {
+    if (leadIndex == ::std::numeric_limits<ColIndex>::max()) {
       // this row has no left entries, so it cannot be a top row.
       mBottomRows.push_back(RowMultiple(row, 1));
       return;
@@ -77,7 +81,7 @@ public:
       mBottomRows.push_back(RowMultiple(row, 1));
     } else {
       if (currentTop.entryCount != 0)
-        mBottomRows.push_back(std::make_pair(currentTop, 1));
+        mBottomRows.push_back(::std::make_pair(currentTop, 1));
       MATHICGB_ASSERT(leadScalar != 0);
       const auto inverse = leadScalar == 1 ? // 1 is a common case
         1 : modularInverse(leadScalar, mModulus);
@@ -91,8 +95,8 @@ public:
       MATHICGB_ASSERT(r.first.entryCount > 0);
       MATHICGB_ASSERT(r.second != 0);
     };
-    std::for_each(mTopRows.begin(), mTopRows.end(), check);
-    std::for_each(mBottomRows.begin(), mBottomRows.end(), check);
+    ::std::for_each(mTopRows.begin(), mTopRows.end(), check);
+    ::std::for_each(mBottomRows.begin(), mBottomRows.end(), check);
 #endif
     return true;
   }
@@ -116,7 +120,7 @@ public:
   typedef F4ProtoMatrix::Row Row;
 
   LeftRight(
-    const std::vector<ColProjectTo>& colProjectTo,
+    const ::std::vector<ColProjectTo>& colProjectTo,
     const PolyRing& ring,
     const size_t quantum
   ):
@@ -125,19 +129,19 @@ public:
     mLeft(quantum),
     mRight(quantum)
   {
-    MATHICGB_ASSERT(ring.charac() < std::numeric_limits<Scalar>::max());
+    MATHICGB_ASSERT(ring.charac() < ::std::numeric_limits<Scalar>::max());
     mLeft.clear();
     mRight.clear();
   }
 
   template<class Pair>
-  void appendRowsPermuted(const std::vector<Pair>& rows) {
+  void appendRowsPermuted(const ::std::vector<Pair>& rows) {
     const auto end = rows.end();
     for (auto it = rows.begin(); it != end; ++it)
       appendRow(it->first, it->second);
   }
 
-  void appendRows(const std::vector<F4ProtoMatrix*>& preBlocks) {
+  void appendRows(const ::std::vector<F4ProtoMatrix*>& preBlocks) {
     const auto end = preBlocks.end();
     for (auto it = preBlocks.begin(); it != end; ++it) {
       auto& block = **it;
@@ -194,7 +198,7 @@ public:
   }
 
   void appendEntry(const ColIndex projectMe, const ExternalScalar scalar) {
-    MATHICGB_ASSERT(scalar <= std::numeric_limits<Scalar>::max());
+    MATHICGB_ASSERT(scalar <= ::std::numeric_limits<Scalar>::max());
     appendEntry(projectMe, static_cast<Scalar>(scalar));
   }
 
@@ -207,11 +211,11 @@ public:
   const SparseMatrix& left() const {return mLeft;}
   const SparseMatrix& right() const {return mRight;}
 
-  SparseMatrix moveLeft() {return std::move(mLeft);}
-  SparseMatrix moveRight() {return std::move(mRight);}
+  SparseMatrix moveLeft() {return ::std::move(mLeft);}
+  SparseMatrix moveRight() {return ::std::move(mRight);}
 
 private:
-  const std::vector<ColProjectTo>& mColProjectTo;
+  const ::std::vector<ColProjectTo>& mColProjectTo;
   const Scalar mModulus;
 
   SparseMatrix mLeft;
@@ -251,7 +255,7 @@ QuadMatrix F4MatrixProjection::makeAndClearOneStep(const size_t quantum) {
         }
       }
       // Did not find any left entry.
-      tb.addRow(row, std::numeric_limits<ColIndex>::max(), 0);
+      tb.addRow(row, ::std::numeric_limits<ColIndex>::max(), 0);
 done:;
     }
   }
@@ -267,21 +271,21 @@ done:;
   // Move the data into place
   QuadMatrix qm;
   qm.ring = &ring();
-  qm.leftColumnMonomials = std::move(mLeftMonomials);
-  qm.rightColumnMonomials = std::move(mRightMonomials);
+  qm.leftColumnMonomials = ::std::move(mLeftMonomials);
+  qm.rightColumnMonomials = ::std::move(mRightMonomials);
 
   qm.topLeft = top.moveLeft();
   qm.topRight = top.moveRight();
   qm.bottomLeft = bottom.moveLeft();
   qm.bottomRight = bottom.moveRight();
 
-  return std::move(qm);
+  return ::std::move(qm);
 }
 
 namespace {
   // Helper function for F4MatrixProjection::makeAndClearTwoStep
   template<class TopBottom>
-  std::pair<SparseMatrix, SparseMatrix> projectRows(
+  ::std::pair<SparseMatrix, SparseMatrix> projectRows(
     const TopBottom& tb,
     size_t quantum,
     SparseMatrix&& in
@@ -309,7 +313,7 @@ namespace {
     }
 
     in.clear();
-    return std::make_pair(std::move(top), std::move(bottom));
+    return ::std::make_pair(::std::move(top), ::std::move(bottom));
   }
 }
 
@@ -334,7 +338,7 @@ QuadMatrix F4MatrixProjection::makeAndClearTwoStep(const size_t quantum) {
 
     const Row r = {row, entryCount};
     if (leftEntryCount == 0)
-      tb.addRow(r, std::numeric_limits<ColIndex>::max(), 0);
+      tb.addRow(r, ::std::numeric_limits<ColIndex>::max(), 0);
     else {
       const auto entry = lr.left().rowBegin(row);
       tb.addRow(r, entry.index(), entry.scalar());
@@ -347,11 +351,13 @@ QuadMatrix F4MatrixProjection::makeAndClearTwoStep(const size_t quantum) {
   auto right = projectRows(tb, quantum, lr.moveRight());
 
   qm.ring = &ring();
-  qm.topLeft = std::move(left.first);
-  qm.bottomLeft = std::move(left.second);
-  qm.topRight = std::move(right.first);
-  qm.bottomRight = std::move(right.second);
-  qm.leftColumnMonomials = std::move(mLeftMonomials);
-  qm.rightColumnMonomials = std::move(mRightMonomials);
-  return std::move(qm);
+  qm.topLeft = ::std::move(left.first);
+  qm.bottomLeft = ::std::move(left.second);
+  qm.topRight = ::std::move(right.first);
+  qm.bottomRight = ::std::move(right.second);
+  qm.leftColumnMonomials = ::std::move(mLeftMonomials);
+  qm.rightColumnMonomials = ::std::move(mRightMonomials);
+  return ::std::move(qm);
 }
+
+MATHICGB_NAMESPACE_END

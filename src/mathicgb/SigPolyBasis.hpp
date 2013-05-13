@@ -11,6 +11,8 @@
 #include <vector>
 #include <set>
 
+MATHICGB_NAMESPACE_BEGIN
+
 #ifndef USE_RATIO_RANK
 #define USE_RATIO_RANK true
 #endif
@@ -247,9 +249,5 @@ inline int SigPolyBasis::StoredRatioCmp::compare(size_t be) const {
   }
 }
 
+MATHICGB_NAMESPACE_END
 #endif
-
-// Local Variables:
-// compile-command: "make -C .. "
-// indent-tabs-mode: nil
-// End:

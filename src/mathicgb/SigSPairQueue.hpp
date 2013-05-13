@@ -1,9 +1,13 @@
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
 #ifndef MATHICGB_SIG_S_PAIR_QUEUE_GUARD
 #define MATHICGB_SIG_S_PAIR_QUEUE_GUARD
 
 #include "PolyRing.hpp"
 #include <string>
 #include <vector>
+
+MATHICGB_NAMESPACE_BEGIN
 
 typedef unsigned short SmallIndex;
 typedef unsigned int BigIndex;
@@ -70,4 +74,5 @@ public:
   static std::unique_ptr<SigSPairQueue> create(SigPolyBasis const& basis);
 };
 
+MATHICGB_NAMESPACE_END
 #endif

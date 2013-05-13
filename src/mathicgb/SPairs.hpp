@@ -1,10 +1,14 @@
-#ifndef _s_pairs_h_
-#define _s_pairs_h_
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
+#ifndef MATHICGB_S_PAIRS_GUARD
+#define MATHICGB_S_PAIRS_GUARD
 
 #include "PolyBasis.hpp"
 #include <utility>
 #include <mathic.h>
 #include <memory>
+
+MATHICGB_NAMESPACE_BEGIN
 
 class PolyBasis;
 
@@ -252,32 +256,35 @@ private:
     (OrderMonoid::Mono*, Index, Index, QueueConfiguration&);
 };
 
+MATHICGB_NAMESPACE_END
+
 namespace mathic {
   namespace PairQueueNamespace {
-	template<>
-	inline void constructPairData<SPairs::QueueConfiguration>(
+    template<>
+    inline void constructPairData<mgb::SPairs::QueueConfiguration>(
       void* memory,
       const Index col,
       const Index row,
-      SPairs::QueueConfiguration& conf
+      mgb::SPairs::QueueConfiguration& conf
     ) {
-	  MATHICGB_ASSERT(memory != 0);
-	  MATHICGB_ASSERT(col > row);
-	  auto pd = new (memory) SPairs::OrderMonoid::Mono(conf.allocPairData());
-	  conf.computePairData(col, row, *pd);
-	}
-
-	template<>
-	inline void destructPairData(
-      SPairs::OrderMonoid::Mono* pd,
+      MATHICGB_ASSERT(memory != 0);
+      MATHICGB_ASSERT(col > row);
+      auto pd = new (memory)
+        mgb::SPairs::OrderMonoid::Mono(conf.allocPairData());
+      conf.computePairData(col, row, *pd);
+    }
+    
+    template<>
+    inline void destructPairData(
+      mgb::SPairs::OrderMonoid::Mono* pd,
       const Index col,
       const Index row,
-      SPairs::QueueConfiguration& conf
+      mgb::SPairs::QueueConfiguration& conf
     ) {
-	  MATHICGB_ASSERT(pd != 0);
-	  MATHICGB_ASSERT(col > row);
-	  conf.freePairData(std::move(*pd));
-	}	
+      MATHICGB_ASSERT(pd != 0);
+      MATHICGB_ASSERT(col > row);
+      conf.freePairData(std::move(*pd));
+    }	
   }
 }
 

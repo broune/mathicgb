@@ -1,9 +1,12 @@
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
 #include "mathicgb/stdinc.h"
-
 #include "mathicgb/MonoMonoid.hpp"
+
 #include <gtest/gtest.h>
 #include <sstream>
 
+using namespace mgb;
 
 // Do all-pairs testing -- see monoidPict.in. Especially see that file before
 // editing this list of types.

@@ -1,3 +1,5 @@
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
 #ifndef MATHICGB_MONO_MONOID_GUARD
 #define MATHICGB_MONO_MONOID_GUARD
 
@@ -13,6 +15,8 @@
 #include <cstdlib>
 #include <cstring>
 #include <mathic.h>
+
+MATHICGB_NAMESPACE_BEGIN
 
 /// Implements the monoid of (monic) monomials with integer
 /// non-negative exponents. Exponent must be an unsigned integer type that is
@@ -35,8 +39,8 @@ namespace MonoMonoidInternal {
 
     typedef size_t VarIndex;
     typedef E Exponent;
-    typedef typename std::make_unsigned<E>::type Component;
-    typedef typename std::make_unsigned<E>::type HashValue;
+    typedef typename ::std::make_unsigned<E>::type Component;
+    typedef typename ::std::make_unsigned<E>::type HashValue;
     typedef const Exponent* const_iterator;
     typedef MonoOrder<Exponent> Order;
 
@@ -45,7 +49,7 @@ namespace MonoMonoidInternal {
       mGradingCount(order.gradingCount()),
       mOrderIndexBegin(HasComponent + order.varCount()),
       mOrderIndexEnd(mOrderIndexBegin + StoreOrder * order.gradingCount()),
-      mEntryCount(std::max<VarIndex>(mOrderIndexEnd + StoreHash, 1)),
+      mEntryCount(::std::max<VarIndex>(mOrderIndexEnd + StoreHash, 1)),
       mHashCoefficients(makeHashCoefficients(order.varCount())),
       mOrderIsTotalDegreeRevLex
         (order.baseOrder() == Order::RevLexBaseOrder && order.isTotalDegree()),
@@ -68,8 +72,8 @@ namespace MonoMonoidInternal {
     VarIndex componentGradingIndex() const {return mComponentGradingIndex;}
 
   protected:
-    typedef std::vector<Exponent> HashCoefficients;
-    typedef std::vector<Exponent> Gradings;
+    typedef ::std::vector<Exponent> HashCoefficients;
+    typedef ::std::vector<Exponent> Gradings;
 
     static Gradings makeGradings(const Order& order) {
       auto gradings = order.gradings();
@@ -93,7 +97,7 @@ namespace MonoMonoidInternal {
           const auto index = gradingsIndex(grading, var, varCount);
           const auto oppositeIndex = gradingsOppositeRowIndex
             (grading, gradingCount, var, varCount);
-          std::swap(gradings[index], gradings[oppositeIndex]);
+          ::std::swap(gradings[index], gradings[oppositeIndex]);
         }
       }
     }
@@ -166,10 +170,10 @@ namespace MonoMonoidInternal {
 
   private:
     HashCoefficients static makeHashCoefficients(const VarIndex varCount) {
-      std::srand(0); // To use the same hash coefficients every time.
+      ::std::srand(0); // To use the same hash coefficients every time.
       HashCoefficients coeffs(varCount);
       for (VarIndex var = 0; var < varCount; ++var)
-        coeffs[var] = static_cast<HashValue>(std::rand());
+        coeffs[var] = static_cast<HashValue>(::std::rand());
       return coeffs;
     }
 
@@ -199,7 +203,7 @@ namespace MonoMonoidInternal {
     /// mOrderIsTotalDegreeRevLex is true then mGradings is empty but
     /// implicitly it is a single grading consisting of all 1s and the
     /// base order is revlex.
-    std::vector<Exponent> mGradings;    
+    ::std::vector<Exponent> mGradings;    
   };
 }
 
@@ -209,7 +213,7 @@ private:
   typedef MonoMonoidInternal::Base<E, HC, SH, SO> Base;
 
 public:
-  static_assert(std::numeric_limits<E>::is_signed, "");
+  static_assert(::std::numeric_limits<E>::is_signed, "");
 
   // *** Types
 
@@ -277,7 +281,7 @@ public:
   class MonoPool;
 
   /// A vector of monomials. The interface is a subset of
-  /// std::vector. Monomials can be appended (push_back). Only the
+  /// ::std::vector. Monomials can be appended (push_back). Only the
   /// last monomial can be mutated and monomials cannot be reordered
   /// or removed. These restrictions should make it easier to support
   /// variable-sized monomials in future. Change it if you need to
@@ -305,7 +309,7 @@ public:
 
   // *** Constructors and accessors
 
-  MonoMonoid(MonoMonoid&& monoid): Base(std::move(monoid)), mPool(*this) {
+  MonoMonoid(MonoMonoid&& monoid): Base(::std::move(monoid)), mPool(*this) {
     MATHICGB_ASSERT(debugAssertValid());
   }
 
@@ -328,9 +332,9 @@ public:
   /// indicates whether to do a Schreyer order. TODO: clearly this is
   /// a mess that needs to be cleaned up. Step 1 is to move IO out of
   /// MonoMonoid entirely.
-  static std::pair<MonoMonoid, std::pair<bool, bool>> readMonoid(std::istream& in);
+  static ::std::pair<MonoMonoid, ::std::pair<bool, bool>> readMonoid(::std::istream& in);
   void printMonoid
-    (const bool componentsAscendingDesired, std::ostream& out) const;
+    (const bool componentsAscendingDesired, ::std::ostream& out) const;
 
   /// Returns an Order object that is equivalent to the order that
   /// this monoid was constructed with. The settings not handled by
@@ -341,13 +345,13 @@ public:
     const bool componentsAscendingDesired,
     const bool schreyering
   ) const {
-    std::vector<Exponent> orderGradings(gradings());
+    ::std::vector<Exponent> orderGradings(gradings());
     reverseGradings(varCount(), orderGradings);
     if (!isLexBaseOrder())
       negateGradings(orderGradings);
     return Order(
       varCount(),
-      std::move(orderGradings),
+      ::std::move(orderGradings),
       isLexBaseOrder() ? Order::LexBaseOrder : Order::RevLexBaseOrder,
       Base::reverseComponentGradingIndex
         (gradingCount(), componentGradingIndex()),
@@ -489,13 +493,13 @@ public:
       MATHICGB_ASSERT(i == varCount() / 2 || access(a, i*2+1) >= 0);
       
       uint64 A, B, AB;
-      // We have to use std::memcpy here because just casting to a int64 breaks
+      // We have to use ::std::memcpy here because just casting to a int64 breaks
       // the strict aliasing rule which implies undefined behavior. Both MSVC and
       // gcc don't actually call memcpy here. MSVC is a tiny bit slower for this
       // code than for casting while GCC seems to be exactly the same speed.
-      std::memcpy(&A, ptr(a, i*2), 8);
-      std::memcpy(&B, ptr(b, i*2), 8);
-      std::memcpy(&AB, ptr(ab, i*2), 8);
+      ::std::memcpy(&A, ptr(a, i*2), 8);
+      ::std::memcpy(&B, ptr(b, i*2), 8);
+      ::std::memcpy(&AB, ptr(ab, i*2), 8);
       orOfXor |= AB ^ (A + B);
     }
     MATHICGB_ASSERT((orOfXor == 0) == isProductOf(a, b, ab));
@@ -515,11 +519,11 @@ public:
     uint64 orOfXor = 0;
     for (VarIndex i = varCount() / 2; i != beforeEntriesIndexBegin(); --i) {
       uint64 A1, A2, B, A1B, A2B;
-      std::memcpy(&A1, ptr(a1, i*2), 8);
-      std::memcpy(&A2, ptr(a2, i*2), 8);
-      std::memcpy(&B, ptr(b, i*2), 8);
-      std::memcpy(&A1B, ptr(a1b, i*2), 8);
-      std::memcpy(&A2B, ptr(a2b, i*2), 8);
+      ::std::memcpy(&A1, ptr(a1, i*2), 8);
+      ::std::memcpy(&A2, ptr(a2, i*2), 8);
+      ::std::memcpy(&B, ptr(b, i*2), 8);
+      ::std::memcpy(&A1B, ptr(a1b, i*2), 8);
+      ::std::memcpy(&A2B, ptr(a2b, i*2), 8);
       orOfXor |= (A1B ^ (A1 + B)) | (A2B ^ (A2 + B));
     }
     MATHICGB_ASSERT
@@ -539,7 +543,7 @@ public:
   /// words, returns true if mono is the identity for multiplication
   /// of monomials.
   bool isIdentity(ConstMonoRef mono) const {
-    return std::all_of(begin(mono), end(mono), [](Exponent e) {return e == 0;});
+    return ::std::all_of(begin(mono), end(mono), [](Exponent e) {return e == 0;});
   }
 
   /// Returns true if a divides b. Equal monomials divide each other.
@@ -617,7 +621,7 @@ public:
     MATHICGB_ASSERT(debugValid(lcmAB));
 
     for (auto i = exponentsIndexBegin(); i != exponentsIndexEnd(); ++i)
-      if (access(lcmAB, i) != std::max(access(a, i), access(b, i)))
+      if (access(lcmAB, i) != ::std::max(access(a, i), access(b, i)))
         return false;
     return true;
   }
@@ -647,7 +651,7 @@ public:
     for (VarIndex var = 0; var < varCount(); ++var) {
       if (
         ptr(lcmAB, exponentsIndexBegin())[var] !=
-        std::max(monoidA.exponent(a, var), monoidB.exponent(b, var))
+        ::std::max(monoidA.exponent(a, var), monoidB.exponent(b, var))
       )
         return false;
     }
@@ -740,10 +744,10 @@ public:
   // guaranteed that multiplying a and b together will not overflow
   // the integers in the representation.
   bool hasAmpleCapacity(ConstMonoRef mono) const {
-    const auto halfMin = std::numeric_limits<Exponent>::min() / 2;
-    const auto halfMax = std::numeric_limits<Exponent>::max() / 2;
+    const auto halfMin = ::std::numeric_limits<Exponent>::min() / 2;
+    const auto halfMax = ::std::numeric_limits<Exponent>::max() / 2;
     MATHICGB_ASSERT(halfMin <= 0);
-    const auto limit = std::min(-halfMin, halfMax);
+    const auto limit = ::std::min(-halfMin, halfMax);
     const auto inRange = [&](Exponent value)
       {return -limit <= value && value <= limit;};
 
@@ -786,7 +790,7 @@ public:
   void copy(ConstMonoRef from, MonoRef to) const {
     MATHICGB_ASSERT(debugValid(from));
 
-    std::copy_n(rawPtr(from), entryCount(), rawPtr(to));
+    ::std::copy_n(rawPtr(from), entryCount(), rawPtr(to));
 
     MATHICGB_ASSERT(debugValid(to));
   }
@@ -802,7 +806,7 @@ public:
     MATHICGB_ASSERT(monoidFrom.debugValid(from));
     MATHICGB_ASSERT(monoidFrom.varCount() == varCount());
     MATHICGB_ASSERT
-      ((std::is_same<Exponent, typename MonoidFrom::Exponent>::value));
+      ((::std::is_same<Exponent, typename MonoidFrom::Exponent>::value));
 
     if (HasComponent)
       access(to, componentIndex()) = monoidFrom.component(from);
@@ -846,7 +850,7 @@ public:
 
     if (HasComponent)
       access(mono, componentIndex()) = 0;
-    std::copy_n(exponents, varCount(), ptr(mono, exponentsIndexBegin()));
+    ::std::copy_n(exponents, varCount(), ptr(mono, exponentsIndexBegin()));
     setOrderData(mono);
     setHash(mono);
 
@@ -855,7 +859,7 @@ public:
 
   /// Sets mono to 1, which is the identity for multiplication.
   void setIdentity(MonoRef mono) const {
-    std::fill_n(rawPtr(mono), entryCount(), static_cast<Exponent>(0));
+    ::std::fill_n(rawPtr(mono), entryCount(), static_cast<Exponent>(0));
 
     MATHICGB_ASSERT(debugValid(mono));
     MATHICGB_ASSERT(isIdentity(mono));
@@ -991,7 +995,7 @@ public:
     for (auto i = exponentsIndexBegin(); i != exponentsIndexEnd(); ++i) {
       const auto ae = access(a, i);
       const auto be = access(b, i);
-      const auto max = std::max(ae, be);
+      const auto max = ::std::max(ae, be);
       access(aColonB, i) = max - be;
       access(bColonA, i) = max - ae;
     }
@@ -1011,7 +1015,7 @@ public:
       access(lcmAB, componentIndex()) = access(a, componentIndex());
     }
     for (auto i = exponentsIndexBegin(); i != exponentsIndexEnd(); ++i)
-      access(lcmAB, i) = std::max(access(a, i), access(b, i));
+      access(lcmAB, i) = ::std::max(access(a, i), access(b, i));
     setOrderData(lcmAB);
     setHash(lcmAB);
 
@@ -1036,7 +1040,7 @@ public:
 
     for (VarIndex var = 0; var < varCount(); ++var) {
       ptr(lcmAB, exponentsIndexBegin())[var] =
-        std::max(monoidA.exponent(a, var), monoidB.exponent(b, var));
+        ::std::max(monoidA.exponent(a, var), monoidB.exponent(b, var));
     }
 
     setOrderData(lcmAB);
@@ -1047,7 +1051,7 @@ public:
   }
 
   Mono alloc() const {return mPool.alloc();}
-  void free(Mono&& mono) const {mPool.free(std::move(mono));}
+  void free(Mono&& mono) const {mPool.free(::std::move(mono));}
   void freeRaw(MonoRef mono) const {mPool.freeRaw(mono);}
   bool fromPool(ConstMonoRef mono) const {mPool.fromPool(mono);}
 
@@ -1059,14 +1063,14 @@ public:
   /// will be parsed as two separate monomials. A suffix like <2> puts
   /// the monomial in component 2, so a5<2> is a^5e_2. The default
   /// component is 0.
-  void parseM2(std::istream& in, MonoRef mono) const;
+  void parseM2(::std::istream& in, MonoRef mono) const;
 
   // Inverse of parseM2().
-  void printM2(ConstMonoRef mono, std::ostream& out) const;
+  void printM2(ConstMonoRef mono, ::std::ostream& out) const;
 
   // As printM2, but returns a string.
-  std::string toString(ConstMonoRef mono) const {
-    std::ostringstream out;
+  ::std::string toString(ConstMonoRef mono) const {
+    ::std::ostringstream out;
     printM2(mono, out);
     return out.str();
   }
@@ -1169,7 +1173,7 @@ public:
     }
 
     bool isNull() const {return mMono.isNull();}
-    void toNull() {mPool->free(std::move(*this));}
+    void toNull() {mPool->free(::std::move(*this));}
 
     MonoPtr ptr() const {return mMono;}
 
@@ -1236,7 +1240,7 @@ public:
 
     MonoPool(MonoPool&& pool):
       mMonoid(pool.mMonoid),
-      mPool(std::move(pool.mPool))
+      mPool(::std::move(pool.mPool))
     {}
 
     Mono alloc() {
@@ -1268,7 +1272,7 @@ public:
 
   class MonoVector {
   private:
-    typedef std::vector<Exponent> RawVector;
+    typedef ::std::vector<Exponent> RawVector;
 
   public:
     /// Class for iterating through the monomials in a MonoVector.
@@ -1285,7 +1289,7 @@ public:
     /// access.
     class const_iterator {
     public:
-      typedef std::forward_iterator_tag iterator_category;
+      typedef ::std::forward_iterator_tag iterator_category;
       typedef ConstMonoPtr value_type;
     
       const_iterator(): mIt(), mEntriesPerMono(0) {}
@@ -1323,7 +1327,7 @@ public:
     MonoVector(const MonoMonoid& monoid): mMonoid(monoid) {}
     MonoVector(const MonoVector& v): mMonos(v.mMonos), mMonoid(v.monoid()) {}
     MonoVector(MonoVector&& v):
-      mMonos(std::move(v.mMonos)), mMonoid(v.monoid()) {}
+      mMonos(::std::move(v.mMonos)), mMonoid(v.monoid()) {}
 
     MonoVector& operator=(const MonoVector& v) {
       MATHICGB_ASSERT(monoid() == v.monoid());
@@ -1333,7 +1337,7 @@ public:
 
     MonoVector& operator=(MonoVector&& v) {
       MATHICGB_ASSERT(monoid() == v.monoid());
-      mMonos = std::move(v.mMonos);
+      mMonos = ::std::move(v.mMonos);
       return *this;      
     }
 
@@ -1427,7 +1431,7 @@ public:
     /// As parseM2 on monoid, but accepts a non-empty space-separated
     /// list of monomials. The monomials are appended to the end of
     /// the vector.
-    void parseM2(std::istream& in) {
+    void parseM2(::std::istream& in) {
       while(true) {
         push_back();
         monoid().parseM2(in, back());
@@ -1438,7 +1442,7 @@ public:
     }
 
     /// The inverse of parseM2.
-    void printM2(std::ostream& out) const {
+    void printM2(::std::ostream& out) const {
       for (auto it = begin(); it != end(); ++it) {
       if (it != begin())
         out << ' ';
@@ -1528,9 +1532,9 @@ private:
     MATHICGB_ASSERT(monoidA.varCount() == varCount());
     MATHICGB_ASSERT(monoidB.varCount() == varCount());
     MATHICGB_ASSERT
-      ((std::is_same<Exponent, typename MonoidA::Exponent>::value));
+      ((::std::is_same<Exponent, typename MonoidA::Exponent>::value));
     MATHICGB_ASSERT
-      ((std::is_same<Exponent, typename MonoidB::Exponent>::value));
+      ((::std::is_same<Exponent, typename MonoidB::Exponent>::value));
     MATHICGB_ASSERT
       (HasComponent == (MonoidA::HasComponent || MonoidB::HasComponent));
     MATHICGB_ASSERT(monoidA.debugValid(a));
@@ -1764,8 +1768,8 @@ namespace MonoMonoidHelper {
 }
 
 template<class E, bool HC, bool SH, bool SO>
-auto MonoMonoid<E, HC, SH, SO>::readMonoid(std::istream& in) ->
-  std::pair<MonoMonoid, std::pair<bool, bool>>
+auto MonoMonoid<E, HC, SH, SO>::readMonoid(::std::istream& in) ->
+  ::std::pair<MonoMonoid, ::std::pair<bool, bool>>
 {
   using MonoMonoidHelper::unchar;
   VarIndex varCount;
@@ -1773,12 +1777,12 @@ auto MonoMonoid<E, HC, SH, SO>::readMonoid(std::istream& in) ->
 
   bool doSchreyer = false;
   bool lexBaseOrder = false;
-  std::string str;
+  ::std::string str;
   char c;
   in >> c;
   in.unget();
-  if (!std::isdigit(c)) {
-    std::string str;
+  if (!::std::isdigit(c)) {
+    ::std::string str;
     in >> str;
     if (str == "schreyer") {
       doSchreyer = true;
@@ -1804,8 +1808,8 @@ auto MonoMonoid<E, HC, SH, SO>::readMonoid(std::istream& in) ->
     char c;
     in >> c;
     in.unget();
-    if (!std::isdigit(c)) {
-      std::string str;
+    if (!::std::isdigit(c)) {
+      ::std::string str;
       in >> str;
     
       if (str == "component")
@@ -1846,7 +1850,7 @@ auto MonoMonoid<E, HC, SH, SO>::readMonoid(std::istream& in) ->
 
     in >> c;
     in.unget();
-    if (!std::isdigit(c)) {
+    if (!::std::isdigit(c)) {
       in >> str;
       if (str == "component")
         componentsAscendingDesired = true;
@@ -1860,20 +1864,20 @@ auto MonoMonoid<E, HC, SH, SO>::readMonoid(std::istream& in) ->
 
   Order order(
     varCount,
-    std::move(gradings),
+    ::std::move(gradings),
     lexBaseOrder ? Order::LexBaseOrder : Order::RevLexBaseOrder,
     componentCompareIndex
   );
-  return std::make_pair(
+  return ::std::make_pair(
     MonoMonoid(order),
-    std::make_pair(componentsAscendingDesired, doSchreyer)
+    ::std::make_pair(componentsAscendingDesired, doSchreyer)
   );
 }
 
 template<class E, bool HC, bool SH, bool SO>
 void MonoMonoid<E, HC, SH, SO>::printMonoid(
   const bool componentsAscendingDesired,
-  std::ostream& out
+  ::std::ostream& out
 ) const {
   using MonoMonoidHelper::unchar;
   typedef typename unchar<Exponent>::type UncharredExponent;
@@ -1902,7 +1906,7 @@ void MonoMonoid<E, HC, SH, SO>::printMonoid(
 }
 
 template<class E, bool HC, bool SH, bool SO>
-void MonoMonoid<E, HC, SH, SO>::parseM2(std::istream& in, MonoRef mono) const {
+void MonoMonoid<E, HC, SH, SO>::parseM2(::std::istream& in, MonoRef mono) const {
   using MonoMonoidHelper::unchar;
   // todo: signal error on exponent overflow
 
@@ -1974,7 +1978,7 @@ void MonoMonoid<E, HC, SH, SO>::parseM2(std::istream& in, MonoRef mono) const {
 template<class E, bool HC, bool SH, bool SO>
 void MonoMonoid<E, HC, SH, SO>::printM2(
   ConstMonoRef mono,
-  std::ostream& out
+  ::std::ostream& out
 ) const {
   using MonoMonoidHelper::unchar;
   const auto letterCount = 'z' - 'a' + 1;
@@ -2006,4 +2010,5 @@ void MonoMonoid<E, HC, SH, SO>::printM2(
   }
 }
 
+MATHICGB_NAMESPACE_END
 #endif

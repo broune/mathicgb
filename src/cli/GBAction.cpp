@@ -1,3 +1,5 @@
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
 #include "mathicgb/stdinc.h"
 #include "GBAction.hpp"
 
@@ -9,6 +11,8 @@
 #include "mathicgb/MathicIO.hpp"
 #include <fstream>
 #include <iostream>
+
+MATHICGB_NAMESPACE_BEGIN
 
 GBAction::GBAction():
   mAutoTailReduce("autoTailReduce",
@@ -136,3 +140,5 @@ void GBAction::pushBackParameters(
   parameters.push_back(&mSPairGroupSize);
   parameters.push_back(&mMinMatrixToStore);
 }
+
+MATHICGB_NAMESPACE_END

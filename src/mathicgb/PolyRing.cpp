@@ -1,4 +1,5 @@
-// Copyright 2011 Michael E. Stillman
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
 #include "stdinc.h"
 #include "PolyRing.hpp"
 
@@ -10,6 +11,8 @@
 #include <cctype>
 #include <cstdlib>
 #include <limits>
+
+MATHICGB_NAMESPACE_BEGIN
 
 PolyRing::PolyRing(const Field& field, Monoid&& monoid):
   mField(field), mMonoid(std::move(monoid))
@@ -244,7 +247,4 @@ void PolyRing::write(std::ostream &o, bool componentIncreasingDesired) const
   monoid().printMonoid(componentIncreasingDesired, o);
 }
 
-// Local Variables:
-// compile-command: "make -C .. "
-// indent-tabs-mode: nil
-// End:
+MATHICGB_NAMESPACE_END

@@ -1,10 +1,12 @@
-// Copyright 2011 Michael E. Stillman
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
+#ifndef MATHICGB_MON_TABLE_NAIVE_GUARD
+#define MATHICGB_MON_TABLE_NAIVE_GUARD
 
-#ifndef _monomial_table_h_
-#define _monomial_table_h_
-
-#include <memtailor.h>
 #include "PolyRing.hpp"
+#include <memtailor.h>
+
+MATHICGB_NAMESPACE_BEGIN
 
 struct mon_node { // each node is in 'nodes' arena
   mon_node *next;
@@ -75,10 +77,5 @@ private:
   mutable Stats stats_;
 };
 
-
+MATHICGB_NAMESPACE_END
 #endif
-
-// Local Variables:
-// compile-command: "make -C .. "
-// indent-tabs-mode: nil
-// End:

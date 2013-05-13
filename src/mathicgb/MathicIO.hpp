@@ -1,3 +1,5 @@
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
 #ifndef MATHICGB_MATHIC_IO_GUARD
 #define MATHICGB_MATHIC_IO_GUARD
 
@@ -8,6 +10,8 @@
 #include "MonoProcessor.hpp"
 #include <ostream>
 #include <string>
+
+MATHICGB_NAMESPACE_BEGIN
 
 /// Class for input and output in Mathic's format.
 class MathicIO {
@@ -138,4 +142,5 @@ public:
   );
 };
 
+MATHICGB_NAMESPACE_END
 #endif

@@ -1,8 +1,12 @@
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
 #include "stdinc.h"
 #include "PairTriangle.hpp"
 
 #include <limits>
 #include <stdexcept>
+
+MATHICGB_NAMESPACE_BEGIN
 
 PairTriangle::PairTriangle(const PolyRing& ring, size_t queueType):
   mColumnCount(0),
@@ -104,3 +108,5 @@ std::pair<size_t, size_t> PairTriangle::topPair() const {
 const_monomial PairTriangle::topOrderBy() const {
   return mPairQueue.topPairData();
 }
+
+MATHICGB_NAMESPACE_END

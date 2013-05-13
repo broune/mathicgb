@@ -8,6 +8,8 @@
 #include <iostream>
 #include <iomanip>
 
+MATHICGB_NAMESPACE_BEGIN
+
 SigPolyBasis::SigPolyBasis(
   const PolyRing* R0,
   int divisorLookupType,
@@ -489,7 +491,4 @@ SigPolyBasis::StoredRatioCmp::~StoredRatioCmp() {
     mBasis.ring().freeMonomial(mTmp);
 }
 
-// Local Variables:
-// compile-command: "make -C .. "
-// indent-tabs-mode: nil
-// End:
+MATHICGB_NAMESPACE_END

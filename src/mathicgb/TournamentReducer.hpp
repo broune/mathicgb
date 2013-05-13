@@ -1,11 +1,13 @@
-// Copyright 2011 Bjarke Roune, Michael E. Stillman
-
-#ifndef _tournament_reducer_h_
-#define _tournament_reducer_h_
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
+#ifndef MATHICGB_TOURNAMENT_REDUCER_GUARD
+#define MATHICGB_TOURNAMENT_REDUCER_GUARD
 
 #include "TypicalReducer.hpp"
 #include <mathic.h>
 #include <memtailor.h>
+
+MATHICGB_NAMESPACE_BEGIN
 
 class TournamentReducer : public TypicalReducer {
 public:
@@ -74,9 +76,5 @@ private:
   memt::BufferPool mPool;
 };
 
+MATHICGB_NAMESPACE_END
 #endif
-
-// Local Variables:
-// compile-command: "make -C .. "
-// indent-tabs-mode: nil
-// End:

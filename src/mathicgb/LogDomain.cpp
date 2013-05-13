@@ -1,9 +1,13 @@
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
 #include "stdinc.h"
 #include "LogDomain.hpp"
 
 #include "LogDomainSet.hpp"
 #include <mathic.h>
 #include <iostream>
+
+MATHICGB_NAMESPACE_BEGIN
 
 static const auto logDomainGlobalStartTime = mgb::tbb::tick_count::now();
 
@@ -107,3 +111,5 @@ void LogDomain<true>::Timer::start() {
 LogDomainInternal::LogAliasRegisterer::LogAliasRegisterer(const char* alias, const char* of) {
   LogDomainSet::singleton().registerLogAlias(alias, of);
 }
+
+MATHICGB_NAMESPACE_END

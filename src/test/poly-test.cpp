@@ -1,27 +1,27 @@
-// Copyright 2011 Michael E. Stillman
-
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
 #include "mathicgb/stdinc.h"
-#include <cstdio>
-#include <string>
-#include <iostream>
-#include <sstream>
-
 #include "mathicgb/Poly.hpp"
+
 #include "mathicgb/Basis.hpp"
 #include "mathicgb/MonTableNaive.hpp"
 #include "mathicgb/MonTableKDTree.hpp"
 #include "mathicgb/MonTableDivList.hpp"
 #include "mathicgb/MTArray.hpp"
 #include "mathicgb/io-util.hpp"
-
 #include "mathicgb/MonomialHashTable.hpp"
 #include "mathicgb/PolyHashTable.hpp"
 #include "mathicgb/PolyHeap.hpp"
 #include "mathicgb/PolyGeoBucket.hpp"
 #include "mathicgb/SigPolyBasis.hpp"
 #include "mathicgb/SignatureGB.hpp"
-
 #include <gtest/gtest.h>
+#include <cstdio>
+#include <string>
+#include <iostream>
+#include <sstream>
+
+using namespace mgb;
 
 std::string ideal1 =
 "32003 4 1 1 1 1 1 \
@@ -829,8 +829,3 @@ TEST(MonomialHashTable,test1) {
   H.getStats(stats);
   //H.dump(1);
 }
-
-// Local Variables:
-// compile-command: "make -C .. "
-// indent-tabs-mode: nil
-// End:

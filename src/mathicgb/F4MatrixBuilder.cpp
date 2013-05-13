@@ -1,3 +1,5 @@
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
 #include "stdinc.h"
 #include "F4MatrixBuilder.hpp"
 
@@ -9,8 +11,10 @@ MATHICGB_DEFINE_LOG_DOMAIN(
   "Displays statistics about F4 matrix construction."
 );
 
+MATHICGB_NAMESPACE_BEGIN
+
 MATHICGB_NO_INLINE
-std::pair<QuadMatrixBuilder::LeftRightColIndex, ConstMonomial>
+::std::pair<QuadMatrixBuilder::LeftRightColIndex, ConstMonomial>
 F4MatrixBuilder::findOrCreateColumn(
   const const_monomial monoA,
   const const_monomial monoB,
@@ -20,12 +24,12 @@ F4MatrixBuilder::findOrCreateColumn(
   MATHICGB_ASSERT(!monoB.isNull());
   const auto col = ColReader(mMap).findProduct(monoA, monoB);
   if (col.first != 0)
-    return std::make_pair(*col.first, col.second);
+    return ::std::make_pair(*col.first, col.second);
   return createColumn(monoA, monoB, feeder);
 }
 
 MATHICGB_INLINE
-std::pair<QuadMatrixBuilder::LeftRightColIndex, ConstMonomial>
+::std::pair<QuadMatrixBuilder::LeftRightColIndex, ConstMonomial>
 F4MatrixBuilder::findOrCreateColumn(
   const const_monomial monoA,
   const const_monomial monoB,
@@ -37,7 +41,7 @@ F4MatrixBuilder::findOrCreateColumn(
   const auto col = colMap.findProduct(monoA, monoB);
   if (col.first == 0)
     return findOrCreateColumn(monoA, monoB, feeder);
-  return std::make_pair(*col.first, col.second);
+  return ::std::make_pair(*col.first, col.second);
 }
 
 MATHICGB_NO_INLINE
@@ -66,7 +70,7 @@ F4MatrixBuilder::F4MatrixBuilder(
 {
   // This assert to be _NO_ASSUME since otherwise the compiler will assume that
   // the error checking branch here cannot be taken and optimize it away.
-  const Scalar maxScalar = std::numeric_limits<Scalar>::max();
+  const Scalar maxScalar = ::std::numeric_limits<Scalar>::max();
   MATHICGB_ASSERT_NO_ASSUME(ring().charac() <= maxScalar);
   if (ring().charac() > maxScalar)
     mathic::reportInternalError("F4MatrixBuilder: too large characteristic.");
@@ -143,7 +147,7 @@ void F4MatrixBuilder::buildMatrixAndClear(QuadMatrix& matrix) {
       data.tmp1 = ring().allocMonomial();
       data.tmp2 = ring().allocMonomial();
     }
-    return std::move(data);
+    return ::std::move(data);
   });
 
   mgb::tbb::parallel_do(mTodo.begin(), mTodo.end(),
@@ -226,7 +230,7 @@ void F4MatrixBuilder::buildMatrixAndClear(QuadMatrix& matrix) {
   mMap.clearNonConcurrent();
 }
 
-std::pair<F4MatrixBuilder::LeftRightColIndex, ConstMonomial>
+::std::pair<F4MatrixBuilder::LeftRightColIndex, ConstMonomial>
 F4MatrixBuilder::createColumn(
   const const_monomial monoA,
   const const_monomial monoB,
@@ -240,7 +244,7 @@ F4MatrixBuilder::createColumn(
   {
     const auto found(ColReader(mMap).findProduct(monoA, monoB));
     if (found.first != 0)
-      return std::make_pair(*found.first, found.second);
+      return ::std::make_pair(*found.first, found.second);
   }
 
   // The column really does not exist, so we need to create it
@@ -254,10 +258,10 @@ F4MatrixBuilder::createColumn(
 
   // Create the new left or right column
   auto& colCount = insertLeft ? mLeftColCount : mRightColCount;
-  if (colCount == std::numeric_limits<ColIndex>::max())
-    throw std::overflow_error("Too many columns in QuadMatrix");
+  if (colCount == ::std::numeric_limits<ColIndex>::max())
+    throw ::std::overflow_error("Too many columns in QuadMatrix");
   const auto inserted = mMap.insert
-    (std::make_pair(mTmp, LeftRightColIndex(colCount, insertLeft)));
+    (::std::make_pair(mTmp, LeftRightColIndex(colCount, insertLeft)));
   ++colCount;
   MATHICGB_ASSERT(inserted.second);
   MATHICGB_ASSERT(inserted.first.first != 0);
@@ -271,7 +275,7 @@ F4MatrixBuilder::createColumn(
     feeder.add(task);
   }
 
-  return std::make_pair(*inserted.first.first, inserted.first.second);
+  return ::std::make_pair(*inserted.first.first, inserted.first.second);
 }
 
 void F4MatrixBuilder::appendRowBottom(
@@ -303,7 +307,7 @@ updateReader:
     MATHICGB_ASSERT(origScalar != 0);
     const auto maybeNegated =
       negate ? ring().coefficientNegateNonZero(origScalar) : origScalar;
-	MATHICGB_ASSERT(maybeNegated < std::numeric_limits<Scalar>::max());
+	MATHICGB_ASSERT(maybeNegated < ::std::numeric_limits<Scalar>::max());
     builder.appendEntryBottom(*col.first, static_cast<Scalar>(maybeNegated));
   }
   builder.rowDoneBottomLeftAndRight();
@@ -321,11 +325,11 @@ void F4MatrixBuilder::appendRowTop(
 
   auto it = poly.begin();
   const auto end = poly.end();
-  if ((std::distance(it, end) % 2) == 1) {
+  if ((::std::distance(it, end) % 2) == 1) {
     ColReader reader(mMap);
     const auto col = findOrCreateColumn
       (it.getMonomial(), multiple, reader, feeder);
-	MATHICGB_ASSERT(it.getCoefficient() < std::numeric_limits<Scalar>::max());
+	MATHICGB_ASSERT(it.getCoefficient() < ::std::numeric_limits<Scalar>::max());
     MATHICGB_ASSERT(it.getCoefficient());
     builder.appendEntryTop
       (col.first, static_cast<Scalar>(it.getCoefficient()));
@@ -333,16 +337,16 @@ void F4MatrixBuilder::appendRowTop(
   }
 updateReader:
   ColReader colMap(mMap);
-  MATHICGB_ASSERT((std::distance(it, end) % 2) == 0);
+  MATHICGB_ASSERT((::std::distance(it, end) % 2) == 0);
   while (it != end) {
-	MATHICGB_ASSERT(it.getCoefficient() < std::numeric_limits<Scalar>::max());
+	MATHICGB_ASSERT(it.getCoefficient() < ::std::numeric_limits<Scalar>::max());
     MATHICGB_ASSERT(it.getCoefficient() != 0);
     const auto scalar1 = static_cast<Scalar>(it.getCoefficient());
     const const_monomial mono1 = it.getMonomial();
 
     auto it2 = it;
     ++it2;
-	MATHICGB_ASSERT(it2.getCoefficient() < std::numeric_limits<Scalar>::max());
+	MATHICGB_ASSERT(it2.getCoefficient() < ::std::numeric_limits<Scalar>::max());
     MATHICGB_ASSERT(it2.getCoefficient() != 0);
     const auto scalar2 = static_cast<Scalar>(it2.getCoefficient());
     const const_monomial mono2 = it2.getMonomial();
@@ -420,8 +424,10 @@ void F4MatrixBuilder::appendRowBottom(
       col = colB.first;
       ++itB;
     }
-    MATHICGB_ASSERT(coeff < std::numeric_limits<Scalar>::max());
+    MATHICGB_ASSERT(coeff < ::std::numeric_limits<Scalar>::max());
     if (coeff != 0)
       builder.appendEntryBottom(col, static_cast<Scalar>(coeff));
   }
 }
+
+MATHICGB_NAMESPACE_END

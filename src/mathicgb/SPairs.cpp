@@ -1,3 +1,5 @@
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
 #include "stdinc.h"
 #include "SPairs.hpp"
 
@@ -24,6 +26,8 @@ MATHICGB_DEFINE_LOG_DOMAIN(
 
 MATHICGB_DEFINE_LOG_ALIAS("SPairs", "SPairEarly,SPairLate");
 MATHICGB_DEFINE_LOG_ALIAS("SPairsDetail", "SPairs,SPairDegree,SPairLcm");
+
+MATHICGB_NAMESPACE_BEGIN
 
 SPairs::SPairs(const PolyBasis& basis, bool preferSparseSPairs):
   mMonoid(basis.ring().monoid()),
@@ -679,3 +683,5 @@ void SPairs::QueueConfiguration::computePairData(
   orderMonoid().lcm(monoid(), leadA, monoid(), leadB, orderBy);
   return; //todo: return true;
 }
+
+MATHICGB_NAMESPACE_END

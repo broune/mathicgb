@@ -1,5 +1,11 @@
-#ifndef _test_ideals_h_
-#define _test_ideals_h_
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
+#ifndef MATHICGB_IDEALS_GUARD
+#define MATHICGB_IDEALS_GUARD
+
+#include <string>
+
+namespace mgb {}
 
 // small
 std::string smallIdealComponentLastDescending();
@@ -60,8 +66,3 @@ extern const char* gerdt93_syzygies_strat0_free7;
 extern const char* gerdt93_initial_strat0_free7;
 
 #endif
-
-// Local Variables:
-// compile-command: "make -C .. "
-// indent-tabs-mode: nil
-// End:

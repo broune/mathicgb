@@ -57,13 +57,14 @@ void checkCopyrightHeader(Scanner& in) {
     "MathicGB comes with ABSOLUTELY\n";
   const char* const l2 =
     "// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.\n";
-  in.match(l1);
-  in.match(l2);
+  in.expect(l1);
+  in.expect(l2);
 }
 
 void checkStdInc(Scanner& in) {
   in.eatWhite();
-  in.expect("#include \"stdinc.h\"");
+  if (!in.match("#include \"mathicgb/stdinc.h\"\n"))
+      in.expect("#include \"stdinc.h\"\n");
 }
 
 void checkIncludes(Scanner& in) {
@@ -113,6 +114,9 @@ void checkInclusionGuard(Scanner& in, const std::string& filename) {
 
 void checkOther(const std::string& filename) {
   std::ifstream file(filename.c_str(), std::ios_base::binary);
+  file.peek();
+  if (!file)
+    error("could not open file");
   Scanner in(file);
   bool mgbNamespace = false;
   while (!in.matchEOF()) {
@@ -142,6 +146,7 @@ void checkFile(std::string filename) {
     const bool cpp = endsWith(filename, ".cpp");
     if (!hpp && !cpp)
       return;
+    checkOther(filename);
 
     std::ifstream file(filename.c_str());
     if (!file)
@@ -162,9 +167,6 @@ void checkFile(std::string filename) {
     else
       checkInclusionGuard(in, filename);
     checkIncludes(in);
-    file.close();
-
-    checkOther(filename);
   } catch (std::exception& e) {
     std::cout << "*** ERROR in file " << filename << " ***\n"
       << e.what() << std::endl;

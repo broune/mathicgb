@@ -1,9 +1,14 @@
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
 #ifndef MATHICGB_TYPICAL_REDUCER_GUARD
 #define MATHICGB_TYPICAL_REDUCER_GUARD
 
 #include "Reducer.hpp"
 #include "Poly.hpp"
 #include "PolyRing.hpp"
+
+MATHICGB_NAMESPACE_BEGIN
+
 class SigPolyBasis;
 class PolyBasis;
 
@@ -68,4 +73,5 @@ private:
     (std::unique_ptr<Poly> partialResult, const PolyBasis& basis);
 };
 
+MATHICGB_NAMESPACE_END
 #endif

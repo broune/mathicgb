@@ -1,5 +1,9 @@
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
 #ifndef MATHICGB_SCOPE_EXIT_GUARD
 #define MATHICGB_SCOPE_EXIT_GUARD
+
+MATHICGB_NAMESPACE_BEGIN
 
 // Guard holds an action to call and calls it unless it has been released.
 template<class T>
@@ -13,13 +17,13 @@ public:
 private:
   friend struct GuardMaker;
   Guard(T&& action, const bool& active):
-    mAction(std::move(action)), mOwning(true), mActive(active) {}
+    mAction(::std::move(action)), mOwning(true), mActive(active) {}
 
   // Most compilers should elide the call to this construtor, but it must be
   // here anyway and we should support even a crazy compiler that decides to
   // call it.
   Guard(Guard<T>&& guard):
-    mAction(std::move(guard.mAction)), mOwning(true), mActive(guard.mActive)
+    mAction(::std::move(guard.mAction)), mOwning(true), mActive(guard.mActive)
   {
     assert(guard.mActive);
     guard.mOwning = false; // to avoid calling mAction twice
@@ -47,11 +51,13 @@ public:
   GuardMaker(const bool& active): mActive(active) {}
 
   template<class T>
-  Guard<T> operator+(T&& t) {return Guard<T>(std::forward<T>(t), mActive);}
+  Guard<T> operator+(T&& t) {return Guard<T>(::std::forward<T>(t), mActive);}
 
 private:
   const bool& mActive;
 };
+
+MATHICGB_NAMESPACE_END
 
 #define MYLIB__CAT_HELPER(A, B) A##B
 #define MYLIB__CAT(A, B) MYLIB__CAT_HELPER(A, B)
@@ -61,7 +67,7 @@ private:
 //   FILE* file = fopen("file.txt", "r");
 //   MATHICGB_SCOPE_EXIT() {
 //     fclose(file);
-//     std::cout << "file closed";
+//     ::std::cout << "file closed";
 //   };
 //   // ...
 //   return; // the file is closed
@@ -84,9 +90,9 @@ private:
 // and help out any compiler that has issue with eliding that copy.
 #define MATHICGB_SCOPE_EXIT(NAME) \
   bool MYLIB__UNIQUE(active) = true; \
-  ::Dismisser NAME(static_cast<bool&>(MYLIB__UNIQUE(active))); \
+  ::mgb::Dismisser NAME(static_cast<bool&>(MYLIB__UNIQUE(active)));    \
   const auto& MYLIB__UNIQUE(guard) = \
-    ::GuardMaker(MYLIB__UNIQUE(active)) + [&]
+    ::mgb::GuardMaker(MYLIB__UNIQUE(active)) + [&]
 
 // Without this pragma, MSVC will say
 //  warning C4003: not enough actual parameters for macro 'MYLIB_SCOPE_EXIT'

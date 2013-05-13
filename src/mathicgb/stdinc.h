@@ -160,6 +160,16 @@
 /// as that macro does.
 #define MATHICGB_CONCATENATE_AFTER_EXPANSION(A,B) MATHICGB_CONCATENATE(A,B)
 
+/// Opens the mgb namespace. The purpose of having this be a macro is
+/// that otherwise editors the world over would automatically indent ALL
+/// CODE in MathicGB by an extra level to no benefit. By hiding the
+/// open and close braces inside a macro, the editors cannot see it so they
+/// do not indent because of it. Also, while transitioning to using
+/// the namespace, this was a useful way to insert the proper code in
+/// each file while still keeping everything compiling mid-way.
+#define MATHICGB_NAMESPACE_BEGIN namespace mgb {
+#define MATHICGB_NAMESPACE_END }
+
 #include <utility>
 /*
 See http://herbsutter.com/gotw/_102/ for a reason to have a
@@ -177,6 +187,8 @@ forwarding working, otherwise this would have required 4^N overloads
 for N parameters! Add more overloads below if you need more
 parameters.
 */
+
+MATHICGB_NAMESPACE_BEGIN
 
 template<class T>
 std::unique_ptr<T> make_unique() {
@@ -291,3 +303,5 @@ static const size_t MemoryAlignment = sizeof(void*);
 /// The higher the value the more detailed output about what the program
 /// is doing.
 extern int tracingLevel;
+
+MATHICGB_NAMESPACE_END

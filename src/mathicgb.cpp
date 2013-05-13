@@ -10,6 +10,8 @@
 #include "mathicgb/LogDomainSet.hpp"
 #include <mathic.h>
 
+using namespace mgb;
+
 namespace {
   bool isPrime(unsigned int n) {
     if (n == 0 || n == 1)

@@ -1,9 +1,13 @@
-#ifndef koszul_queue_guard
-#define koszul_queue_guard
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
+#ifndef MATHICGB_KOSZUL_QUEUE_GUARD
+#define MATHICGB_KOSZUL_QUEUE_GUARD
 
 #include "PolyRing.hpp"
 #include "NonCopyable.hpp"
 #include <mathic.h>
+
+MATHICGB_NAMESPACE_BEGIN
 
 class KoszulQueue : public NonCopyable<KoszulQueue> {
 public:
@@ -78,4 +82,5 @@ private:
   mic::Heap<Configuration> mQueue;
 };
 
+MATHICGB_NAMESPACE_END
 #endif

@@ -1,3 +1,5 @@
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
 #include "stdinc.h"
 #include "Scanner.hpp"
 
@@ -5,6 +7,8 @@
 #include <limits>
 #include <sstream>
 #include <cstring>
+
+MATHICGB_NAMESPACE_BEGIN
 
 static const size_t BufferSize =
 #ifdef MATHICGB_DEBUG
@@ -182,3 +186,5 @@ bool Scanner::readBuffer(size_t minRead) {
 
   return didReadCount >= minRead;
 }
+
+MATHICGB_NAMESPACE_END

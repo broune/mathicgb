@@ -1,3 +1,5 @@
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
 #include "stdinc.h"
 #include "F4Reducer.hpp"
 
@@ -41,6 +43,8 @@ MATHICGB_DEFINE_LOG_ALIAS(
   "F4MatReduceTop,F4RedBottomRight"
 );
 
+MATHICGB_NAMESPACE_BEGIN
+
 F4Reducer::F4Reducer(const PolyRing& ring, Type type):
   mType(type),
   mFallback(Reducer::makeReducer(Reducer::Reducer_BjarkeGeo, ring)),
@@ -55,58 +59,58 @@ size_t F4Reducer::preferredSetSize() const {
   return 100000;
 }
 
-void F4Reducer::writeMatricesTo(std::string file, size_t minEntries) {
-  mStoreToFile = std::move(file);
+void F4Reducer::writeMatricesTo(::std::string file, size_t minEntries) {
+  mStoreToFile = ::std::move(file);
   mMinEntryCountForStore = minEntries;
   mMatrixSaveCount = 0;
 }
 
-std::unique_ptr<Poly> F4Reducer::classicReduce
+::std::unique_ptr<Poly> F4Reducer::classicReduce
 (const Poly& poly, const PolyBasis& basis) {
   if (tracingLevel >= 2)
-    std::cerr <<
+    ::std::cerr <<
       "F4Reducer: Using fall-back reducer for single classic reduction\n";
 
   auto p = mFallback->classicReduce(poly, basis);
   mSigStats = mFallback->sigStats();
   mClassicStats = mFallback->classicStats();
-  return std::move(p);
+  return ::std::move(p);
 }
 
-std::unique_ptr<Poly> F4Reducer::classicTailReduce
+::std::unique_ptr<Poly> F4Reducer::classicTailReduce
 (const Poly& poly, const PolyBasis& basis) {
   if (tracingLevel >= 2)
-    std::cerr <<
+    ::std::cerr <<
       "F4Reducer: Using fall-back reducer for single classic tail reduction\n";
 
   auto p = mFallback->classicTailReduce(poly, basis);
   mSigStats = mFallback->sigStats();
   mClassicStats = mFallback->classicStats();
-  return std::move(p);
+  return ::std::move(p);
 }
 
-std::unique_ptr<Poly> F4Reducer::classicReduceSPoly(
+::std::unique_ptr<Poly> F4Reducer::classicReduceSPoly(
   const Poly& a,
   const Poly& b,
   const PolyBasis& basis
 ) {
   if (tracingLevel >= 2)
-    std::cerr << "F4Reducer: "
+    ::std::cerr << "F4Reducer: "
       "Using fall-back reducer for single classic S-pair reduction\n";
   auto p = mFallback->classicReduceSPoly(a, b, basis);
   mSigStats = mFallback->sigStats();
   mClassicStats = mFallback->classicStats();
-  return std::move(p);
+  return ::std::move(p);
 }
 
 void F4Reducer::classicReduceSPolySet(
-  std::vector<std::pair<size_t, size_t> >& spairs,
+  ::std::vector< ::std::pair<size_t, size_t> >& spairs,
   const PolyBasis& basis,
-  std::vector<std::unique_ptr<Poly> >& reducedOut
+  ::std::vector< ::std::unique_ptr<Poly> >& reducedOut
 ) {
   if (spairs.size() <= 1 && false) {
     if (tracingLevel >= 2)
-      std::cerr << "F4Reducer: Using fall-back reducer for "
+      ::std::cerr << "F4Reducer: Using fall-back reducer for "
         << spairs.size() << " S-pairs.\n";
     mFallback->classicReduceSPolySet(spairs, basis, reducedOut);
     mSigStats = mFallback->sigStats();
@@ -117,10 +121,10 @@ void F4Reducer::classicReduceSPolySet(
 
   MATHICGB_ASSERT(!spairs.empty());
   if (tracingLevel >= 2 && false)
-    std::cerr << "F4Reducer: Reducing " << spairs.size() << " S-polynomials.\n";
+    ::std::cerr << "F4Reducer: Reducing " << spairs.size() << " S-polynomials.\n";
 
   SparseMatrix reduced;
-  std::vector<monomial> monomials;
+  ::std::vector<monomial> monomials;
   {
     QuadMatrix qm;
     {
@@ -147,20 +151,20 @@ void F4Reducer::classicReduceSPolySet(
     saveMatrix(qm);
     reduced = F4MatrixReducer(basis.ring().charac()).
       reducedRowEchelonFormBottomRight(qm);
-    monomials = std::move(qm.rightColumnMonomials);
+    monomials = ::std::move(qm.rightColumnMonomials);
     const auto end = qm.leftColumnMonomials.end();
     for (auto it = qm.leftColumnMonomials.begin(); it != end; ++it)
       mRing.freeMonomial(*it);
   }
 
   if (tracingLevel >= 2 && false)
-    std::cerr << "F4Reducer: Extracted " << reduced.rowCount()
+    ::std::cerr << "F4Reducer: Extracted " << reduced.rowCount()
               << " non-zero rows\n";
 
   for (SparseMatrix::RowIndex row = 0; row < reduced.rowCount(); ++row) {
     auto p = make_unique<Poly>(basis.ring());
     reduced.rowToPolynomial(row, monomials, *p);
-    reducedOut.push_back(std::move(p));
+    reducedOut.push_back(::std::move(p));
   }
   const auto end = monomials.end();
   for (auto it = monomials.begin(); it != end; ++it)
@@ -168,13 +172,13 @@ void F4Reducer::classicReduceSPolySet(
 }
 
 void F4Reducer::classicReducePolySet
-(const std::vector<std::unique_ptr<Poly> >& polys,
+(const ::std::vector< ::std::unique_ptr<Poly> >& polys,
  const PolyBasis& basis,
- std::vector<std::unique_ptr<Poly> >& reducedOut)
+ ::std::vector< ::std::unique_ptr<Poly> >& reducedOut)
 {
   if (polys.size() <= 1 && false) {
     if (tracingLevel >= 2)
-      std::cerr << "F4Reducer: Using fall-back reducer for "
+      ::std::cerr << "F4Reducer: Using fall-back reducer for "
                 << polys.size() << " polynomials.\n";
     mFallback->classicReducePolySet(polys, basis, reducedOut);
     mSigStats = mFallback->sigStats();
@@ -186,10 +190,10 @@ void F4Reducer::classicReducePolySet
 
   MATHICGB_ASSERT(!polys.empty());
   if (tracingLevel >= 2 && false)
-    std::cerr << "F4Reducer: Reducing " << polys.size() << " polynomials.\n";
+    ::std::cerr << "F4Reducer: Reducing " << polys.size() << " polynomials.\n";
 
   SparseMatrix reduced;
-  std::vector<monomial> monomials;
+  ::std::vector<monomial> monomials;
   {
     QuadMatrix qm;
     {
@@ -212,20 +216,20 @@ void F4Reducer::classicReducePolySet
     saveMatrix(qm);
     reduced = F4MatrixReducer(basis.ring().charac()).
       reducedRowEchelonFormBottomRight(qm);
-    monomials = std::move(qm.rightColumnMonomials);
+    monomials = ::std::move(qm.rightColumnMonomials);
     for (auto it = qm.leftColumnMonomials.begin();
       it != qm.leftColumnMonomials.end(); ++it)
       mRing.freeMonomial(*it);
   }
 
   if (tracingLevel >= 2 && false)
-    std::cerr << "F4Reducer: Extracted " << reduced.rowCount()
+    ::std::cerr << "F4Reducer: Extracted " << reduced.rowCount()
               << " non-zero rows\n";
 
   for (SparseMatrix::RowIndex row = 0; row < reduced.rowCount(); ++row) {
     auto p = make_unique<Poly>(basis.ring());
     reduced.rowToPolynomial(row, monomials, *p);
-    reducedOut.push_back(std::move(p));
+    reducedOut.push_back(::std::move(p));
   }
   const auto end = monomials.end();
   for (auto it = monomials.begin(); it != end; ++it)
@@ -239,19 +243,19 @@ Poly* F4Reducer::regularReduce(
   const SigPolyBasis& basis
 ) {
   if (tracingLevel >= 2)
-    std::cerr <<
+    ::std::cerr <<
       "F4Reducer: Using fall-back reducer for single regular reduction\n";
   auto p = mFallback->regularReduce(sig, multiple, basisElement, basis);
   mSigStats = mFallback->sigStats();
   mClassicStats = mFallback->classicStats();
-  return std::move(p);
+  return ::std::move(p);
 }
 
 void F4Reducer::setMemoryQuantum(size_t quantum) {
   mMemoryQuantum = quantum;
 }
 
-std::string F4Reducer::description() const {
+::std::string F4Reducer::description() const {
   return "F4 reducer";
 }
 
@@ -266,12 +270,14 @@ void F4Reducer::saveMatrix(const QuadMatrix& matrix) {
   if (mMinEntryCountForStore > entryCount)
     return;
   ++mMatrixSaveCount;
-  std::ostringstream fileName;
+  ::std::ostringstream fileName;
   fileName << mStoreToFile << '-' << mMatrixSaveCount << ".qmat";
   if (tracingLevel > 2)
-    std::cerr << "F4Reducer: Saving matrix to " << fileName.str() << '\n';
+    ::std::cerr << "F4Reducer: Saving matrix to " << fileName.str() << '\n';
   FILE* file = fopen(fileName.str().c_str(), "wb");
   // @todo: fix leak of file on exception
   matrix.write(static_cast<SparseMatrix::Scalar>(mRing.charac()), file);
   fclose(file);
 }
+
+MATHICGB_NAMESPACE_END

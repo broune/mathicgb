@@ -1,9 +1,12 @@
-// Copyright 2011 Michael E. Stillman
-
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
 #include "stdinc.h"
-#include <ostream>
 #include "MonTableNaive.hpp"
+
+#include <ostream>
 #include <iostream>
+
+MATHICGB_NAMESPACE_BEGIN
 
 MonTableNaive::MonTableNaive(const PolyRing *R) :
   conf_(R),
@@ -163,7 +166,4 @@ size_t MonTableNaive::getMemoryUse() const
   return mPool.getMemoryUse();
 }
 
-// Local Variables:
-// compile-command: "make -C .. "
-// indent-tabs-mode: nil
-// End:
+MATHICGB_NAMESPACE_END

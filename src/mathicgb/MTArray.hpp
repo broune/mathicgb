@@ -1,12 +1,14 @@
-// Copyright 2011 Michael E. Stillman
-
-#ifndef _monomial_module_h_
-#define _monomial_module_h_
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
+#ifndef MATHICGB_M_T_ARRAY_GUARD
+#define MATHICGB_M_T_ARRAY_GUARD
 
 #include "PolyRing.hpp"
 #include <vector>
 #include <iostream>
 #include <algorithm>
+
+MATHICGB_NAMESPACE_BEGIN
 
 class MonomialTableArray
 {
@@ -99,9 +101,5 @@ protected:
   const PolyRing *R;
 };
 
+MATHICGB_NAMESPACE_END
 #endif
-
-// Local Variables:
-// compile-command: "make -C .. "
-// indent-tabs-mode: nil
-// End:

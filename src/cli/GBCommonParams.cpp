@@ -1,9 +1,13 @@
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
 #include "mathicgb/stdinc.h"
 #include "GBCommonParams.hpp"
 
 #include "mathicgb/MTArray.hpp"
 #include "mathicgb/PolyReducer.hpp"
 #include "mathicgb/DivisorLookup.hpp"
+
+MATHICGB_NAMESPACE_BEGIN
 
 GBCommonParams::GBCommonParams():
   mPreferSparseReducers("preferSparseReducers",
@@ -88,3 +92,5 @@ void GBCommonParams::pushBackParameters(
 void GBCommonParams::perform() {
   // currently there is nothing to do
 }
+
+MATHICGB_NAMESPACE_END

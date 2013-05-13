@@ -1,9 +1,11 @@
-// Copyright 2011 Michael E. Stillman
-
-#ifndef _polyHeap_h_
-#define _polyHeap_h_
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
+#ifndef MATHICGB_POLY_HEAP_GUARD
+#define MATHICGB_POLY_HEAP_GUARD
 
 #include "TypicalReducer.hpp"
+
+MATHICGB_NAMESPACE_BEGIN
 
 struct heap_term {
   monomial actual;  // multiplier * *first
@@ -66,9 +68,5 @@ inline bool heapCompareFcn::operator()(heap_term &a, heap_term &b)
   return R->monomialLT(a.actual, b.actual);
 }
 
+MATHICGB_NAMESPACE_END
 #endif
-
-// Local Variables:
-// compile-command: "make -C .. "
-// indent-tabs-mode: nil
-// End:

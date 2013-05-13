@@ -1,9 +1,13 @@
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
 #ifndef MATHICGB_F4_PROTO_MATRIX_GUARD
 #define MATHICGB_F4_PROTO_MATRIX_GUARD
 
 #include "PolyRing.hpp"
 #include "SparseMatrix.hpp"
 #include "Poly.hpp"
+
+MATHICGB_NAMESPACE_BEGIN
 
 class F4ProtoMatrix {
 public:
@@ -25,7 +29,7 @@ public:
 
   ColIndex* makeRowWithTheseScalars(const Poly& scalars);
 
-  std::pair<ColIndex*, Scalar*> makeRow(ColIndex entryCount);
+  ::std::pair<ColIndex*, Scalar*> makeRow(ColIndex entryCount);
 
   void removeLastEntries(const RowIndex row, const ColIndex count);
 
@@ -37,9 +41,10 @@ private:
     const ExternalScalar* externalScalars;
   };
 
-  std::vector<ColIndex> mIndices;
-  std::vector<Scalar> mScalars;
-  std::vector<InternalRow> mRows;
+  ::std::vector<ColIndex> mIndices;
+  ::std::vector<Scalar> mScalars;
+  ::std::vector<InternalRow> mRows;
 };
 
+MATHICGB_NAMESPACE_END
 #endif

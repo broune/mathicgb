@@ -1,3 +1,5 @@
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
 #include "mathicgb/stdinc.h"
 #include "CommonParams.hpp"
 
@@ -5,6 +7,8 @@
 #include "mathicgb/LogDomainSet.hpp"
 
 MATHICGB_DEFINE_LOG_ALIAS("default", "F4Detail,SPairs");
+
+MATHICGB_NAMESPACE_BEGIN
 
 CommonParams::CommonParams(size_t minDirectParams, size_t maxDirectParams):
   mTracingLevel("tracingLevel",
@@ -99,3 +103,5 @@ std::string CommonParams::inputFileNameExtension(size_t i) {
   }
   return std::string();
 }
+
+MATHICGB_NAMESPACE_END

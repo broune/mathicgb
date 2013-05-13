@@ -1,3 +1,5 @@
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
 #ifndef MATHICGB_SCANNER_GUARD
 #define MATHICGB_SCANNER_GUARD
 
@@ -10,6 +12,8 @@
 #include <limits>
 #include <sstream>
 #include <istream>
+
+MATHICGB_NAMESPACE_BEGIN
 
 /// This class offers an input interface which is more convenient and
 /// often more efficient than dealing with a FILE* or std::istream
@@ -270,4 +274,5 @@ bool Scanner::matchReadIntegerNoSign(T& t, bool negate) {
     return false;
 }
 
+MATHICGB_NAMESPACE_END
 #endif

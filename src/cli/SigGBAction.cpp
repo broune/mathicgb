@@ -1,3 +1,5 @@
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
 #include "mathicgb/stdinc.h"
 #include "SigGBAction.hpp"
 
@@ -8,6 +10,8 @@
 #include "mathicgb/MathicIO.hpp"
 #include <fstream>
 #include <iostream>
+
+MATHICGB_NAMESPACE_BEGIN
 
 SigGBAction::SigGBAction():
   mUseSingularCriterionEarly(
@@ -30,7 +34,7 @@ SigGBAction::SigGBAction():
 {}
 
 void SigGBAction::directOptions(
-  std::vector<std::string> tokens,
+  ::std::vector< ::std::string> tokens,
   mic::CliParser& parser
 ) {
   mParams.directOptions(tokens, parser);
@@ -41,8 +45,8 @@ void SigGBAction::performAction() {
   mGBParams.perform();
 
   // read input file
-  const std::string inputBasisFile = mParams.inputFileNameStem(0) + ".ideal";
-  std::ifstream inputFile(inputBasisFile.c_str());
+  const ::std::string inputBasisFile = mParams.inputFileNameStem(0) + ".ideal";
+  ::std::ifstream inputFile(inputBasisFile.c_str());
   if (inputFile.fail())
     mic::reportError("Could not read input file \"" + inputBasisFile + '\n');
 
@@ -56,8 +60,8 @@ void SigGBAction::performAction() {
     processor.setSchreyerMultipliers(basis);
 
   SignatureGB alg(
-    std::move(basis),
-    std::move(processor),
+    ::std::move(basis),
+    ::std::move(processor),
     Reducer::reducerType(mGBParams.mReducer.value()),
     mGBParams.mDivisorLookup.value(),
     mGBParams.mMonomialTable.value(),
@@ -71,10 +75,10 @@ void SigGBAction::performAction() {
   alg.computeGrobnerBasis();
 
   // print statistics
-  alg.displayStats(std::cout);
-  alg.displayPaperStats(std::cout);
+  alg.displayStats(::std::cout);
+  alg.displayPaperStats(::std::cout);
   {
-    std::ofstream statsOut((mParams.inputFileNameStem(0) + ".stats").c_str());
+    ::std::ofstream statsOut((mParams.inputFileNameStem(0) + ".stats").c_str());
     alg.displayStats(statsOut);
     alg.displayPaperStats(statsOut);
   }
@@ -83,17 +87,17 @@ void SigGBAction::performAction() {
     {
       // print basis
       {
-        std::ofstream ogb((mParams.inputFileNameStem(0) + ".gb").c_str());
+        ::std::ofstream ogb((mParams.inputFileNameStem(0) + ".gb").c_str());
         ogb << "-- gb: ----\n";
         alg.getGB()->display(ogb);
       }
       
       // print syzygy basis
       {
-        std::ofstream syzygyOut((mParams.inputFileNameStem(0) + ".syz").c_str());
+        ::std::ofstream syzygyOut((mParams.inputFileNameStem(0) + ".syz").c_str());
         syzygyOut << "-- syz: ----\n";
         alg.getSyzTable()->display(syzygyOut, 1);
-        syzygyOut << std::endl;
+        syzygyOut << ::std::endl;
       }
     }
 }
@@ -116,7 +120,7 @@ const char* SigGBAction::shortDescription() const {
 }
 
 void SigGBAction::pushBackParameters(
-  std::vector<mic::CliParameter*>& parameters
+  ::std::vector<mic::CliParameter*>& parameters
 ) {
   mParams.pushBackParameters(parameters);
   mGBParams.pushBackParameters(parameters);
@@ -124,3 +128,5 @@ void SigGBAction::pushBackParameters(
   parameters.push_back(&mPostponeKoszul);
   parameters.push_back(&mUseBaseDivisors);
 }
+
+MATHICGB_NAMESPACE_END

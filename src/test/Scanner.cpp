@@ -1,7 +1,11 @@
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
 #include "mathicgb/stdinc.h"
 #include "mathicgb/Scanner.hpp"
 
 #include <gtest/gtest.h>
+
+using namespace mgb;
 
 namespace {
   const char* const alpha = "abcdefghijkl";

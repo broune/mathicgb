@@ -1,9 +1,13 @@
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
 #include "stdinc.h"
 #include "MTArray.hpp"
 
 #include "MonTableNaive.hpp"
 #include "MonTableKDTree.hpp"
 #include "MonTableDivList.hpp"
+
+MATHICGB_NAMESPACE_BEGIN
 
 template <typename MT>
 class MTArrayT : public MonomialTableArray
@@ -254,7 +258,4 @@ std::unique_ptr<MonomialTableArray> MonomialTableArray::make(const PolyRing *R, 
   }
 }
 
-// Local Variables:
-// compile-command: "make -C .. "
-// indent-tabs-mode: nil
-// End:
+MATHICGB_NAMESPACE_END

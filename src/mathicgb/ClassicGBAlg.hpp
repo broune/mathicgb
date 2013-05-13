@@ -1,3 +1,5 @@
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
 #ifndef MATHICGB_CLASSIC_GB_ALG_GUARD
 #define MATHICGB_CLASSIC_GB_ALG_GUARD
 
@@ -8,6 +10,8 @@
 #include <memory>
 #include <ostream>
 #include <vector>
+
+MATHICGB_NAMESPACE_BEGIN
 
 class Basis;
 
@@ -99,4 +103,5 @@ private:
   unsigned long long mSPolyReductionCount;
 };
 
+MATHICGB_NAMESPACE_END
 #endif

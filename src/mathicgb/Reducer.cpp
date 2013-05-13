@@ -1,3 +1,5 @@
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
 #include "stdinc.h"
 #include "Reducer.hpp"
 
@@ -15,10 +17,11 @@
 #include "ReducerHash.hpp"
 #include "ReducerHashPack.hpp"
 #include "F4Reducer.hpp"
-
 #include "SigPolyBasis.hpp"
 #include <iostream>
 #include <algorithm>
+
+MATHICGB_NAMESPACE_BEGIN
 
 Reducer::Reducer():
   stats_maxsize(0),
@@ -199,7 +202,4 @@ Reducer::Stats::Stats():
 void Reducer::dump() const {
 }
 
-// Local Variables:
-// compile-command: "make -C .. "
-// indent-tabs-mode: nil
-// End:
+MATHICGB_NAMESPACE_END

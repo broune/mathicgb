@@ -1,4 +1,5 @@
-// Copyright 2011 Michael E. Stillman
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
 #include "stdinc.h"
 #include "SigSPairs.hpp"
 
@@ -8,6 +9,8 @@
 #include <limits>
 #include <stdexcept>
 #include <iostream>
+
+MATHICGB_NAMESPACE_BEGIN
 
 SigSPairs::SigSPairs(
   const PolyRing *R0,
@@ -317,7 +320,4 @@ size_t SigSPairs::getKnownSyzygyBitsMemoryUse() const {
   return mKnownSyzygyTri.getMemoryUse();
 }
 
-// Local Variables:
-// compile-command: "make -C .. "
-// indent-tabs-mode: nil
-// End:
+MATHICGB_NAMESPACE_END

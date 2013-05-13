@@ -1,10 +1,13 @@
-// Copyright 2011 Michael E. Stillman
-
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
 #include "stdinc.h"
 #include "Poly.hpp"
+
 #include <ostream>
 #include <iostream>
 #include <algorithm>
+
+MATHICGB_NAMESPACE_BEGIN
 
 // Format for input/output:
 //  #terms term1 term2 ...
@@ -388,8 +391,4 @@ bool Poly::termsAreInDescendingOrder() const {
   return true;
 }
 
-
-// Local Variables:
-// compile-command: "make -C .. "
-// indent-tabs-mode: nil
-// End:
+MATHICGB_NAMESPACE_END

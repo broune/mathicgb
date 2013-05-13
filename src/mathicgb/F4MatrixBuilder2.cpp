@@ -1,3 +1,5 @@
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
 #include "stdinc.h"
 #include "F4MatrixBuilder2.hpp"
 
@@ -14,8 +16,10 @@ MATHICGB_DEFINE_LOG_DOMAIN(
   "Displays row and column count for each F4 matrix construction."
 );
 
+MATHICGB_NAMESPACE_BEGIN
+
 MATHICGB_NO_INLINE
-std::pair<F4MatrixBuilder2::ColIndex, ConstMonomial>
+::std::pair<F4MatrixBuilder2::ColIndex, ConstMonomial>
 F4MatrixBuilder2::findOrCreateColumn(
   const const_monomial monoA,
   const const_monomial monoB,
@@ -25,12 +29,12 @@ F4MatrixBuilder2::findOrCreateColumn(
   MATHICGB_ASSERT(!monoB.isNull());
   const auto col = ColReader(mMap).findProduct(monoA, monoB);
   if (col.first != 0)
-    return std::make_pair(*col.first, col.second);
+    return ::std::make_pair(*col.first, col.second);
   return createColumn(monoA, monoB, feeder);
 }
 
 MATHICGB_INLINE
-std::pair<F4MatrixBuilder2::ColIndex, ConstMonomial>
+::std::pair<F4MatrixBuilder2::ColIndex, ConstMonomial>
 F4MatrixBuilder2::findOrCreateColumn(
   const const_monomial monoA,
   const const_monomial monoB,
@@ -42,7 +46,7 @@ F4MatrixBuilder2::findOrCreateColumn(
   const auto col = colMap.findProduct(monoA, monoB);
   if (col.first == 0)
     return findOrCreateColumn(monoA, monoB, feeder);
-  return std::make_pair(*col.first, col.second);
+  return ::std::make_pair(*col.first, col.second);
 }
 
 MATHICGB_NO_INLINE
@@ -67,7 +71,7 @@ F4MatrixBuilder2::F4MatrixBuilder2(
 {
   // This assert has to be _NO_ASSUME since otherwise the compiler will assume
   // that the error checking branch here cannot be taken and optimize it away.
-  const Scalar maxScalar = std::numeric_limits<Scalar>::max();
+  const Scalar maxScalar = ::std::numeric_limits<Scalar>::max();
   MATHICGB_ASSERT_NO_ASSUME(ring().charac() <= maxScalar);
   if (ring().charac() > maxScalar)
     mathic::reportInternalError("F4MatrixBuilder2: too large characteristic.");
@@ -146,11 +150,11 @@ void F4MatrixBuilder2::buildMatrixAndClear(QuadMatrix& quadMatrix) {
     MATHICGB_ASSERT(ColReader(mMap).find(mTodo[i].desiredLead).first == 0);
 
     // Create column for the lead term that cancels in the S-pair
-    if (mIsColumnToLeft.size() >= std::numeric_limits<ColIndex>::max())
-      throw std::overflow_error("Too many columns in QuadMatrix");
+    if (mIsColumnToLeft.size() >= ::std::numeric_limits<ColIndex>::max())
+      throw ::std::overflow_error("Too many columns in QuadMatrix");
     const auto newIndex = static_cast<ColIndex>(mIsColumnToLeft.size());
     const auto inserted =
-      mMap.insert(std::make_pair(mTodo[i].desiredLead, newIndex));
+      mMap.insert(::std::make_pair(mTodo[i].desiredLead, newIndex));
     mIsColumnToLeft.push_back(true);
     const auto& mono = inserted.first.second;
 
@@ -204,7 +208,7 @@ void F4MatrixBuilder2::buildMatrixAndClear(QuadMatrix& quadMatrix) {
       data.tmp1 = ring().allocMonomial();
       data.tmp2 = ring().allocMonomial();
     }
-    return std::move(data);
+    return ::std::move(data);
   });
 
   // Construct the matrix as pre-blocks
@@ -256,15 +260,15 @@ void F4MatrixBuilder2::buildMatrixAndClear(QuadMatrix& quadMatrix) {
     (ring(), static_cast<ColIndex>(mMap.entryCount()));
   const auto end = threadData.end();
   for (auto it = threadData.begin(); it != end; ++it) {
-    projection.addProtoMatrix(std::move(it->block));
+    projection.addProtoMatrix(::std::move(it->block));
     ring().freeMonomial(it->tmp1);
     ring().freeMonomial(it->tmp2);
   }
 
   // Sort columns by monomial and tell the projection of the resulting order
   MonomialMap<ColIndex>::Reader reader(mMap);
-  typedef std::pair<ColIndex, ConstMonomial> IndexMono;
-  std::vector<IndexMono> columns(reader.begin(), reader.end());
+  typedef ::std::pair<ColIndex, ConstMonomial> IndexMono;
+  ::std::vector<IndexMono> columns(reader.begin(), reader.end());
   const auto cmp = [&](const IndexMono& a, const IndexMono b) {
     return ring().monomialLT(b.second, a.second);
   };
@@ -285,7 +289,7 @@ void F4MatrixBuilder2::buildMatrixAndClear(QuadMatrix& quadMatrix) {
     << " by "
     << mathic::ColumnPrinter::commafy(
          quadMatrix.computeLeftColCount() + quadMatrix.computeRightColCount())
-    << "]" << std::endl;
+    << "]" << ::std::endl;
 
 #ifdef MATHICGB_DEBUG
   for (size_t side = 0; side < 2; ++side) {
@@ -303,7 +307,7 @@ void F4MatrixBuilder2::buildMatrixAndClear(QuadMatrix& quadMatrix) {
 #endif
 }
 
-std::pair<F4MatrixBuilder2::ColIndex, ConstMonomial>
+::std::pair<F4MatrixBuilder2::ColIndex, ConstMonomial>
 F4MatrixBuilder2::createColumn(
   const const_monomial monoA,
   const const_monomial monoB,
@@ -317,7 +321,7 @@ F4MatrixBuilder2::createColumn(
   {
     const auto found(ColReader(mMap).findProduct(monoA, monoB));
     if (found.first != 0)
-      return std::make_pair(*found.first, found.second);
+      return ::std::make_pair(*found.first, found.second);
   }
 
   // The column really does not exist, so we need to create it
@@ -330,10 +334,10 @@ F4MatrixBuilder2::createColumn(
   const bool insertLeft = (reducerIndex != static_cast<size_t>(-1));
 
   // Create the new left or right column
-  if (mIsColumnToLeft.size() >= std::numeric_limits<ColIndex>::max())
-    throw std::overflow_error("Too many columns in QuadMatrix");
+  if (mIsColumnToLeft.size() >= ::std::numeric_limits<ColIndex>::max())
+    throw ::std::overflow_error("Too many columns in QuadMatrix");
   const auto newIndex = static_cast<ColIndex>(mIsColumnToLeft.size());
-  const auto inserted = mMap.insert(std::make_pair(mTmp, newIndex));
+  const auto inserted = mMap.insert(::std::make_pair(mTmp, newIndex));
   mIsColumnToLeft.push_back(insertLeft);
 
   // schedule new task if we found a reducer
@@ -344,7 +348,7 @@ F4MatrixBuilder2::createColumn(
     feeder.add(task);
   }
 
-  return std::make_pair(*inserted.first.first, inserted.first.second);
+  return ::std::make_pair(*inserted.first.first, inserted.first.second);
 }
 
 void F4MatrixBuilder2::appendRow(
@@ -357,8 +361,8 @@ void F4MatrixBuilder2::appendRow(
 
   const auto begin = poly.begin();
   const auto end = poly.end();
-  const auto count = static_cast<size_t>(std::distance(begin, end));
-  MATHICGB_ASSERT(count < std::numeric_limits<ColIndex>::max());
+  const auto count = static_cast<size_t>(::std::distance(begin, end));
+  MATHICGB_ASSERT(count < ::std::numeric_limits<ColIndex>::max());
   auto indices = block.makeRowWithTheseScalars(poly);
 
   auto it = begin;
@@ -366,7 +370,7 @@ void F4MatrixBuilder2::appendRow(
     ColReader reader(mMap);
     const auto col = findOrCreateColumn
       (it.getMonomial(), multiple, reader, feeder);
-	MATHICGB_ASSERT(it.getCoefficient() < std::numeric_limits<Scalar>::max());
+	MATHICGB_ASSERT(it.getCoefficient() < ::std::numeric_limits<Scalar>::max());
     MATHICGB_ASSERT(it.getCoefficient());
     //matrix.appendEntry(col.first, static_cast<Scalar>(it.getCoefficient()));
     *indices = col.first;
@@ -377,16 +381,16 @@ void F4MatrixBuilder2::appendRow(
   }
 updateReader:
   ColReader colMap(mMap);
-  MATHICGB_ASSERT((std::distance(it, end) % 2) == 0);
+  MATHICGB_ASSERT((::std::distance(it, end) % 2) == 0);
   while (it != end) {
-	MATHICGB_ASSERT(it.getCoefficient() < std::numeric_limits<Scalar>::max());
+	MATHICGB_ASSERT(it.getCoefficient() < ::std::numeric_limits<Scalar>::max());
     MATHICGB_ASSERT(it.getCoefficient() != 0);
     const auto scalar1 = static_cast<Scalar>(it.getCoefficient());
     const const_monomial mono1 = it.getMonomial();
 
     auto it2 = it;
     ++it2;
-	MATHICGB_ASSERT(it2.getCoefficient() < std::numeric_limits<Scalar>::max());
+	MATHICGB_ASSERT(it2.getCoefficient() < ::std::numeric_limits<Scalar>::max());
     MATHICGB_ASSERT(it2.getCoefficient() != 0);
     const auto scalar2 = static_cast<Scalar>(it2.getCoefficient());
     const const_monomial mono2 = it2.getMonomial();
@@ -441,7 +445,7 @@ void F4MatrixBuilder2::appendRowSPair(
 
   // @todo: handle overflow of termCount addition here
   MATHICGB_ASSERT(poly->termCount() + sPairPoly->termCount() - 2 <=
-    std::numeric_limits<ColIndex>::max());
+    ::std::numeric_limits<ColIndex>::max());
   const auto maxCols =
     static_cast<ColIndex>(poly->termCount() + sPairPoly->termCount() - 2);
   auto row = block.makeRow(maxCols);
@@ -470,7 +474,7 @@ void F4MatrixBuilder2::appendRowSPair(
       col = colB.first;
       ++itB;
     }
-    MATHICGB_ASSERT(coeff < std::numeric_limits<Scalar>::max());
+    MATHICGB_ASSERT(coeff < ::std::numeric_limits<Scalar>::max());
     if (coeff != 0) {
       //matrix.appendEntry(col, static_cast<Scalar>(coeff));
       *row.first++ = col;
@@ -499,3 +503,5 @@ void F4MatrixBuilder2::appendRowSPair(
     maxCols - static_cast<ColIndex>(row.first - indicesBegin);
   block.removeLastEntries(block.rowCount() - 1, toRemove);
 }
+
+MATHICGB_NAMESPACE_END

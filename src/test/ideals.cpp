@@ -1,7 +1,11 @@
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
 #include "mathicgb/stdinc.h"
 #include "test/ideals.hpp"
 
 #include <sstream>
+
+using namespace mgb;
 
 std::string smallIdealComponentLastDescending() {
   return 
@@ -333,8 +337,3 @@ const char* gerdt93_syzygies_strat0_free7 =
   "  0: a2c  a3  b2c2  abc2  \n  1: a3  \n";
 const char* gerdt93_initial_strat0_free7 =
   "  ab\n  a2c\n  a3\n  b2c2\n  b3c\n  b4\n  bc3e\n  bc4\n  ac3de\n";
-
-// Local Variables:
-// compile-command: "make -C .. "
-// indent-tabs-mode: nil
-// End:

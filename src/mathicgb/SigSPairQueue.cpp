@@ -1,7 +1,11 @@
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
 #include "stdinc.h"
 #include "SigSPairQueue.hpp"
 
 #include "SigPolyBasis.hpp"
+
+MATHICGB_NAMESPACE_BEGIN
 
 SigSPairQueue::~SigSPairQueue() {}
 
@@ -152,34 +156,49 @@ private:
   mathic::PairQueueNamespace::DestructPairDataFunction<Configuration>;
 };
 
+std::unique_ptr<SigSPairQueue> SigSPairQueue::create(
+  SigPolyBasis const& basis
+) {
+  return make_unique<ConcreteSigSPairQueue>(basis);
+}
+
+MATHICGB_NAMESPACE_END
+
 namespace mathic {
   namespace PairQueueNamespace {
     template<>
-    struct ConstructPairDataFunction<ConcreteSigSPairQueue::Configuration> {
-      inline static void function
-      (void* memory, Index col, Index row, ConcreteSigSPairQueue::Configuration& conf) {
+    struct ConstructPairDataFunction
+      <mgb::ConcreteSigSPairQueue::Configuration>
+    {
+      inline static void function(
+        void* memory,
+        Index col,
+        Index row,
+        mgb::ConcreteSigSPairQueue::Configuration& conf
+      ) {
         MATHICGB_ASSERT(memory != 0);
         MATHICGB_ASSERT(col > row);
-        monomial* pd = new (memory) monomial
+        auto pd = new (memory)
+          mgb::ConcreteSigSPairQueue::Configuration::PairData
           (conf.basis().ring().allocMonomial());
         conf.computePairData(col, row, *pd);
       }
-	};
+    };
 
     template<>
-    struct DestructPairDataFunction<ConcreteSigSPairQueue::Configuration> {
-      inline static void function
-      (monomial* pd, Index col, Index row, ConcreteSigSPairQueue::Configuration& conf) {
+    struct DestructPairDataFunction
+      <mgb::ConcreteSigSPairQueue::Configuration>
+    {
+      inline static void function(
+        mgb::ConcreteSigSPairQueue::Configuration::PairData* pd,
+        Index col,
+        Index row,
+        mgb::ConcreteSigSPairQueue::Configuration& conf
+      ) {
         MATHICGB_ASSERT(pd != 0);
         MATHICGB_ASSERT(col > row);
         conf.basis().ring().freeMonomial(*pd);
       }
     };
   }
-}
-
-std::unique_ptr<SigSPairQueue> SigSPairQueue::create(
-  SigPolyBasis const& basis
-) {
-  return make_unique<ConcreteSigSPairQueue>(basis);
 }

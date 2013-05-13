@@ -1,10 +1,14 @@
-#ifndef _pair_triangle_h
-#define _pair_triangle_h
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
+#ifndef MATHICGB_PAIR_TRIANGLE_GUARD
+#define MATHICGB_PAIR_TRIANGLE_GUARD
 
-#include <memtailor.h>
-#include <mathic.h>
 #include "PolyRing.hpp"
 #include "SigSPairQueue.hpp"
+#include <memtailor.h>
+#include <mathic.h>
+
+MATHICGB_NAMESPACE_BEGIN
 
 /*typedef unsigned short SmallIndex;
 typedef unsigned int BigIndex;
@@ -101,23 +105,30 @@ private:
   };
   mathic::PairQueue<PC> mPairQueue;
   friend void mathic::PairQueueNamespace::constructPairData<PC>(void*,Index,Index,PC&);
-  friend void mathic::PairQueueNamespace::destructPairData<PC>(monomial*,Index,Index, PC&);
+  friend void mathic::PairQueueNamespace::destructPairData<PC>(PC::PairData*,Index,Index, PC&);
 };
+
+MATHICGB_NAMESPACE_END
 
 namespace mathic {
   namespace PairQueueNamespace {
     template<>
-    inline void constructPairData<PairTriangle::PC>
-    (void* memory, Index col, Index row, PairTriangle::PC& conf) {
+    inline void constructPairData<mgb::PairTriangle::PC>
+    (void* memory, Index col, Index row, mgb::PairTriangle::PC& conf) {
       MATHICGB_ASSERT(memory != 0);
       MATHICGB_ASSERT(col > row);
-      monomial* pd = new (memory) monomial(conf.allocPairData());
+      auto pd = new (memory)
+        mgb::PairTriangle::PC::PairData(conf.allocPairData());
       conf.computePairData(col, row, *pd);
     }
     
     template<>
-    inline void destructPairData
-    (monomial* pd, Index col, Index row, PairTriangle::PC& conf) {
+    inline void destructPairData<mgb::PairTriangle::PC>(
+      mgb::PairTriangle::PC::PairData* pd,
+      Index col,
+      Index row,
+      mgb::PairTriangle::PC& conf
+    ) {
       MATHICGB_ASSERT(pd != 0);
       MATHICGB_ASSERT(col > row);
       conf.freePairData(*pd);

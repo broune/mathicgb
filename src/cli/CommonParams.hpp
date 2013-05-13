@@ -1,9 +1,13 @@
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
 #ifndef MATHICGB_COMMON_PARAMS_GUARD
 #define MATHICGB_COMMON_PARAMS_GUARD
 
 #include "mathicgb/mtbb.hpp"
 #include <mathic.h>
 #include <vector>
+
+MATHICGB_NAMESPACE_BEGIN
 
 class CommonParams {
 public:
@@ -49,5 +53,7 @@ private:
   std::size_t mMaxDirectParams;
   std::vector<std::string> mDirectParameters;
 };
+
+MATHICGB_NAMESPACE_END
 
 #endif

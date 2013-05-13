@@ -1,3 +1,5 @@
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
 #include "stdinc.h"
 #include "F4MatrixReducer.hpp"
 
@@ -6,7 +8,6 @@
 #include "PolyRing.hpp"
 #include "LogDomain.hpp"
 #include "mtbb.hpp"
-
 #include <algorithm>
 #include <vector>
 #include <stdexcept>
@@ -29,6 +30,8 @@ MATHICGB_DEFINE_LOG_DOMAIN(
   F4RedBottomRight,
   "Displays time to reduce the bottom right submatrix of each F4 matrix."
 );
+
+MATHICGB_NAMESPACE_BEGIN
 
 namespace {
   class DenseRow {
@@ -148,7 +151,7 @@ namespace {
       // method).
 
       auto it = begin;
-      if (std::distance(begin, end) % 2 == 1) {
+      if (::std::distance(begin, end) % 2 == 1) {
         // Replacing this by a goto into the middle of the following loop
         // (similar to Duff's device) made the code slower on MSVC 2012.
         multiplyAdd(it.scalar(), multiple, entries[it.index()]);
@@ -185,7 +188,7 @@ namespace {
     }
 
   private:
-    std::vector<ScalarProductSum> mEntries;
+    ::std::vector<ScalarProductSum> mEntries;
   };
 
   SparseMatrix reduce(
@@ -211,10 +214,10 @@ namespace {
     // Store column indexes instead of row indices as the matrix is square
     // anyway (so all indices fit) and we are going to store this as a column
     // index later on.
-    std::vector<SparseMatrix::ColIndex> rowThatReducesCol(pivotCount);
+    ::std::vector<SparseMatrix::ColIndex> rowThatReducesCol(pivotCount);
 #ifdef MATHICGB_DEBUG
     // fill in an invalid value that can be recognized by asserts to be invalid.
-    std::fill(rowThatReducesCol.begin(), rowThatReducesCol.end(), pivotCount);
+    ::std::fill(rowThatReducesCol.begin(), rowThatReducesCol.end(), pivotCount);
 #endif
     for (SparseMatrix::ColIndex pivot = 0; pivot < pivotCount; ++pivot) {
       MATHICGB_ASSERT(!reduceByLeft.emptyRow(pivot));
@@ -236,7 +239,7 @@ namespace {
 
     SparseMatrix tmp(qm.topRight.memoryQuantum());
 
-    std::vector<SparseMatrix::RowIndex> rowOrder(rowCount);
+    ::std::vector<SparseMatrix::RowIndex> rowOrder(rowCount);
 
     mgb::tbb::mutex lock;
     mgb::tbb::parallel_for(mgb::tbb::blocked_range<SparseMatrix::RowIndex>(0, rowCount, 2),
@@ -261,7 +264,7 @@ namespace {
               MATHICGB_ASSERT(row < pivotCount);
               MATHICGB_ASSERT(!reduceByLeft.emptyRow(row));
               MATHICGB_ASSERT(reduceByLeft.leadCol(row) == pivot);
-              MATHICGB_ASSERT(entry < std::numeric_limits<SparseMatrix::Scalar>::max());
+              MATHICGB_ASSERT(entry < ::std::numeric_limits<SparseMatrix::Scalar>::max());
               denseRow.addRowMultiple(
                 static_cast<SparseMatrix::Scalar>(entry),
                 ++reduceByLeft.rowBegin(row),
@@ -273,7 +276,7 @@ namespace {
         }
         mgb::tbb::mutex::scoped_lock lockGuard(lock);
         for (size_t pivot = 0; pivot < pivotCount; ++pivot) {
-		  MATHICGB_ASSERT(denseRow[pivot] < std::numeric_limits<SparseMatrix::Scalar>::max());
+		  MATHICGB_ASSERT(denseRow[pivot] < ::std::numeric_limits<SparseMatrix::Scalar>::max());
           if (denseRow[pivot] != 0)
             tmp.appendEntry(rowThatReducesCol[pivot], static_cast<SparseMatrix::Scalar>(denseRow[pivot]));
 	    }
@@ -313,7 +316,7 @@ namespace {
       if (!zero)
         reduced.rowDone();
     }});
-    return std::move(reduced);
+    return ::std::move(reduced);
   }
 
   SparseMatrix reduceToEchelonFormSparse(
@@ -326,7 +329,7 @@ namespace {
 
     // pivotRowOfCol[i] is the pivot in column i or noRow
     // if we have not identified such a pivot so far.
-    std::vector<SparseMatrix::RowIndex> pivotRowOfCol(colCount, noRow);
+    ::std::vector<SparseMatrix::RowIndex> pivotRowOfCol(colCount, noRow);
 
     DenseRow rowToReduce(colCount);
 
@@ -391,7 +394,7 @@ namespace {
       pivotRowOfCol[pivotCol] = reduced.rowCount();
       rowToReduce.appendTo(reduced);
     }
-    return std::move(reduced);
+    return ::std::move(reduced);
   }
 
   SparseMatrix reduceToEchelonForm(
@@ -402,7 +405,7 @@ namespace {
     const auto rowCount = toReduce.rowCount();
 
     // convert to dense representation 
-    std::vector<DenseRow> dense(rowCount);
+    ::std::vector<DenseRow> dense(rowCount);
     mgb::tbb::parallel_for(mgb::tbb::blocked_range<SparseMatrix::RowIndex>(0, rowCount),
       [&](const mgb::tbb::blocked_range<SparseMatrix::RowIndex>& range)
       {for (auto it = range.begin(); it != range.end(); ++it)
@@ -415,28 +418,28 @@ namespace {
     }});
 
     // invariant: all columns in row to the left of leadCols[row] are zero.
-    std::vector<SparseMatrix::ColIndex> leadCols(rowCount);
+    ::std::vector<SparseMatrix::ColIndex> leadCols(rowCount);
 
     // pivot rows get copied here before being used to reduce the matrix.
     SparseMatrix reduced(toReduce.memoryQuantum());
 
     // (col,row) in nextReducers, then use row as a pivot in column col
     // for the next iteration.
-    std::vector<std::pair<SparseMatrix::ColIndex, SparseMatrix::RowIndex> > nextReducers;
+    ::std::vector< ::std::pair<SparseMatrix::ColIndex, SparseMatrix::RowIndex> > nextReducers;
 
     // isPivotRow[row] is true if row is or has been used as a pivot.
-    std::vector<bool> isPivotRow(rowCount);
+    ::std::vector<bool> isPivotRow(rowCount);
 
     // columnHasPivot[col] is true if a pivot row for column col has
     // been chosen.
-    std::vector<bool> columnHasPivot(colCount);
+    ::std::vector<bool> columnHasPivot(colCount);
 
     bool firstIteration = true;
     while (firstIteration || reduced.rowCount() > 0) {
       firstIteration = false;
       size_t const reducerCount = reduced.rowCount();
 
-      //std::cout << "reducing " << reduced.rowCount() << " out of " << toReduce.rowCount() << std::endl;
+      //::std::cout << "reducing " << reduced.rowCount() << " out of " << toReduce.rowCount() << ::std::endl;
       mgb::tbb::mutex lock;
       mgb::tbb::parallel_for(mgb::tbb::blocked_range<SparseMatrix::RowIndex>(0, rowCount),
         [&](const mgb::tbb::blocked_range<SparseMatrix::RowIndex>& range)
@@ -478,17 +481,17 @@ namespace {
             if (!columnHasPivot[col]) {
               columnHasPivot[col] = true;
               isNewReducer = true;
-              nextReducers.push_back(std::make_pair(col, row));
+              nextReducers.push_back(::std::make_pair(col, row));
             }
           }
           if (isNewReducer)
             denseRow.makeUnitary(modulus, col);
         }
       }});
-      //std::cout << "done reducing that batch" << std::endl;
+      //::std::cout << "done reducing that batch" << ::std::endl;
 
       reduced.clear();
-      std::sort(nextReducers.begin(), nextReducers.end());
+      ::std::sort(nextReducers.begin(), nextReducers.end());
       for (size_t i = 0; i < nextReducers.size(); ++i) {
         size_t const row = nextReducers[i].second;
 
@@ -514,7 +517,7 @@ namespace {
     }});
 
 #ifdef MATHICGB_DEBUG
-    std::vector<char> sawPivot(colCount);
+    ::std::vector<char> sawPivot(colCount);
     for (SparseMatrix::RowIndex row = 0; row < rowCount; ++row) {
       if (dense[row].empty()) {
         MATHICGB_ASSERT(!isPivotRow[row]);
@@ -546,7 +549,7 @@ namespace {
     for (size_t row = 0; row < rowCount; ++row)
       if (!dense[row].empty())
         dense[row].appendTo(reduced);
-    return std::move(reduced);
+    return ::std::move(reduced);
   }
 }
 
@@ -581,7 +584,7 @@ private:
 };
 */
 void addRowMultipleInplace(
-  std::vector<std::vector<SparseMatrix::Scalar> >& matrix,
+  ::std::vector< ::std::vector<SparseMatrix::Scalar> >& matrix,
   const SparseMatrix::RowIndex addRow,
   const SparseMatrix::Scalar multiple,
   const SparseMatrix::RowIndex row,
@@ -603,7 +606,7 @@ void addRowMultipleInplace(
 }
 
 void makeRowUnitary(
-  std::vector<std::vector<SparseMatrix::Scalar>>& matrix,
+  ::std::vector< ::std::vector<SparseMatrix::Scalar>>& matrix,
   const SparseMatrix::RowIndex row,
   const SparseMatrix::ColIndex colCount,
   const SparseMatrix::ColIndex leadingCol,
@@ -624,7 +627,7 @@ void makeRowUnitary(
 
 // todo: make this take a parameter startAtCol 									::DONE
 SparseMatrix::ColIndex leadingColumn(
-  const std::vector<std::vector<SparseMatrix::Scalar>>& matrix,
+  const ::std::vector< ::std::vector<SparseMatrix::Scalar>>& matrix,
   const SparseMatrix::RowIndex row,
   const SparseMatrix::ColIndex colCount,
   SparseMatrix::ColIndex startAtCol 
@@ -639,7 +642,7 @@ SparseMatrix::ColIndex leadingColumn(
 }
 
 void rowReducedEchelonMatrix(
-  std::vector<std::vector<SparseMatrix::Scalar> >& matrix,
+  ::std::vector< ::std::vector<SparseMatrix::Scalar> >& matrix,
   const SparseMatrix::ColIndex colCount,
   const SparseMatrix::Scalar modulus
 ) {
@@ -648,7 +651,7 @@ void rowReducedEchelonMatrix(
     static_cast<SparseMatrix::RowIndex>(matrix.size());
   // pivotRowOfCol[i] is the pivot in column i or rowCount
   // if we have not identified such a pivot so far.
-  std::vector<SparseMatrix::RowIndex> pivotRowOfCol(colCount, rowCount);
+  ::std::vector<SparseMatrix::RowIndex> pivotRowOfCol(colCount, rowCount);
   
   // row reduce to row echelon form
   for(SparseMatrix::RowIndex row=0; row<rowCount;++row) { 
@@ -693,7 +696,7 @@ SparseMatrix reduceToEchelonFormShrawan(
   const auto colCount = toReduce.computeColCount();
 
   // Convert input matrix to dense format
-  std::vector<std::vector<SparseMatrix::Scalar>> matrix(rowCount);
+  ::std::vector< ::std::vector<SparseMatrix::Scalar>> matrix(rowCount);
   for (SparseMatrix::RowIndex row = 0; row < rowCount; ++row) {
     MATHICGB_ASSERT(!toReduce.emptyRow(row));
     matrix[row].resize(colCount);
@@ -721,7 +724,7 @@ SparseMatrix reduceToEchelonFormShrawan(
     if (!rowIsZero)
       reduced.rowDone();
   }
-  return std::move(reduced);
+  return ::std::move(reduced);
 }
 
 SparseMatrix reduceToEchelonFormShrawanDelayedModulus(
@@ -733,7 +736,7 @@ SparseMatrix reduceToEchelonFormShrawanDelayedModulus(
   const auto colCount = toReduce.computeColCount();
 
   // Convert input matrix to dense format
-  std::vector<std::vector<SparseMatrix::Scalar>> matrix(rowCount);
+  ::std::vector< ::std::vector<SparseMatrix::Scalar>> matrix(rowCount);
   for (SparseMatrix::RowIndex row = 0; row < rowCount; ++row) {
     MATHICGB_ASSERT(!toReduce.emptyRow(row));
     matrix[row].resize(colCount);
@@ -759,7 +762,7 @@ SparseMatrix reduceToEchelonFormShrawanDelayedModulus(
     if (!rowIsZero)
       reduced.rowDone();
   }
-  return std::move(reduced);
+  return ::std::move(reduced);
 }
 
 SparseMatrix F4MatrixReducer::reduceToBottomRight(const QuadMatrix& matrix) {
@@ -815,12 +818,14 @@ namespace {
     // this assert has to be NO_ASSUME as otherwise the branch below will get
     // optimized out.
     MATHICGB_ASSERT_NO_ASSUME(modulus <=
-      std::numeric_limits<SparseMatrix::Scalar>::max());
-    if (modulus > std::numeric_limits<SparseMatrix::Scalar>::max())
-      throw std::overflow_error("Too large modulus in F4 matrix reduction.");
+      ::std::numeric_limits<SparseMatrix::Scalar>::max());
+    if (modulus > ::std::numeric_limits<SparseMatrix::Scalar>::max())
+      throw ::std::overflow_error("Too large modulus in F4 matrix reduction.");
     return static_cast<SparseMatrix::Scalar>(modulus);
   }
 }
 
 F4MatrixReducer::F4MatrixReducer(const coefficient modulus):
   mModulus(checkModulus(modulus)) {}
+
+MATHICGB_NAMESPACE_END

@@ -1,8 +1,12 @@
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
 #include "stdinc.h"
-#include "Basis.hpp"
 #include "PolyBasis.hpp"
 
+#include "Basis.hpp"
 #include "DivisorLookup.hpp"
+
+MATHICGB_NAMESPACE_BEGIN
 
 PolyBasis::PolyBasis(
   const PolyRing& ring,
@@ -189,3 +193,5 @@ PolyBasis::Entry::Entry():
   usedAsReducerCount(0),
   possibleReducerCount(0),
   nonSignatureReducerCount(0) {}
+
+MATHICGB_NAMESPACE_END

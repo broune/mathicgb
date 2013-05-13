@@ -1,9 +1,13 @@
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
 #include "stdinc.h"
 #include "TypicalReducer.hpp"
 
 #include "SigPolyBasis.hpp"
 #include "PolyBasis.hpp"
 #include <iostream>
+
+MATHICGB_NAMESPACE_BEGIN
 
 size_t TypicalReducer::preferredSetSize() const {
   return 1;
@@ -226,3 +230,5 @@ std::unique_ptr<Poly> TypicalReducer::classicReduce
 std::unique_ptr<Poly> TypicalReducer::classicReduce(const PolyBasis& basis) {
   return classicReduce(make_unique<Poly>(basis.ring()), basis);
 }
+
+MATHICGB_NAMESPACE_END

@@ -1,3 +1,5 @@
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
 #include "mathicgb/stdinc.h"
 
 #include "mathicgb/F4MatrixReducer.hpp"
@@ -8,6 +10,8 @@
 #include <gtest/gtest.h>
 #include <sstream>
 
+using namespace mgb;
+
 TEST(F4MatrixReducer, Reduce) {
   auto ring = ringFromString("101 6 1\n10 1 1 1 1 1");
 
@@ -15,7 +19,7 @@ TEST(F4MatrixReducer, Reduce) {
   m.ring = ring.get();
 
   Poly p(*ring);
-  std::istringstream in("a4+a3+a2+a1+b5+b4+b3+b2+b1");
+  ::std::istringstream in("a4+a3+a2+a1+b5+b4+b3+b2+b1");
   p.parse(in);
   size_t count = 0;
   for (Poly::iterator it = p.begin(); it != p.end(); ++it) {

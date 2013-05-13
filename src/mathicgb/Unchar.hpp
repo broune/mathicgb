@@ -1,7 +1,11 @@
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
 #ifndef MATHICGB_UNCHAR_GUARD
 #define MATHICGB_UNCHAR_GUARD
 
 #include <type_traits>
+
+MATHICGB_NAMESPACE_BEGIN
 
 /// std::ostream and std::istream handle characters differently from
 /// other integers. That is not desired when using char as an
@@ -20,8 +24,7 @@ namespace UncharInternal {
   template<bool Signed = std::is_signed<char>::value>
   struct ExtendedChar {typedef signed short type;};
   template<>
-  struct ExtendedChar<false> {typedef unsigned short type;};
-    
+  struct ExtendedChar<false> {typedef unsigned short type;};    
 };
 
 template<>
@@ -36,4 +39,5 @@ struct Unchar<unsigned char> {typedef unsigned short type;};
 template<class T>
 typename Unchar<T>::type unchar(const T& t) {return t;}
 
+MATHICGB_NAMESPACE_END
 #endif

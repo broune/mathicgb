@@ -1,14 +1,19 @@
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
 #include "stdinc.h"
 #include "ClassicGBAlg.hpp"
-#include "Basis.hpp"
 
+#include "Basis.hpp"
 #include "LogDomain.hpp"
 #include <iostream>
 
 MATHICGB_DEFINE_LOG_DOMAIN(
   SPairDegree,
-  "Displays the degree of the S-pairs being considered in Buchberger's algorithm."
+  "Displays the degree of the S-pairs being considered in "
+    "Buchberger's algorithm."
 );
+
+MATHICGB_NAMESPACE_BEGIN
 
 ClassicGBAlg::ClassicGBAlg(
   const Basis& basis,
@@ -545,7 +550,4 @@ void ClassicGBAlg::printMemoryUse(std::ostream& out) const
   out << "*** Memory use by component ***\n" << pr << std::flush;
 }
 
-// Local Variables:
-// compile-command: "make -C .. "
-// indent-tabs-mode: nil
-// End:
+MATHICGB_NAMESPACE_END
