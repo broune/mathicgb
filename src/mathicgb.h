@@ -470,6 +470,7 @@ namespace mgbi {
     typedef GroebnerConfiguration::Coefficient Coefficient;
     typedef GroebnerConfiguration::VarIndex VarIndex;
     typedef GroebnerConfiguration::Exponent Exponent;
+    typedef std::pair<Coefficient, const Exponent*> ConstTerm;
     typedef size_t PolyIndex;
     typedef size_t TermIndex;
 
@@ -479,8 +480,7 @@ namespace mgbi {
     VarIndex varCount() const;
     size_t polyCount() const;
     size_t termCount(PolyIndex poly) const;
-    std::pair<Coefficient, const Exponent*> term
-      (PolyIndex poly, TermIndex term) const;
+    ConstTerm term(PolyIndex poly, TermIndex term) const;
 
   private:
     friend class ::mgbi::PimplOf;
@@ -500,18 +500,19 @@ namespace mgb {
     GroebnerInputIdealStream& inputWhichWillBeCleared,
     OutputStream& output
   ) {
+    typedef mgbi::IdealAdapter::ConstTerm ConstTerm;
     mgbi::IdealAdapter ideal;
     mgbi::internalComputeGroebnerBasis(inputWhichWillBeCleared, ideal);
 
-    const auto varCount = ideal.varCount();
-    const auto polyCount = ideal.polyCount();
+    const size_t varCount = ideal.varCount();
+    const size_t polyCount = ideal.polyCount();
     output.idealBegin(polyCount);
     for (size_t polyIndex = 0; polyIndex < polyCount; ++polyIndex) {
-      const auto termCount = ideal.termCount(polyIndex);
+      const size_t termCount = ideal.termCount(polyIndex);
       output.appendPolynomialBegin(termCount);
       for (size_t termIndex = 0; termIndex < termCount; ++termIndex) {
         output.appendTermBegin();
-        const auto term = ideal.term(polyIndex, termIndex);
+        const ConstTerm term = ideal.term(polyIndex, termIndex);
         for (size_t var = 0; var < varCount; ++var)
           output.appendExponent(var, term.second[var]);
         output.appendTermDone(term.first);

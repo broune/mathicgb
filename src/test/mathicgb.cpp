@@ -53,7 +53,7 @@ namespace {
           s.appendExponent(2, 1);
         s.appendTermDone(s.modulus() - 1);
       s.appendPolynomialDone();
-      s.appendPolynomialBegin(2); // y^2 - xy
+      s.appendPolynomialBegin(2); // y^2 - xz
         s.appendTermBegin();
           s.appendExponent(0, 0);
           s.appendExponent(1, 2);
