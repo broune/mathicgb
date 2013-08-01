@@ -1,9 +1,13 @@
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
 #ifndef MATHICGB_SIG_S_PAIR_QUEUE_GUARD
 #define MATHICGB_SIG_S_PAIR_QUEUE_GUARD
 
 #include "PolyRing.hpp"
 #include <string>
 #include <vector>
+
+MATHICGB_NAMESPACE_BEGIN
 
 typedef unsigned short SmallIndex;
 typedef unsigned int BigIndex;
@@ -13,14 +17,16 @@ struct PreSPair {
   monomial signature;
 };
 
+class SigPolyBasis;
+
 // A priority queue on S-pairs where the priority is based on a
 // signature as in signature Grobner basis algorithms. The class is
 // not responsible for eliminating S-pairs or doing anything beyond
 // order the S-pairs.
-//
-// You create these queues from a module term order.
 class SigSPairQueue {
 public:
+  typedef PolyRing::Monoid Monoid;
+
   virtual ~SigSPairQueue();
 
   typedef std::pair<size_t, size_t> Pair;
@@ -64,6 +70,9 @@ public:
 
   // Returns number of bytes of memory used.
   virtual size_t memoryUse() const = 0;
+
+  static std::unique_ptr<SigSPairQueue> create(SigPolyBasis const& basis);
 };
 
+MATHICGB_NAMESPACE_END
 #endif

@@ -1,13 +1,22 @@
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
 #include "mathicgb/stdinc.h"
 #include "test/ideals.hpp"
 
-const char* idealSmall =
-"32003 6 \
-1 1 1 1 1 1 1 \
-3 \
--bc+ad \
--b2+af \
--bc2+a2e";
+#include <sstream>
+
+using namespace mgb;
+
+std::string smallIdealComponentLastDescending() {
+  return 
+    "32003 6\n"
+    "1 1 1 1 1 1 1\n"
+    "_revlex revcomponent\n"
+    "3\n"
+    "-bc+ad\n"
+    "-b2+af\n"
+    "-bc2+a2e\n";
+}
 
 const char* idealSmallBasis = "\
 0 <0>  bc-ad\n\
@@ -27,15 +36,17 @@ const char* idealSmallSyzygies =
 const char* idealSmallInitial =
   "  bc\n  b2\n  acd\n  abd\n  a2be\n  a2d2\n  a3de\n  a4e2\n";
 
-const char* liu_ideal = 
-"2 6 \
-1 1 1 1 1 1 1 \
-4 \
-bc+bd+af+ef \
-ac+cd+bf+ef \
-ad+bd+cf+ef \
-ab+ac+df+ef \
-";
+std::string liuIdealComponentLastDescending() {
+  return 
+    "2 6\n"
+    "1 1 1 1 1 1 1\n"
+    "_revlex revcomponent\n"
+    "4\n"
+    "bc+bd+af+ef\n"
+    "ac+cd+bf+ef\n"
+    "ad+bd+cf+ef\n"
+    "ab+ac+df+ef\n";
+}
 
 const char* liu_gb_strat0_free1 = 
 "\
@@ -63,13 +74,21 @@ const char* liu_syzygies_strat0_free1 =
 const char* liu_initial_strat0_free1 =
   "  ad\n  bc\n  ac\n  ab\n  a2f\n  bd2\n  c2d\n  b2d\n  cd2f\n  c3f\n  b3f\n  b2ef2\n  bde2f2\n  c2e2f3\n  cde2f4\n  d2e3f4\n";
 
-const char* weispfennig97_ideal = 
-"7583 4 1 1 1 1 1 \
-3 \
-b4+ab2c+a2d2-2abd2+b2d2+c2d2 \
-a2b2c-bc4+a3d2+ab2d2+ac2d2+3d5 \
-a3b2-abc3+a2d3+b2d3+c2d3 \
-";
+std::string weispfennig97IdealComponentLast(bool componentsAscending) {
+  std::ostringstream out;
+  out << "7583 4 schreyer revlex 1\n";
+  if (componentsAscending)
+    out << "1 1 1 1 _revlex component\n";
+  else
+    out << "1 1 1 1 _revlex revcomponent\n";
+  out <<
+    "3\n"
+    "b4+ab2c+a2d2-2abd2+b2d2+c2d2 \n"
+    "a2b2c-bc4+a3d2+ab2d2+ac2d2+3d5 \n"
+    "a3b2-abc3+a2d3+b2d3+c2d3\n";
+  return out.str();
+}
+
 
 const char* weispfennig97_gb_strat0_free4 = "\
 0 <0>  b4+ab2c+a2d2-2abd2+b2d2+c2d2\n\
@@ -148,13 +167,48 @@ const char* weispfennig97_syzygies_strat0_free5 =
 const char* weispfennig97_initial_strat0_free5 =
   "  b4\n  a2b2c\n  a3b2\n  a4d2\n  b3c4\n  ab3c3\n  a2bc3d2\n  a3c3d2\n  ab3c2d2\n  a3bc4\n  a3bd5\n  a2c5d2\n  ab2c4d2\n  a2b3d5\n  b2c6d2\n  abc6d2\n  a2c4d5\n  bc8d2\n  ac6d5\n  abc5d5\n  bc7d5\n  c9d5\n";
 
-const char* gerdt93_ideal = 
-  "7583 6 1 1 1 1 1 1 1\n\
-   3\n\
-   ab-b2-4bc+ae\n\
-   a2c-6bc2+a2f\n\
-   a3+b2c-a2d\n\
-  ";
+const char* Gert93RawIdeal = 
+  "3\n"
+  "ab-b2-4bc+ae\n"
+  "a2c-6bc2+a2f\n"
+  "a3+b2c-a2d\n";
+
+
+std::string gerdt93IdealComponentLast(bool componentsAscending, bool schreyer) {
+  std::ostringstream out;
+  out << "7583 6\n";
+  if (schreyer)
+    out << "schreyer ";
+  out << "revlex 1\n";
+  if (componentsAscending)
+    out << " 1 1 1 1 1 1 _revlex component\n";
+  else
+    out << " 1 1 1 1 1 1 _revlex revcomponent\n";
+  out << Gert93RawIdeal;
+  return out.str();
+}
+
+std::string gerdt93IdealComponentFirst(bool componentsAscending) {
+  std::ostringstream out;
+  out << "7583 6 schreyer revlex 2\n";
+  if (componentsAscending)
+    out << " component\n 1 1 1 1 1 1\n";
+  else
+    out << " revcomponent\n 1 1 1 1 1 1\n";
+  out << Gert93RawIdeal;
+  return out.str();
+}
+
+std::string gerdt93IdealComponentMiddle(bool componentsAscending) {
+  std::ostringstream out;
+  out << "7583 6 schreyer revlex 2\n";
+  if (componentsAscending)
+    out << "1 1 1 1 1 1\n component\n";
+  else
+    out << "1 1 1 1 1 1\n revcomponent\n";
+  out << Gert93RawIdeal;
+  return out.str();
+}
 
 const char* gerdt93_gb_strat0_free1 = "\
 0 <0>  ab-b2-4bc+ae\n\
@@ -256,11 +310,30 @@ const char* gerdt93_syzygies_strat0_free5 = "\
   0: a2c  a3  \n\
   1: ab2  a2b  a3  \n\
 ";
-
 const char* gerdt93_initial_strat0_free5 =
   "  ab\n  a2c\n  a3\n  b2c2\n  b3c\n  b4\n  bc3e\n  bc4\n  ac3de\n";
 
-// Local Variables:
-// compile-command: "make -C .. "
-// indent-tabs-mode: nil
-// End:
+const char* gerdt93_gb_strat0_free6 = "0 <0>  ab-b2-4bc+ae\n1 <1>  a2c-6bc2+a2f\n2 <2>  a3+b2c-a2d\n3 b<1>  b3c+2b2c2+16bc3-b2ce-4ac2e-10bc2e+ace2+b3f+8b2cf+16bc2f-b2ef-4acef-4bcef+ae2f\n4 c<2>  b2c2+2170bc3+3249bc2d+3249ac2e+3250b2cf\n5 b<2>  b4-2386bc3-b3d-8b2cd-3247bc2d-2b3e-6b2ce-3195ac2e+58bc2e+b2de+4acde+4bcde+a2e2+2b2e2-ace2+8bce2-ade2-2ae3-13b3f-3357b2cf-208bc2f+4a2ef+13b2ef+52acef+52bcef-13ae2f\n6 bc<2>  bc4-563bc3d-2577bc2d2-1896ac3e-2681bc3e-2577ac2de-3362bc2de+3088ac2e2-1829bc3f-3362b2cdf-2179bc2df-3362b2cef+2353ac2ef+1659bc2ef-1133ace2f-785b3f2+2930b2cf2+2606bc2f2+785b2ef2+3140acef2+3140bcef2-785ae2f2\n7 ac<2>  bc3e-3140ac2de-1718bc2de+2814ac2e2-1718b2cef+947bc2ef-3051ace2f+3140a2ef2\n8 ac2<2>  ac3de+1155ac2d2e-2873bc2d2e+3790ac3e2-1570ac2de2+3362bc2de2-3088ac2e3+2814b2cdef+2370bc2def+3362b2ce2f-3790ac2e2f-1659bc2e2f-3599acde2f+1133ace3f-1896b3ef2-1898b2cef2-10bc2ef2-1155a2def2+2681a2e2f2+1896b2e2f2+ace2f2+bce2f2-1896ae3f2+a2ef3\n";
+const char* gerdt93_syzygies_strat0_free6 =
+  "  1: ab  \n  2: ab  b2c  a2c  \n";
+const char* gerdt93_initial_strat0_free6 =
+  "  ab\n  a2c\n  a3\n  b2c2\n  b3c\n  b4\n  bc3e\n  bc4\n  ac3de\n";
+
+const char* gerdt93_gb_strat0_free7 = "\
+0 <0>  ab-b2-4bc+ae\n\
+1 <1>  a2c-6bc2+a2f\n\
+2 <2>  a3+b2c-a2d\n\
+3 a<1>  abc2+1264b2c2-bc2d+1264b2cf\n\
+4 a2<1>  b3c2-216b2c3-12b2c2d+36bc2d2-6ab2cf+b3cf+216b2c2f-6b2cdf-36a2bf2\n\
+5 c2<0>  b2c2+2170bc3+3249bc2d+3249ac2e+3250b2cf\n\
+6 ac<0>  b3c+3259bc3+1085bc2d-b2ce+1081ac2e-10bc2e+ace2+b3f+1091b2cf+16bc2f-b2ef-4acef-4bcef+ae2f\n\
+7 a2<0>  b4-2386bc3-b3d-8b2cd-3247bc2d-2b3e-6b2ce-3195ac2e+58bc2e+b2de+4acde+4bcde+a2e2+2b2e2-ace2+8bce2-ade2-2ae3-13b3f-3357b2cf-208bc2f+4a2ef+13b2ef+52acef+52bcef-13ae2f\n\
+8 bc2<0>  bc4-563bc3d-2577bc2d2-1896ac3e-469bc3e-2229ac2de+3088bc2de+2013ac2e2-1829bc3f-3362b2cdf-2179bc2df+3088b2cef+2353ac2ef+3515bc2ef-1075ace2f-785b3f2+2930b2cf2+2606bc2f2-348a2ef2+785b2ef2+3140acef2+3140bcef2-785ae2f2\n\
+9 ac2<0>  bc3e-3140ac2de-1718bc2de+2814ac2e2-1718b2cef+947bc2ef-3051ace2f+3140a2ef2\n\
+10 ac3<0>  ac3de+1155ac2d2e-2873bc2d2e+3790ac3e2-1570ac2de2+3362bc2de2-3088ac2e3+2814b2cdef+2370bc2def+3362b2ce2f-3790ac2e2f-1659bc2e2f-3599acde2f+1133ace3f-1896b3ef2-1898b2cef2-10bc2ef2-1155a2def2+2681a2e2f2+1896b2e2f2+ace2f2+bce2f2-1896ae3f2+a2ef3\n\
+";
+
+const char* gerdt93_syzygies_strat0_free7 =
+  "  0: a2c  a3  b2c2  abc2  \n  1: a3  \n";
+const char* gerdt93_initial_strat0_free7 =
+  "  ab\n  a2c\n  a3\n  b2c2\n  b3c\n  b4\n  bc3e\n  bc4\n  ac3de\n";

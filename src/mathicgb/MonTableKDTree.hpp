@@ -1,13 +1,16 @@
-#ifndef K_D_TREE_MODEL_GUARD
-#define K_D_TREE_MODEL_GUARD
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
+#ifndef MATHICGB_MON_TABLE_K_D_TREE_GUARD
+#define MATHICGB_MON_TABLE_K_D_TREE_GUARD
 
+#include "PolyRing.hpp"
 #include <string>
 #include <vector>
 #include <iostream>
 #include <memtailor.h>
 #include <mathic.h>
 
-#include "PolyRing.hpp"
+MATHICGB_NAMESPACE_BEGIN
 
 /** Helper class for KDTreeModel. */
 template<bool UseDivMask, bool UseTreeDivMask, size_t LeafSize, bool AllowRemovals>
@@ -284,9 +287,5 @@ void MonTableKDTree<UDM, UTM, LS, AR>::getMonomials(std::vector<const_monomial>&
   _finder.forAll(copier);
 }
 
+MATHICGB_NAMESPACE_END
 #endif
-
-// Local Variables:
-// compile-command: "make -C .. "
-// indent-tabs-mode: nil
-// End:

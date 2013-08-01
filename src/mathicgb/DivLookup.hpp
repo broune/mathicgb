@@ -1,14 +1,16 @@
-#ifndef __div_lookup_guard_
-#define __div_lookup_guard_
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
+#ifndef MATHICGB_DIV_LOOKUP_GUARD
+#define MATHICGB_DIV_LOOKUP_GUARD
 
+#include "SigPolyBasis.hpp"
+#include "DivisorLookup.hpp"
+#include "PolyRing.hpp"
 #include <string>
 #include <vector>
 #include <iostream>
 
-#include "GroebnerBasis.hpp"
-#include "DivisorLookup.hpp"
-#include "PolyRing.hpp"
-#include "FreeModuleOrder.hpp"
+MATHICGB_NAMESPACE_BEGIN
 
 /** Configuration class for interface to KDTree, DivList */
 /* As such, it has entries that both will expect */
@@ -56,7 +58,7 @@ public:
     mBasis = &basis;
   }
 
-  void setSigBasis(const GroebnerBasis& sigBasis) {
+  void setSigBasis(const SigPolyBasis& sigBasis) {
     if (mSigBasis == &sigBasis)
       return;
     MATHICGB_ASSERT(mSigBasis == 0);
@@ -209,7 +211,7 @@ public:
   void displayStats(std::ostream &o) const;
 
 ///////////////////////////
-  const GroebnerBasis* sigBasis() const {return mSigBasis;}
+  const SigPolyBasis* sigBasis() const {return mSigBasis;}
   const PolyBasis* basis() const {return mBasis;}
   const PolyRing* getPolyRing() const {return mRing;}
   unsigned long long getExpQueryCount() const {return _expQueryCount;}
@@ -218,7 +220,7 @@ public:
 
 private:
   PolyBasis const* mBasis;
-  GroebnerBasis const* mSigBasis;
+  SigPolyBasis const* mSigBasis;
   const PolyRing* mRing;
   const size_t _varCount;
   const bool _minimize_on_insert;
@@ -253,7 +255,7 @@ class DivLookup : public DivisorLookup {
     _finder.getConfiguration().setBasis(basis);
   }
 
-  virtual void setSigBasis(const GroebnerBasis& sigBasis) {
+  virtual void setSigBasis(const SigPolyBasis& sigBasis) {
     _finder.getConfiguration().setSigBasis(sigBasis);
   }
 
@@ -265,7 +267,7 @@ class DivLookup : public DivisorLookup {
     size_t maxDivisors,
     size_t newGenerator
   ) const {
-    const GroebnerBasis* GB = _finder.getConfiguration().sigBasis();
+    const SigPolyBasis* GB = _finder.getConfiguration().sigBasis();
 
     const_monomial sigNew = GB->getSignature(newGenerator);
 
@@ -275,7 +277,7 @@ class DivLookup : public DivisorLookup {
   }
 
   virtual size_t highBaseDivisor(size_t newGenerator) const {
-    const GroebnerBasis* basis = _finder.getConfiguration().sigBasis();
+    const SigPolyBasis* basis = _finder.getConfiguration().sigBasis();
     MATHICGB_ASSERT(newGenerator < basis->size());
 
     HighBaseDivisor searchObject(*basis, newGenerator);
@@ -348,7 +350,7 @@ private:
   class LowBaseDivisor {
   public:
     LowBaseDivisor(
-      const GroebnerBasis& basis,
+      const SigPolyBasis& basis,
       std::vector<size_t>& divisors,
       size_t maxDivisors,
       size_t newGenerator
@@ -384,7 +386,7 @@ private:
       return true;
     }
   private:
-    const GroebnerBasis& mSigBasis;
+    const SigPolyBasis& mSigBasis;
     std::vector<size_t>& mDivisors;
     const size_t mMaxDivisors;
     const size_t mNewGenerator;
@@ -393,7 +395,7 @@ private:
   // Class used in highBaseDivisor()
   class HighBaseDivisor {
   public:
-    HighBaseDivisor(const GroebnerBasis& basis, size_t newGenerator):
+    HighBaseDivisor(const SigPolyBasis& basis, size_t newGenerator):
       mSigBasis(basis),
       mNewGenerator(newGenerator),
       mHighDivisor(static_cast<size_t>(-1)) {}
@@ -412,7 +414,7 @@ private:
     }
     size_t highDivisor() const {return mHighDivisor;}
   private:
-    const GroebnerBasis& mSigBasis;
+    const SigPolyBasis& mSigBasis;
     const size_t mNewGenerator;
     size_t mHighDivisor;
   };
@@ -420,7 +422,7 @@ private:
   // Class used in minimalLeadInSig()
   class MinimalLeadInSig {
   public:
-    MinimalLeadInSig(const GroebnerBasis& basis):
+    MinimalLeadInSig(const SigPolyBasis& basis):
       mSigBasis(basis),
       mMinLeadGen(static_cast<size_t>(-1)) {}
 
@@ -456,7 +458,7 @@ private:
             // ensures deterministic behavior.
             const const_monomial minSig = mSigBasis.getSignature(mMinLeadGen);
             const const_monomial genSig = mSigBasis.getSignature(entry.index);
-            int sigCmp = mSigBasis.order().signatureCompare(minSig, genSig);
+            int sigCmp = mSigBasis.monoid().compare(minSig, genSig);
             MATHICGB_ASSERT(sigCmp != EQ); // no two generators have same signature
             if (sigCmp == GT)
               return true;
@@ -469,7 +471,7 @@ private:
 
     size_t minLeadGen() const {return mMinLeadGen;}
   private:
-    const GroebnerBasis& mSigBasis;
+    const SigPolyBasis& mSigBasis;
     size_t mMinLeadGen;
   };
 
@@ -512,64 +514,10 @@ private:
     size_t mReducer;
   };
 
-  /*
-  // Class used in findDivisor()
-  class DO {
-  public:
-        DO(const FreeModuleOrder *F0, const PolyRing *R0, const_monomial sig, const_monomial monom, size_t &val, monomial &result_multiplier)
-          : F(F0),
-                R(R0),
-                _sig(sig),
-                _monom(monom),
-                _val(val),
-                _multiplier(result_multiplier),
-                _found(false)
-        {}
-
-        bool proceed(const Entry &e)
-        {
-          bool result = true;
-          // MATHICGB_ASSERT(R->monomialDivide(_monom, e.monom, _multiplier));
-          //      stats_n_reducer_divides++;
-          R->monomialDivide(_monom, e.monom, _multiplier);
-          // stats_n_reducer_sig_compares++;
-          if (GT == F->signatureCompare(_sig, _multiplier, e.sig))
-                {
-                  //if (divisors) divisors[hashval] = i;
-                  _val = e.index;
-                  _found = true;
-                  result = false;
-                }
-          if (tracingLevel==11)
-                {
-                  std::cerr << "  PR: " << result << " _monom= ";
-                  R->monomialDisplay(std::cerr, _monom);
-                  std::cerr << "e.monom= ";
-                  R->monomialDisplay(std::cerr, e.monom);
-                  std::cerr << " _multiplier= ";
-                  R->monomialDisplay(std::cerr, _multiplier);
-                  std::cerr << std::endl;
-                }
-          return result;
-        }
-
-        bool found() const { return _found; }
-  private:
-        const FreeModuleOrder *F;
-        const PolyRing *R;
-        const_monomial _sig;
-        const_monomial _monom;
-        // output values (the first two are references elsewhere, so no interface to them is needed).
-        size_t &_val;
-        monomial &_multiplier;
-        bool _found;
-  };
-  */
-
   class DOCheckAll {
   public:
     DOCheckAll(
-      const GroebnerBasis& basis,
+      const SigPolyBasis& basis,
       const_monomial sig,
       const_monomial monom,
       bool preferSparseReducers
@@ -610,8 +558,8 @@ private:
     size_t reducer() {return mReducer;}
 
   private:
-    GroebnerBasis::StoredRatioCmp const mRatioCmp;
-    GroebnerBasis const& mSigBasis;
+    SigPolyBasis::StoredRatioCmp const mRatioCmp;
+    SigPolyBasis const& mSigBasis;
     size_t mReducer;
     bool const mPreferSparseReducers;
   };
@@ -621,17 +569,6 @@ public:
         _finder.insert(Entry(mon, val));
   }
 
-#if 0
-  virtual bool findDivisor(const_monomial sig, const_monomial mon, size_t &val, monomial &result_multiplier)
-  {
-        DO out(getConfiguration().order(), getConfiguration().getPolyRing(), sig, mon, val, result_multiplier);
-        _finder.findAllDivisors(mon, out);
-        return out.found();
-  }
-#endif
-  // ifdef the above code to 0 and this to 1, if you wish to use: choose divisor to be a one wih minimal number
-  // of monomial that satisfies sig and divisibility criteria.
-#if 1
   virtual size_t regularReducer(const_monomial sig, const_monomial mon) const
   {
     DOCheckAll out(
@@ -643,7 +580,7 @@ public:
     _finder.findAllDivisors(mon, out);
     return out.reducer();
   }
-#endif
+
   unsigned long long getExpQueryCount() const {
     return _finder.getConfiguration().getExpQueryCount();
   }
@@ -668,9 +605,5 @@ size_t DivLookup<C>::getMemoryUse() const
   return 4 * sizeof(void *) * _finder.size();  // NOT CORRECT!!
 }
 
+MATHICGB_NAMESPACE_END
 #endif
-
-// Local Variables:
-// compile-command: "make -C .. "
-// indent-tabs-mode: nil
-// End:

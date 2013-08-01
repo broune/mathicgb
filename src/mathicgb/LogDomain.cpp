@@ -1,9 +1,13 @@
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
 #include "stdinc.h"
 #include "LogDomain.hpp"
 
 #include "LogDomainSet.hpp"
 #include <mathic.h>
 #include <iostream>
+
+MATHICGB_NAMESPACE_BEGIN
 
 static const auto logDomainGlobalStartTime = mgb::tbb::tick_count::now();
 
@@ -14,12 +18,26 @@ LogDomain<true>::LogDomain(
   const bool streamEnabled
 ):
   mEnabled(enabled),
+  mOriginallyEnabled(enabled),
   mStreamEnabled(streamEnabled),
+  mOriginallyStreamEnabled(streamEnabled),
   mName(name),
   mDescription(description),
-  mInterval()
+  mInterval(),
+  mHasTime(false),
+  mCount(0),
+  mHasCount(false)
 {
   LogDomainSet::singleton().registerLogDomain(*this);
+}
+
+void LogDomain<true>::reset() {
+  mEnabled = mOriginallyEnabled;
+  mStreamEnabled = mOriginallyStreamEnabled;
+  mInterval = TimeInterval();
+  mHasTime = false;
+  mCount = 0;
+  mHasCount = false;
 }
 
 std::ostream& LogDomain<true>::stream() {
@@ -93,3 +111,5 @@ void LogDomain<true>::Timer::start() {
 LogDomainInternal::LogAliasRegisterer::LogAliasRegisterer(const char* alias, const char* of) {
   LogDomainSet::singleton().registerLogAlias(alias, of);
 }
+
+MATHICGB_NAMESPACE_END

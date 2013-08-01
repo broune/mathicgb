@@ -1,0 +1,6 @@
+101 4 1 1 1 1 1
+4
+ a+b+c+d
+ ab+bc+cd+da
+ abc+bcd+cda+dab
+ abcd-1

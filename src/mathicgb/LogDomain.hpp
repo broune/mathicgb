@@ -1,3 +1,5 @@
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
 #ifndef MATHICGB_LOG_DOMAIN_GUARD
 #define MATHICGB_LOG_DOMAIN_GUARD
 
@@ -5,6 +7,8 @@
 #include <ostream>
 #include <ctime>
 #include <sstream>
+
+MATHICGB_NAMESPACE_BEGIN
 
 /// A named area of logging that can be turned on or off at runtime and at
 /// compile time.
@@ -46,7 +50,7 @@ public:
   void setEnabled(const bool enabled) {mEnabled = enabled;}
   void setStreamEnabled(const bool enabled) {mStreamEnabled = enabled;}
 
-  std::ostream& stream();
+  ::std::ostream& stream();
 
   /// Class for recording time that is logged. Movable.
   class Timer;
@@ -76,18 +80,24 @@ public:
   /// Returns true if setCount has been called.
   bool hasCount() const {return mHasCount;}
 
+  /// Resets this object to the state it had when it was
+  /// constructed.
+  void reset();
+
 private:
   struct TimeInterval {
     // todo: support user time too. clock() doesn't seem to sum the time
     // for all threads, so that didn't work.
     double realSeconds;
 
-    void print(std::ostream& out) const;
+    void print(::std::ostream& out) const;
   };
   void recordTime(TimeInterval interval);
 
   bool mEnabled;
+  const bool mOriginallyEnabled;
   bool mStreamEnabled;
+  const bool mOriginallyStreamEnabled;
   const char* mName;
   const char* mDescription;
 
@@ -95,7 +105,7 @@ private:
   bool mHasTime; /// Whether any time has been registered (even if 0s).
 
   Counter mCount;
-  bool mHasCount; /// Whether the count has been set
+  bool mHasCount; /// Whether the count has been set (even if set to zero)
 };
 
 class LogDomain<true>::Timer {
@@ -154,15 +164,16 @@ public:
     return Timer(*this);
   }
 
-  std::ostream& stream() {
+  ::std::ostream& stream() {
     MATHICGB_ASSERT(false);
-    return *static_cast<std::ostream*>(0);
+    return *static_cast< ::std::ostream*>(0);
   }
 
   typedef unsigned long long Counter;
   Counter count() const {return 0;}
   void setCount(const Counter counter) {MATHICGB_ASSERT(false);}
   bool hasCount() const {return false;}
+  void reset() {}
 };
 
 namespace LogDomainInternal {
@@ -189,24 +200,28 @@ namespace LogDomainInternal {
     return r;
   }
   template<class L, class T>
-  void operator+(LambdaRunner<L> runner, T&& lambda) {lambda(runner.log);}
+  void operator+(LambdaRunner<L> runner, T&& lambda) {
+    lambda(runner.log, runner.log.stream());
+  }
 
   struct LogAliasRegisterer {
     LogAliasRegisterer(const char* alias, const char* of);
   };
 }
 
+MATHICGB_NAMESPACE_END
+
 /// Defines LogDomainInternal::value_##NAME to be equal to the value of
 /// the macro MATHICGB_LOG_##NAME if that macro expands to 0 or 1. Otherwise
 /// the macro MATHICGB_LOG_##NAME is ignored and instead DEFAULT_VALUE is used.
 #define MATHICGB_CAPTURE_LOG_ENABLED(NAME, DEFAULT_VALUE) \
-  namespace LogDomainInternal { \
+  namespace mgb{namespace LogDomainInternal {             \
     template<class> struct Tag_MATHICGB_LOG_##NAME {}; \
     typedef MATHICGB_CONCATENATE_AFTER_EXPANSION(Tag_, MATHICGB_LOG_##NAME)<int> \
       SelectedTag_##NAME; \
     static const bool value_##NAME = \
       SelectValue<SelectedTag_##NAME, DEFAULT_VALUE>::value; \
-  }
+  }}
 
 /// Defines a LogDomain with the given name and description.
 ///
@@ -222,15 +237,15 @@ namespace LogDomainInternal {
   DEFAULT_COMPILE_TIME_ENABLED \
 ) \
   MATHICGB_CAPTURE_LOG_ENABLED(NAME, DEFAULT_COMPILE_TIME_ENABLED); \
-  namespace logs { \
-    typedef LogDomain< ::LogDomainInternal::value_##NAME> Type##NAME; \
+  namespace mgb{namespace logs {                                      \
+    typedef LogDomain< ::mgb::LogDomainInternal::value_##NAME> Type##NAME; \
     Type##NAME NAME( \
       #NAME, \
       DESCRIPTION, \
       DEFAULT_RUNTIME_ENABLED, \
       DEFAULT_RUNTIME_STREAM_ENABLED \
     ); \
-  }
+  }}
 
 /// Defines a LogDomain with the given name and description.
 ///
@@ -242,39 +257,40 @@ namespace LogDomainInternal {
   MATHICGB_DEFINE_LOG_DOMAIN_WITH_DEFAULTS(NAME, DESCRIPTION, 0, 1, 1);
 
 #define MATHICGB_DEFINE_LOG_ALIAS(ALIAS, OF) \
-  namespace LogDomainInternal { \
+  namespace mgb{namespace LogDomainInternal {                           \
     LogAliasRegisterer MATHICGB_CONCATENATE_AFTER_EXPANSION(reg_, __LINE__) \
       (ALIAS, OF); \
-  }
+  }}
 
 /// This expression yields an l-value reference to the indicated logger.
 ///
 /// Example:
 ///   auto timer = MATHICGB_LOGGER(MyDomain).timer();
-#define MATHICGB_LOGGER(DOMAIN) ::logs::DOMAIN
+#define MATHICGB_LOGGER(DOMAIN) ::mgb::logs::DOMAIN
 
 /// This expression yields the type of the indicated logger.
 ///
 /// Example:
 ///   if (MATHICGB_LOGGER_TYPE(MyDomain)::compileTimeEnabled)
-///     std::ostream << "MyDomain is compiled time enabled";
-#define MATHICGB_LOGGER_TYPE(DOMAIN) ::logs::Type##DOMAIN
+///     ::std::ostream << "MyDomain is compiled time enabled";
+#define MATHICGB_LOGGER_TYPE(DOMAIN) ::mgb::logs::Type##DOMAIN
 
 /// Runs the code in the following scope delimited by braces {} if the
-/// indicated logger is enabled for streaming - otherwise does nothing.
-/// Within the following scope there is a local reference variable log
-/// that refers to the indicated logger.
+/// indicated logger is enabled for streaming - otherwise does
+/// nothing.  Within the following scope there is a local reference
+/// variable log that refers to the indicated logger and a local
+/// reference variable stream that refers to log.stream().
 ///
 /// Example:
 ///   MATHICGB_IF_STREAM_LOG(MyDomain) {
-///     std::string msg;
+///     ::std::string msg;
 ///     expensiveFunction(msg);
-///     log << msg;
+///     stream << msg; // or log.stream() << msg;
 ///   }
 #define MATHICGB_IF_STREAM_LOG(DOMAIN) \
   if (MATHICGB_LOGGER(DOMAIN).streamEnabled()) \
     LogDomainInternal::lambdaRunner(MATHICGB_LOGGER(DOMAIN)) + \
-      [&](MATHICGB_LOGGER_TYPE(DOMAIN)& log)
+      [&](MATHICGB_LOGGER_TYPE(DOMAIN)& log, ::std::ostream& stream)
 
 /// Display information to the log using <<.
 /// If domain is not enabled and stream enabled then the log message is not

@@ -1,5 +1,7 @@
-#ifndef F4_MATRIX_BUILDER_2_GUARD
-#define F4_MATRIX_BUILDER_2_GUARD
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
+#ifndef MATHICGB_F4_MATRIX_BUILDER_2_GUARD
+#define MATHICGB_F4_MATRIX_BUILDER_2_GUARD
 
 #include "SparseMatrix.hpp"
 #include "Poly.hpp"
@@ -10,6 +12,8 @@
 #include "F4ProtoMatrix.hpp"
 #include "mtbb.hpp"
 #include <vector>
+
+MATHICGB_NAMESPACE_BEGIN
 
 /** Class for constructing an F4 matrix.
 
@@ -68,7 +72,7 @@ public:
 
 private:
   typedef const Map::Reader ColReader;
-  typedef std::vector<monomial> Monomials;
+  typedef ::std::vector<monomial> Monomials;
 
   /// Represents the task of adding a row to the matrix. If sPairPoly is null
   /// then the row to add is multiply * poly. Otherwise, the row to add is
@@ -86,7 +90,7 @@ private:
   /// reduce that column if possible. Here x is monoA if monoB is
   /// null and otherwise x is the product of monoA and monoB.
   MATHICGB_NO_INLINE
-  std::pair<ColIndex, ConstMonomial> createColumn(
+  ::std::pair<ColIndex, ConstMonomial> createColumn(
     const_monomial monoA,
     const_monomial monoB,
     TaskFeeder& feeder
@@ -108,14 +112,14 @@ private:
   );
 
   MATHICGB_NO_INLINE
-  std::pair<ColIndex, ConstMonomial> findOrCreateColumn(
+  ::std::pair<ColIndex, ConstMonomial> findOrCreateColumn(
     const_monomial monoA,
     const_monomial monoB,
     TaskFeeder& feeder
   );
   
   MATHICGB_INLINE
-  std::pair<ColIndex, ConstMonomial> findOrCreateColumn(
+  ::std::pair<ColIndex, ConstMonomial> findOrCreateColumn(
     const_monomial monoA,
     const_monomial monoB,
     const ColReader& colMap,
@@ -130,13 +134,14 @@ private:
     TaskFeeder& feeder
   );
 
-  std::vector<char> mIsColumnToLeft;
+  ::std::vector<char> mIsColumnToLeft;
   const size_t mMemoryQuantum;
   mgb::tbb::mutex mCreateColumnLock;
   monomial mTmp;
   const PolyBasis& mBasis;
   Map mMap;
-  std::vector<RowTask> mTodo;
+  ::std::vector<RowTask> mTodo;
 };
 
+MATHICGB_NAMESPACE_END
 #endif

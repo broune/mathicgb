@@ -1,25 +1,28 @@
-// Copyright 2011 Michael E. Stillman
-
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
 #include "mathicgb/stdinc.h"
 
 #include "mathicgb/Poly.hpp"
-#include "mathicgb/Ideal.hpp"
+#include "mathicgb/Basis.hpp"
 #include "mathicgb/MTArray.hpp"
 #include "mathicgb/MonTableNaive.hpp"
 #include "mathicgb/io-util.hpp"
 #include "mathicgb/PolyHeap.hpp"
-#include "mathicgb/GroebnerBasis.hpp"
+#include "mathicgb/SigPolyBasis.hpp"
 #include "mathicgb/SignatureGB.hpp"
-#include "mathicgb/BuchbergerAlg.hpp"
+#include "mathicgb/ClassicGBAlg.hpp"
 #include "mathicgb/mtbb.hpp"
+#include "mathicgb/MathicIO.hpp"
+#include "mathicgb/Scanner.hpp"
 #include "test/ideals.hpp"
-
 #include <cstdio>
 #include <string>
 #include <iostream>
 #include <sstream>
 #include <memory>
 #include <gtest/gtest.h>
+
+using namespace mgb;
 
 TEST(IO, ideal) {
   const char* idealA_fromStr_format = 
@@ -31,17 +34,17 @@ TEST(IO, ideal) {
 -bc2+a2e \
 ";
 
-  std::unique_ptr<Ideal> I = idealParseFromString(idealA_fromStr_format);
+  std::unique_ptr<Basis> I = basisParseFromString(idealA_fromStr_format);
   EXPECT_EQ("  -bc+ad\n  -b2+af\n  -bc2+a2e\n", toString(I.get()));
 }
 
-void testGB(int freeModuleOrder,
-            std::string idealStr,
-            std::string sigBasisStr,
-            std::string syzygiesStr,
-            std::string initialIdealStr,
-            size_t nonSingularReductions)
-{
+void testGB(
+  std::string idealStr,
+  std::string sigBasisStr,
+  std::string syzygiesStr,
+  std::string initialIdealStr,
+  size_t nonSingularReductions
+) {
   // Put the contents of pict.out into allPairsTest as a string. This
   // works because pict.out does not have any commas and we do not
   // care about whitespace. pict.out contains a set of tests such that
@@ -286,41 +289,62 @@ spairQueue	reducerType	divLookup	monTable	buchberger	postponeKoszul	useBaseDivis
     // check that we have a valid reducer type
     Reducer::ReducerType red = Reducer::ReducerType(reducerType);
     MATHICGB_ASSERT(static_cast<int>(red) == reducerType);
-    std::unique_ptr<Ideal> I(idealParseFromString(idealStr));
-    MATHICGB_ASSERT
-      (Reducer::makeReducerNullOnUnknown(red, I->ring()).get() != 0);
+
+    std::istringstream inStream(idealStr);
+
+    Scanner in(inStream);
+    auto p = MathicIO().readRing(true, in);
+    auto& ring = *p.first;
+    auto& processor = p.second;
+    auto basis = MathicIO().readBasis(ring, false, in);
+    if (processor.schreyering())
+      processor.setSchreyerMultipliers(basis);
+
+    MATHICGB_ASSERT(Reducer::makeReducerNullOnUnknown(red, ring).get() != 0);
 
     mgb::tbb::task_scheduler_init scheduler(threadCount);
     if (buchberger) {
       const auto reducer = Reducer::makeReducer
-        (Reducer::reducerType(reducerType), I->ring());
-      BuchbergerAlg alg
-        (*I, freeModuleOrder, *reducer,
-         divLookup, preferSparseReducers, spairQueue);
+        (Reducer::reducerType(reducerType), ring);
+      ClassicGBAlg alg(
+        std::move(basis),
+        *reducer,
+        divLookup,
+        preferSparseReducers,
+        spairQueue
+      );
       alg.setUseAutoTopReduction(autoTopReduce);
       alg.setUseAutoTailReduction(autoTailReduce);
       alg.setSPairGroupSize(sPairGroupSize);
       alg.computeGrobnerBasis();
-      std::unique_ptr<Ideal> initialIdeal =
+      std::unique_ptr<Basis> initialIdeal =
         alg.basis().initialIdeal();
       EXPECT_EQ(initialIdealStr, toString(initialIdeal.get()))
         << reducerType << ' ' << divLookup << ' '
         << monTable << ' ' << postponeKoszul << ' ' << useBaseDivisors;
     } else {
-      SignatureGB basis
-        (*I, freeModuleOrder, Reducer::reducerType(reducerType),
-         divLookup, monTable, postponeKoszul, useBaseDivisors,
-         preferSparseReducers, useSingularCriterionEarly, spairQueue);
-      basis.computeGrobnerBasis();
-      EXPECT_EQ(sigBasisStr, toString(basis.getGB(), 1))
+      SignatureGB alg(
+        std::move(basis),
+        std::move(processor),
+        Reducer::reducerType(reducerType),
+        divLookup,
+        monTable,
+        postponeKoszul,
+        useBaseDivisors,
+        preferSparseReducers,
+        useSingularCriterionEarly,
+        spairQueue
+      );
+      alg.computeGrobnerBasis();
+      EXPECT_EQ(sigBasisStr, toString(alg.getGB(), 1))
         << reducerType << ' ' << divLookup << ' '
         << monTable << ' ' << ' ' << postponeKoszul << ' '
         << useBaseDivisors;
-      EXPECT_EQ(syzygiesStr, toString(basis.getSyzTable()))
+      EXPECT_EQ(syzygiesStr, toString(alg.getSyzTable()))
         << reducerType << ' ' << divLookup << ' '
         << monTable << ' ' << ' ' << postponeKoszul << ' '
         << useBaseDivisors;
-      EXPECT_EQ(nonSingularReductions, basis.getSigReductionCount() - basis.getSingularReductionCount())
+      EXPECT_EQ(nonSingularReductions, alg.getSigReductionCount() - alg.getSingularReductionCount())
         << reducerType << ' ' << divLookup << ' '
         << monTable << ' ' << ' ' << postponeKoszul << ' '
         << useBaseDivisors;
@@ -329,50 +353,58 @@ spairQueue	reducerType	divLookup	monTable	buchberger	postponeKoszul	useBaseDivis
 }
 
 TEST(GB, small) {
-  testGB(0, idealSmall, idealSmallBasis, idealSmallSyzygies, idealSmallInitial, 7);
+  testGB(smallIdealComponentLastDescending(),
+         idealSmallBasis, idealSmallSyzygies, idealSmallInitial, 7);
 }
 
 TEST(GB, liu_0_1) {
-  testGB(1, liu_ideal, liu_gb_strat0_free1,
+  testGB(liuIdealComponentLastDescending(), liu_gb_strat0_free1,
     liu_syzygies_strat0_free1, liu_initial_strat0_free1, 13);
 }
 
 TEST(GB, weispfennig97_0_4) {
-  testGB(4, weispfennig97_ideal, weispfennig97_gb_strat0_free4,
+  testGB(weispfennig97IdealComponentLast(true),
+         weispfennig97_gb_strat0_free4,
          weispfennig97_syzygies_strat0_free4, weispfennig97_initial_strat0_free4, 31);
 }
 
 TEST(GB, weispfennig97_0_5) {
-  testGB(5, weispfennig97_ideal, weispfennig97_gb_strat0_free5,
+  testGB(weispfennig97IdealComponentLast(false),
+         weispfennig97_gb_strat0_free5,
          weispfennig97_syzygies_strat0_free5, weispfennig97_initial_strat0_free5, 27);
 }
 
 TEST(GB, gerdt93_0_1) {
-  testGB(1, gerdt93_ideal, gerdt93_gb_strat0_free1,
+  testGB(gerdt93IdealComponentLast(false, false), gerdt93_gb_strat0_free1,
          gerdt93_syzygies_strat0_free1, gerdt93_initial_strat0_free1, 9);
 }
 
 TEST(GB, gerdt93_0_2) {
-  testGB(2, gerdt93_ideal, gerdt93_gb_strat0_free2,
+  testGB(gerdt93IdealComponentMiddle(true), gerdt93_gb_strat0_free2,
          gerdt93_syzygies_strat0_free2, gerdt93_initial_strat0_free2, 7);
 }
 
 TEST(GB, gerdt93_0_3) {
-  testGB(3, gerdt93_ideal, gerdt93_gb_strat0_free3,
+  testGB(gerdt93IdealComponentMiddle(false), gerdt93_gb_strat0_free3,
          gerdt93_syzygies_strat0_free3, gerdt93_initial_strat0_free3, 9);
 }
 
 TEST(GB, gerdt93_0_4) {
-  testGB(4, gerdt93_ideal, gerdt93_gb_strat0_free4,
+  testGB(gerdt93IdealComponentLast(true, true), gerdt93_gb_strat0_free4,
          gerdt93_syzygies_strat0_free4, gerdt93_initial_strat0_free4, 7);
 }
+
 TEST(GB, gerdt93_0_5) {
-  testGB(5, gerdt93_ideal, gerdt93_gb_strat0_free5,
+  testGB(gerdt93IdealComponentLast(false, true), gerdt93_gb_strat0_free5,
          gerdt93_syzygies_strat0_free5, gerdt93_initial_strat0_free5, 7);
 }
 
+TEST(GB, gerdt93_0_6) {
+  testGB(gerdt93IdealComponentFirst(true), gerdt93_gb_strat0_free6,
+         gerdt93_syzygies_strat0_free6, gerdt93_initial_strat0_free6, 7);
+}
 
-// Local Variables:
-// compile-command: "make -C .. "
-// indent-tabs-mode: nil
-// End:
+TEST(GB, gerdt93_0_7) {
+  testGB(gerdt93IdealComponentFirst(false), gerdt93_gb_strat0_free7,
+         gerdt93_syzygies_strat0_free7, gerdt93_initial_strat0_free7, 9);
+}

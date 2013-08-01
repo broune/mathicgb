@@ -1,9 +1,12 @@
-// Copyright 2011 Michael E. Stillman
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
 #include "stdinc.h"
 #include "PolyHeap.hpp"
 
 #include <iostream>
 #include <algorithm>
+
+MATHICGB_NAMESPACE_BEGIN
 
 size_t PolyHeap::stats_static_n_compares = 0;
 
@@ -173,7 +176,4 @@ void PolyHeap::dump() const
     }
 }
 
-// Local Variables:
-// compile-command: "make -C .. "
-// indent-tabs-mode: nil
-// End:
+MATHICGB_NAMESPACE_END

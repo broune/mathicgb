@@ -1,35 +1,38 @@
-// Copyright 2011 Michael E. Stillman
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
+#ifndef MATHICGB_SIG_POLY_BASIS_GUARD
+#define MATHICGB_SIG_POLY_BASIS_GUARD
 
-#ifndef _groebner_basis_h_
-#define _groebner_basis_h_
-
-#include <vector>
-#include <set>
 #include "PolyRing.hpp"
 #include "Poly.hpp"
-#include "FreeModuleOrder.hpp"
 #include "DivisorLookup.hpp"
 #include "PolyBasis.hpp"
+#include "MonoProcessor.hpp"
+#include <vector>
+#include <set>
+
+MATHICGB_NAMESPACE_BEGIN
 
 #ifndef USE_RATIO_RANK
 #define USE_RATIO_RANK true
 #endif
 
-class GroebnerBasis {
+class SigPolyBasis {
 public:
-  GroebnerBasis(
+  typedef PolyRing::Monoid Monoid;
+
+  SigPolyBasis(
     const PolyRing* R,
-    FreeModuleOrder* order,
     int divisorLookupType,
     int monTableType,
     bool preferSparseReducers
   );
-  ~GroebnerBasis();
+  ~SigPolyBasis();
 
+  const Monoid& monoid() const {return ring().monoid();}
   const PolyRing& ring() const {return mBasis.ring();}
   const Poly& poly(size_t index) const {return mBasis.poly(index);}
   size_t size() const {return mBasis.size();}
-  const FreeModuleOrder& order() const {return mBasis.order();}
 
   // todo: stop using non-const version of basis() and then remove it.
   PolyBasis& basis() {return mBasis;}
@@ -102,6 +105,10 @@ public:
   // and returns LT, EQ or GT.
   inline int ratioCompare(size_t a, size_t b) const;
 
+  /// Post processes all signatures. This currently breaks all sorts
+  /// of internal invariants - it's supposed to be a temporary hack.
+  void postprocess(const MonoProcessor<PolyRing::Monoid>& processor);
+
   class StoredRatioCmp {
   public:
     // Stores the ratio numerator/denominator and prepares it for comparing
@@ -109,7 +116,7 @@ public:
     StoredRatioCmp(
       const_monomial numerator,
       const_monomial denominator,
-      const GroebnerBasis& basis);
+      const SigPolyBasis& basis);
     ~StoredRatioCmp();
 
     // compares the stored ratio to the basis element with index be.
@@ -119,7 +126,7 @@ public:
     StoredRatioCmp(const StoredRatioCmp&); // not available
     void operator=(const StoredRatioCmp&); // not available
 
-    const GroebnerBasis& mBasis;
+    const SigPolyBasis& mBasis;
     size_t mRatioRank;
     monomial mRatio;
     mutable monomial mTmp;
@@ -160,19 +167,19 @@ private:
   std::vector<monomial> sigLeadRatio;
 
   // true if giving each generator an integer id based on its
-  // position in a sorted order of sig/lead ratios.
+  // position in a sorted order of sig-lead ratios.
   static const bool mUseRatioRank = USE_RATIO_RANK;
   static const bool mUseStoredRatioRank = USE_RATIO_RANK;
   class RatioOrder {
   public:
-    RatioOrder(std::vector<monomial>& ratio, const FreeModuleOrder& order):
-        mRatio(ratio), mOrder(order) {}
+    RatioOrder(std::vector<monomial>& ratio, const Monoid& monoid):
+      mRatio(ratio), mMonoid(monoid) {}
     bool operator()(size_t a, size_t b) const {
-      return mOrder.signatureCompare(mRatio[a], mRatio[b]) == LT;
+      return mMonoid.lessThan(mRatio[a], mRatio[b]);
     }
   private:
     std::vector<monomial>& mRatio;
-    const FreeModuleOrder& mOrder;
+    const Monoid& mMonoid;
   };
   typedef std::multiset<size_t, RatioOrder> RatioSortedType;
   typedef size_t Rank;
@@ -181,7 +188,7 @@ private:
 
   std::vector<DivisorLookup*> mSignatureLookup;
 
-  // contains those lead terms that are minimal
+  // Contains those lead terms that are minimal.
   std::unique_ptr<DivisorLookup> const mMinimalDivisorLookup;
 
   PolyBasis mBasis;
@@ -189,11 +196,11 @@ private:
   mutable monomial mTmp;
 };
 
-inline int GroebnerBasis::ratioCompare(size_t a, size_t b) const {
+inline int SigPolyBasis::ratioCompare(size_t a, size_t b) const {
   if (mUseRatioRank) {
 #ifdef MATHICGB_DEBUG
     int const value =
-      order().signatureCompare(getSigLeadRatio(a), getSigLeadRatio(b));
+      monoid().compare(getSigLeadRatio(a), getSigLeadRatio(b));
 #endif
     if (mRatioRanks[a] < mRatioRanks[b]) {
       MATHICGB_ASSERT_NO_ASSUME(value == LT);
@@ -209,20 +216,20 @@ inline int GroebnerBasis::ratioCompare(size_t a, size_t b) const {
     // A/a < B/b   <=>  A < (B/b)a
     ring().monomialDivideToNegative(getSignature(b), getLeadMonomial(b), mTmp);
     ring().monomialMultTo(mTmp, getLeadMonomial(a));
-    int value = order().signatureCompare(getSignature(a), mTmp);
+    int value = monoid().compare(getSignature(a), mTmp);
     MATHICGB_ASSERT(value ==
-      order().signatureCompare(getSigLeadRatio(a), getSigLeadRatio(b)));
+      monoid().compare(getSigLeadRatio(a), getSigLeadRatio(b)));
     return value;
   }
 }
 
-inline int GroebnerBasis::StoredRatioCmp::compare(size_t be) const {
-  if (GroebnerBasis::mUseStoredRatioRank) {
-#ifdef DEBUG
-    int value = mBasis.order().
-      signatureCompare(mRatio, mBasis.getSigLeadRatio(be));
+inline int SigPolyBasis::StoredRatioCmp::compare(size_t be) const {
+  if (SigPolyBasis::mUseStoredRatioRank) {
+#ifdef MATHICGB_DEBUG
+    const auto value =
+      mBasis.monoid().compare(mRatio, mBasis.getSigLeadRatio(be));
 #endif
-    GroebnerBasis::Rank otherRank = mBasis.ratioRank(be);
+    SigPolyBasis::Rank otherRank = mBasis.ratioRank(be);
     if (mRatioRank < otherRank) {
       MATHICGB_ASSERT_NO_ASSUME(value == LT);
       return LT;
@@ -235,16 +242,12 @@ inline int GroebnerBasis::StoredRatioCmp::compare(size_t be) const {
     }
   } else {
     mBasis.ring().monomialMult(mRatio, mBasis.getLeadMonomial(be), mTmp);
-    int value = mBasis.order().signatureCompare(mTmp, mBasis.getSignature(be));
+    int value = mBasis.monoid().compare(mTmp, mBasis.getSignature(be));
     MATHICGB_ASSERT(value ==
-      mBasis.order().signatureCompare(mRatio, mBasis.getSigLeadRatio(be)));
+      mBasis.monoid().compare(mRatio, mBasis.getSigLeadRatio(be)));
     return value;
   }
 }
 
+MATHICGB_NAMESPACE_END
 #endif
-
-// Local Variables:
-// compile-command: "make -C .. "
-// indent-tabs-mode: nil
-// End:

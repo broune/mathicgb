@@ -1,9 +1,11 @@
-// Copyright 2011 Bjarke Roune, Michael E. Stillman
-
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
 #include "stdinc.h"
 #include "TournamentReducer.hpp"
 
 #include <utility>
+
+MATHICGB_NAMESPACE_BEGIN
 
 TournamentReducer::TournamentReducer(const PolyRing& ring):
   mRing(ring),
@@ -176,8 +178,4 @@ void TournamentReducer::dump() const
 {
 }
 
-// Local Variables:
-// compile-command: "make -C .. "
-// indent-tabs-mode: nil
-// End:
-
+MATHICGB_NAMESPACE_END

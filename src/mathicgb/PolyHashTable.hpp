@@ -1,14 +1,15 @@
-// Copyright 2011 Michael E. Stillman
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
+#ifndef MATHICGB_POLY_HASH_TABLE_GUARD
+#define MATHICGB_POLY_HASH_TABLE_GUARD
 
-#ifndef _PolyHashTable_h_
-#define _PolyHashTable_h_
-
-#include <vector>
-
-#include <memtailor.h>
 #include "PolyRing.hpp"
 #include "Poly.hpp"
 #include <utility>
+#include <memtailor.h>
+#include <vector>
+
+MATHICGB_NAMESPACE_BEGIN
 
 // The hash table is a map:  monomial => coeff
 // Operations required on monomials:
@@ -137,11 +138,5 @@ protected:
   size_t mMonomialSize;
 };
 
-
-
+MATHICGB_NAMESPACE_END
 #endif
-
-// Local Variables:
-// compile-command: "make -C .. "
-// indent-tabs-mode: nil
-// End:

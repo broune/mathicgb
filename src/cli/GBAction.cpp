@@ -1,12 +1,18 @@
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
 #include "mathicgb/stdinc.h"
 #include "GBAction.hpp"
 
-#include "mathicgb/BuchbergerAlg.hpp"
-#include "mathicgb/Ideal.hpp"
+#include "mathicgb/ClassicGBAlg.hpp"
+#include "mathicgb/Basis.hpp"
 #include "mathicgb/io-util.hpp"
 #include "mathicgb/F4Reducer.hpp"
+#include "mathicgb/Scanner.hpp"
+#include "mathicgb/MathicIO.hpp"
 #include <fstream>
 #include <iostream>
+
+MATHICGB_NAMESPACE_BEGIN
 
 GBAction::GBAction():
   mAutoTailReduce("autoTailReduce",
@@ -21,15 +27,9 @@ GBAction::GBAction():
     "classic Buchberger algorithm.",
     true),
 
-  //mTermOrder("termOrder",
-  //  "The term order to compute a Grobner basis with respect to. This is "
-  //  "currently actually a free module term order, but that should be changed.",
-  //  4),
-
   mSPairGroupSize("sPairGroupSize",
     "Specifies how many S-pair to reduce at one time. A value of 0 "
-    "indicates not to group S-pairs together. Only currently relevant "
-    "for the classic Buchberger algorithm.",
+    "indicates to use an appropriate default.",
     0),
 
  mMinMatrixToStore("storeMatrices",
@@ -40,11 +40,7 @@ GBAction::GBAction():
    0),
 
    mParams(1, 1)
-{
-  std::ostringstream orderOut;
-  FreeModuleOrder::displayOrderTypes(orderOut);
-  //mTermOrder.appendToDescription(orderOut.str());
-}
+{}
 
 void GBAction::directOptions(
   std::vector<std::string> tokens,
@@ -59,15 +55,15 @@ void GBAction::performAction() {
   const std::string projectName = mParams.inputFileNameStem(0);
 
   // read input
-  std::unique_ptr<Ideal> ideal;
-  {
-    const std::string inputIdealFile = projectName + ".ideal";
-    std::ifstream inputFile(inputIdealFile.c_str());
-    if (inputFile.fail())
-      mic::reportError("Could not read input file \"" + inputIdealFile + '\n');
-    ideal = Ideal::parse(inputFile);
-  }
-  std::unique_ptr<PolyRing const> ring(&(ideal->ring()));
+  const std::string inputBasisFile = projectName + ".ideal";
+  std::ifstream inputFile(inputBasisFile.c_str());
+  if (inputFile.fail())
+    mic::reportError("Could not read input file \"" + inputBasisFile + '\n');
+
+  Scanner in(inputFile);
+  auto p = MathicIO().readRing(true, in);
+  auto& ring = *p.first;
+  auto basis = MathicIO().readBasis(ring, false, in);
 
   // run algorithm
   const auto reducerType = Reducer::reducerType(mGBParams.mReducer.value());
@@ -76,19 +72,18 @@ void GBAction::performAction() {
     reducerType != Reducer::Reducer_F4_Old &&
     reducerType != Reducer::Reducer_F4_New
   ) {
-    reducer = Reducer::makeReducer(reducerType, *ring);
+    reducer = Reducer::makeReducer(reducerType, ring);
   } else {
     const auto type = reducerType == Reducer::Reducer_F4_Old ?
       F4Reducer::OldType : F4Reducer::NewType;
-    auto f4Reducer = make_unique<F4Reducer>(*ring, type);
+    auto f4Reducer = make_unique<F4Reducer>(ring, type);
     if (mMinMatrixToStore.value() > 0)
       f4Reducer->writeMatricesTo(projectName, mMinMatrixToStore);
     reducer = std::move(f4Reducer);
   }
 
-  BuchbergerAlg alg(
-    *ideal,
-    4 /*mModuleOrder.value()*/ , // todo: alg should not take a *module* order
+  ClassicGBAlg alg(
+    basis,
     *reducer,
     mGBParams.mDivisorLookup.value(),
     mGBParams.mPreferSparseReducers.value(),
@@ -103,15 +98,19 @@ void GBAction::performAction() {
   alg.computeGrobnerBasis();
   alg.printStats(std::cerr);
 
-  /*
-  std::ofstream statsOut((mProjectName.value() + ".stats").c_str());
-  alg.printStats(statsOut);
-  {
-    std::string basisFileName = mProjectName.value() + ".gb";
-    FILE* basisOut = std::fopen(basisFileName.c_str(), "w");
-    output(basisOut, alg.basis());
-  }
-  */
+  if (mGBParams.mOutputResult.value())
+    {
+      // output Groebner basis into .gb file.
+
+      // The stats information is displayed to cout (above),
+      // so we disable it here.
+      // std::ofstream statsOut((projectName + ".stats").c_str());
+      // alg.printStats(statsOut);
+
+      std::string basisFileName = projectName + ".gb";
+      FILE* basisOut = std::fopen(basisFileName.c_str(), "w");
+      output(basisOut, alg.basis());
+    }
 }
 
 const char* GBAction::staticName() {
@@ -141,3 +140,5 @@ void GBAction::pushBackParameters(
   parameters.push_back(&mSPairGroupSize);
   parameters.push_back(&mMinMatrixToStore);
 }
+
+MATHICGB_NAMESPACE_END

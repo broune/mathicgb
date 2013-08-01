@@ -1,14 +1,14 @@
-// Copyright 2011 Michael E. Stillman
-
-#ifndef _chainedHashTable_h_
-#define _chainedHashTable_h_
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
+#ifndef MATHICGB_CHAINED_HASH_TABLE_GUARD
+#define MATHICGB_CHAINED_HASH_TABLE_GUARD
 
 #include <vector>
 #include <iostream>
-
+#include <ostream>
 #include <memtailor.h>
 
-class ostream;
+MATHICGB_NAMESPACE_BEGIN
 
 // One template parameter, with the following:
 //   types:
@@ -281,10 +281,5 @@ void ChainedHashTable<HashControl>::dump(int level) const
     }
 }
 
-
+MATHICGB_NAMESPACE_END
 #endif
-
-// Local Variables:
-// compile-command: "make -C .. "
-// indent-tabs-mode: nil
-// End:

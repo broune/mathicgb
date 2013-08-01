@@ -1,3 +1,5 @@
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
 #ifndef MATHICGB_F4_MATRIX_PROJECTION_GUARD
 #define MATHICGB_F4_MATRIX_PROJECTION_GUARD
 
@@ -7,6 +9,8 @@
 #include "MonomialMap.hpp"
 #include "ScopeExit.hpp"
 #include <vector>
+
+MATHICGB_NAMESPACE_BEGIN
 
 class F4MatrixProjection {
 public:
@@ -41,12 +45,14 @@ private:
     ColIndex index;
     bool isLeft;
   };
-  std::vector<ColProjectTo> mColProjectTo;
+  ::std::vector<ColProjectTo> mColProjectTo;
 
-  std::vector<F4ProtoMatrix*> mMatrices;
-  std::vector<monomial> mLeftMonomials;
-  std::vector<monomial> mRightMonomials;
+  ::std::vector<F4ProtoMatrix*> mMatrices;
+  ::std::vector<monomial> mLeftMonomials;
+  ::std::vector<monomial> mRightMonomials;
   const PolyRing& mRing;
 };
+
+MATHICGB_NAMESPACE_END
 
 #endif

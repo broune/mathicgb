@@ -1,9 +1,12 @@
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
 #include "mathicgb/stdinc.h"
-
 #include "mathicgb/MonoMonoid.hpp"
+
 #include <gtest/gtest.h>
 #include <sstream>
 
+using namespace mgb;
 
 // Do all-pairs testing -- see monoidPict.in. Especially see that file before
 // editing this list of types.
@@ -191,6 +194,54 @@ TYPED_TEST(Monoid, MonoVector) {
   ASSERT_TRUE(v.empty());
 }
 
+TYPED_TEST(Monoid, ReadWriteMonoid) {
+  typedef TypeParam Monoid;
+  typedef typename Monoid::VarIndex VarIndex;
+
+  const auto check = [](
+    const char* const inStr,
+    const char* const outStr,
+    const VarIndex varCount,
+    const VarIndex gradingCount
+    ) -> void {
+    for (int i = 0; i < 2; ++i) {
+      const char* str = i == 0 ? inStr : outStr;
+      if (str == 0)
+        continue;
+
+      std::istringstream in(str);
+      const auto p = Monoid::readMonoid(in);
+      const auto& m = p.first;
+
+      std::ostringstream out;
+      m.printMonoid(p.second.first, out);
+      ASSERT_EQ(outStr, out.str());
+      ASSERT_EQ(varCount, m.varCount());
+      ASSERT_EQ(gradingCount, m.gradingCount());
+    }
+  };
+  check("0 0\n", "0\nrevlex 0\n", 0, 0);
+  check("1 1\n 2\n", "1\nrevlex 1\n 2\n", 1, 1);
+  check("1 2\n 3\n 4\n", "1\nrevlex 2\n 3\n 4\n", 1, 2);
+  check("2 2\n 3 4\n 5 6\n", "2\nrevlex 2\n 3 4\n 5 6\n", 2, 2);
+  check("4 1\n 1 1 1 1\n", "4\nrevlex 1\n 1 1 1 1\n", 4, 1);
+
+  check("0 lex 0", "0\nlex 0\n", 0, 0);
+  check("1 lex 1 2", "1\nlex 1\n 2\n", 1, 1);
+  check("1 lex 2 3 4", "1\nlex 2\n 3\n 4\n", 1, 2);
+  check("2 lex 2 3 4 5 6", "2\nlex 2\n 3 4\n 5 6\n", 2, 2);
+  check("4 lex 1 1 1 1 1", "4\nlex 1\n 1 1 1 1\n", 4, 1);
+
+  if (Monoid::HasComponent) {
+    check("2 2\n component\n 5 6\n", "2\nrevlex 2\n component\n 5 6\n", 2, 2);
+    check
+      ("2 2\n 3 4\n revcomponent\n","2\nrevlex 2\n 3 4\n revcomponent\n", 2, 2);
+    check("0 lex 1 component", "0\nlex 0\n", 0, 0);
+    check("1 lex 1 revcomponent", "1\nlex 1\n revcomponent\n", 1, 1);
+    check("5 lex 1 revcomponent", "5\nlex 1\n revcomponent\n", 5, 1);
+  }
+}
+
 TYPED_TEST(Monoid, MonoPool) {
   typedef TypeParam Monoid;
   typedef typename Monoid::VarIndex VarIndex;
@@ -211,25 +262,25 @@ TYPED_TEST(Monoid, MonoPool) {
       auto m2 = pool.alloc();
       ASSERT_TRUE(monoid.isIdentity(m2));
       for (VarIndex var = 0; var < varCount; ++var) {
-	monoid.setExponent(var, 1, m1);
-	monoid.setExponent(var, 1, m2);
+        monoid.setExponent(var, 1, m1);
+        monoid.setExponent(var, 1, m2);
       }
       if (i > 10) {
-	using std::swap;
-	swap(m2, monos[i - 10]);
+        using std::swap;
+        swap(m2, monos[i - 10]);
       }
-      monos.push_back(std::move(m1));
+      monos.emplace_back(std::move(m1));
     }
-
+    
     // This ensures that we get to each entry in monos exactly once.
     MATHICGB_ASSERT((count % 17) != 0); 
     int i = 0;
     do {
       MATHICGB_ASSERT(!monos[i].isNull());
       ASSERT_FALSE(monoid.isIdentity(monos[i]));
-      pool.free(monos[i]);
+      pool.free(std::move(monos[i]));
       ASSERT_TRUE(monos[i].isNull());
-      pool.free(monos[i]);
+      pool.free(std::move(monos[i]));
       ASSERT_TRUE(monos[i].isNull());
       i = (i + 17) % count;
     } while (i != 0);
@@ -243,11 +294,11 @@ TYPED_TEST(Monoid, MonoPool) {
       monos[i] = pool.alloc();
       ASSERT_TRUE(monoid.isIdentity(monos[i]));
       for (VarIndex var = 0; var < varCount; ++var)
-	monoid.setExponent(var, expect(i, var, varCount), monos[i]);
+        monoid.setExponent(var, expect(i, var, varCount), monos[i]);
     }
     for (int i = 0; i < count; ++i) {
       for (VarIndex var = 0; var < varCount; ++var) {
-	ASSERT_EQ(expect(i, var, varCount), monoid.exponent(monos[i], var));
+        ASSERT_EQ(expect(i, var, varCount), monoid.exponent(monos[i], var));
       }
     }
     // everything should be free'd now. Let's do all that again.
@@ -533,22 +584,94 @@ TYPED_TEST(Monoid, LcmColon) {
 
 TYPED_TEST(Monoid, Order) {
   typedef TypeParam Monoid;
-  Monoid m(52);
-  auto v = parseVector(m, "1 Z A z c b a c2 bc ac b2 ab a2 c3 abc b3 a3");
+  typedef typename Monoid::Order Order;
+  typedef typename Monoid::Exponent Exponent;
 
-  for (auto greater = v.begin(); greater != v.end(); ++greater) {
-    ASSERT_EQ(m.compare(*greater, *greater), Monoid::EqualTo);
-    ASSERT_TRUE(m.equal(*greater, *greater));
-    ASSERT_FALSE(m.lessThan(*greater, *greater));
-
-    for (auto lesser = v.begin(); lesser != greater; ++lesser) {
-      ASSERT_FALSE(m.equal(*lesser, *greater));
-      ASSERT_TRUE(m.lessThan(*lesser, *greater));
-      ASSERT_FALSE(m.lessThan(*greater, *lesser));
-      ASSERT_EQ(m.compare(*lesser, *greater), Monoid::LessThan);
-      ASSERT_EQ(m.compare(*greater, *lesser), Monoid::GreaterThan);
+  auto check = [](const Monoid& m, const char* sorted) -> void {
+    auto v = parseVector(m, sorted);
+    for (auto greater = v.begin(); greater != v.end(); ++greater) {
+      ASSERT_EQ(m.compare(*greater, *greater), Monoid::EqualTo);
+      ASSERT_TRUE(m.equal(*greater, *greater));
+      ASSERT_FALSE(m.lessThan(*greater, *greater));
+      
+      for (auto lesser = v.begin(); lesser != greater; ++lesser) {
+        ASSERT_FALSE(m.equal(*lesser, *greater));
+        ASSERT_TRUE(m.lessThan(*lesser, *greater))
+          << "*lesser  is " << m.toString(*lesser) << '\n'
+          << "*greater is " << m.toString(*greater) << '\n';
+        ASSERT_FALSE(m.lessThan(*greater, *lesser));
+        ASSERT_EQ(m.compare(*lesser, *greater), Monoid::LessThan);
+        ASSERT_EQ(m.compare(*greater, *lesser), Monoid::GreaterThan);
+      }
     }
-  }
+  };
+
+  const auto sortedTotalDegreeRevLex =
+    "1 Z A z c b a c2 bc ac b2 ab a2 c3 abc b3 a3";
+  check(Monoid(52), sortedTotalDegreeRevLex);
+  check(
+    Monoid(Order(52, std::vector<Exponent>(52, 1), Order::RevLexBaseOrder)),
+    sortedTotalDegreeRevLex
+  );
+  check(
+    Monoid(Order(52, std::vector<Exponent>(52, 7), Order::RevLexBaseOrder)),
+    sortedTotalDegreeRevLex
+  );
+  std::vector<Exponent> revLexGradings(52, 1);
+  for (size_t grading = 51; grading != static_cast<size_t>(-1); --grading)
+    for (size_t var = 0; var < 52; ++var)
+      revLexGradings.push_back(var == grading ? -1 : 0);
+  check(
+    Monoid(
+      Order(52, std::vector<Exponent>(revLexGradings), Order::RevLexBaseOrder)
+    ),
+    sortedTotalDegreeRevLex
+  );
+  check(
+    Monoid(Order(52, std::move(revLexGradings), Order::LexBaseOrder)),
+    sortedTotalDegreeRevLex
+  );
+
+  std::vector<Exponent> dupGradings = {
+     5, 2, 3,
+    10, 4, 6, // duplicate, just multiplied by 2
+    -6, 9, 4,
+    -6, 9, 4,
+    -6, 9, 4,
+    -6, 9, 4,
+    -6, 9, 4
+  };
+  //   b:  2  9
+  //   c:  3  4
+  //   a:  5 -7
+  //  bc:  5 20
+  //  c2:  6  8
+  //  b3:  6 27
+  // bc3: 11 21
+  // ab3: 11 21
+  const auto sortedDupGradingsRevLex = "1 b c a bc c2 b3 bc3 ab3";
+  check(
+    Monoid(Order(3, std::move(dupGradings), Order::RevLexBaseOrder)),
+    sortedDupGradingsRevLex
+  );
+
+  std::vector<Exponent> lexGradings = {
+    0, 0, 1,
+    0, 1, 0,
+    1, 0, 0
+  };
+  const auto sortedLex =
+    "1 a a2 a3 b ab a2b b2 ab2 b3 c ac bc abc c2 ac2 bc2 c3";
+  check(
+    Monoid(
+      Order(3, std::vector<Exponent>(lexGradings), Order::RevLexBaseOrder)
+    ),
+    sortedLex
+  );
+  check
+    (Monoid(Order(3, std::move(lexGradings), Order::LexBaseOrder)), sortedLex);
+  check
+    (Monoid(Order(3, std::vector<Exponent>(), Order::LexBaseOrder)), sortedLex);
 }
 
 TYPED_TEST(Monoid, RelativelyPrime) {
@@ -584,15 +707,21 @@ TYPED_TEST(Monoid, SetExponents) {
 
 TYPED_TEST(Monoid, HasAmpleCapacityTotalDegree) {
   typedef TypeParam Monoid;
+  typedef typename Monoid::Order Order;
   typedef typename Monoid::Exponent Exponent;
   typedef typename Monoid::VarIndex VarIndex;
 
   for (VarIndex varCount = 1; varCount < 33; ++varCount) {
     Monoid monoidTotalDegree(varCount);
-    std::vector<Exponent> v(varCount, 1);
-    Monoid monoidTotalDegreeImplicit(v);
-    v[0] = 7;
-    Monoid monoidGeneral(v);
+    
+    std::vector<Exponent> ones(varCount, 1);
+    Monoid monoidTotalDegreeImplicit
+      (Order(varCount, std::move(ones), Order::RevLexBaseOrder));
+
+    std::vector<Exponent> mostlyOnes(varCount, 1);
+    mostlyOnes[0] = 7;
+    Monoid monoidGeneral
+      (Order(varCount, std::move(mostlyOnes), Order::RevLexBaseOrder));
 
     Monoid* monoids[] = {
       &monoidTotalDegree,
@@ -601,7 +730,7 @@ TYPED_TEST(Monoid, HasAmpleCapacityTotalDegree) {
     };
     for (int j = 0; j < 3; ++j) {
       auto& m = *monoids[j];
-      const auto firstDeg = (j == 2 ? v[0] : 1);
+      const auto firstDeg = (j == 2 ? 7 : 1);
       ASSERT_EQ(varCount, m.varCount());
 
       typename Monoid::MonoPool p(m);
@@ -639,15 +768,18 @@ TYPED_TEST(Monoid, HasAmpleCapacityTotalDegree) {
 
 TYPED_TEST(Monoid, CopyEqualConversion) {
   typedef TypeParam Monoid;
+  typedef typename Monoid::Order Order;
   typedef typename Monoid::Exponent Exponent;
   typedef typename Monoid::VarIndex VarIndex;
   static const bool HasComponent = Monoid::HasComponent;
   typedef MonoMonoid<Exponent, HasComponent, false, false> MonoidNone;
   typedef MonoMonoid<Exponent, HasComponent, true, true> MonoidAll;
   for (VarIndex varCount = 1; varCount < 33; ++varCount) {
-    MonoidNone none(varCount);
-    Monoid some(none);
-    MonoidAll all(some);
+    const Order order
+      (varCount, std::vector<Exponent>(varCount, 1), Order::RevLexBaseOrder);
+    MonoidNone none(order);
+    Monoid some(Monoid::create(none));
+    MonoidAll all(MonoidAll::create(some));
 
     auto none1 = none.alloc();
     auto none2 = none.alloc();

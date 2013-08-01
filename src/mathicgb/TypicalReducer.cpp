@@ -1,9 +1,17 @@
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
 #include "stdinc.h"
 #include "TypicalReducer.hpp"
 
-#include "GroebnerBasis.hpp"
+#include "SigPolyBasis.hpp"
 #include "PolyBasis.hpp"
 #include <iostream>
+
+MATHICGB_NAMESPACE_BEGIN
+
+size_t TypicalReducer::preferredSetSize() const {
+  return 1;
+}
 
 void TypicalReducer::reset()
 {
@@ -19,7 +27,7 @@ Poly* TypicalReducer::regularReduce(
   const_monomial sig,
   const_monomial multiple,
   size_t basisElement,
-  const GroebnerBasis& basis)
+  const SigPolyBasis& basis)
 {
   const PolyRing& ring = basis.ring();
   ++mSigStats.reductions;
@@ -179,8 +187,10 @@ std::unique_ptr<Poly> TypicalReducer::classicReduce
 
     size_t reducer = basis.classicReducer(v.monom);
     if (reducer == static_cast<size_t>(-1)) { // no reducer found
-      MATHICGB_ASSERT(result->isZero() ||
-        basis.order().signatureCompare(v.monom, result->backMonomial()) == LT);
+      MATHICGB_ASSERT(
+        result->isZero() ||
+        basis.monoid().lessThan(v.monom, result->backMonomial())
+      );
       result->appendTerm(v.coeff, v.monom);
       removeLeadTerm();
     } else { // reduce by reducer
@@ -220,3 +230,5 @@ std::unique_ptr<Poly> TypicalReducer::classicReduce
 std::unique_ptr<Poly> TypicalReducer::classicReduce(const PolyBasis& basis) {
   return classicReduce(make_unique<Poly>(basis.ring()), basis);
 }
+
+MATHICGB_NAMESPACE_END

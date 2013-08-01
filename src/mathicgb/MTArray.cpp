@@ -1,9 +1,13 @@
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
 #include "stdinc.h"
 #include "MTArray.hpp"
 
 #include "MonTableNaive.hpp"
 #include "MonTableKDTree.hpp"
 #include "MonTableDivList.hpp"
+
+MATHICGB_NAMESPACE_BEGIN
 
 template <typename MT>
 class MTArrayT : public MonomialTableArray
@@ -43,6 +47,8 @@ public:
 
   void display(std::ostream &o, int level) const;
 
+  void getMonomials(std::vector<const_monomial>& monomials) const;
+  
   virtual void printFrobbyM2Format
     (std::ostream& out, size_t component) const;
 
@@ -109,6 +115,12 @@ void MTArrayT<MT>::displayStats(std::ostream & /* o */) const
 }
 
 template <typename MT>
+void MTArrayT<MT>::getMonomials(std::vector<const_monomial>& monomials) const {
+  for (size_t i = 0; i < tables.size(); ++i)
+    tables[i]->getMonomials(monomials);  
+}
+
+template <typename MT>
 void MTArrayT<MT>::display(std::ostream &o, int level) const
 {
   std::vector<const_monomial> monomials;
@@ -138,8 +150,6 @@ template <typename MT>
 void MTArrayT<MT>::printFrobbyM2Format
   (std::ostream& out, size_t component) const
 {
-  R->printRingFrobbyM2Format(out);
-
   MATHICGB_ASSERT(component < tables.size());
   T* p = tables[component];
   MATHICGB_ASSERT(p != 0);
@@ -248,7 +258,4 @@ std::unique_ptr<MonomialTableArray> MonomialTableArray::make(const PolyRing *R, 
   }
 }
 
-// Local Variables:
-// compile-command: "make -C .. "
-// indent-tabs-mode: nil
-// End:
+MATHICGB_NAMESPACE_END

@@ -1,5 +1,7 @@
-#ifndef F4_MATRIX_BUILDER_GUARD
-#define F4_MATRIX_BUILDER_GUARD
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
+#ifndef MATHICGB_F4_MATRIX_BUILDER_GUARD
+#define MATHICGB_F4_MATRIX_BUILDER_GUARD
 
 #include "QuadMatrixBuilder.hpp"
 #include "Poly.hpp"
@@ -8,6 +10,8 @@
 #include "QuadMatrix.hpp"
 #include "mtbb.hpp"
 #include <vector>
+
+MATHICGB_NAMESPACE_BEGIN
 
 /** Class for constructing an F4 matrix. This class is reponsible for
   figuring out what matrix to build and then it uses QuadMatrixBuilder
@@ -87,7 +91,7 @@ private:
   /// reduce that column if possible. Here x is monoA if monoB is
   /// null and otherwise x is the product of monoA and monoB.
   MATHICGB_NO_INLINE
-  std::pair<LeftRightColIndex, ConstMonomial>
+  ::std::pair<LeftRightColIndex, ConstMonomial>
   createColumn(
     const_monomial monoA,
     const_monomial monoB,
@@ -118,7 +122,7 @@ private:
   );
 
   MATHICGB_NO_INLINE
-  std::pair<QuadMatrixBuilder::LeftRightColIndex, ConstMonomial>
+  ::std::pair<QuadMatrixBuilder::LeftRightColIndex, ConstMonomial>
   findOrCreateColumn(
     const_monomial monoA,
     const_monomial monoB,
@@ -126,7 +130,7 @@ private:
   );
   
   MATHICGB_INLINE
-  std::pair<QuadMatrixBuilder::LeftRightColIndex, ConstMonomial>
+  ::std::pair<QuadMatrixBuilder::LeftRightColIndex, ConstMonomial>
   findOrCreateColumn(
     const_monomial monoA,
     const_monomial monoB,
@@ -151,7 +155,9 @@ private:
   Monomials mMonomialsRight;
   QuadMatrixBuilder mBuilder;
   Map mMap;
-  std::vector<RowTask> mTodo;
+  ::std::vector<RowTask> mTodo;
 };
+
+MATHICGB_NAMESPACE_END
 
 #endif

@@ -1,14 +1,16 @@
-// Copyright 2011 Michael E. Stillman
-
-#ifndef _Reducer_h_
-#define _Reducer_h_
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
+#ifndef MATHICGB_REDUCER_GUARD
+#define MATHICGB_REDUCER_GUARD
 
 #include "PolyRing.hpp"
 #include "Poly.hpp"
 #include <memtailor.h>
 #include <memory>
 
-class GroebnerBasis;
+MATHICGB_NAMESPACE_BEGIN
+
+class SigPolyBasis;
 class PolyBasis;
 
 /** Abstract base class for classes that allow reduction of polynomials.
@@ -18,6 +20,13 @@ todo: consider changing name of findLeadTerm to leadTerm.
 class Reducer {
 public:
   virtual ~Reducer();
+
+  /// Returns the preferred number of reductions to do at a time. A classic
+  /// serial reducer will have no particular benefit from doing more than
+  /// one reduction at a time, so it should say that. A matrix-based or
+  /// parallel reducer will have benefit from being presented with
+  /// larger sets of reductions at a time.
+  virtual size_t preferredSetSize() const = 0;
 
   // ***** Methods that do reduction
 
@@ -60,7 +69,7 @@ public:
     const_monomial sig,
     const_monomial multiple,
     size_t basisElement,
-    const GroebnerBasis& basis) = 0;
+    const SigPolyBasis& basis) = 0;
 
   /** Sets how many bytes of memory to increase the memory use by
     at a time - if such a thing is appropriate for the reducer. */
@@ -157,9 +166,5 @@ protected:
   Stats mClassicStats;
 };
 
+MATHICGB_NAMESPACE_END
 #endif
-
-// Local Variables:
-// compile-command: "make -C .. "
-// indent-tabs-mode: nil
-// End:

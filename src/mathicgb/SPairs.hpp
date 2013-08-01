@@ -1,10 +1,14 @@
-#ifndef _s_pairs_h_
-#define _s_pairs_h_
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
+#ifndef MATHICGB_S_PAIRS_GUARD
+#define MATHICGB_S_PAIRS_GUARD
 
 #include "PolyBasis.hpp"
 #include <utility>
 #include <mathic.h>
 #include <memory>
+
+MATHICGB_NAMESPACE_BEGIN
 
 class PolyBasis;
 
@@ -173,19 +177,25 @@ private:
       mPreferSparseSPairs(preferSparseSPairs) {}
 
     typedef OrderMonoid::Mono PairData;
-	void computePairData(size_t col, size_t row, OrderMonoid::MonoRef m) const;
+    void computePairData
+    (size_t col, size_t row, OrderMonoid::MonoRef m) const;
 
-	typedef bool CompareResult;
-	bool compare(
+    typedef bool CompareResult;
+    bool compare(
       size_t colA, size_t rowA, OrderMonoid::ConstMonoRef a,
       size_t colB, size_t rowB, OrderMonoid::ConstMonoRef b
-    ) const {
+      ) const {
       const auto cmp = orderMonoid().compare(a, b);
       if (cmp == GT)
         return true;
       if (cmp == LT)
         return false;
-
+      
+      const bool aRetired = mBasis.retired(rowA) || mBasis.retired(colA);
+      const bool bRetired = mBasis.retired(rowB) || mBasis.retired(colB);
+      if (aRetired || bRetired)
+        return !bRetired;
+      
       if (mPreferSparseSPairs) {
         const auto termCountA =
           mBasis.basisElement(colA).termCount() +
@@ -199,8 +209,8 @@ private:
           return false;
       }
       return colA + rowA > colB + rowB;
-	}
-	bool cmpLessThan(bool v) const {return v;}
+    }
+    bool cmpLessThan(bool v) const {return v;}
 
     // The following methods are not required of a configuration.
 	OrderMonoid::Mono allocPairData() {return orderMonoid().alloc();}
@@ -246,32 +256,35 @@ private:
     (OrderMonoid::Mono*, Index, Index, QueueConfiguration&);
 };
 
+MATHICGB_NAMESPACE_END
+
 namespace mathic {
   namespace PairQueueNamespace {
-	template<>
-	inline void constructPairData<SPairs::QueueConfiguration>(
+    template<>
+    inline void constructPairData<mgb::SPairs::QueueConfiguration>(
       void* memory,
       const Index col,
       const Index row,
-      SPairs::QueueConfiguration& conf
+      mgb::SPairs::QueueConfiguration& conf
     ) {
-	  MATHICGB_ASSERT(memory != 0);
-	  MATHICGB_ASSERT(col > row);
-	  auto pd = new (memory) SPairs::OrderMonoid::Mono(conf.allocPairData());
-	  conf.computePairData(col, row, *pd);
-	}
-
-	template<>
-	inline void destructPairData(
-      SPairs::OrderMonoid::Mono* pd,
+      MATHICGB_ASSERT(memory != 0);
+      MATHICGB_ASSERT(col > row);
+      auto pd = new (memory)
+        mgb::SPairs::OrderMonoid::Mono(conf.allocPairData());
+      conf.computePairData(col, row, *pd);
+    }
+    
+    template<>
+    inline void destructPairData(
+      mgb::SPairs::OrderMonoid::Mono* pd,
       const Index col,
       const Index row,
-      SPairs::QueueConfiguration& conf
+      mgb::SPairs::QueueConfiguration& conf
     ) {
-	  MATHICGB_ASSERT(pd != 0);
-	  MATHICGB_ASSERT(col > row);
-	  conf.freePairData(std::move(*pd));
-	}	
+      MATHICGB_ASSERT(pd != 0);
+      MATHICGB_ASSERT(col > row);
+      conf.freePairData(std::move(*pd));
+    }	
   }
 }
 

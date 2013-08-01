@@ -1,14 +1,15 @@
-// Copyright 2011 Bjarke Roune, Michael E. Stillman
-
-#ifndef _reducer_hash_h_
-#define _reducer_hash_h_
-
-#include <memtailor.h>
-#include <mathic.h>
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
+#ifndef MATHICGB_REDUCER_HASH_GUARD
+#define MATHICGB_REDUCER_HASH_GUARD
 
 #include "TypicalReducer.hpp"
 #include "ReducerHelper.hpp"
 #include "PolyHashTable.hpp"
+#include <memtailor.h>
+#include <mathic.h>
+
+MATHICGB_NAMESPACE_BEGIN
 
 template<template<typename ConfigType> class Queue> class ReducerHash;
 
@@ -179,9 +180,5 @@ size_t ReducerHash<Q>::getMemoryUse() const
   return result;
 }
 
+MATHICGB_NAMESPACE_END
 #endif
-
-// Local Variables:
-// compile-command: "make -C .. "
-// indent-tabs-mode: nil
-// End:

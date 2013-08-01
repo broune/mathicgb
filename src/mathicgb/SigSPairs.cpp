@@ -1,19 +1,20 @@
-// Copyright 2011 Michael E. Stillman
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
 #include "stdinc.h"
 #include "SigSPairs.hpp"
 
-#include "GroebnerBasis.hpp"
+#include "SigPolyBasis.hpp"
 #include "MTArray.hpp"
-#include "FreeModuleOrder.hpp"
 #include "Reducer.hpp"
 #include <limits>
 #include <stdexcept>
 #include <iostream>
 
+MATHICGB_NAMESPACE_BEGIN
+
 SigSPairs::SigSPairs(
   const PolyRing *R0,
-  FreeModuleOrder *F0,
-  const GroebnerBasis *GB0,
+  const SigPolyBasis *GB0,
   MonomialTableArray *Hsyz0,
   Reducer* reducer,
   bool postponeKoszuls,
@@ -22,7 +23,6 @@ SigSPairs::SigSPairs(
   size_t queueType
 ):
   R(R0),
-  F(F0),
   mUseSingularCriterionEarly(useSingularCriterionEarly),
   mUseBaseDivisors(useBaseDivisors),
   mUseHighBaseDivisors(useBaseDivisors),
@@ -30,8 +30,8 @@ SigSPairs::SigSPairs(
   GB(GB0),
   mReducer(reducer),
   mPostponeKoszuls(postponeKoszuls),
-  mQueue(GB->order().createSigSPairQueue(*GB)) {
-}
+  mQueue(SigSPairQueue::create(*GB))
+{}
 
 SigSPairs::~SigSPairs()
 {
@@ -40,12 +40,6 @@ SigSPairs::~SigSPairs()
 
 void SigSPairs::newSyzygy(const_monomial sig) {
   MATHICGB_ASSERT(Hsyz->member(sig));
-}
-
-SigSPairs::Stats SigSPairs::getStats() const
-{
-  F->getStats(mStats.comparisons, mStats.precomparisons);
-  return mStats;
 }
 
 monomial SigSPairs::popSignature(PairContainer& pairs) {
@@ -326,7 +320,4 @@ size_t SigSPairs::getKnownSyzygyBitsMemoryUse() const {
   return mKnownSyzygyTri.getMemoryUse();
 }
 
-// Local Variables:
-// compile-command: "make -C .. "
-// indent-tabs-mode: nil
-// End:
+MATHICGB_NAMESPACE_END

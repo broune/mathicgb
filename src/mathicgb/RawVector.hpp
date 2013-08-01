@@ -1,3 +1,5 @@
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
 #ifndef MATHICGB_RAW_VECTOR_GUARD
 #define MATHICGB_RAW_VECTOR_GUARD
 
@@ -8,6 +10,8 @@
 #include <algorithm>
 #include <stdexcept>
 #include <cstring>
+
+MATHICGB_NAMESPACE_BEGIN
 
 /// RawVector mimics std::vector except that it does not do memory management.
 /// So you can directly access the pointers to memory and you can replace them
@@ -304,4 +308,5 @@ namespace std {
   }
 }
 
+MATHICGB_NAMESPACE_END
 #endif

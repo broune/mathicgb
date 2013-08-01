@@ -1,8 +1,14 @@
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
 #include "mathicgb/stdinc.h"
 #include "CommonParams.hpp"
 
 #include "mathicgb/LogDomain.hpp"
 #include "mathicgb/LogDomainSet.hpp"
+
+MATHICGB_DEFINE_LOG_ALIAS("default", "F4Detail,SPairs");
+
+MATHICGB_NAMESPACE_BEGIN
 
 CommonParams::CommonParams(size_t minDirectParams, size_t maxDirectParams):
   mTracingLevel("tracingLevel",
@@ -12,8 +18,9 @@ CommonParams::CommonParams(size_t minDirectParams, size_t maxDirectParams):
     0),
 
   mThreadCount("threadCount",
-    "Specifies how many threads to use at a time.",
-    1),
+    "Specifies how many threads to use at a time. A value of 0 indicates that "
+    "the program should choose the optimal number of threads.",
+    0),
 
   mLogs("log",
     "Enable the specified log. Do \"help logs\" to see all available logs and "
@@ -47,7 +54,7 @@ void CommonParams::pushBackParameters(
 }
 
 void CommonParams::perform() {
-  const std::string logs = mLogs.value().empty() ? "all" : mLogs.value();
+  const std::string logs = mLogs.value().empty() ? "default" : mLogs.value();
   LogDomainSet::singleton().performLogCommands(logs);
   tracingLevel = mTracingLevel.value();
 
@@ -96,3 +103,5 @@ std::string CommonParams::inputFileNameExtension(size_t i) {
   }
   return std::string();
 }
+
+MATHICGB_NAMESPACE_END

@@ -1,8 +1,12 @@
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
 #ifndef MATHICGB_C_FILE_GUARD
 #define MATHICGB_C_FILE_GUARD
 
 #include <string>
 #include <cstdio>
+
+MATHICGB_NAMESPACE_BEGIN
 
 /// RAII handle for a C FILE*.
 ///
@@ -18,10 +22,10 @@ public:
   /// Sets the handle to null if the file cannot be opened - does not
   /// throw an exception. The purpose of the NoTrowTag parameter is only
   /// to indicate that no exception should be thrown on error.
-  CFile(const std::string& fileName, const char* mode, NoThrowTag);
+  CFile(const ::std::string& fileName, const char* mode, NoThrowTag);
 
   /// Opens the file and throws an exception if the file cannot be opened.
-  CFile(const std::string& fileName, const char* mode);
+  CFile(const ::std::string& fileName, const char* mode);
 
   ~CFile();
 
@@ -34,4 +38,5 @@ private:
   FILE* mFile;
 };
 
+MATHICGB_NAMESPACE_END
 #endif

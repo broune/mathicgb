@@ -1,27 +1,27 @@
-// Copyright 2011 Michael E. Stillman
-
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
 #include "mathicgb/stdinc.h"
-#include <cstdio>
-#include <string>
-#include <iostream>
-#include <sstream>
-
 #include "mathicgb/Poly.hpp"
-#include "mathicgb/Ideal.hpp"
+
+#include "mathicgb/Basis.hpp"
 #include "mathicgb/MonTableNaive.hpp"
 #include "mathicgb/MonTableKDTree.hpp"
 #include "mathicgb/MonTableDivList.hpp"
 #include "mathicgb/MTArray.hpp"
 #include "mathicgb/io-util.hpp"
-
 #include "mathicgb/MonomialHashTable.hpp"
 #include "mathicgb/PolyHashTable.hpp"
 #include "mathicgb/PolyHeap.hpp"
 #include "mathicgb/PolyGeoBucket.hpp"
-#include "mathicgb/GroebnerBasis.hpp"
+#include "mathicgb/SigPolyBasis.hpp"
 #include "mathicgb/SignatureGB.hpp"
-
 #include <gtest/gtest.h>
+#include <cstdio>
+#include <string>
+#include <iostream>
+#include <sstream>
+
+using namespace mgb;
 
 std::string ideal1 =
 "32003 4 1 1 1 1 1 \
@@ -47,9 +47,9 @@ TEST(PolyRing, read) {
   std::stringstream o;
   std::string ringinfo = "32003 6\n1 1 1 1 1 1";
   std::unique_ptr<PolyRing> R(ringFromString(ringinfo));
-  R->write(o);
+  R->write(o, true);
 
-  EXPECT_EQ("32003 6 1\n 1 1 1 1 1 1\n", o.str());
+  EXPECT_EQ("32003 6\nrevlex 1\n 1 1 1 1 1 1\n", o.str());
 }
 
 TEST(Poly,readwrite) {
@@ -234,12 +234,9 @@ void testMonomialOps(const PolyRing* R, std::string s1, std::string s2)
   Monomial m2 = stringToMonomial(R, s2);
   Monomial m3 = stringToMonomial(R, "abcdef<0>");
 
-  // m1 * m2 == lcm(m1,m2) * gcd(m1,m2)
-  
+ 
   Monomial m4 = R->allocMonomial();
   Monomial lcm = R->allocMonomial();
-  Monomial gcd = R->allocMonomial();
-  Monomial m7 = R->allocMonomial();
   Monomial m8 = R->allocMonomial();
   Monomial m1a = R->allocMonomial();
   Monomial m2a = R->allocMonomial();
@@ -248,10 +245,6 @@ void testMonomialOps(const PolyRing* R, std::string s1, std::string s2)
 
   R->monomialMult(m1,m2,m4);
   R->monomialLeastCommonMultiple(m1,m2,lcm);
-  R->monomialGreatestCommonDivisor(m1,m2,gcd);
-
-  R->monomialMult(lcm,gcd,m7);
-  EXPECT_TRUE(R->monomialEQ(m4, m7));
 
   // lcm(m1,m2)/m1, lcm(m1,m2)/m2:  relatively prime
   EXPECT_TRUE(R->monomialIsDivisibleBy(lcm, m1));
@@ -266,9 +259,7 @@ void testMonomialOps(const PolyRing* R, std::string s1, std::string s2)
   R->monomialDivide(lcm, m2a, m2b);
   EXPECT_TRUE(R->monomialEQ(m1, m1b));
   EXPECT_TRUE(R->monomialEQ(m2, m2b));
-
-  EXPECT_TRUE(R->monomialIsDivisibleBy(lcm,gcd));
-  R->monomialDivide(lcm,gcd,m8);
+  R->monomialMult(m1a, m2a, m8);
 
   size_t supp1 = R->monomialSizeOfSupport(m1a);
   size_t supp2 = R->monomialSizeOfSupport(m2a);
@@ -615,9 +606,18 @@ bool test_find_signatures(const PolyRing *R,
   monomial y2 = new int[R->maxMonomialSize()];
   monomial v1v2 = new int[R->maxMonomialSize()];
   monomial x1g = new int[R->maxMonomialSize()];
+  monomial p = new int[R->maxMonomialSize()];
+  monomial m = new int[R->maxMonomialSize()];
+  
+
   R->monomialFindSignature(v1,v2,u1,t1);
   R->monomialFindSignature(v2,v1,u2,t2);
-  R->monomialGreatestCommonDivisor(v1, v2, g);
+
+  R->monomialMult(v1, v2, p);
+  R->monomialLeastCommonMultiple(v1, v2, m);
+  R->monomialDivide(p, m, g);
+  //R->monomialGreatestCommonDivisor(v1, v2, g);
+
   // check that v1*t1 == v2*t2
   // v1*v2 == g * (v1*t1)
   R->monomialDivide(t1,u1,y1);
@@ -659,7 +659,7 @@ TEST(OldMonomial, findSignatures) {
 
 TEST(Ideal,readwrite) {
   // This also tests Poly::iterator
-  std::unique_ptr<Ideal> I = idealParseFromString(ideal1);
+  std::unique_ptr<Basis> I = basisParseFromString(ideal1);
   size_t ngens = I->viewGenerators().size();
   EXPECT_TRUE(2 == ngens);
 
@@ -678,7 +678,7 @@ TEST(Ideal,readwrite) {
 
 TEST(Poly,lead) {
   // This also tests Poly::iterator, Poly::read, Poly::write
-  std::unique_ptr<Ideal> I = idealParseFromString(ideal1);
+  std::unique_ptr<Basis> I = basisParseFromString(ideal1);
   std::unique_ptr<const PolyRing> R(I->getPolyRing());
   monomial lm = stringToMonomial(R.get(), "ab");
   EXPECT_TRUE(R->monomialEQ(lm, I->getPoly(0)->getLeadMonomial()));
@@ -691,9 +691,9 @@ TEST(Poly,lead) {
 // Test reducer code /////////
 //////////////////////////////
 
-std::unique_ptr<Poly> multIdealByPolyReducer(int typ, const Ideal& ideal, const Poly& g)
+std::unique_ptr<Poly> multIdealByPolyReducer(int typ, const Basis& basis, const Poly& g)
 {
-  const PolyRing& R = ideal.ring();
+  const PolyRing& R = basis.ring();
   auto poly = make_unique<Poly>(R);
   std::unique_ptr<Reducer> H = Reducer::makeReducer(static_cast<Reducer::ReducerType>(typ), R);
   for (Poly::const_iterator i = g.begin(); i != g.end(); ++i) {
@@ -701,7 +701,7 @@ std::unique_ptr<Poly> multIdealByPolyReducer(int typ, const Ideal& ideal, const 
     R.monomialCopy(i.getMonomial(), mon);
     int x = R.monomialGetComponent(mon);
     R.monomialChangeComponent(mon, 0);
-    std::unique_ptr<Poly> h(ideal.getPoly(x)->copy());
+    std::unique_ptr<Poly> h(basis.getPoly(x)->copy());
     h->multByTerm(i.getCoefficient(), mon);
     R.monomialSetIdentity(mon);
 
@@ -715,13 +715,13 @@ std::unique_ptr<Poly> multIdealByPolyReducer(int typ, const Ideal& ideal, const 
 
 void testPolyReducer(
   Reducer::ReducerType reducerType,
-  const Ideal& ideal,
+  const Basis& basis,
   const std::string& f,
   const std::string& ans
 ) {
-  const PolyRing& ring = *ideal.getPolyRing();
+  const PolyRing& ring = *basis.getPolyRing();
   std::unique_ptr<Poly> g = polyParseFromString(&ring, f);
-  std::unique_ptr<Poly> h = multIdealByPolyReducer(reducerType, ideal, *g);
+  std::unique_ptr<Poly> h = multIdealByPolyReducer(reducerType, basis, *g);
   if (!h->isZero()) {
     Poly::iterator prev = h->begin();
     Poly::iterator it = prev;
@@ -740,7 +740,7 @@ TEST(Reducer, insert) {
   //  use this last poly to determine what to add to the heap
   // at the end, take the value of the heap, compare to answer
 
-  std::unique_ptr<Ideal> I = idealParseFromString(ideal2); // charac is 32003
+  std::unique_ptr<Basis> I = basisParseFromString(ideal2); // charac is 32003
   for (int typ = 0; typ <= 30; ++typ) {
     Reducer::ReducerType red = Reducer::ReducerType(typ);
     if (static_cast<int>(red) != typ ||
@@ -829,8 +829,3 @@ TEST(MonomialHashTable,test1) {
   H.getStats(stats);
   //H.dump(1);
 }
-
-// Local Variables:
-// compile-command: "make -C .. "
-// indent-tabs-mode: nil
-// End:

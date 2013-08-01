@@ -1,8 +1,9 @@
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
 #ifndef MATHICGB_QUAD_MATRIX_BUILDER_GUARD
 #define MATHICGB_QUAD_MATRIX_BUILDER_GUARD
 
 #include "MonomialMap.hpp"
-
 #include "SparseMatrix.hpp"
 #include "PolyRing.hpp"
 #include <vector>
@@ -11,7 +12,9 @@
 #include <string>
 #include <ostream>
 #include <memtailor.h>
-class FreeModuleOrder;
+
+MATHICGB_NAMESPACE_BEGIN
+
 class QuadMatrix;
 
 /** Builder for QuadMatrix. This is not quite the builder pattern in
@@ -31,7 +34,7 @@ class QuadMatrixBuilder {
   class LeftRightColIndex {
   public:
     LeftRightColIndex():
-      mRawIndex(std::numeric_limits<ColIndex>::max()), mLeft(false) {}
+      mRawIndex(::std::numeric_limits<ColIndex>::max()), mLeft(false) {}
     LeftRightColIndex(ColIndex index, bool left):
       mRawIndex(index), mLeft(left) {
     }
@@ -64,7 +67,7 @@ class QuadMatrixBuilder {
     }
 
     bool valid() const {
-      return mRawIndex != std::numeric_limits<ColIndex>::max();
+      return mRawIndex != ::std::numeric_limits<ColIndex>::max();
     }
 
     bool operator==(const LeftRightColIndex& index) const {
@@ -81,7 +84,7 @@ class QuadMatrixBuilder {
   };
 
   typedef MonomialMap<LeftRightColIndex> Map;
-  typedef std::vector<monomial> MonomialsType;
+  typedef ::std::vector<monomial> MonomialsType;
 
   QuadMatrixBuilder(
     const PolyRing& ring,
@@ -162,13 +165,13 @@ class QuadMatrixBuilder {
   /** Creates a new column associated to the monomial
     monomialToBeCopied to the left matrices. There must not already
     exist a column for this monomial on the left or on the right. */
-  std::pair<QuadMatrixBuilder::LeftRightColIndex, ConstMonomial>
+  ::std::pair<QuadMatrixBuilder::LeftRightColIndex, ConstMonomial>
   createColumnLeft(const_monomial monomialToBeCopied);
 
   /** Creates a new column associated to the monomial monomialToBeCopied
     to the right matrices. There must not already exist a column for
     this monomial on the left or on the right. */
-  std::pair<QuadMatrixBuilder::LeftRightColIndex, ConstMonomial>
+  ::std::pair<QuadMatrixBuilder::LeftRightColIndex, ConstMonomial>
   createColumnRight(const_monomial monomialToBeCopied);
 
   // *** Querying columns
@@ -197,4 +200,5 @@ private:
   SparseMatrix mBottomRight;
 };
 
+MATHICGB_NAMESPACE_END
 #endif

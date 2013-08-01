@@ -1,7 +1,12 @@
-#ifndef F4_MATRIX_REDUCER_GUARD
-#define F4_MATRIX_REDUCER_GUARD
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
+#ifndef MATHICGB_F4_MATRIX_REDUCER_GUARD
+#define MATHICGB_F4_MATRIX_REDUCER_GUARD
 
 #include "SparseMatrix.hpp"
+
+MATHICGB_NAMESPACE_BEGIN
+
 class QuadMatrix;
 class PolyRing;
 
@@ -27,7 +32,7 @@ public:
   /// Returns the reduced row echelon form of matrix.
   SparseMatrix reducedRowEchelonForm(const SparseMatrix& matrix);
 
-  /// Returns the lower right submatrix if the reduced row echelon
+  /// Returns the lower right submatrix of the reduced row echelon
   /// form of matrix. The lower left part is not returned because it is
   /// always zero after row reduction.
   SparseMatrix reducedRowEchelonFormBottomRight(const QuadMatrix& matrix);
@@ -36,4 +41,5 @@ private:
   const SparseMatrix::Scalar mModulus;
 };
 
+MATHICGB_NAMESPACE_END
 #endif

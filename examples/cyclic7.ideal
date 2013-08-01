@@ -1,0 +1,9 @@
+101 7 1 1 1 1 1 1 1 1
+7
+a+b+c+d+e+f+g
+ab+bc+cd+de+ef+fg+ga
+abc+bcd+cde+def+efg+fga+gab
+abcd+bcde+cdef+defg+efga+fgab+gabc
+abcde+bcdef+cdefg+defga+efgab+fgabc+gabcd
+abcdef+bcdefg+cdefga+defgab+efgabc+fgabcd+gabcde
+abcdefg-1

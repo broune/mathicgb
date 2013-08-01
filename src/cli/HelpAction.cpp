@@ -1,10 +1,13 @@
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
 #include "mathicgb/stdinc.h"
 #include "HelpAction.hpp"
 
 #include "mathicgb/LogDomain.hpp"
 #include "mathicgb/LogDomainSet.hpp"
-
 #include <iostream>
+
+MATHICGB_NAMESPACE_BEGIN
 
 void HelpAction::performAction() {
   if (topic() != "logs") {
@@ -78,3 +81,5 @@ void HelpAction::performAction() {
     " all expands to all log names\n";
     "\n";
 }
+
+MATHICGB_NAMESPACE_END

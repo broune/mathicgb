@@ -1,4 +1,5 @@
-// Copyright 2011 Michael E. Stillman
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
 #include "stdinc.h"
 #include "PolyHashTable.hpp"
 
@@ -6,6 +7,7 @@
 #include <iostream>
 #include <cmath>
 
+MATHICGB_NAMESPACE_BEGIN
 
 const double PolyHashTable::threshold = 0.1;
 const bool AlwaysInsertAtEnd = true;
@@ -400,8 +402,6 @@ void PolyHashTable::dump(int level) const
   value << "\n";
   extra << "\n";
 
-  mRing.displayHashValues();
-
   name << "# resets:\n";
   value << mic::ColumnPrinter::commafy(mStats.n_resets) << '\n';
   extra << '\n';
@@ -457,10 +457,6 @@ void PolyHashTable::dump(int level) const
       f.display(std::cout);
       std::cout << std::endl;
     }
-
 }
 
-// Local Variables:
-// compile-command: "make -C .. "
-// indent-tabs-mode: nil
-// End:
+MATHICGB_NAMESPACE_END

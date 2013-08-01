@@ -1,7 +1,11 @@
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
 #include "stdinc.h"
 #include "LogDomainSet.hpp"
 
 #include <mathic.h>
+
+MATHICGB_NAMESPACE_BEGIN
 
 LogDomainSet::LogDomainSet():
   mStartTime(mgb::tbb::tick_count::now()) {
@@ -195,7 +199,18 @@ void LogDomainSet::printTimeReport(std::ostream& out) const {
   out.flags(oldFlags);
 }
 
+void LogDomainSet::reset() {
+  mStartTime = mgb::tbb::tick_count::now();
+  const auto end = logDomains().cend();
+  for (auto it = logDomains().cbegin(); it != end; ++it) {
+    MATHICGB_ASSERT(*it != 0);
+    (*it)->reset();
+  }
+}
+
 LogDomainSet& LogDomainSet::singleton() {
   static LogDomainSet set;
   return set;
 }
+
+MATHICGB_NAMESPACE_END

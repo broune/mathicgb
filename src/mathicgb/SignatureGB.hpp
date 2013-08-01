@@ -1,30 +1,32 @@
-// Copyright 2011 Michael E. Stillman
-
-#ifndef _sig_gb_h_
-#define _sig_gb_h_
-
-#ifdef Win32
-#include "StdAfx.h"
-#endif
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
+#ifndef MATHICGB_SIGNATURE_G_B_GUARD
+#define MATHICGB_SIGNATURE_G_B_GUARD
 
 #include "PolyRing.hpp"
 #include "MTArray.hpp"
-#include "GroebnerBasis.hpp"
-#include "FreeModuleOrder.hpp"
+#include "SigPolyBasis.hpp"
 #include "SigSPairs.hpp"
 #include "Reducer.hpp"
 #include "KoszulQueue.hpp"
 #include "SPairs.hpp"
+#include "MonoProcessor.hpp"
 #include <map>
+
+MATHICGB_NAMESPACE_BEGIN
 
 class SigSPairs;
 class DivisorLookup;
 
 class SignatureGB {
 public:
+  typedef PolyRing::Monoid Monoid;
+  typedef Monoid::MonoVector MonoVector;
+  typedef MonoProcessor<Monoid> Processor;
+
   SignatureGB(
-    const Ideal& ideal,
-    FreeModuleOrderType typ,
+    Basis&& basis,
+    Processor&& processor,
     Reducer::ReducerType reductiontyp,
     int divlookup_type,
     int montable_type,
@@ -33,7 +35,6 @@ public:
     bool preferSparseReducers,
     bool useSingularCriterionEarly,
     size_t queueType);
-  ~SignatureGB();
 
   void computeGrobnerBasis();
 
@@ -43,8 +44,8 @@ public:
   // How many reductions were singular
   unsigned long long getSingularReductionCount() const;
 
-  GroebnerBasis* getGB() { return GB.get(); }
-  MonomialTableArray* getSyzTable() { return Hsyz.get(); }
+  SigPolyBasis* getGB() { return GB.get(); }
+  MonomialTableArray* getSyzTable() { return mProcessor->processingNeeded() ? Hsyz2.get() : Hsyz.get(); }
   SigSPairs* getSigSPairs() { return SP.get(); }
 
   size_t getMemoryUse() const;
@@ -61,6 +62,8 @@ public:
     mPrintInterval = reductions;
   }
 
+  const Monoid& monoid() const {return R->monoid();}
+
 private:
   unsigned int mBreakAfter;
   unsigned int mPrintInterval;
@@ -72,10 +75,6 @@ private:
   bool step();
 
   const PolyRing *R;
-  std::unique_ptr<FreeModuleOrder> F;
-
-  
-
 
   bool const mPostponeKoszul;
 
@@ -98,16 +97,14 @@ private:
   mic::Timer mTimer;
   double stats_nsecs;
 
-  std::unique_ptr<GroebnerBasis> GB;
-  std::unique_ptr<KoszulQueue> mKoszuls;
+  std::unique_ptr<SigPolyBasis> GB;
+  KoszulQueue mKoszuls;
   std::unique_ptr<MonomialTableArray> Hsyz;
+  std::unique_ptr<MonomialTableArray> Hsyz2;
   std::unique_ptr<Reducer> reducer;
   std::unique_ptr<SigSPairs> SP;
+  std::unique_ptr<MonoProcessor<Monoid>> mProcessor;
 };
 
+MATHICGB_NAMESPACE_END
 #endif
-
-// Local Variables:
-// compile-command: "make -C .. "
-// indent-tabs-mode: nil
-// End:

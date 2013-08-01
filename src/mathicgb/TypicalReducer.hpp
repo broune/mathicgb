@@ -1,10 +1,15 @@
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
 #ifndef MATHICGB_TYPICAL_REDUCER_GUARD
 #define MATHICGB_TYPICAL_REDUCER_GUARD
 
 #include "Reducer.hpp"
 #include "Poly.hpp"
 #include "PolyRing.hpp"
-class GroebnerBasis;
+
+MATHICGB_NAMESPACE_BEGIN
+
+class SigPolyBasis;
 class PolyBasis;
 
 /** Uses the template method pattern (not C++ templates) to implement
@@ -18,11 +23,13 @@ class PolyBasis;
 */
 class TypicalReducer : public Reducer {
 public:
+  virtual size_t preferredSetSize() const;
+
   virtual Poly* regularReduce(
     const_monomial sig,
     const_monomial multiple,
     size_t basisElement,
-    const GroebnerBasis& basis);
+    const SigPolyBasis& basis);
 
   virtual std::unique_ptr<Poly> classicReduce
   (const Poly& poly, const PolyBasis& basis);
@@ -66,4 +73,5 @@ private:
     (std::unique_ptr<Poly> partialResult, const PolyBasis& basis);
 };
 
+MATHICGB_NAMESPACE_END
 #endif

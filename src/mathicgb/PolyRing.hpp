@@ -1,7 +1,7 @@
-// Copyright 2011 Michael E. Stillman
-
-#ifndef _polyRing_h_
-#define _polyRing_h_
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
+#ifndef MATHICGB_POLY_RING_GUARD
+#define MATHICGB_POLY_RING_GUARD
 
 #include "MonoMonoid.hpp"
 #include "PrimeField.hpp"
@@ -13,6 +13,7 @@
 #include <cstring>
 #include <limits>
 
+MATHICGB_NAMESPACE_BEGIN
 
 #define LT (-1)
 #define EQ 0
@@ -21,8 +22,8 @@
 
 template<class T>
 PrimeField<
-  typename std::make_unsigned<
-    typename std::remove_reference<T>::type
+  typename ::std::make_unsigned<
+    typename ::std::remove_reference<T>::type
   >::type
 > makeField(T charac) {
   return charac;
@@ -152,7 +153,7 @@ public:
   Monomial(exponent *val) : ConstMonomial(val) {}
 
   void swap(Monomial& monomial) {
-    std::swap(mValue, monomial.mValue);
+    ::std::swap(mValue, monomial.mValue);
   }
 
   exponent * unsafeGetRepresentation() { return const_cast<exponent *>(mValue); }
@@ -200,37 +201,40 @@ public:
   typedef MonoMonoid<exponent> Monoid;
   typedef PrimeField<unsigned long> Field;
 
-  PolyRing(coefficient charac, int nvars, const std::vector<exponent>& weights);
-  PolyRing(coefficient charac, int nvars, int nweights);
-  ~PolyRing() {}
+  PolyRing(
+    coefficient charac,
+    int nvars,
+    bool lexBaseOrder,
+    ::std::vector<exponent>&& weights
+  );
+  PolyRing(const Field& field, Monoid&& monoid);
 
   size_t getMemoryUse() const {
     // todo: Make this more accurate.
-    return mMonomialPool.getMemoryUse();
+    return 0;
   }
 
-  coefficient charac() const { return mCharac; }
-  size_t getNumVars() const { return mNumVars; }
-  //       const std::vector<int> &degs,
-  //       const std::string &monorder);
+  coefficient charac() const { return mField.charac(); }
+  size_t getNumVars() const { return varCount();}
+  size_t varCount() const {return monoid().varCount();}
+  //       const ::std::vector<int> &degs,
+  //       const ::std::string &monorder);
 
-  static PolyRing *read(std::istream &i);
-  void write(std::ostream &o) const;
+  static ::std::pair<PolyRing*, ::std::pair<bool, bool>> read(::std::istream &i);
+  void write(::std::ostream &o, bool componentIncreasingDesired) const;
   // Format for ring
   //   <char> <mNumVars> <deg1> ... <deg_n> <monorder>
-
-  void printRingFrobbyM2Format(std::ostream& out) const;
 
   //  Allocate a monomial from an arena A
   //  This monomial may only be freed if no other elements that were allocated
   // later are live on A.  In this case, use freeMonomial(A,m) to free 'm'.
   Monomial allocMonomial(memt::Arena &A) const {
-    exponent* ptr = static_cast<exponent*>(A.alloc(mMaxMonomialByteSize));
+    exponent* ptr = static_cast<exponent*>(A.alloc(maxMonomialByteSize()));
 #ifdef MATHICGB_DEBUG
     // fill with value that do not make sense to catch bugs in debug
     // mode. The maximum value of setting all bits increases the
     // chances of getting an assert.
-    std::fill_n(reinterpret_cast<char*>(ptr), mMaxMonomialByteSize,
+    ::std::fill_n(reinterpret_cast<char*>(ptr), maxMonomialByteSize(),
                 ~static_cast<char>(0));
 #endif
     return ptr;
@@ -243,10 +247,6 @@ public:
     A.freeTop(m.unsafeGetRepresentation());
   }
 
-  bool fromPool(ConstMonomial m) const {
-    return mMonomialPool.fromPool(m.unsafeGetRepresentation());
-  }
-
   //  Allocate a monomial from a pool that has had its size set to 
   //   maxMonomialByteSize()
   //  Free monomials here using the SAME pool
@@ -256,7 +256,7 @@ public:
     // fill with value that do not make sense to catch bugs in debug
     // mode. The maximum value of setting all bits increases the
     // chances of getting an assert.
-    std::fill_n(reinterpret_cast<char*>(ptr), mMaxMonomialByteSize,
+    ::std::fill_n(reinterpret_cast<char*>(ptr), maxMonomialByteSize(),
                 ~static_cast<char>(0));
 #endif
     return ptr;
@@ -270,11 +270,18 @@ public:
 
   // Only call this method for monomials returned by allocMonomial().
   void freeMonomial(Monomial m) const {
-    mMonomialPool.free(m.unsafeGetRepresentation());
+    monoid().freeRaw(m);
   }
 
   // Free monomials allocated here by calling freeMonomial().
-  monomial allocMonomial() const { return allocMonomial(mMonomialPool); }
+  monomial allocMonomial() const {
+    return Monoid::rawPtr(monoid().alloc().release());
+  }
+
+  bool fromPool(ConstMonomial m) const {
+    return monoid().fromPool(m);
+  }
+
 
 
 
@@ -305,13 +312,9 @@ public:
   //  nterms comp v1 e1 ... v_nterms e_nterms
   // with each e_i nonzero, and v_1 > v_2 > ... > v_nterms
 
-  size_t maxMonomialByteSize() const { return mMaxMonomialByteSize; }
+  size_t maxMonomialByteSize() const { return maxMonomialSize() * sizeof(exponent); }
 
-  size_t maxMonomialSize() const { return mMaxMonomialSize; }
-
-  void displayHashValues() const;
-
-  size_t monomialHashIndex() const { return mHashIndex; }
+  size_t maxMonomialSize() const { return monoid().entryCount(); }
 
   ///////////////////////////////////////////
   // Monomial Routines //////////////////////
@@ -351,10 +354,6 @@ public:
 
   inline void setHashOnly(Monomial& a) const;
 
-  bool hashValid(const_monomial m) const;
-
-  bool weightsCorrect(ConstMonomial a) const;
-
   // returns LT, EQ, or GT, depending on sig ? (m2 * sig2).
   int monomialCompare(ConstMonomial a, 
                       ConstMonomial b) const; 
@@ -376,8 +375,6 @@ public:
 
   /// as monomialEQ, but optimized for the case that the answer is true.
   bool monomialEqualHintTrue(ConstMonomial a, ConstMonomial b) const;
-
-  size_t monomialSize(ConstMonomial) const { return mMaxMonomialSize; }
 
   exponent monomialGetComponent(ConstMonomial a) const { return *a.mValue; }
 
@@ -425,9 +422,7 @@ public:
 
   /// Returns the hash of the product of a and b.
   HashValue monomialHashOfProduct(ConstMonomial a, ConstMonomial b) const {
-    return static_cast<exponent>(
-      static_cast<HashValue>(a[mHashIndex]) +
-      static_cast<HashValue>(b[mHashIndex]));
+    return monoid().hashOfProduct(a, b);
   }
 
   void monomialCopy(ConstMonomial  a, Monomial &result) const;
@@ -449,10 +444,6 @@ public:
 
   size_t monomialSizeOfSupport(ConstMonomial m) const;
 
-  void monomialGreatestCommonDivisor(ConstMonomial a, 
-                                     ConstMonomial b, 
-                                     Monomial& g) const;
-
   inline void monomialLeastCommonMultiple(ConstMonomial a, 
                                           ConstMonomial b, 
                                           Monomial& l) const;
@@ -468,10 +459,10 @@ public:
     ConstMonomial smaller1,
     ConstMonomial smaller2) const;
 
-  void monomialParse(std::istream& i, 
+  void monomialParse(::std::istream& i, 
                      Monomial& result) const;
 
-  void monomialDisplay(std::ostream& o, 
+  void monomialDisplay(::std::ostream& o, 
                        ConstMonomial a, 
                        bool print_comp=true, 
                        bool print_one=true) const;
@@ -480,46 +471,17 @@ public:
                        bool printComponent = true, 
                        bool printOne = true) const;
 
-  void printMonomialFrobbyM2Format(std::ostream& out, ConstMonomial m) const;
+  void printMonomialFrobbyM2Format(::std::ostream& out, ConstMonomial m) const;
 
   ///////////////////////////////////////////
   ///////////////////////////////////////////
-
-  struct coefficientStats {
-    size_t n_addmult;
-    size_t n_add;
-    size_t n_mult;
-    size_t n_recip;
-    size_t n_divide;
-  };
-  const coefficientStats & getCoefficientStats() const { return mStats; }
-  void resetCoefficientStats() const;
 
   const Monoid& monoid() const {return mMonoid;}
   const Field field() const {return mField;}
 
 private:
-  inline HashValue computeHashValue(const_monomial a1) const;
-
-  coefficient mCharac; // p=mCharac: ring is ZZ/p
-  size_t mNumVars;
-  size_t mNumWeights; // stored as negative of weight vectors
-  size_t mTopIndex;
-  size_t mHashIndex; // 1 more than mTopIndex.  Where the has value is stored.
-  size_t mMaxMonomialSize;
-  size_t mMaxMonomialByteSize;
-  std::vector<exponent> mWeights; // 0..mNumWeights * mNumVars - 1.
-
-  std::vector<HashValue> mHashVals; // one for each variable 0..mNumVars-1
-  // stored as weightvec1 weightvec2 ...
-
-  mutable memt::BufferPool mMonomialPool;
-  mutable coefficientStats mStats;
-
-  bool mTotalDegreeGradedOnly;
-
-  Monoid mMonoid;
   Field mField;
+  Monoid mMonoid;
 };
 
 inline exponent PolyRing::weight(ConstMonomial a) const {
@@ -577,26 +539,12 @@ inline void PolyRing::monomialMult(ConstMonomial a,
 
 inline void PolyRing::setWeightsOnly(Monomial& a1) const
 {
-  exponent *a = a1.unsafeGetRepresentation();
-  a++;
-  auto wts = mWeights.data();
-  for (size_t i = 0; i < mNumWeights; ++i)
-    {
-      exponent result = 0;
-      for (size_t j = 0; j < mNumVars; ++j)
-        result += *wts++ * a[j];
-      a[mNumVars+i] = result;
-    }
-}
-
-inline HashValue PolyRing::computeHashValue(const_monomial a1) const {
-  return monoid().computeHash(a1);
+  monoid().setOrderData(a1);
 }
 
 inline void PolyRing::setHashOnly(Monomial& a1) const
 {
-  exponent* a = a1.unsafeGetRepresentation();
-  a[mHashIndex] = computeHashValue(a1);
+  monoid().setHash(a1);
 }
 
 inline int PolyRing::monomialCompare(ConstMonomial a, ConstMonomial b) const
@@ -752,9 +700,5 @@ inline bool PolyRing::monomialHasAmpleCapacity(ConstMonomial mono) const {
   return monoid().hasAmpleCapacity(mono);
 }
 
+MATHICGB_NAMESPACE_END
 #endif
-
-// Local Variables:
-// compile-command: "make -C .. "
-// indent-tabs-mode: nil
-// End:

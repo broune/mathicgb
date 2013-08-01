@@ -1,13 +1,14 @@
-// Copyright 2011 Bjarke Roune, Michael E. Stillman
-
-#ifndef _reducer_pack_h_
-#define _reducer_pack_h_
-
-#include <memtailor.h>
-#include <mathic.h>
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
+#ifndef MATHICGB_REDUCER_PACK_GUARD
+#define MATHICGB_REDUCER_PACK_GUARD
 
 #include "TypicalReducer.hpp"
 #include "ReducerHelper.hpp"
+#include <memtailor.h>
+#include <mathic.h>
+
+MATHICGB_NAMESPACE_BEGIN
 
 template<template<typename> class Queue>
 class ReducerPack : public TypicalReducer {
@@ -238,9 +239,5 @@ size_t ReducerPack<Q>::getMemoryUse() const
     mPool.getMemoryUse();
 }
 
+MATHICGB_NAMESPACE_END
 #endif
-
-// Local Variables:
-// compile-command: "make -C .. "
-// indent-tabs-mode: nil
-// End:

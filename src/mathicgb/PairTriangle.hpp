@@ -1,11 +1,14 @@
-#ifndef _pair_triangle_h
-#define _pair_triangle_h
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
+#ifndef MATHICGB_PAIR_TRIANGLE_GUARD
+#define MATHICGB_PAIR_TRIANGLE_GUARD
 
+#include "PolyRing.hpp"
+#include "SigSPairQueue.hpp"
 #include <memtailor.h>
 #include <mathic.h>
-#include "PolyRing.hpp"
-#include "FreeModuleOrder.hpp"
-class FreeModuleOrder;
+
+MATHICGB_NAMESPACE_BEGIN
 
 /*typedef unsigned short SmallIndex;
 typedef unsigned int BigIndex;
@@ -20,10 +23,7 @@ struct PreSPair {
 // or signature.
 class PairTriangle {
 public:
-  PairTriangle(
-    const FreeModuleOrder& order,
-    const PolyRing& ring,
-    size_t queueType);
+  PairTriangle(const PolyRing& ring, size_t queueType);
 
   // Returns how many columns the triangle has
   size_t columnCount() const {return mPairQueue.columnCount();}
@@ -76,57 +76,63 @@ protected:
   virtual bool calculateOrderBy(size_t a, size_t b, monomial orderBy) const = 0;
 
 private:
-  FreeModuleOrder const& mOrder;
   std::vector<PreSPair> mPrePairs;
   PolyRing const& mRing;
 
   class PC {
   public:
-	PC(PairTriangle const& tri): mTri(tri) {}
-	
-	typedef monomial PairData;
-	void computePairData(size_t col, size_t row, monomial m) {
-	  mTri.calculateOrderBy(col, row, m);
-	}
+    PC(PairTriangle const& tri): mTri(tri) {}
+    
+    typedef monomial PairData;
+    void computePairData(size_t col, size_t row, monomial m) {
+      mTri.calculateOrderBy(col, row, m);
+    }
 
-	typedef bool CompareResult;
-	bool compare(int colA, int rowA, const_monomial a,
-				 int colB, int rowB, const_monomial b) const {
-	  return mTri.mOrder.signatureCompare(a, b) == GT;
-	}
-	bool cmpLessThan(bool v) const {return v;}
+    typedef bool CompareResult;
+    bool compare(int colA, int rowA, const_monomial a,
+                 int colB, int rowB, const_monomial b) const {
+      return mTri.mRing.monoid().lessThan(b, a);
+    }
+    bool cmpLessThan(bool v) const {return v;}
 
-	// these are not required for a configuration but we will use
-	// them from this code.
-	monomial allocPairData() {return mTri.mRing.allocMonomial();}
-	void freePairData(monomial m) {mTri.mRing.freeMonomial(m);}
+    // these are not required for a configuration but we will use
+    // them from this code.
+    monomial allocPairData() {return mTri.mRing.allocMonomial();}
+    void freePairData(monomial m) {mTri.mRing.freeMonomial(m);}
 
   private:
-	PairTriangle const& mTri;
+    PairTriangle const& mTri;
   };
   mathic::PairQueue<PC> mPairQueue;
   friend void mathic::PairQueueNamespace::constructPairData<PC>(void*,Index,Index,PC&);
-  friend void mathic::PairQueueNamespace::destructPairData<PC>(monomial*,Index,Index, PC&);
+  friend void mathic::PairQueueNamespace::destructPairData<PC>(PC::PairData*,Index,Index, PC&);
 };
+
+MATHICGB_NAMESPACE_END
 
 namespace mathic {
   namespace PairQueueNamespace {
-	template<>
-	inline void constructPairData<PairTriangle::PC>
-	(void* memory, Index col, Index row, PairTriangle::PC& conf) {
-	  MATHICGB_ASSERT(memory != 0);
-	  MATHICGB_ASSERT(col > row);
-	  monomial* pd = new (memory) monomial(conf.allocPairData());
-	  conf.computePairData(col, row, *pd);
-	}
-
-	template<>
-	inline void destructPairData
-	(monomial* pd, Index col, Index row, PairTriangle::PC& conf) {
-	  MATHICGB_ASSERT(pd != 0);
-	  MATHICGB_ASSERT(col > row);
-	  conf.freePairData(*pd);
-	}	
+    template<>
+    inline void constructPairData<mgb::PairTriangle::PC>
+    (void* memory, Index col, Index row, mgb::PairTriangle::PC& conf) {
+      MATHICGB_ASSERT(memory != 0);
+      MATHICGB_ASSERT(col > row);
+      auto pd = new (memory)
+        mgb::PairTriangle::PC::PairData(conf.allocPairData());
+      conf.computePairData(col, row, *pd);
+    }
+    
+    template<>
+    inline void destructPairData<mgb::PairTriangle::PC>(
+      mgb::PairTriangle::PC::PairData* pd,
+      Index col,
+      Index row,
+      mgb::PairTriangle::PC& conf
+    ) {
+      MATHICGB_ASSERT(pd != 0);
+      MATHICGB_ASSERT(col > row);
+      conf.freePairData(*pd);
+    }	
   }
 }
 

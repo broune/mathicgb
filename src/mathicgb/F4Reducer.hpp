@@ -1,9 +1,14 @@
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
 #ifndef MATHICGB_F4_REDUCER_GUARD
 #define MATHICGB_F4_REDUCER_GUARD
 
 #include "Reducer.hpp"
 #include "PolyRing.hpp"
 #include <string>
+
+MATHICGB_NAMESPACE_BEGIN
+
 class QuadMatrix;
 
 class F4Reducer : public Reducer {
@@ -14,6 +19,8 @@ public:
   };
 
   F4Reducer(const PolyRing& ring, Type type);
+
+  virtual size_t preferredSetSize() const;
 
   /// Store all future matrices to file-1.mat, file-2.mat and so on.
   /// Matrices with less than minEntries non-zero entries are not stored.
@@ -46,7 +53,7 @@ public:
     const_monomial sig,
     const_monomial multiple,
     size_t basisElement,
-    const GroebnerBasis& basis
+    const SigPolyBasis& basis
   );
 
   virtual void setMemoryQuantum(size_t quantum);
@@ -66,9 +73,5 @@ private:
   size_t mMatrixSaveCount; // how many matrices have been saved
 };
 
+MATHICGB_NAMESPACE_END
 #endif
-
-// Local Variables:
-// compile-command: "make -C .. "
-// indent-tabs-mode: nil
-// End:

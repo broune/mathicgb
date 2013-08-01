@@ -1,10 +1,14 @@
-#ifndef _reducer_helper_h_
-#define _reducer_helper_h_
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
+#ifndef MATHICGB_REDUCER_HELPER_GUARD
+#define MATHICGB_REDUCER_HELPER_GUARD
 
 // This namespace contains functions and classees that are useful for
 // writing subclasses of Reducer.
 
 #include "PolyRing.hpp"
+
+MATHICGB_NAMESPACE_BEGIN
 
 namespace ReducerHelper {
   // ************** Configurations **********************
@@ -84,9 +88,5 @@ namespace ReducerHelper {
 
 }
 
+MATHICGB_NAMESPACE_END
 #endif
-
-// Local Variables:
-// compile-command: "make -C .. "
-// indent-tabs-mode: nil
-// End:

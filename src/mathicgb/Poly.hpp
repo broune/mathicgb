@@ -1,7 +1,7 @@
-// Copyright 2011 Michael E. Stillman
-
-#ifndef _poly_h_
-#define _poly_h_
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
+#ifndef MATHICGB_POLY_GUARD
+#define MATHICGB_POLY_GUARD
 
 #include "PolyRing.hpp"
 #include <vector>
@@ -10,31 +10,33 @@
 #include <cstdio>
 #include <iterator>
 
+MATHICGB_NAMESPACE_BEGIN
+
 class Poly {
 public:
   Poly(const PolyRing& ring) : R(&ring) {MATHICGB_ASSERT(R != 0);}
 
-  void parse(std::istream &i); // reads into this, sorts terms
-  void parseDoNotOrder(std::istream &i); // reads into this, does not sort terms
+  void parse(::std::istream &i); // reads into this, sorts terms
+  void parseDoNotOrder(::std::istream &i); // reads into this, does not sort terms
   void display(FILE* file, bool printComponent = true) const;
-  void display(std::ostream& out, bool printComponent = true) const;
+  void display(::std::ostream& out, bool printComponent = true) const;
   void see(bool print_comp) const;
 
   class iterator {
     // only for const objects...
     size_t monsize;
-    std::vector<coefficient>::iterator ic;
-    std::vector<exponent>::iterator im;
+    ::std::vector<coefficient>::iterator ic;
+    ::std::vector<exponent>::iterator im;
     friend class Poly;
 
     iterator(Poly& f) : monsize(f.getRing()->maxMonomialSize()), ic(f.coeffs.begin()), im(f.monoms.begin()) {}
     iterator(Poly& f,int) : ic(f.coeffs.end()), im() {}
   public:
-    typedef std::random_access_iterator_tag iterator_category;
-    typedef std::pair<coefficient, const const_monomial> value_type;
+    typedef ::std::random_access_iterator_tag iterator_category;
+    typedef ::std::pair<coefficient, const const_monomial> value_type;
     typedef ptrdiff_t difference_type;
     typedef value_type* pointer; // todo: is this OK?
-    typedef std::pair<coefficient&, const const_monomial> reference;
+    typedef ::std::pair<coefficient&, const const_monomial> reference;
 
     iterator() {}
     iterator operator++() { ++ic; im += monsize; return *this; }
@@ -44,25 +46,25 @@ public:
     friend bool operator==(const iterator &a, const iterator &b);
     friend bool operator!=(const iterator &a, const iterator &b);
     reference operator*() const {
-      return std::pair<coefficient&, monomial>(getCoefficient(), getMonomial());
+      return ::std::pair<coefficient&, monomial>(getCoefficient(), getMonomial());
     }
   };
 
   class const_iterator {
     // only for const objects...
     size_t monsize;
-    std::vector<coefficient>::const_iterator ic;
-    std::vector<exponent>::const_iterator im;
+    ::std::vector<coefficient>::const_iterator ic;
+    ::std::vector<exponent>::const_iterator im;
     friend class Poly;
 
     const_iterator(const Poly& f) : monsize(f.getRing()->maxMonomialSize()), ic(f.coeffs.begin()), im(f.monoms.begin()) {}
     const_iterator(const Poly& f,int) : ic(f.coeffs.end()), im() {}
   public:
-    typedef std::random_access_iterator_tag iterator_category;
-    typedef std::pair<const coefficient, const const_monomial> value_type;
+    typedef ::std::random_access_iterator_tag iterator_category;
+    typedef ::std::pair<const coefficient, const const_monomial> value_type;
     typedef ptrdiff_t difference_type;
     typedef value_type* pointer; // todo: is this OK?
-    typedef std::pair<const coefficient&, const const_monomial> reference;
+    typedef ::std::pair<const coefficient&, const const_monomial> reference;
 
     const_iterator() {}
     const_iterator operator++() { ++ic; im += monsize; return *this; }
@@ -72,7 +74,7 @@ public:
     friend bool operator==(const const_iterator &a, const const_iterator &b);
     friend bool operator!=(const const_iterator &a, const const_iterator &b);
     const value_type operator*() const {
-      return std::pair<coefficient, const_monomial>
+      return ::std::pair<coefficient, const_monomial>
         (getCoefficient(), getMonomial());
     }
   };
@@ -93,6 +95,7 @@ public:
 
   /// all iterators are invalid after this
   void appendTerm(coefficient a, const_monomial m);
+  void appendTerm(coefficient a, PolyRing::Monoid::ConstMonoRef m);
 
   /// Hint that space for termCount terms is going to be needed so the internal
   /// storage should be expanded to fit that many terms.
@@ -149,11 +152,11 @@ public:
 
 private:
   const PolyRing *R;
-  std::vector<coefficient> coeffs;
-  std::vector<exponent> monoms;
+  ::std::vector<coefficient> coeffs;
+  ::std::vector<exponent> monoms;
 };
 
-std::ostream& operator<<(std::ostream& out, const Poly& p);
+::std::ostream& operator<<(::std::ostream& out, const Poly& p);
 
 inline bool operator==(const Poly::iterator &a, const Poly::iterator &b)
 {
@@ -177,14 +180,19 @@ inline void Poly::appendTerm(coefficient a, const_monomial m)
 {
   // the monomial will be copied on.
   coeffs.push_back(a);
-  size_t len = R->monomialSize(m);
+  size_t len = R->maxMonomialSize();
   exponent const * e = m.unsafeGetRepresentation();
   monoms.insert(monoms.end(), e, e + len);
 }
 
-#endif
+inline void Poly::appendTerm(coefficient a, PolyRing::Monoid::ConstMonoRef m) {
+  coeffs.push_back(a);
+  size_t len = R->maxMonomialSize();
+  auto& monoid = ring().monoid();
+  const auto offset = monoms.size();
+  monoms.resize(offset + monoid.entryCount());
+  monoid.copy(m, *PolyRing::Monoid::MonoPtr(monoms.data() + offset));
+}
 
-// Local Variables:
-// compile-command: "make -C .. "
-// indent-tabs-mode: nil
-// End:
+MATHICGB_NAMESPACE_END
+#endif

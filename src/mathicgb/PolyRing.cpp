@@ -1,4 +1,5 @@
-// Copyright 2011 Michael E. Stillman
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
 #include "stdinc.h"
 #include "PolyRing.hpp"
 
@@ -11,84 +12,29 @@
 #include <cstdlib>
 #include <limits>
 
-bool PolyRing::hashValid(const_monomial m) const {
-  return monomialHashValue(m) == computeHashValue(m);
-}
+MATHICGB_NAMESPACE_BEGIN
+
+PolyRing::PolyRing(const Field& field, Monoid&& monoid):
+  mField(field), mMonoid(std::move(monoid))
+{}
 
 PolyRing::PolyRing(
   coefficient p0,
   int nvars,
-  const std::vector<exponent>& weights
+  bool lexBaseOrder,
+  std::vector<exponent>&& weights
 ):
-  mCharac(p0),
-  mNumVars(nvars),
-  mNumWeights(1),
-  mTopIndex(nvars + mNumWeights),
-  mHashIndex(nvars + mNumWeights + 1),
-  mMaxMonomialSize(nvars + mNumWeights + 2),
-  mMaxMonomialByteSize(mMaxMonomialSize * sizeof(exponent)),
-  mMonomialPool(mMaxMonomialByteSize),
-  mTotalDegreeGradedOnly(false),
-  mMonoid(weights),
-  mField(p0)
-{
-  MATHICGB_ASSERT(weights.size() == nvars);
-  mTotalDegreeGradedOnly = true;
-  for (size_t i = 0; i < nvars; ++i)
-    if (weights[i] != 1)
-      mTotalDegreeGradedOnly = false;
-  mWeights.resize(nvars);
-  for (size_t i = 0; i < nvars; ++i)
-    mWeights[i] = -weights[i];
-
-  resetCoefficientStats();
-  srand(0);
-  for (size_t i=0; i<mNumVars; i++)
-    mHashVals.push_back(static_cast<HashValue>(rand()));
-}
-
-PolyRing::PolyRing(coefficient p0,
-                   int nvars,
-                   int nweights)
-  : mCharac(p0),
-    mNumVars(nvars),
-    mNumWeights(nweights),
-    mTopIndex(nvars + nweights),
-    mHashIndex(nvars + nweights + 1),
-    mMaxMonomialSize(nvars + nweights + 2),
-    mMaxMonomialByteSize(mMaxMonomialSize * sizeof(exponent)),
-    mMonomialPool(mMaxMonomialByteSize),
-    mTotalDegreeGradedOnly(nweights == 1),
-    mMonoid(nvars),
-    mField(p0)
-{
-  MATHICGB_ASSERT(nweights == 1);
-
-  // set weights to the default value -1
-  mWeights.resize(mNumVars * mNumWeights);
-  std::fill(mWeights.begin(), mWeights.end(), static_cast<exponent>(-1));
-
-  resetCoefficientStats();
-  srand(0);
-  for (size_t i=0; i<mNumVars; i++)
-    mHashVals.push_back(static_cast<HashValue>(rand()));
-}
-
-void PolyRing::displayHashValues() const
-{
-  std::cerr << "hash values: " << std::endl;
-  for (size_t i=0; i<mNumVars; i++)
-    std::cerr << "  " << mHashVals[i] << std::endl;
-}
-
-void PolyRing::resetCoefficientStats() const
-{
-  mStats.n_addmult = 0;
-  mStats.n_add = 0;
-  mStats.n_mult = 0;
-  mStats.n_recip = 0;
-  mStats.n_divide = 0;
-}
+  mField(p0),
+  mMonoid(
+    MonoOrder<exponent>(
+      nvars,
+      std::move(weights),
+      lexBaseOrder ?
+        MonoOrder<exponent>::LexBaseOrder :
+        MonoOrder<exponent>::RevLexBaseOrder
+    )
+  )
+{}
 
 ///////////////////////////////////////
 // (New) Monomial Routines ////////////
@@ -100,46 +46,21 @@ void PolyRing::setWeightsAndHash(Monomial& a1) const
   setHashOnly(a1);
 }
 
-bool PolyRing::weightsCorrect(ConstMonomial a1) const
-{
-  exponent const *a = a1.mValue;
-  ++a;
-  auto wts = &mWeights[0];
-  for (size_t i = 0; i < mNumWeights; ++i) {
-    exponent result = 0;
-    for (size_t j = 0; j < mNumVars; ++j)
-      result += *wts++ * a[j];
-    if (a[mNumVars + i] != result)
-      return false;
-  }
-  return true;
-}
-
 int PolyRing::monomialCompare(ConstMonomial sig, ConstMonomial m2, ConstMonomial sig2) const
   // returns LT, EQ, or GT, depending on sig ? (m2 * sig2).
 {
-  for (size_t i = mTopIndex; i != static_cast<size_t>(-1); --i)
-    {
-      auto cmp = sig[i] - m2[i] - sig2[i];
-      if (cmp < 0) return GT;
-      if (cmp > 0) return LT;
-    }
-  return EQ;
+  return monoid().compare(sig, m2, sig2);
 }
 
 void PolyRing::monomialSetIdentity(Monomial& result) const
 {
-  for (size_t i = 0; i <= mTopIndex; ++i)
-    result[i] = 0;
-  result[mHashIndex] = static_cast<HashValue>(0);
+  monoid().setIdentity(result);
 }
 
 void PolyRing::monomialEi(size_t i, Monomial &result) const
 {
-  for (size_t j=mTopIndex; j != static_cast<size_t>(-1); --j)
-    result[j] = 0;
-  *result  = static_cast<exponent>(i); // todo: handle overflow or change representation
-  result[mHashIndex] = static_cast<HashValue>(i); // todo: handle overflow or change representation
+  monoid().setIdentity(result);
+  monoid().setComponent(i, result);
 }
 
 void PolyRing::monomialMultTo(Monomial &a, ConstMonomial b) const
@@ -151,8 +72,7 @@ void PolyRing::monomialMultTo(Monomial &a, ConstMonomial b) const
 void PolyRing::monomialCopy(ConstMonomial a, 
                             Monomial& result) const
 {
-  for (size_t i = mHashIndex; i != static_cast<size_t>(-1); --i)
-    result[i] = a[i];
+  monoid().copy(a, result);
 }
 
 void PolyRing::monomialQuotientAndMult(ConstMonomial a,
@@ -160,14 +80,7 @@ void PolyRing::monomialQuotientAndMult(ConstMonomial a,
                                        ConstMonomial c,
                                        Monomial& result) const
 {
-  // result is set to (a:b) * c.  It is not assumed that b divides a.
-  for (size_t i = 0; i <= mNumVars; ++i)
-    {
-      result[i] = c[i];
-      auto cmp = a[i] - b[i];
-      if (cmp > 0) result[i] += cmp;
-    }
-  setWeightsAndHash(result);
+  monoid().colonMultiply(b, a, c, result);
 }
 
 void PolyRing::monomialFindSignature(ConstMonomial v1,
@@ -175,51 +88,12 @@ void PolyRing::monomialFindSignature(ConstMonomial v1,
                                      ConstMonomial u1,
                                      Monomial& t1) const
 {
-  // t1 := (v2:v1) u1
-  *t1 = *u1.mValue;
-  if (mTotalDegreeGradedOnly) {
-    MATHICGB_ASSERT(mNumWeights == 1);
-    exponent weight = 0;
-    for (size_t i = 1; i <= mNumVars; ++i) {
-      MATHICGB_ASSERT(mWeights[i - 1] == -1);
-      if (v1[i] < v2[i])
-        weight -= t1[i] = u1[i] + v2[i] - v1[i];
-      else
-        weight -= t1[i] = u1[i];
-    }
-#ifdef MATHICGB_DEBUG
-    setWeightsOnly(t1);
-    MATHICGB_ASSERT(t1[mNumVars + 1] == weight);
-#endif
-    t1[mNumVars + 1] = weight;
-  } else {
-    for (size_t i = 1; i <= mNumVars; ++i) {
-        if (v1[i] < v2[i])
-          t1[i] = u1[i] + v2[i] - v1[i];
-        else
-          t1[i] = u1[i];
-    }
-    setWeightsOnly(t1);
-  }
+  monoid().colonMultiply(v1, v2, u1, t1);
 }
 
 size_t PolyRing::monomialSizeOfSupport(ConstMonomial m) const 
 {
-  size_t support = 0;
-  for (size_t i = 1; i <= mNumVars; ++i)
-    if (m[i] != 0)
-      ++support;
-  return support;
-}
-
-void PolyRing::monomialGreatestCommonDivisor(ConstMonomial a, 
-                                             ConstMonomial b, 
-                                             Monomial& g) const 
-{
-  *g = 0;
-  for (size_t i = 1; i <= mNumVars; ++i)
-    g[i] = std::min(a[i], b[i]);
-  setWeightsOnly(g);
+  return monoid().sizeOfSupport(m);
 }
 
 void PolyRing::mysteriousSPairMonomialRoutine(ConstMonomial newSig,
@@ -229,8 +103,7 @@ void PolyRing::mysteriousSPairMonomialRoutine(ConstMonomial newSig,
                                               Monomial result) const
 {
     result[0] = 0; // set component
-
-    for (size_t i = 1; i <= mNumVars; ++i) {
+    for (size_t i = 1; i <= varCount(); ++i) {
       exponent x = newSig[i] - baseDivSig[i] + baseDivLead[i];
       if (newLead[i] <= x)
         x = std::numeric_limits<exponent>::max();
@@ -246,8 +119,9 @@ void PolyRing::mysteriousSPairMonomialRoutine(ConstMonomial newSig,
 void PolyRing::monomialParse(std::istream &i, 
                              Monomial& result) const
 {
+//  monoid().parseM2(i, result);
   // first initialize result:
-  for (size_t j=0; j<mMaxMonomialSize; j++) result[j] = 0;
+  for (size_t j=0; j< maxMonomialSize(); j++) result[j] = 0;
 
   uint64 e;
   int v, x;
@@ -295,7 +169,7 @@ void PolyRing::monomialDisplay(std::ostream &o,
   // print_one: only is consulted in print_comp is false.
 
   bool printed_any = false;
-  for (size_t i=0; i<mNumVars; i++) {
+  for (size_t i=0; i< varCount(); i++) {
     if (a[i+1] != 0) {
       printed_any = true;
       if (i <= 25)
@@ -320,7 +194,7 @@ void PolyRing::monomialDisplay(FILE* file,
   const unsigned int letterCount = 26;
   MATHICGB_ASSERT(getNumVars() <= 2 * letterCount);
   bool printedAny = false;
-  for (size_t var = 0; var < mNumVars; ++var) {
+  for (size_t var = 0; var < varCount(); ++var) {
     exponent e = monomialExponent(mono, var);
     if (e == 0)
       continue;
@@ -343,7 +217,7 @@ void PolyRing::monomialDisplay(FILE* file,
 void PolyRing::printMonomialFrobbyM2Format(std::ostream& out, ConstMonomial m) const {
   out << "  ";
   bool isOne = true;
-  for (size_t i = 0; i < mNumVars; ++i) {
+  for (size_t i = 0; i < varCount(); ++i) {
     const auto e = m[i + 1];
     if (e == 0)
       continue;
@@ -357,48 +231,20 @@ void PolyRing::printMonomialFrobbyM2Format(std::ostream& out, ConstMonomial m) c
     out << '1';
 }
 
-void PolyRing::printRingFrobbyM2Format(std::ostream& out) const {
-  out << "R = QQ[";
-  for (size_t i = 0; i < mNumVars; ++i)
-    out << (i == 0 ? "" : ", ") << 'x' << (i + 1);
-  out << "];\n";
-}
-
-PolyRing *PolyRing::read(std::istream &i)
+std::pair<PolyRing*, std::pair<bool, bool>> PolyRing::read(std::istream &i)
 {
   int64 characInt;
   coefficient charac;
-  int mNumVars, mNumWeights;
-
   i >> characInt;
   charac = static_cast<exponent>(characInt);
-  i >> mNumVars;
-  i >> mNumWeights;
-  MATHICGB_ASSERT(mNumWeights == 1);
-
-  std::vector<exponent> weights(mNumWeights);
-  int wtlen = mNumVars * mNumWeights;
-  weights.resize(wtlen);
-  for (int j=0; j < mNumVars * mNumWeights; j++) {
-    int64 aInt;
-    i >> aInt;
-    weights[j] = static_cast<exponent>(aInt);
-  }
-  return new PolyRing(charac, mNumVars, weights);
+  auto p = Monoid::readMonoid(i);
+  return std::make_pair(new PolyRing(charac, std::move(p.first)), p.second);
 }
 
-void PolyRing::write(std::ostream &o) const
+void PolyRing::write(std::ostream &o, bool componentIncreasingDesired) const
 {
-  o << mCharac << " " << mNumVars << " " << mNumWeights << std::endl;
-  auto wts = &mWeights[0];
-  for (size_t i = 0; i < mNumWeights; ++i) {
-    for (size_t j = 0; j < mNumVars; ++j)
-      o << " " << - *wts++;
-    o << std::endl;
-  }
+  o << charac() << ' ';
+  monoid().printMonoid(componentIncreasingDesired, o);
 }
 
-// Local Variables:
-// compile-command: "make -C .. "
-// indent-tabs-mode: nil
-// End:
+MATHICGB_NAMESPACE_END

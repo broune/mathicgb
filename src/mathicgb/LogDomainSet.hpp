@@ -1,3 +1,5 @@
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
 #ifndef MATHICGB_LOG_DOMAIN_SET_GUARD
 #define MATHICGB_LOG_DOMAIN_SET_GUARD
 
@@ -8,6 +10,8 @@
 #include <algorithm>
 #include <cstring>
 #include <ostream>
+
+MATHICGB_NAMESPACE_BEGIN
 
 class LogDomainSet {
 public:
@@ -62,6 +66,11 @@ public:
   void printTimeReport(std::ostream& out) const;
   void printCountReport(std::ostream& out) const;
 
+  /// Resets the logging system as though the program had just started up.
+  /// This resets all counts, all recorded time and the enabledness of all logs.
+  /// You should not have a timer running for a log when you call this method.
+  void reset();
+
   static LogDomainSet& singleton();
 
 private:
@@ -82,4 +91,5 @@ private:
   mgb::tbb::tick_count mStartTime;
 };
 
+MATHICGB_NAMESPACE_END
 #endif

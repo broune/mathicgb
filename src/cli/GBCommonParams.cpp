@@ -1,9 +1,13 @@
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
 #include "mathicgb/stdinc.h"
 #include "GBCommonParams.hpp"
 
 #include "mathicgb/MTArray.hpp"
 #include "mathicgb/PolyReducer.hpp"
 #include "mathicgb/DivisorLookup.hpp"
+
+MATHICGB_NAMESPACE_BEGIN
 
 GBCommonParams::GBCommonParams():
   mPreferSparseReducers("preferSparseReducers",
@@ -12,6 +16,12 @@ GBCommonParams::GBCommonParams():
     "polynomial reduction. Ties are broken by taking the oldest reducer. "
     "If this option is false, the oldest reducer is always used.",
     true),
+
+  mOutputResult("outputResult",
+    "If true, output the resulting Groebner or signature basis "
+    "to the file <projectName>.gb and in the signature basis "
+    "case, the signatures of the syzygies are placed in <projectName>.syz",
+    false),
 
   mSPairQueue("spairQueue",
     "The priority queue used to order S-pairs.\n"
@@ -69,6 +79,7 @@ void GBCommonParams::pushBackParameters(
   std::vector<mathic::CliParameter*>& parameters
 ) {
   parameters.push_back(&mPreferSparseReducers);
+  parameters.push_back(&mOutputResult);
   parameters.push_back(&mSPairQueue);
   parameters.push_back(&mBreakAfter);
   parameters.push_back(&mPrintInterval);
@@ -81,3 +92,5 @@ void GBCommonParams::pushBackParameters(
 void GBCommonParams::perform() {
   // currently there is nothing to do
 }
+
+MATHICGB_NAMESPACE_END

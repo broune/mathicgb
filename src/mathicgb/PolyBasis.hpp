@@ -1,41 +1,45 @@
-#ifndef _poly_basis_h_
-#define _poly_basis_h_
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
+#ifndef MATHICGB_POLY_BASIS_GUARD
+#define MATHICGB_POLY_BASIS_GUARD
 
 #include "Poly.hpp"
 #include "DivisorLookup.hpp"
 #include <vector>
 #include <memory>
 
+MATHICGB_NAMESPACE_BEGIN
+
 class PolyRing;
-class Ideal;
-class FreeModuleOrder;
+class Basis;
 
 class PolyBasis {
 public:
-  // Ring and order must live for as long as this object. divisorLookupFactory
-  // only needs to live for the duration of the constructor.
+  typedef PolyRing::Monoid Monoid;
+
+  // Ring must live for as long as this object.
   PolyBasis(
     const PolyRing& ring,
-    FreeModuleOrder& order,
-    std::unique_ptr<DivisorLookup> divisorLookup);
+    ::std::unique_ptr<DivisorLookup> divisorLookup
+  );
 
   // Deletes the Poly's stored in the basis.
   ~PolyBasis();
 
-  // Returns the initial monomial ideal of the basis (not the ideal).
-  std::unique_ptr<Ideal> initialIdeal() const;
+  // Returns the initial monomial basis of the basis.
+  ::std::unique_ptr<Basis> initialIdeal() const;
 
   // Inserts a polynomial into the basis at index size().
   // Lead monomials must be unique among basis elements.
   // So the index is size() - 1 afterwards since size() will increase by 1.
-  void insert(std::unique_ptr<Poly> poly);
+  void insert(::std::unique_ptr<Poly> poly);
 
   // Returns the index of a basis element whose lead term divides mon.
   // Returns -1 if there is no such basis element.
   size_t divisor(const_monomial mon) const;
 
   // As divisor(mon), but if there is more than one divisor then the divisor
-  // is chosen in according to a notion of which reducer is better.
+  // is chosen according to some notion of which reducer is better.
   size_t classicReducer(const_monomial mon) const;
 
   // As the non-slow version, but uses simpler and slower code.
@@ -44,7 +48,7 @@ public:
   // Replaces basis element at index with the given new value. The lead
   // term of the new polynomial must be the same as the previous one.
   // This is useful for auto-tail-reduction.
-  void replaceSameLeadTerm(size_t index, std::unique_ptr<Poly> newValue) {
+  void replaceSameLeadTerm(size_t index, ::std::unique_ptr<Poly> newValue) {
     MATHICGB_ASSERT(index < size());
     MATHICGB_ASSERT(!retired(index));
     MATHICGB_ASSERT(newValue.get() != 0);
@@ -58,31 +62,13 @@ public:
     MATHICGB_ASSERT(mEntries[index].poly != 0);
   }
 
-  struct Stats {
-    Stats():
-      buchbergerLcmQueries(0),
-      buchbergerLcmHits(0),
-      buchbergerLcmNearHits(0),
-      buchbergerLcmCacheHits(0) {}
-
-    unsigned long long buchbergerLcmQueries;
-    unsigned long long buchbergerLcmHits;
-    unsigned long long buchbergerLcmNearHits;
-    unsigned long long buchbergerLcmCacheHits;
-  };
-  Stats stats() const {return mStats;}
-
-  // As the non-slow version, but uses simpler and slower code.
-  bool buchbergerLcmCriterionSlow(size_t a, size_t b) const;
-
   // Returns the number of basis elements, including retired elements.
   size_t size() const {return mEntries.size();}
 
   // Returns the ambient polynomial ring of the polynomials in the basis.
   const PolyRing& ring() const {return mRing;}
 
-  // Returns the term order on the basis.
-  const FreeModuleOrder& order() const {return mOrder;}
+  const Monoid& monoid() const {return ring().monoid();}
 
   // Returns a data structure containing the lead monomial of each lead
   // monomial.
@@ -90,12 +76,12 @@ public:
 
   // Retires the basis element at index, which frees the memory associated
   // to it, including the basis element polynomial, and marks it as retired. 
-  std::unique_ptr<Poly> retire(size_t index);
+  ::std::unique_ptr<Poly> retire(size_t index);
 
-  /// Returns an ideal containing all non-retired basis elements and
+  /// Returns an basis containing all non-retired basis elements and
   /// retires all those basis elements. The point of the simultaneous
   /// retirement is that this way no polynomials need be copied.
-  std::unique_ptr<Ideal> toIdealAndRetireAll();
+  ::std::unique_ptr<Basis> toBasisAndRetireAll();
 
   // Returns true of the basis element at index has been retired.
   bool retired(size_t index) const {
@@ -228,18 +214,14 @@ private:
     mutable unsigned long long possibleReducerCount;
     mutable unsigned long long nonSignatureReducerCount;
   };
-  typedef std::vector<Entry> EntryCont;
+  typedef ::std::vector<Entry> EntryCont;
   typedef EntryCont::iterator EntryIter;
   typedef EntryCont::const_iterator EntryCIter;
 
   const PolyRing& mRing;
-  FreeModuleOrder& mOrder;
-  std::unique_ptr<DivisorLookup> mDivisorLookup;
-  std::vector<Entry> mEntries;
-  mutable Stats mStats;
-
-  static const bool mUseBuchbergerLcmHitCache = true;
-  mutable std::vector<size_t> mBuchbergerLcmHitCache;
+  ::std::unique_ptr<DivisorLookup> mDivisorLookup;
+  ::std::vector<Entry> mEntries;
 };
 
+MATHICGB_NAMESPACE_END
 #endif

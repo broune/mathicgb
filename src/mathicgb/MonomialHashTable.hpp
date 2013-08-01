@@ -1,11 +1,12 @@
 // MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
 // NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
-
-#ifndef _MonomialHashTable_h_
-#define _MonomialHashTable_h_
+#ifndef MATHICGB_MONOMIAL_HASH_TABLE_GUARD
+#define MATHICGB_MONOMIAL_HASH_TABLE_GUARD
 
 #include "ChainedHashTable.hpp"
 #include "PolyRing.hpp"
+
+MATHICGB_NAMESPACE_BEGIN
 
 class MonomialHashControl
 {
@@ -13,7 +14,7 @@ public:
   typedef const_monomial KeyType;
   typedef int ValueType;
 
-  MonomialHashControl(const PolyRing *R) : R_(R), hash_index_(R->monomialHashIndex()) {}
+  MonomialHashControl(const PolyRing *R) : R_(R) {}
   size_t hash_value(KeyType k) const { return R_->monomialHashValue(k); }
   bool is_equal(KeyType k1, KeyType k2) const { return R_->monomialEQ(k1, k2); }
   void combine(ValueType &, ValueType) const { }
@@ -24,7 +25,6 @@ public:
   }
 private:
   const PolyRing *R_;
-  size_t hash_index_;
 };
 
 typedef ChainedHashTable<MonomialHashControl> MonomialHashTableBasic;
@@ -83,9 +83,6 @@ private:
   memt::Arena mMonomialPool;
   MonomialHashTableBasic H_;
 };
-#endif
 
-// Local Variables:
-// compile-command: "make -C .. "
-// indent-tabs-mode: nil
-// End:
+MATHICGB_NAMESPACE_END
+#endif

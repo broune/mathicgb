@@ -1,10 +1,12 @@
-// Copyright 2011 Michael E. Stillman
-
-#ifndef _polyHashReducer_h_
-#define _polyHashReducer_h_
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
+#ifndef MATHICGB_POLY_HASH_REDUCER_GUARD
+#define MATHICGB_POLY_HASH_REDUCER_GUARD
 
 #include "TypicalReducer.hpp"
 #include "PolyHashTable.hpp"
+
+MATHICGB_NAMESPACE_BEGIN
 
 class PolyHashReducer : public TypicalReducer {
 public:
@@ -48,9 +50,5 @@ private:
   PolyHashTable H_;
 };
 
+MATHICGB_NAMESPACE_END
 #endif
-
-// Local Variables:
-// compile-command: "make -C .. "
-// indent-tabs-mode: nil
-// End:

@@ -1,8 +1,9 @@
-#ifndef MATHICGB_BUCHBERGER_ALG_GUARD
-#define MATHICGB_BUCHBERGER_ALG_GUARD
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
+#ifndef MATHICGB_CLASSIC_GB_ALG_GUARD
+#define MATHICGB_CLASSIC_GB_ALG_GUARD
 
 #include "Reducer.hpp"
-#include "FreeModuleOrder.hpp"
 #include "SPairs.hpp"
 #include "PolyBasis.hpp"
 #include <mathic.h>
@@ -10,16 +11,20 @@
 #include <ostream>
 #include <vector>
 
+MATHICGB_NAMESPACE_BEGIN
+
+class Basis;
+
 /// Calculates a classic Grobner basis using Buchberger's algorithm.
-class BuchbergerAlg {
+class ClassicGBAlg {
 public:
-  BuchbergerAlg(
-    const Ideal& ideal,
-    FreeModuleOrderType orderType,
+  ClassicGBAlg(
+    const Basis& basis,
     Reducer& reducer,
     int divisorLookupType,
     bool preferSparseReducers,
-    size_t queueType);
+    size_t queueType
+  );
 
   // Replaces the current basis with a Grobner basis of the same ideal.
   void computeGrobnerBasis();
@@ -46,9 +51,9 @@ public:
     mPrintInterval = reductions;
   }
 
-  void setSPairGroupSize(unsigned int groupSize) {
-    mSPairGroupSize = groupSize;
-  }
+  /// A value of zero means to let the algorithm decide a reasonable
+  /// value based on the other settings.
+  void setSPairGroupSize(unsigned int groupSize);
 
   void setReducerMemoryQuantum(size_t memoryQuantum) {
     mReducer.setMemoryQuantum(memoryQuantum);
@@ -62,7 +67,18 @@ public:
     mUseAutoTailReduction = value;
   }
 
+  class Callback {
+  public:
+    /// Stop the computation if call return false.
+    virtual bool call() = 0;
+  };
+  /// callback is called every once in a while and then it has the
+  /// option of stopping the computation. callback can be null, in
+  /// which case no call is made and the computation continues.
+  void setCallback(Callback* callback) {mCallback = callback;}
+
 private:
+  Callback* mCallback;
   unsigned int mBreakAfter;
   unsigned int mPrintInterval;
   unsigned int mSPairGroupSize;
@@ -80,7 +96,6 @@ private:
   void insertPolys(std::vector<std::unique_ptr<Poly> >& polynomials);
 
   const PolyRing& mRing;
-  std::unique_ptr<FreeModuleOrder> mOrder;
   Reducer& mReducer;
   PolyBasis mBasis;
   SPairs mSPairs;
@@ -88,4 +103,5 @@ private:
   unsigned long long mSPolyReductionCount;
 };
 
+MATHICGB_NAMESPACE_END
 #endif

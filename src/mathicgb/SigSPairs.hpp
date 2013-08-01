@@ -1,6 +1,7 @@
-
-#ifndef _spair_handler_h_
-#define _spair_handler_h_
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
+#ifndef MATHICGB_SIG_S_PAIRS_GUARD
+#define MATHICGB_SIG_S_PAIRS_GUARD
 
 #include "PolyRing.hpp"
 #include "KoszulQueue.hpp"
@@ -9,10 +10,11 @@
 #include <memtailor.h>
 #include <vector>
 
+MATHICGB_NAMESPACE_BEGIN
+
 class Poly;
 class MonomialTableArray;
-class GroebnerBasis;
-class FreeModuleOrder;
+class SigPolyBasis;
 class Reducer;
 
 // Handles S-pairs in signature Grobner basis algorithms. Responsible
@@ -22,8 +24,7 @@ class SigSPairs
 public:
   SigSPairs(
     const PolyRing *R0,
-    FreeModuleOrder *F0,
-    const GroebnerBasis *GB0,
+    const SigPolyBasis *GB0,
     MonomialTableArray *Hsyz0,
     Reducer* reducer,
     bool postponeKoszuls,
@@ -42,8 +43,6 @@ public:
   void newSyzygy(const_monomial sig);
 
   struct Stats {
-    size_t comparisons; // comparisons not in construction (?)
-    size_t precomparisons; // comparisons in spair construction (?)
     unsigned long long spairsConstructed; // all spairs
     unsigned long long spairsFinal; // spairs given to client
     unsigned long long nonregularSPairs; // spairs eliminated by being non-regular
@@ -58,8 +57,6 @@ public:
     unsigned long long duplicateSignatures; // number of spairs removed due to duplicate signature
 
     Stats():
-      comparisons(0),
-      precomparisons(0),
       spairsConstructed(0),
       spairsFinal(0),
       nonregularSPairs(0),
@@ -73,7 +70,7 @@ public:
       queuedPairs(0),
       duplicateSignatures(0) {}
   };
-  Stats getStats() const;
+  Stats getStats() const {return mStats;}
 
   size_t pairCount() const;
 
@@ -104,8 +101,6 @@ private:
   
   const PolyRing *R;
 
-  FreeModuleOrder *F;
-
   // if true, apply the early singular criterion
   bool const mUseSingularCriterionEarly;
 
@@ -123,7 +118,7 @@ private:
 
   // From elsewhere
   MonomialTableArray *Hsyz; // we often modify this
-  const GroebnerBasis *GB;
+  const SigPolyBasis *GB;
   Reducer* mReducer;
   const bool mPostponeKoszuls;
 
@@ -135,9 +130,5 @@ private:
   mutable Stats mStats;
 };
 
+MATHICGB_NAMESPACE_END
 #endif
-
-// Local Variables:
-// compile-command: "make -C .. "
-// indent-tabs-mode: nil
-// End:

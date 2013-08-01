@@ -1,81 +1,86 @@
-#ifndef koszul_queue_guard
-#define koszul_queue_guard
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
+#ifndef MATHICGB_KOSZUL_QUEUE_GUARD
+#define MATHICGB_KOSZUL_QUEUE_GUARD
 
-#include <memtailor.h>
-#include <mathic.h>
 #include "PolyRing.hpp"
+#include "NonCopyable.hpp"
+#include <mathic.h>
 
-class FreeModuleOrder;
+MATHICGB_NAMESPACE_BEGIN
 
-class KoszulQueue
-{
+class KoszulQueue : public NonCopyable<KoszulQueue> {
 public:
-  KoszulQueue(const FreeModuleOrder *order, const PolyRing& ring):
-    mQueue(Configuration(order, ring))
+  typedef PolyRing::Monoid Monoid;
+  typedef Monoid::Mono Mono;
+  typedef Monoid::ConstMonoRef ConstMonoRef;
+  typedef Monoid::MonoPool MonoPool;
+
+  KoszulQueue(const Monoid& monoid):
+    mPool(monoid),
+    mQueue(Configuration(monoid, mPool))
   {}
 
-  const_monomial top() const {
-    MATHICGB_ASSERT(!empty());
-    return mQueue.top();
-  }
+  KoszulQueue(KoszulQueue&& kq):
+    mQueue(std::move(kq.mQueue)),
+    mPool(std::move(kq.mPool))
+  {}
 
-  monomial popRelease() {
+  ConstMonoRef top() const {
     MATHICGB_ASSERT(!empty());
-    return mQueue.pop();
+    return *mQueue.top();
   }
 
   void pop() {
     MATHICGB_ASSERT(!empty());
-    auto toFree = popRelease().unsafeGetRepresentation();
-    mQueue.getConfiguration().ring().freeMonomial(toFree);
+    mPool.freeRaw(*mQueue.pop());
   }
 
-  void push(monomial sig) {mQueue.push(sig);}
+  void push(ConstMonoRef sig) {
+    auto m = mPool.alloc();
+    monoid().copy(sig, m);
+    mQueue.push(m.release());
+  }
   bool empty() const {return mQueue.empty();}
   size_t size() const {return mQueue.size();}
 
   size_t getMemoryUse() const {return mQueue.getMemoryUse();}
 
+  const Monoid& monoid() const {return mQueue.getConfiguration().monoid();}
+
 private:
-  class Configuration
-  {
+  class Configuration {
   public:
-    typedef monomial Entry;
+    typedef Monoid::MonoPtr Entry;
 
-    Configuration(const FreeModuleOrder *order, const PolyRing& ring):
-      mOrder(order), mRing(ring)
-    {
-      MATHICGB_ASSERT(mOrder != 0);
+    Configuration(const Monoid& monoid, MonoPool& pool):
+      mMonoid(monoid), mPool(pool) {}
+
+    typedef Monoid::CompareResult CompareResult;
+    CompareResult compare(const Entry& a, const Entry& b) const {
+      return monoid().compare(*a, *b);
     }
-
-    const PolyRing& ring() const {return mRing;}
-
-    typedef int CompareResult; /* LT, EQ, GT */
-
-    CompareResult compare(const Entry& a, const Entry& b) const;
-
-    bool cmpLessThan(CompareResult r) const {return r == GT;}
+    bool cmpLessThan(CompareResult r) const {return r == Monoid::GreaterThan;}
 
     static const bool fastIndex = false;
     static const bool supportDeduplication = true;
-    bool cmpEqual(CompareResult r) const {return r == EQ;}
+    bool cmpEqual(CompareResult r) const {return r == Monoid::EqualTo;}
 
-    Entry deduplicate(Entry a, Entry b)
-    {
-      ring().freeMonomial(b.unsafeGetRepresentation());
+    Entry deduplicate(Entry a, Entry b) {
+      mPool.freeRaw(*b);
       return a;
     }
+
+    const Monoid& monoid() const {return mMonoid;}
+
   private:
-    const FreeModuleOrder *mOrder;
-    const PolyRing& mRing;
+    const Monoid& mMonoid;
+    MonoPool& mPool;
   };
 
+  MonoPool mPool;
   mic::Heap<Configuration> mQueue;
 };
 
+MATHICGB_NAMESPACE_END
 #endif
-
-// Local Variables:
-// compile-command: "make -C .. "
-// indent-tabs-mode: nil
-// End:

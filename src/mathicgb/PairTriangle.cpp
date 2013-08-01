@@ -1,12 +1,15 @@
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
 #include "stdinc.h"
 #include "PairTriangle.hpp"
 
 #include <limits>
 #include <stdexcept>
 
-PairTriangle::PairTriangle(const FreeModuleOrder& order, const PolyRing& ring, size_t queueType):
+MATHICGB_NAMESPACE_BEGIN
+
+PairTriangle::PairTriangle(const PolyRing& ring, size_t queueType):
   mColumnCount(0),
-  mOrder(order),
   mRing(ring),
   mPairQueue(*this) {
 }
@@ -64,7 +67,12 @@ namespace {
 }
 
 void PairTriangle::endColumn() {
-  mOrder.sortAndScrambleSignatures(mPrePairs);
+  const auto& monoid = mRing.monoid();
+  const auto cmp = [&monoid](const PreSPair& a, const PreSPair& b) {
+    return monoid.lessThan(a.signature, b.signature);
+  };
+  std::sort(mPrePairs.begin(), mPrePairs.end(), cmp);
+
   typedef IndexIterator<std::vector<PreSPair>::const_iterator> Iter;
   mPairQueue.addColumnDescending
 	(Iter(mPrePairs.begin()), Iter(mPrePairs.end()));
@@ -100,3 +108,5 @@ std::pair<size_t, size_t> PairTriangle::topPair() const {
 const_monomial PairTriangle::topOrderBy() const {
   return mPairQueue.topPairData();
 }
+
+MATHICGB_NAMESPACE_END

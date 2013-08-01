@@ -1,41 +1,58 @@
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
 #include "stdinc.h"
-#include "BuchbergerAlg.hpp"
-#include "Ideal.hpp"
+#include "ClassicGBAlg.hpp"
 
+#include "Basis.hpp"
+#include "LogDomain.hpp"
 #include <iostream>
 
-BuchbergerAlg::BuchbergerAlg(
-  const Ideal& ideal,
-  FreeModuleOrderType orderType,
+MATHICGB_DEFINE_LOG_DOMAIN(
+  SPairDegree,
+  "Displays the degree of the S-pairs being considered in "
+    "Buchberger's algorithm."
+);
+
+MATHICGB_NAMESPACE_BEGIN
+
+ClassicGBAlg::ClassicGBAlg(
+  const Basis& basis,
   Reducer& reducer,
   int divisorLookupType,
   bool preferSparseReducers,
   size_t queueType
 ):
+  mCallback(0),
   mBreakAfter(0),
   mPrintInterval(0),
-  mSPairGroupSize(0),
+  mSPairGroupSize(reducer.preferredSetSize()),
   mUseAutoTopReduction(true),
   mUseAutoTailReduction(false),
-  mRing(*ideal.getPolyRing()),
-  mOrder(FreeModuleOrder::makeOrder(orderType, &ideal)),
+  mRing(*basis.getPolyRing()),
   mReducer(reducer),
-  mBasis(mRing, *mOrder, DivisorLookup::makeFactory(
-    *ideal.getPolyRing(),
+  mBasis(mRing, DivisorLookup::makeFactory(
+    *basis.getPolyRing(),
     divisorLookupType)->create(preferSparseReducers, true)
   ),
   mSPairs(mBasis, preferSparseReducers),
   mSPolyReductionCount(0)
 {
   // Reduce and insert the generators of the ideal into the starting basis
-  size_t const idealSize = ideal.size();
+  size_t const basisSize = basis.size();
   std::vector<std::unique_ptr<Poly> > polys;
-  for (size_t gen = 0; gen != idealSize; ++gen)
-    polys.push_back(make_unique<Poly>(*ideal.getPoly(gen)));
+  for (size_t gen = 0; gen != basisSize; ++gen)
+    polys.push_back(make_unique<Poly>(*basis.getPoly(gen)));
   insertPolys(polys);
 }
 
-void BuchbergerAlg::insertPolys
+void ClassicGBAlg::setSPairGroupSize(unsigned int groupSize) {
+  if (groupSize == 0)
+    groupSize = mReducer.preferredSetSize();
+  else
+    mSPairGroupSize = groupSize;
+}
+
+void ClassicGBAlg::insertPolys
 (std::vector<std::unique_ptr<Poly> >& polynomials)
 {
   if (!mUseAutoTopReduction) {
@@ -101,7 +118,7 @@ void BuchbergerAlg::insertPolys
   MATHICGB_ASSERT(toReduce.empty());
 }
 
-void BuchbergerAlg::insertReducedPoly(
+void ClassicGBAlg::insertReducedPoly(
   std::unique_ptr<Poly> polyToInsert
 ) {
   MATHICGB_ASSERT(polyToInsert.get() != 0);
@@ -187,15 +204,17 @@ void BuchbergerAlg::insertReducedPoly(
   MATHICGB_ASSERT(toRetireAndReduce.empty());
 }
 
-void BuchbergerAlg::computeGrobnerBasis() {
+void ClassicGBAlg::computeGrobnerBasis() {
   size_t counter = 0;
   mTimer.reset();
-  mRing.resetCoefficientStats();
-  
+
   if (mUseAutoTailReduction)
     autoTailReduce();
 
   while (!mSPairs.empty()) {
+    if (mCallback != 0 && !mCallback->call())
+      break;
+
     step();
     if (mBreakAfter != 0 && mBasis.size() > mBreakAfter) {
       std::cerr
@@ -216,111 +235,80 @@ void BuchbergerAlg::computeGrobnerBasis() {
         */
 }
 
-void BuchbergerAlg::step() {
+void ClassicGBAlg::step() {
   MATHICGB_ASSERT(!mSPairs.empty());
   if (tracingLevel > 30)
     std::cerr << "Determining next S-pair" << std::endl;
 
-  if (mSPairGroupSize == 0) {
-    std::pair<size_t, size_t> p = mSPairs.pop();
+  MATHICGB_ASSERT(mSPairGroupSize >= 1);
+  std::vector<std::pair<size_t, size_t> > spairGroup;
+  exponent w = 0;
+  for (unsigned int i = 0; i < mSPairGroupSize; ++i) {
+    auto p = mSPairs.pop(w);
     if (p.first == static_cast<size_t>(-1)) {
       MATHICGB_ASSERT(p.second == static_cast<size_t>(-1));
-      return; // no more S-pairs
+      break; // no more S-pairs
     }
     MATHICGB_ASSERT(p.first != static_cast<size_t>(-1));
     MATHICGB_ASSERT(p.second != static_cast<size_t>(-1));
     MATHICGB_ASSERT(!mBasis.retired(p.first));
     MATHICGB_ASSERT(!mBasis.retired(p.second));
-
-    if (tracingLevel > 20) {
-      std::cerr << "Reducing S-pair ("
-                << p.first << ", "
-                << p.second << ")" << std::endl;
-    }
-    std::unique_ptr<Poly> reduced
-      (mReducer.classicReduceSPoly
-       (mBasis.poly(p.first), mBasis.poly(p.second), mBasis));
-    if (!reduced->isZero()) {
-      insertReducedPoly(std::move(reduced));
-      if (mUseAutoTailReduction)
-        autoTailReduce();
-    }
-  } else {
-    std::vector<std::pair<size_t, size_t> > spairGroup;
-    exponent w = 0;
-    for (unsigned int i = 0; i < mSPairGroupSize; ++i) {
-      std::pair<size_t, size_t> p;
-      p = mSPairs.pop(w);
-      if (p.first == static_cast<size_t>(-1)) {
-        MATHICGB_ASSERT(p.second == static_cast<size_t>(-1));
-        break; // no more S-pairs
-      }
-      MATHICGB_ASSERT(p.first != static_cast<size_t>(-1));
-      MATHICGB_ASSERT(p.second != static_cast<size_t>(-1));
-      MATHICGB_ASSERT(!mBasis.retired(p.first));
-      MATHICGB_ASSERT(!mBasis.retired(p.second));
-
-      spairGroup.push_back(p);
-    }
-    if (spairGroup.empty())
-      return; // no more s-pairs
-    std::vector<std::unique_ptr<Poly> > reduced;
-    mReducer.classicReduceSPolySet(spairGroup, mBasis, reduced);
-
-    // sort the elements to get deterministic behavior. The order will change
-    // arbitrarily when running multithreaded. Also, if preferring older
-    // reducers, it is of benefit to break ties by preferring the sparser
-    // reducer. Age does not have ties, since each element has a distinct
-    // index, but if they all come from the same matrix then there is
-    // really nothing to distinguish them - the relative age is arbitrarily
-    // chosen. If we order sparsest-first, we will effectively make the
-    // arbitrary choice among reducers from the same matrix in favor of sparser
-    // reducers.
-    auto order = [&](
-      const std::unique_ptr<Poly>& a,
-      const std::unique_ptr<Poly>& b
-    ) {
-      const auto aTermCount = a->nTerms();
-      const auto bTermCount = b->nTerms();
-      if (aTermCount < bTermCount)
-        return true;
-      if (aTermCount > bTermCount)
-        return false;
-      auto bIt = b->begin();
-      const auto aEnd = a->end();
-      for (auto aIt = a->begin(); aIt != aEnd; ++aIt, ++bIt) {
-        const auto monoCmp =
-          mRing.monomialCompare(aIt.getMonomial(), bIt.getMonomial());
-        if (monoCmp == LT)
-          return true;
-        if (monoCmp == GT)
-          return false;
-        if (aIt.getCoefficient() < bIt.getCoefficient())
-          return true;
-        if (aIt.getCoefficient() > bIt.getCoefficient())
-          return false;
-      }
-      return false;
-    };
-    std::sort(reduced.begin(), reduced.end(), order);
-
-    insertPolys(reduced);
-    /*
-    for (auto it = reduced.begin(); it != reduced.end(); ++it) {
-      auto p = std::move(*it);
-      MATHICGB_ASSERT(!p->isZero());
-      if (it != reduced.begin())
-        p = mReducer.classicReduce(*p, mBasis);
-      if (!p->isZero())
-        insertReducedPoly(std::move(p));
-    }
-    */
-    if (mUseAutoTailReduction)
-      autoTailReduce();
+    
+    spairGroup.push_back(p);
   }
+  if (spairGroup.empty())
+    return; // no more s-pairs
+  std::vector<std::unique_ptr<Poly>> reduced;
+
+  // w is the negative of the degree of the lcm's of the chosen spairs
+  MATHICGB_LOG(SPairDegree) <<
+    spairGroup.size() << " pairs in degree " << -w << std::endl;
+
+  mReducer.classicReduceSPolySet(spairGroup, mBasis, reduced);
+
+  // sort the elements to get deterministic behavior. The order will change
+  // arbitrarily when running multithreaded. Also, if preferring older
+  // reducers, it is of benefit to break ties by preferring the sparser
+  // reducer. Age does not have ties, since each element has a distinct
+  // index, but if they all come from the same matrix then there is
+  // really nothing to distinguish them - the relative age is arbitrarily
+  // chosen. If we order sparsest-first, we will effectively make the
+  // arbitrary choice among reducers from the same matrix in favor of sparser
+  // reducers.
+  auto order = [&](
+    const std::unique_ptr<Poly>& a,
+    const std::unique_ptr<Poly>& b
+  ) {
+    const auto aTermCount = a->nTerms();
+    const auto bTermCount = b->nTerms();
+    if (aTermCount < bTermCount)
+      return true;
+    if (aTermCount > bTermCount)
+      return false;
+    auto bIt = b->begin();
+    const auto aEnd = a->end();
+    for (auto aIt = a->begin(); aIt != aEnd; ++aIt, ++bIt) {
+      const auto monoCmp =
+        mRing.monomialCompare(aIt.getMonomial(), bIt.getMonomial());
+      if (monoCmp == LT)
+        return true;
+      if (monoCmp == GT)
+        return false;
+      if (aIt.getCoefficient() < bIt.getCoefficient())
+          return true;
+      if (aIt.getCoefficient() > bIt.getCoefficient())
+        return false;
+    }
+    return false;
+  };
+  std::sort(reduced.begin(), reduced.end(), order);
+  
+  insertPolys(reduced);
+  if (mUseAutoTailReduction)
+    autoTailReduce();
 }
 
-void BuchbergerAlg::autoTailReduce() {
+void ClassicGBAlg::autoTailReduce() {
   MATHICGB_ASSERT(mUseAutoTailReduction);
 
   for (size_t i = 0; i < mBasis.size(); ++i) {
@@ -333,7 +321,7 @@ void BuchbergerAlg::autoTailReduce() {
   }
 }
 
-size_t BuchbergerAlg::getMemoryUse() const {
+size_t ClassicGBAlg::getMemoryUse() const {
   return
     mBasis.getMemoryUse() +
     mRing.getMemoryUse() +
@@ -341,20 +329,12 @@ size_t BuchbergerAlg::getMemoryUse() const {
     mSPairs.getMemoryUse();
 }
 
-void BuchbergerAlg::printStats(std::ostream& out) const {
-  out << " term order:         " << mBasis.order().description() << '\n';
+void ClassicGBAlg::printStats(std::ostream& out) const {
   out << " reduction type:     " << mReducer.description() << '\n';
   out << " divisor tab type:   " << mBasis.divisorLookup().getName() << '\n';
   out << " S-pair queue type:  " << mSPairs.name() << '\n';
   out << " total compute time: " << mTimer.getMilliseconds()/1000.0 << " seconds " << '\n';
   out << " S-pair group size:  " << mSPairGroupSize << '\n';
-
-  const PolyRing::coefficientStats& cstats = mRing.getCoefficientStats();
-  out << "n-coeff-add:         " << cstats.n_add << '\n';
-  out << "n-coeff-addmult:     " << cstats.n_addmult << '\n';
-  out << "n-coeff-mult:        " << cstats.n_mult << '\n';
-  out << "n-coeff-recip:       " << cstats.n_recip << '\n';
-  out << "n-coeff-divide:      " << cstats.n_divide << '\n';
 
   mic::ColumnPrinter pr;
   pr.addColumn(true, " ");
@@ -521,7 +501,7 @@ void BuchbergerAlg::printStats(std::ostream& out) const {
       << pr << std::flush;
 }
 
-void BuchbergerAlg::printMemoryUse(std::ostream& out) const
+void ClassicGBAlg::printMemoryUse(std::ostream& out) const
 {
   // Set up printer
   mic::ColumnPrinter pr;
@@ -570,7 +550,4 @@ void BuchbergerAlg::printMemoryUse(std::ostream& out) const
   out << "*** Memory use by component ***\n" << pr << std::flush;
 }
 
-// Local Variables:
-// compile-command: "make -C .. "
-// indent-tabs-mode: nil
-// End:
+MATHICGB_NAMESPACE_END

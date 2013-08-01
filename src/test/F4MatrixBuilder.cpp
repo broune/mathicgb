@@ -1,16 +1,19 @@
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
 #include "mathicgb/stdinc.h"
 
 #include "mathicgb/Poly.hpp"
 #include "mathicgb/PolyRing.hpp"
 #include "mathicgb/F4MatrixBuilder.hpp"
-#include "mathicgb/FreeModuleOrder.hpp"
-#include "mathicgb/Ideal.hpp"
+#include "mathicgb/Basis.hpp"
 #include "mathicgb/PolyBasis.hpp"
 #include "mathicgb/io-util.hpp"
 #include "mathicgb/mtbb.hpp"
 
 #include <gtest/gtest.h>
 #include <memory>
+
+using namespace mgb;
 
 namespace {
   // We need a struct to keep the ring and so on alive after
@@ -22,15 +25,14 @@ namespace {
     BuilderMaker():
       mRing(ringFromString("101 6 1\n1 1 1 1 1 1")),
       mIdeal(*mRing),
-      mOrder(FreeModuleOrder::makeOrder(1, &mIdeal)),
-      mBasis(*mRing, *mOrder, DivisorLookup::makeFactory(*mRing, 1)->create(true, true)) {
+      mBasis(*mRing, DivisorLookup::makeFactory(*mRing, 1)->create(true, true)) {
     }
 
-    const Poly& addBasisElement(const std::string& str) {
-      std::unique_ptr<Poly> p(new Poly(*mRing));
-      std::istringstream in(str);
+    const Poly& addBasisElement(const ::std::string& str) {
+      ::std::unique_ptr<Poly> p(new Poly(*mRing));
+      ::std::istringstream in(str);
       p->parse(in);
-      mBasis.insert(std::move(p));
+      mBasis.insert(::std::move(p));
       return mBasis.poly(mBasis.size() - 1);
     }
 
@@ -43,11 +45,10 @@ namespace {
     const PolyRing& ring() const {return *mRing;}
      
   private:
-    std::unique_ptr<PolyRing> mRing;
-    Ideal mIdeal;
-    std::unique_ptr<FreeModuleOrder> mOrder;
+    ::std::unique_ptr<PolyRing> mRing;
+    Basis mIdeal;
     PolyBasis mBasis;
-    std::unique_ptr<F4MatrixBuilder> mBuilder;
+    ::std::unique_ptr<F4MatrixBuilder> mBuilder;
   };
 }
 
@@ -92,7 +93,7 @@ TEST(F4MatrixBuilder, SPair) {
       "0: 0#1 | 0: 0#1\n"
       "       |       \n"
       "0: 0#1 | 0: 1#3\n";
-    std::string qmStr = qm.toString();
+    ::std::string qmStr = qm.toString();
     ASSERT_TRUE(str1 == qmStr || str2 == qmStr) <<
       "\n** str1: " << str1 << "\n** qm: " << qmStr;
   }
@@ -128,14 +129,14 @@ TEST(F4MatrixBuilder, DirectReducers) {
 
     Poly p1(builder.ring());
     { 
-      std::istringstream in("a3<0>+b2+c+d");
+      ::std::istringstream in("a3<0>+b2+c+d");
       p1.parse(in);
       builder.addPolynomialToMatrix(p1.getLeadMonomial(), p1);
     }
 
     Poly p2(builder.ring());
     {
-      std::istringstream in("a3<0>+2b2+3c+4d");
+      ::std::istringstream in("a3<0>+2b2+3c+4d");
       p2.parse(in);
       builder.addPolynomialToMatrix(p2.getLeadMonomial(), p2);
     }

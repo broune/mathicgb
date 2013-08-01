@@ -1,23 +1,86 @@
-// Copyright 2011 Michael E. Stillman
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
 #include "stdinc.h"
 #include "SignatureGB.hpp"
 
-#include "FreeModuleOrder.hpp"
-#include "Ideal.hpp"
+#include "Basis.hpp"
 #include "DivisorLookup.hpp"
 #include "SigSPairs.hpp"
 #include "PolyHeap.hpp"
 #include "MTArray.hpp"
 #include <mathic.h>
 
+MATHICGB_NAMESPACE_BEGIN
+
 int tracingLevel = 0;
+
+SignatureGB::SignatureGB(
+  Basis&& basis,
+  Processor&& processor,
+  Reducer::ReducerType reductiontyp,
+  int divlookup_type,
+  int montable_type,
+  bool postponeKoszul,
+  bool useBaseDivisors,
+  bool preferSparseReducers,
+  bool useSingularCriterionEarly,
+  size_t queueType
+):
+  mBreakAfter(0),
+  mPrintInterval(0),
+  R(basis.getPolyRing()),
+  mPostponeKoszul(postponeKoszul),
+  mUseBaseDivisors(useBaseDivisors),
+  stats_sPairSignaturesDone(0),
+  stats_sPairsDone(0),
+  stats_koszulEliminated(0),
+  stats_SignatureCriterionLate(0),
+  stats_relativelyPrimeEliminated(0),
+  stats_pairsReduced(0),
+  stats_nsecs(0.0),
+  GB(make_unique<SigPolyBasis>(R, divlookup_type, montable_type, preferSparseReducers)),
+  mKoszuls(R->monoid()),
+  Hsyz(MonomialTableArray::make(R, montable_type, basis.size(), !mPostponeKoszul)),
+  Hsyz2(MonomialTableArray::make(R, montable_type, basis.size(), !mPostponeKoszul)),
+  reducer(Reducer::makeReducer(reductiontyp, *R)),
+  SP(make_unique<SigSPairs>(R, GB.get(), Hsyz.get(), reducer.get(), mPostponeKoszul, mUseBaseDivisors, useSingularCriterionEarly, queueType))
+{
+  mProcessor = make_unique<MonoProcessor<Monoid>>(std::move(processor));
+  mProcessor->setComponentCount(basis.size());
+
+  // Populate GB
+  for (size_t j = 0; j < basis.size(); j++)
+    GB->addComponent();
+
+  for (size_t i = 0; i < basis.size(); i++) {
+    Poly *g = new Poly(*R);
+    basis.getPoly(i)->copy(*g);
+    g->makeMonic();
+
+    monomial sig = 0;
+    sig = R->allocMonomial();
+    R->monomialEi(i, sig);
+    mProcessor->preprocess(sig);
+    {
+      std::unique_ptr<Poly> autoG(g);
+      GB->insert(sig, std::move(autoG));
+    }
+  }
+
+  // Populate SP
+  for (size_t i = 0; i < basis.size(); i++)
+    SP->newPairs(i);
+
+  if (tracingLevel >= 2) {
+    Hsyz->dump();
+  }
+}
 
 void SignatureGB::computeGrobnerBasis()
 {
   size_t counter = 0;
 
   mTimer.reset();
-  R->resetCoefficientStats();
   std::ostream& out = std::cout;
 
   while (step()) {
@@ -61,65 +124,19 @@ void SignatureGB::computeGrobnerBasis()
   //  displayMemoryUse(std::cout);
   stats_nsecs = mTimer.getMilliseconds() / 1000.0;
   //GB->displayBrief(out);
-}
 
-SignatureGB::SignatureGB(
-  const Ideal& ideal,
-  FreeModuleOrderType typ,
-  Reducer::ReducerType reductiontyp,
-  int divlookup_type,
-  int montable_type,
-  bool postponeKoszul,
-  bool useBaseDivisors,
-  bool preferSparseReducers,
-  bool useSingularCriterionEarly,
-  size_t queueType
-):
-  mBreakAfter(0),
-  mPrintInterval(0),
-  R(ideal.getPolyRing()),
-  F(FreeModuleOrder::makeOrder(typ, &ideal)),
-  mPostponeKoszul(postponeKoszul),
-  mUseBaseDivisors(useBaseDivisors),
-  stats_sPairSignaturesDone(0),
-  stats_sPairsDone(0),
-  stats_koszulEliminated(0),
-  stats_SignatureCriterionLate(0),
-  stats_relativelyPrimeEliminated(0),
-  stats_pairsReduced(0),
-  stats_nsecs(0.0),
-  GB(make_unique<GroebnerBasis>(R, F.get(), divlookup_type, montable_type, preferSparseReducers)),
-  mKoszuls(make_unique<KoszulQueue>(F.get(), *R)),
-  Hsyz(MonomialTableArray::make(R, montable_type, ideal.size(), !mPostponeKoszul)),
-  reducer(Reducer::makeReducer(reductiontyp, *R)),
-  SP(make_unique<SigSPairs>(R, F.get(), GB.get(), Hsyz.get(), reducer.get(), mPostponeKoszul, mUseBaseDivisors, useSingularCriterionEarly, queueType))
-{
-  // Populate GB
-  for (size_t i = 0; i < ideal.size(); i++) {
-    Poly *g = new Poly(*R);
-    ideal.getPoly(i)->copy(*g);
-    g->makeMonic();
-
-    monomial sig = 0;
-    sig = R->allocMonomial();
-    R->monomialEi(i, sig);
-    GB->addComponent();
-    {
-      std::unique_ptr<Poly> autoG(g);
-      GB->insert(sig, std::move(autoG));
+  if (mProcessor->processingNeeded()) {
+    GB->postprocess(*mProcessor);
+    std::vector<const_monomial> v;
+    Hsyz->getMonomials(v);
+    for (size_t i = 0; i < v.size(); ++i) {
+      auto sig = R->allocMonomial();
+      R->monomialCopy(v[i], sig);
+      mProcessor->postprocess(sig);
+      Hsyz2->insert(sig, 0);
     }
   }
-
-  // Populate SP
-  for (size_t i = 0; i < ideal.size(); i++)
-    SP->newPairs(i);
-
-  if (tracingLevel >= 2) {
-    Hsyz->dump();
-  }
 }
-
-SignatureGB::~SignatureGB() {}
 
 bool SignatureGB::processSPair
   (monomial sig, const SigSPairs::PairContainer& pairs)
@@ -160,8 +177,8 @@ bool SignatureGB::processSPair
   // new basis element
   MATHICGB_ASSERT(!GB->isSingularTopReducibleSlow(*f, sig));
   {
-    std::unique_ptr<Poly> autoF(f);
-    GB->insert(sig, std::move(autoF));
+    std::unique_ptr<Poly> uniqueF(f);
+    GB->insert(sig, std::move(uniqueF));
   }
   Hsyz->addComponent();
   SP->newPairs(GB->size()-1);
@@ -206,13 +223,12 @@ bool SignatureGB::step()
 
   // Not a known syzygy
 
-  while (!mKoszuls->empty()
-         && F->signatureCompare(mKoszuls->top(), sig) == LT)
+  while (!mKoszuls.empty() && R->monoid().lessThan(mKoszuls.top(), sig))
     {
-      mKoszuls->pop();
+      mKoszuls.pop();
     }
 
-  if (!mKoszuls->empty() && R->monomialEQ(mKoszuls->top(), sig))
+  if (!mKoszuls.empty() && R->monoid().equal(mKoszuls.top(), sig))
     {
       ++stats_koszulEliminated;
       // This signature is of a syzygy that is not in Hsyz, so add it
@@ -266,23 +282,20 @@ bool SignatureGB::step()
     if (Hsyz->member(koszul, dummy))
       R->freeMonomial(koszul);
     else
-      mKoszuls->push(koszul);
+      mKoszuls.push(koszul);
   }
   return true;
 }
 
 size_t SignatureGB::getMemoryUse() const {
-  size_t sum =
+  return
     GB->getMemoryUse() +
     Hsyz->getMemoryUse() +
     R->getMemoryUse() +
     reducer->getMemoryUse() +
-    mSpairTmp.capacity() * sizeof(mSpairTmp.front());
-  sum += SP->getMemoryUse();
-
-  if (mKoszuls.get() != 0)
-    mKoszuls->getMemoryUse();
-  return sum;
+    mSpairTmp.capacity() * sizeof(mSpairTmp.front()) +
+    SP->getMemoryUse() +
+    mKoszuls.getMemoryUse();
 }
 
 void SignatureGB::displayStats(std::ostream &o) const
@@ -291,7 +304,6 @@ void SignatureGB::displayStats(std::ostream &o) const
   o << " strategy: signature"
     << (mPostponeKoszul ? "-postpone" : "")
     << (mUseBaseDivisors ? "-basediv" : "") << '\n';
-  o << " sig-order:      " << F->description() << '\n';
   o << " reduction type: " << reducer->description() << '\n';
   o << " divisor tab type: " << GB->basis().divisorLookup().getName() << '\n';
   o << " syzygy tab type: " << Hsyz->description() << '\n';
@@ -305,13 +317,6 @@ void SignatureGB::displayStats(std::ostream &o) const
   o << " syz-n-inserts: " << (hsyz_stats.n_calls_insert) << '\n';
   o << " syz-n-actual-inserts: " << (hsyz_stats.n_actual_inserts) << '\n';
   o << " syz sig denseness: " << hsyz_stats.denseness << '\n';
-
-  const PolyRing::coefficientStats& cstats = R->getCoefficientStats();
-  o << "n-coeff-add: " << cstats.n_add << '\n';
-  o << "n-coeff-addmult: " << cstats.n_addmult << '\n';
-  o << "n-coeff-mult: " << cstats.n_mult << '\n';
-  o << "n-coeff-recip: " << cstats.n_recip << '\n';
-  o << "n-coeff-divide: " << cstats.n_divide << '\n';
 
   displayMemoryUse(o);
   displaySomeStats(o);
@@ -510,7 +515,7 @@ void SignatureGB::displaySomeStats(std::ostream& out) const {
   extra << mic::ColumnPrinter::oneDecimal(syzBasisRatio)
     << " syzygies per basis element\n";
 
-  const size_t queuedKoszuls = mKoszuls->size();
+  const size_t queuedKoszuls = mKoszuls.size();
   const double quedRatio = static_cast<double>(queuedKoszuls) / minSyz;
   name << "Queued Koszul syzygies:\n";
   value << mic::ColumnPrinter::commafy(queuedKoszuls) << '\n';
@@ -690,7 +695,7 @@ void SignatureGB::displayMemoryUse(std::ostream& out) const
     extra << mic::ColumnPrinter::percentInteger(syzMem, total) << '\n';
   }
   { // Koszul queue
-    const size_t syzQueueMem = mKoszuls->getMemoryUse();
+    const size_t syzQueueMem = mKoszuls.getMemoryUse();
     name << "Koszul queue:\n";
     value << mic::ColumnPrinter::bytesInUnit(syzQueueMem) << '\n';
     extra << mic::ColumnPrinter::percentInteger(syzQueueMem, total) << '\n';
@@ -727,7 +732,4 @@ unsigned long long SignatureGB::getSingularReductionCount() const {
   return reducer->sigStats().singularReductions;
 }
 
-// Local Variables:
-// compile-command: "make -C .. "
-// indent-tabs-mode: nil
-// End:
+MATHICGB_NAMESPACE_END

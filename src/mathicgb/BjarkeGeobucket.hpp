@@ -1,11 +1,13 @@
-// Copyright 2011 Michael E. Stillman
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
+#ifndef MATHICGB_BJARKE_GEOBUCKET_GUARD
+#define MATHICGB_BJARKE_GEOBUCKET_GUARD
 
-#ifndef _bjarkeGeoBucket_h_
-#define _bjarkeGeoBucket_h_
-
-#include <mathic.h>
 #include "Reducer.hpp"
 #include "PolyHashTable.hpp"
+#include <mathic.h>
+
+MATHICGB_NAMESPACE_BEGIN
 
 template<
   bool TrackFront,
@@ -95,9 +97,5 @@ private:
   mic::Geobucket< Configuration > G_;
 };
 
+MATHICGB_NAMESPACE_END
 #endif
-
-// Local Variables:
-// compile-command: "make -C .. "
-// indent-tabs-mode: nil
-// End:

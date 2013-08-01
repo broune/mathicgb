@@ -1,12 +1,16 @@
 #include "mathicgb/stdinc.h"
 #include "mathicgb.h"
 
-#include "mathicgb/Ideal.hpp"
+#include "mathicgb/Basis.hpp"
 #include "mathicgb/PolyRing.hpp"
 #include "mathicgb/Poly.hpp"
 #include "mathicgb/Reducer.hpp"
-#include "mathicgb/BuchbergerAlg.hpp"
+#include "mathicgb/ClassicGBAlg.hpp"
+#include "mathicgb/mtbb.hpp"
+#include "mathicgb/LogDomainSet.hpp"
 #include <mathic.h>
+
+using namespace mgb;
 
 namespace {
   bool isPrime(unsigned int n) {
@@ -26,6 +30,24 @@ namespace {
 #define MATHICGB_ASSERT(X)
 #endif
 #endif
+
+namespace mgb {
+  bool logTime(const char* logName, double& time) {
+    auto log = LogDomainSet::singleton().logDomain(logName);
+    if (log == 0 || !log->enabled())
+      return false;
+    time = log->loggedSecondsReal();
+    return true;
+  }
+
+  bool logNumber(const char* logName, double& number) {
+    auto log = LogDomainSet::singleton().logDomain(logName);
+    if (log == 0 || !log->enabled())
+      return false;
+    number = static_cast<double>(log->count());
+    return true;
+  }
+}
 
 #define MATHICGB_STREAM_CHECK(X, MSG) \
   do { \
@@ -50,10 +72,16 @@ namespace mgbi {
       modulus(modulus),
       varCount(varCount),
       state(Initial),
+
+      hasClaimedPolyCount(false),
       claimedPolyCount(0),
       seenPolyCount(0),
+
+      hasClaimedTermCount(false),
       claimedTermCount(0),
-      seenTermCount(0)
+      seenTermCount(0),
+
+      lastVar(0)
     {}
 
     bool debugAssertValid() const;
@@ -70,10 +98,15 @@ namespace mgbi {
     const VarIndex varCount;
 
     State state;
+
+    bool hasClaimedPolyCount;
     size_t claimedPolyCount;
     size_t seenPolyCount;
+
+    bool hasClaimedTermCount;
     size_t claimedTermCount;
     size_t seenTermCount;
+
     VarIndex lastVar;
   };
 
@@ -112,7 +145,7 @@ namespace mgbi {
     delete mPimpl;
   }
 
-  void StreamStateChecker::idealBegin(size_t polyCount) {
+  void StreamStateChecker::idealBegin() {
     MATHICGB_ASSERT(mPimpl->debugAssertValid());
 
     MATHICGB_STREAM_CHECK(
@@ -121,13 +154,23 @@ namespace mgbi {
       "without an intervening call to idealDone()."
     );
     mPimpl->state = Pimpl::MakingIdeal;
+    mPimpl->hasClaimedPolyCount = false;
+    mPimpl->claimedPolyCount = 0;
+    mPimpl->seenPolyCount = 0;
+
+    MATHICGB_ASSERT(mPimpl->debugAssertValid());
+  }
+
+  void StreamStateChecker::idealBegin(size_t polyCount) {
+    idealBegin();
+    mPimpl->hasClaimedPolyCount = true;
     mPimpl->claimedPolyCount = polyCount;
     mPimpl->seenPolyCount = 0;
 
     MATHICGB_ASSERT(mPimpl->debugAssertValid());
   }
 
-  void StreamStateChecker::appendPolynomialBegin(size_t termCount) {
+  void StreamStateChecker::appendPolynomialBegin() {
     MATHICGB_ASSERT(mPimpl->debugAssertValid());
 
     MATHICGB_STREAM_CHECK(
@@ -137,16 +180,27 @@ namespace mgbi {
     );
     MATHICGB_STREAM_CHECK(
       mPimpl->state == Pimpl::MakingIdeal,
-     "appendPolynomialBegin() must not be called twice without "
-     "an intervening call to appendPolynomialDone()."
+      "appendPolynomialBegin() must not be called twice without "
+      "an intervening call to appendPolynomialDone()."
     );
     MATHICGB_STREAM_CHECK(
-      mPimpl->seenPolyCount < mPimpl->claimedPolyCount,
+      !mPimpl->hasClaimedPolyCount ||
+        mPimpl->seenPolyCount < mPimpl->claimedPolyCount,
       "The number of polynomials in an ideal must not exceed the amount "
       "passed to idealBegin()."
     );
     mPimpl->state = Pimpl::MakingPoly;
     mPimpl->seenPolyCount += 1;
+    mPimpl->hasClaimedTermCount = false;
+    mPimpl->claimedTermCount = 0;
+    mPimpl->seenTermCount = 0;
+
+    MATHICGB_ASSERT(mPimpl->debugAssertValid());
+  }
+
+  void StreamStateChecker::appendPolynomialBegin(size_t termCount) {
+    appendPolynomialBegin();
+    mPimpl->hasClaimedTermCount = true;
     mPimpl->claimedTermCount = termCount;
     mPimpl->seenTermCount = 0;
 
@@ -169,7 +223,8 @@ namespace mgbi {
       "call to appendTermDone()."
     );
     MATHICGB_STREAM_CHECK(
-      mPimpl->seenTermCount < mPimpl->claimedTermCount,
+      !mPimpl->hasClaimedTermCount ||
+        mPimpl->seenTermCount < mPimpl->claimedTermCount,
       "The number of terms in a polynomial must not exceed the amount "
       "passed to appendPolynomialBegin()."
     );
@@ -236,7 +291,8 @@ namespace mgbi {
       "appendPolynomialDone() must only be called after appendPolynomialBegin()."
     );
     MATHICGB_STREAM_CHECK(
-      mPimpl->seenTermCount == mPimpl->claimedTermCount,
+      !mPimpl->hasClaimedTermCount ||
+        mPimpl->seenTermCount == mPimpl->claimedTermCount,
       "The number of terms in a polynomial must match the amount "
       "passed to appendPolynomialBegin()."
     );
@@ -253,7 +309,8 @@ namespace mgbi {
       "idealDone() must only be called after idealBegin()."
     );
     MATHICGB_STREAM_CHECK(
-      mPimpl->seenPolyCount == mPimpl->claimedPolyCount,
+      !mPimpl->hasClaimedPolyCount ||
+        mPimpl->seenPolyCount == mPimpl->claimedPolyCount,
       "The number of polynomials in an ideal must match the amount "
       "passed to idealBegin()."
     );
@@ -274,17 +331,69 @@ namespace mgb {
 
   struct GroebnerConfiguration::Pimpl {
     Pimpl(Coefficient modulus, VarIndex varCount):
+      mModulus(modulus),
+      mVarCount(varCount),
+      mBaseOrder(ReverseLexicographicBaseOrder),
+      mGradings(varCount, 1),
+      mComponentBefore(ComponentAfterBaseOrder),
+      mComponentsAscending(true),
+      mSchreyering(true),
+      mReducer(DefaultReducer),
+      mMaxSPairGroupSize(0),
+      mMaxThreadCount(0),
+      mLogging(),
+      mCallbackData(0),
+      mCallback(0)
 #ifdef MATHICGB_DEBUG
-      hasBeenDestroyed(false),
+      , mHasBeenDestroyed(false)
 #endif
-      modulus(modulus),
-      varCount(varCount)
     {
     }
 
-    MATHICGB_IF_DEBUG(bool hasBeenDestroyed);
-    const Coefficient modulus;
-    const VarIndex varCount;
+    ~Pimpl() {
+      MATHICGB_ASSERT(debugAssertValid());
+      MATHICGB_IF_DEBUG(mHasBeenDestroyed = true;)
+    }
+
+    static bool baseOrderValid(const BaseOrder order) {
+      return
+        order == LexicographicBaseOrder ||
+        order == ReverseLexicographicBaseOrder;
+    }
+
+    static bool reducerValid(const Reducer reducer) {
+      return
+        reducer == DefaultReducer ||
+        reducer == ClassicReducer ||
+        reducer == MatrixReducer;
+    }
+
+    bool debugAssertValid() const {
+#ifdef MATHICGB_DEBUG
+      MATHICGB_ASSERT(this != 0);
+      MATHICGB_ASSERT(baseOrderValid(mBaseOrder));
+      MATHICGB_ASSERT(reducerValid(mReducer));
+      MATHICGB_ASSERT(mModulus != 0);
+      MATHICGB_ASSERT(mCallback != 0 || mCallbackData == 0);
+      MATHICGB_ASSERT_NO_ASSUME(!mHasBeenDestroyed);
+#endif
+      return true;
+    }
+
+    const Coefficient mModulus;
+    const VarIndex mVarCount;
+    BaseOrder mBaseOrder;
+    std::vector<Exponent> mGradings;
+    size_t mComponentBefore;
+    bool mComponentsAscending;
+    bool mSchreyering;
+    Reducer mReducer;
+    size_t mMaxSPairGroupSize;
+    size_t mMaxThreadCount;
+    std::string mLogging;
+    void* mCallbackData;
+    Callback::Action (*mCallback) (void*);
+    MATHICGB_IF_DEBUG(bool mHasBeenDestroyed);
   };
 
   GroebnerConfiguration::GroebnerConfiguration(
@@ -307,6 +416,7 @@ namespace mgb {
         << " is not prime. MathicGB only supports prime fields.";
       mathic::reportError(str.str());
     }
+    MATHICGB_ASSERT(mPimpl->debugAssertValid());
   }
 
   GroebnerConfiguration::GroebnerConfiguration(
@@ -314,24 +424,118 @@ namespace mgb {
   ):
     mPimpl(new Pimpl(*conf.mPimpl))
   {
-    MATHICGB_ASSERT(conf.mPimpl->modulus != 0);
-    MATHICGB_ASSERT_NO_ASSUME(!conf.mPimpl->hasBeenDestroyed);
+    MATHICGB_ASSERT(conf.mPimpl->debugAssertValid());
   }
 
   GroebnerConfiguration::~GroebnerConfiguration() {
-    MATHICGB_ASSERT(mPimpl != 0);
-    MATHICGB_ASSERT_NO_ASSUME(!mPimpl->hasBeenDestroyed);
-    MATHICGB_IF_DEBUG(mPimpl->hasBeenDestroyed = true);
-
+    MATHICGB_ASSERT(mPimpl->debugAssertValid());
     delete mPimpl;
   }
 
   auto GroebnerConfiguration::modulus() const -> Coefficient {
-    return mPimpl->modulus;
+    return mPimpl->mModulus;
   }
  
   auto GroebnerConfiguration::varCount() const -> VarIndex {
-    return mPimpl->varCount;
+    return mPimpl->mVarCount;
+  }
+
+  void GroebnerConfiguration::setMonomialOrderInternal(
+    MonomialOrderData order
+  ) {
+    MATHICGB_ASSERT(Pimpl::baseOrderValid(order.baseOrder));
+    MATHICGB_ASSERT(varCount() == 0 || order.gradingsSize % varCount() == 0);
+    
+    // Currently only reverse lex supported. TODO: make it work
+    MATHICGB_ASSERT(order.baseOrder == ReverseLexicographicBaseOrder);
+
+    mPimpl->mBaseOrder = order.baseOrder;
+    mPimpl->mGradings.assign
+      (order.gradings, order.gradings + order.gradingsSize);
+  }
+
+  auto GroebnerConfiguration::monomialOrderInternal() const ->
+    MonomialOrderData
+  {
+    const MonomialOrderData data = {
+      mPimpl->mBaseOrder,
+      mPimpl->mGradings.data(),
+      mPimpl->mGradings.size()
+    };
+    return data;
+  }
+
+  void GroebnerConfiguration::setCallbackInternal(
+    void* data,
+    Callback::Action (*func) (void*)
+  ) {
+    MATHICGB_ASSERT(func != 0 || data == 0);
+    mPimpl->mCallbackData = data;
+    mPimpl->mCallback = func;
+  }
+
+  void* GroebnerConfiguration::callbackDataInternal() const {
+    return mPimpl->mCallbackData;
+  }
+
+  void GroebnerConfiguration::setComponentBefore(size_t value) {
+    mPimpl->mComponentBefore = value;
+  }
+
+  size_t GroebnerConfiguration::componentBefore() const {
+    return mPimpl->mComponentBefore;
+  }
+
+  void GroebnerConfiguration::setComponentsAscending(bool value) {
+    mPimpl->mComponentsAscending;
+  }
+
+  bool GroebnerConfiguration::componentsAscending() const {
+    return mPimpl->mComponentsAscending;
+  }
+
+  void GroebnerConfiguration::setSchreyering(bool value) {
+    mPimpl->mSchreyering = value;
+  }
+
+  bool GroebnerConfiguration::schreyering() const {
+    return mPimpl->mSchreyering;
+  }
+
+  void GroebnerConfiguration::setReducer(Reducer reducer) {
+    MATHICGB_ASSERT(Pimpl::reducerValid(reducer));
+    mPimpl->mReducer = reducer;
+  }
+
+  auto GroebnerConfiguration::reducer() const -> Reducer {
+    return mPimpl->mReducer;
+  }
+
+  void GroebnerConfiguration::setMaxSPairGroupSize(size_t size) {
+    mPimpl->mMaxSPairGroupSize = size;
+  }
+
+  size_t GroebnerConfiguration::maxSPairGroupSize() const {
+    return mPimpl->mMaxSPairGroupSize;
+  }
+
+  void GroebnerConfiguration::setMaxThreadCount(size_t maxThreadCount) {
+    mPimpl->mMaxThreadCount = maxThreadCount;
+  }
+
+  size_t GroebnerConfiguration::maxThreadCount() const {
+    return mPimpl->mMaxThreadCount;
+  }
+
+  void GroebnerConfiguration::setLogging(const char* logging) {
+    if (logging == 0)
+      mPimpl->mLogging.clear();
+    else
+      mPimpl->mLogging = logging;
+  }
+
+  const char* GroebnerConfiguration::logging() const {
+    return mPimpl->mLogging.c_str();
   }
 }
 
@@ -339,30 +543,41 @@ namespace mgb {
 namespace mgb {
   struct GroebnerInputIdealStream::Pimpl {
     Pimpl(const GroebnerConfiguration& conf):
-#ifdef MATHICGB_DEBUG
-      hasBeenDestroyed(false),
-      checker(conf.modulus(), conf.varCount()),
-#endif
-      // @todo: varCount should not be int. Fix PolyRing constructor,
-      // then remove this static_cast.
-      ring(conf.modulus(), static_cast<int>(conf.varCount()), 1),
-      ideal(ring),
+      ring(
+        PolyRing::Field(conf.modulus()),
+        PolyRing::Monoid::Order(
+          conf.varCount(),
+          std::move(conf.monomialOrder().second),
+          conf.monomialOrder().first ==
+            GroebnerConfiguration::LexicographicBaseOrder ?
+            PolyRing::Monoid::Order::LexBaseOrder :
+            PolyRing::Monoid::Order::RevLexBaseOrder,
+          conf.componentBefore(),
+          conf.componentsAscending(),
+          conf.schreyering()
+        )
+      ),
+      basis(ring),
       poly(ring),
       monomial(ring.allocMonomial()),
       conf(conf)
+#ifdef MATHICGB_DEBUG
+      , hasBeenDestroyed(false),
+      checker(conf.modulus(), conf.varCount())
+#endif
     {}
 
     ~Pimpl() {
       ring.freeMonomial(monomial);
     }
 
-    MATHICGB_IF_DEBUG(bool hasBeenDestroyed);
-    MATHICGB_IF_DEBUG(::mgbi::StreamStateChecker checker);
     const PolyRing ring;
-    Ideal ideal;
+    Basis basis;
     Poly poly;
     Monomial monomial;
     const GroebnerConfiguration conf;
+    MATHICGB_IF_DEBUG(bool hasBeenDestroyed);
+    MATHICGB_IF_DEBUG(::mgbi::StreamStateChecker checker); 
   };
 
   GroebnerInputIdealStream::GroebnerInputIdealStream(
@@ -396,14 +611,30 @@ namespace mgb {
     return mPimpl->conf.varCount();
   }
 
+  void GroebnerInputIdealStream::idealBegin() {
+    MATHICGB_ASSERT(debugAssertValid());
+    MATHICGB_IF_DEBUG(mPimpl->checker.idealBegin());
+    MATHICGB_ASSERT(mPimpl->poly.isZero());
+    MATHICGB_ASSERT(mPimpl->basis.empty());
+
+    MATHICGB_ASSERT(debugAssertValid());
+  }
+
   void GroebnerInputIdealStream::idealBegin(size_t polyCount) {
     MATHICGB_ASSERT(debugAssertValid());
     MATHICGB_IF_DEBUG(mPimpl->checker.idealBegin(polyCount));
     MATHICGB_ASSERT(mPimpl->poly.isZero());
-    MATHICGB_ASSERT(mPimpl->ideal.empty());
+    MATHICGB_ASSERT(mPimpl->basis.empty());
 
-    mPimpl->ideal.reserve(polyCount);
+    mPimpl->basis.reserve(polyCount);
 
+    MATHICGB_ASSERT(debugAssertValid());
+  }
+
+  void GroebnerInputIdealStream::appendPolynomialBegin() {
+    MATHICGB_ASSERT(debugAssertValid());
+    MATHICGB_IF_DEBUG(mPimpl->checker.appendPolynomialBegin());
+    MATHICGB_ASSERT(mPimpl->poly.isZero());
     MATHICGB_ASSERT(debugAssertValid());
   }
 
@@ -448,7 +679,7 @@ namespace mgb {
     auto poly = make_unique<Poly>(std::move(mPimpl->poly));
     if (!poly->termsAreInDescendingOrder())
       poly->sortTermsDescending();
-    mPimpl->ideal.insert(std::move(poly));
+    mPimpl->basis.insert(std::move(poly));
     mPimpl->poly.setToZero();
 
     MATHICGB_ASSERT(debugAssertValid());
@@ -465,7 +696,7 @@ namespace mgb {
     MATHICGB_ASSERT(mPimpl != 0);
     MATHICGB_ASSERT_NO_ASSUME(!mPimpl->hasBeenDestroyed);
     MATHICGB_ASSERT(!mPimpl->monomial.isNull());
-    MATHICGB_ASSERT(&mPimpl->ideal.ring() == &mPimpl->ring);
+    MATHICGB_ASSERT(&mPimpl->basis.ring() == &mPimpl->ring);
     MATHICGB_ASSERT(&mPimpl->poly.ring() == &mPimpl->ring);
     MATHICGB_ASSERT(mPimpl->ring.getNumVars() == mPimpl->conf.varCount());
     MATHICGB_ASSERT(mPimpl->ring.charac() == mPimpl->conf.modulus());
@@ -488,7 +719,7 @@ namespace mgbi {
 // ** Implementation of mgbi::IdealAdapter
 namespace mgbi {
   struct IdealAdapter::Pimpl {
-    std::unique_ptr<Ideal> ideal;
+    std::unique_ptr<Basis> basis;
   };
 
   IdealAdapter::IdealAdapter():
@@ -501,28 +732,28 @@ namespace mgbi {
   }
 
   auto IdealAdapter::varCount() const -> VarIndex {
-    MATHICGB_ASSERT(mPimpl->ideal.get() != 0);
-    return mPimpl->ideal->ring().getNumVars();
+    MATHICGB_ASSERT(mPimpl->basis.get() != 0);
+    return mPimpl->basis->ring().getNumVars();
   }
 
   size_t IdealAdapter::polyCount() const {
-    MATHICGB_ASSERT(mPimpl->ideal.get() != 0);
-    return mPimpl->ideal->size();
+    MATHICGB_ASSERT(mPimpl->basis.get() != 0);
+    return mPimpl->basis->size();
   }
 
   size_t IdealAdapter::termCount(PolyIndex poly) const {
-    MATHICGB_ASSERT(mPimpl->ideal.get() != 0);
-    MATHICGB_ASSERT(poly < mPimpl->ideal->size());
-    return mPimpl->ideal->getPoly(poly)->nTerms();
+    MATHICGB_ASSERT(mPimpl->basis.get() != 0);
+    MATHICGB_ASSERT(poly < mPimpl->basis->size());
+    return mPimpl->basis->getPoly(poly)->nTerms();
   }
 
   auto IdealAdapter::term(
     PolyIndex poly,
     TermIndex term
   ) const -> std::pair<Coefficient, const Exponent*> {
-    MATHICGB_ASSERT(mPimpl->ideal.get() != 0);
-    MATHICGB_ASSERT(poly < mPimpl->ideal->size());
-    const auto& p = *mPimpl->ideal->getPoly(poly);
+    MATHICGB_ASSERT(mPimpl->basis.get() != 0);
+    MATHICGB_ASSERT(poly < mPimpl->basis->size());
+    const auto& p = *mPimpl->basis->getPoly(poly);
 
     MATHICGB_ASSERT(term < p.nTerms());
     return std::make_pair(
@@ -532,9 +763,39 @@ namespace mgbi {
   }
 }
 
-// ** Implementation of function mgbi::internalComputeGreobnerBasis
+namespace {
+  class CallbackAdapter : public ClassicGBAlg::Callback {
+  public:
+    typedef mgb::GroebnerConfiguration::Callback::Action Action;
+
+    CallbackAdapter(void* data, Action (*callback) (void*)):
+      mData(data),
+      mCallback(callback),
+      mLastAction(Action::ContinueAction)
+    {
+      MATHICGB_ASSERT(mCallback != 0 || mData == 0);
+    }
+
+    const bool isNull() const {return mCallback == 0;}
+    Action lastAction() const {return mLastAction;}
+
+    virtual bool call() {
+      if (isNull())
+        return true;
+      mLastAction = mCallback(mData);
+      return mLastAction == Action::ContinueAction;
+    }
+
+  private:
+    void* const mData;
+    Action (* const mCallback) (void*);
+    Action mLastAction;
+  };
+}
+
+// ** Implementation of function mgbi::internalComputeGroebnerBasis
 namespace mgbi {
-  void internalComputeGroebnerBasis(
+  bool internalComputeGroebnerBasis(
     GroebnerInputIdealStream& inputWhichWillBeCleared,
     IdealAdapter& output
   ) {
@@ -542,19 +803,58 @@ namespace mgbi {
     /// polynomial-by-polynomial as data is transferred to out. Also
     /// make it so that ideal is not copied.
 
-    auto& ideal = PimplOf()(inputWhichWillBeCleared).ideal;
-    const auto& ring = ideal.ring();
+    auto&& basis = PimplOf()(inputWhichWillBeCleared).basis;
+    auto&& conf = inputWhichWillBeCleared.configuration();
+    auto&& ring = basis.ring();
     const auto varCount = ring.getNumVars();
+    MATHICGB_ASSERT(PimplOf()(conf).debugAssertValid());
 
-    // Compute Groebner basis
-    const auto reducer = Reducer::makeReducer(Reducer::Reducer_F4_New, ring);
-    BuchbergerAlg alg(ideal, 4, *reducer, 2, true, 0);
-    alg.setSPairGroupSize(10000);
+    // Tell tbb how many threads to use
+    const auto maxThreadCount = conf.maxThreadCount();
+    const auto tbbMaxThreadCount = maxThreadCount == 0 ?
+      mgb::tbb::task_scheduler_init::automatic : maxThreadCount;
+    mgb::tbb::task_scheduler_init scheduler(tbbMaxThreadCount);
+
+    // Set up logging
+    LogDomainSet::singleton().reset();
+    LogDomainSet::singleton().performLogCommands(conf.logging());
+
+    // Make reducer
+    typedef GroebnerConfiguration GConf;
+    Reducer::ReducerType reducerType;
+    switch (conf.reducer()) {
+    case GConf::ClassicReducer:
+      reducerType = Reducer::Reducer_BjarkeGeo;
+      break;
+
+    default:
+    case GConf::DefaultReducer:
+    case GConf::MatrixReducer:
+      reducerType = Reducer::Reducer_F4_New;
+      break;
+    }
+    const auto reducer = Reducer::makeReducer(reducerType, ring);
+    CallbackAdapter callback(
+      PimplOf()(conf).mCallbackData,
+      PimplOf()(conf).mCallback
+    );
+
+    // Set up and configure algorithm
+    ClassicGBAlg alg(basis, *reducer, 2, true, 0);
     alg.setReducerMemoryQuantum(100 * 1024);
     alg.setUseAutoTopReduction(true);
     alg.setUseAutoTailReduction(false);
-    alg.computeGrobnerBasis();
+    alg.setSPairGroupSize(conf.maxSPairGroupSize());
+    if (!callback.isNull())
+      alg.setCallback(&callback);
 
-    PimplOf()(output).ideal = alg.basis().toIdealAndRetireAll();
+    // Compute Groebner basis
+    alg.computeGrobnerBasis();
+    typedef mgb::GroebnerConfiguration::Callback::Action Action;
+    if (callback.lastAction() != Action::StopWithNoOutputAction) {
+      PimplOf()(output).basis = alg.basis().toBasisAndRetireAll();
+      return true;
+    } else
+      return false;
   }
 }

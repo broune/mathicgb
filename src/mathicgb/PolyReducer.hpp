@@ -1,9 +1,11 @@
-// Copyright 2011 Michael E. Stillman
-
-#ifndef _polyReducer_h_
-#define _polyReducer_h_
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
+#ifndef MATHICGB_POLY_REDUCER_GUARD
+#define MATHICGB_POLY_REDUCER_GUARD
 
 #include "TypicalReducer.hpp"
+
+MATHICGB_NAMESPACE_BEGIN
 
 class PolyReducer : public TypicalReducer {
 public:
@@ -37,9 +39,5 @@ private:
   size_t mMemUsage;
 };
 
+MATHICGB_NAMESPACE_END
 #endif
-
-// Local Variables:
-// compile-command: "make -C .. "
-// indent-tabs-mode: nil
-// End:

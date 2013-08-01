@@ -1,12 +1,15 @@
-#ifndef DIV_ARRAY_MODEL_GUARD
-#define DIV_ARRAY_MODEL_GUARD
+// MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
+#ifndef MATHICGB_MON_TABLE_DIV_LIST_GUARD
+#define MATHICGB_MON_TABLE_DIV_LIST_GUARD
 
+#include "PolyRing.hpp"
 #include <string>
 #include <vector>
 #include <iostream>
-
 #include <mathic.h>
-#include "PolyRing.hpp"
+
+MATHICGB_NAMESPACE_BEGIN
 
 /** Helper class for MonTableDivList. */
 template<bool UseLinkedList, bool UseDivMask>
@@ -279,9 +282,5 @@ void MonTableDivList<UDL, UDM>::getMonomials(std::vector<const_monomial>& monomi
   monomials.insert(monomials.begin(), begin(), end());
 }
 
+MATHICGB_NAMESPACE_END
 #endif
-
-// Local Variables:
-// compile-command: "make -C .. "
-// indent-tabs-mode: nil
-// End:
