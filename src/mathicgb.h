@@ -99,7 +99,7 @@ namespace mgb { // Part of the public interface of MathicGB
       BaseOrder order,
       const std::vector<Exponent>& gradings
     );
-    std::pair<BaseOrder, std::vector<Exponent>> monomialOrder() const;
+    std::pair<BaseOrder, std::vector<Exponent> > monomialOrder() const;
 
     static const size_t ComponentAfterBaseOrder = static_cast<size_t>(-1);
 
@@ -474,6 +474,13 @@ namespace mgb { // Part of the public interface of MathicGB
     Stream& mStream;
     ::mgbi::StreamStateChecker mChecker;
   };
+}
+
+extern "C" {
+  // Put a C function in the library so that it can be detected by the autoconf
+  // macro AC_CHECK_LIB. That macro can only check for libraries that contain
+  // at least one C function.
+  void libmathicgbIsPresent(void); // This function does nothing.
 }
 
 // ********************************************************

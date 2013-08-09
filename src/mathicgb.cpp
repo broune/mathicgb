@@ -10,6 +10,10 @@
 #include "mathicgb/LogDomainSet.hpp"
 #include <mathic.h>
 
+extern "C" {
+  void libmathicgbIsPresent(void) {}
+}
+
 using namespace mgb;
 
 namespace {
