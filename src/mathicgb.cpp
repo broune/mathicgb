@@ -491,7 +491,7 @@ namespace mgb {
   }
 
   void GroebnerConfiguration::setComponentsAscending(bool value) {
-    mPimpl->mComponentsAscending;
+    mPimpl->mComponentsAscending = value;
   }
 
   bool GroebnerConfiguration::componentsAscending() const {
