@@ -558,3 +558,33 @@ TEST(MathicGBLib, SimpleEliminationGB) {
 #endif
   }
 }
+
+TEST(MathicGBLib, GlobalOrderOrNot) {
+  mgb::GroebnerConfiguration conf(101, 4);
+  const auto lex =
+    mgb::GroebnerConfiguration::BaseOrder::LexicographicBaseOrder;
+  const auto revLex =
+    mgb::GroebnerConfiguration::BaseOrder::ReverseLexicographicBaseOrder;
+
+  std::vector<mgb::GroebnerConfiguration::Exponent> mat;
+
+  mat = {};
+  ASSERT_TRUE(conf.setMonomialOrder(lex, mat));
+  ASSERT_FALSE(conf.setMonomialOrder(revLex, mat));
+
+  mat = {1,2,3,0};
+  ASSERT_TRUE(conf.setMonomialOrder(lex, mat));
+  ASSERT_FALSE(conf.setMonomialOrder(revLex, mat));
+
+  mat = {1,0,0,0,  -3,0,1,2};
+  ASSERT_TRUE(conf.setMonomialOrder(lex, mat));
+  ASSERT_FALSE(conf.setMonomialOrder(revLex, mat));
+
+  mat = {1,1,0,0,  3,0,1,2};
+  ASSERT_TRUE(conf.setMonomialOrder(lex, mat));
+  ASSERT_TRUE(conf.setMonomialOrder(revLex, mat));
+
+  mat = {1,0,0,0,  3,1,1,-2};
+  ASSERT_FALSE(conf.setMonomialOrder(lex, mat));
+  ASSERT_FALSE(conf.setMonomialOrder(revLex, mat));
+}

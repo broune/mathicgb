@@ -86,16 +86,21 @@ namespace mgb { // Part of the public interface of MathicGB
     /// to all the rows of the matrix, then the base order is used to break the
     /// tie.
     ///
-    /// You must ensure that the combination of grading and base order in fact
-    /// defines a monomial order. For example, ungraded reverse lex is not
-    /// a monomial order, so you must not ask for a Groebner basis with
-    /// respect to that order.
+    /// An order is global if 1 is the smallest of all monomials. Equivalently,
+    /// if 1 < x for each variable x in the ambient ring. In MathicGB only
+    /// global orders are considered monomial orders and non-global orders
+    /// are not supported. setMonomialOrder will return true if the specified
+    /// order is global. Otherwise, setMonomialOrder returns false and the
+    /// requested order is NOT set. So you can ignore the return value if
+    /// and only if you are certain that the order you are requesting is in
+    /// fact global. For example, ungraded reverse lex is not a (global) monomial
+    /// order.
     ///
     /// Each row of the matrix adds overhead to the Groebner basis
     /// computation both in terms of time and space.
-    /// 
+    ///
     /// The default grading is (1, ..., 1)-graded reverse lex.
-    void setMonomialOrder(
+    bool setMonomialOrder(
       BaseOrder order,
       const std::vector<Exponent>& gradings
     );
@@ -231,7 +236,7 @@ namespace mgb { // Part of the public interface of MathicGB
       const Exponent* gradings;
       size_t gradingsSize;
     };
-    void setMonomialOrderInternal(MonomialOrderData order);
+    bool setMonomialOrderInternal(MonomialOrderData order);
     MonomialOrderData monomialOrderInternal() const;
 
     static Callback::Action callbackCaller(void* obj);
@@ -517,7 +522,7 @@ namespace mgb {
   // the library does internally. So we have to decay objects of
   // type std::vector to pointers.
 
-  inline void GroebnerConfiguration::setMonomialOrder(
+  inline bool GroebnerConfiguration::setMonomialOrder(
     const BaseOrder baseOrder,
     const std::vector<Exponent>& gradings
   ) {
@@ -530,7 +535,7 @@ namespace mgb {
       gradings.empty() ? static_cast<Exponent*>(0) : &*gradings.begin(),
       gradings.size()
     };
-    setMonomialOrderInternal(data);
+    return setMonomialOrderInternal(data);
   }
 
   inline std::pair<

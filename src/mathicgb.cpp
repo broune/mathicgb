@@ -444,18 +444,35 @@ namespace mgb {
     return mPimpl->mVarCount;
   }
 
-  void GroebnerConfiguration::setMonomialOrderInternal(
+  bool GroebnerConfiguration::setMonomialOrderInternal(
     MonomialOrderData order
   ) {
     MATHICGB_ASSERT(Pimpl::baseOrderValid(order.baseOrder));
+    MATHICGB_ASSERT(varCount() != 0 || order.gradingsSize == 0);
     MATHICGB_ASSERT(varCount() == 0 || order.gradingsSize % varCount() == 0);
-    
-    // Currently only reverse lex supported. TODO: make it work
-    MATHICGB_ASSERT(order.baseOrder == ReverseLexicographicBaseOrder);
+
+    // Check if order is global.
+    if (varCount() != 0) {
+      const size_t rowCount = order.gradingsSize / varCount();
+      for (VarIndex var = 0; var < varCount(); ++var) {
+        // check if 1 < x_var.
+        for (size_t row = 0; row < rowCount; ++row) {
+          const Exponent e = order.gradings[row * varCount() + var];
+          if (e < 0)
+            return false; // order not global
+          if (e > 0)
+            goto orderGlobalForVar;
+        }
+        if (order.baseOrder == ReverseLexicographicBaseOrder)
+          return false; // order not global
+      orderGlobalForVar:;
+      }
+    }
 
     mPimpl->mBaseOrder = order.baseOrder;
     mPimpl->mGradings.assign
       (order.gradings, order.gradings + order.gradingsSize);
+    return true;
   }
 
   auto GroebnerConfiguration::monomialOrderInternal() const ->
