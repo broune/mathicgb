@@ -17,13 +17,13 @@ public:
 private:
   friend struct GuardMaker;
   Guard(T&& action, const bool& active):
-    mAction(::std::move(action)), mOwning(true), mActive(active) {}
+    mAction(std::move(action)), mOwning(true), mActive(active) {}
 
   // Most compilers should elide the call to this construtor, but it must be
   // here anyway and we should support even a crazy compiler that decides to
   // call it.
   Guard(Guard<T>&& guard):
-    mAction(::std::move(guard.mAction)), mOwning(true), mActive(guard.mActive)
+    mAction(std::move(guard.mAction)), mOwning(true), mActive(guard.mActive)
   {
     assert(guard.mActive);
     guard.mOwning = false; // to avoid calling mAction twice
@@ -51,7 +51,7 @@ public:
   GuardMaker(const bool& active): mActive(active) {}
 
   template<class T>
-  Guard<T> operator+(T&& t) {return Guard<T>(::std::forward<T>(t), mActive);}
+  Guard<T> operator+(T&& t) {return Guard<T>(std::forward<T>(t), mActive);}
 
 private:
   const bool& mActive;
@@ -67,7 +67,7 @@ MATHICGB_NAMESPACE_END
 //   FILE* file = fopen("file.txt", "r");
 //   MATHICGB_SCOPE_EXIT() {
 //     fclose(file);
-//     ::std::cout << "file closed";
+//     std::cout << "file closed";
 //   };
 //   // ...
 //   return; // the file is closed

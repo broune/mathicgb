@@ -13,8 +13,8 @@
 using namespace mgb;
 
 namespace {
-  ::std::string monToStr(const PolyRing& ring, ConstMonomial a) {
-    ::std::ostringstream out;
+  std::string monToStr(const PolyRing& ring, ConstMonomial a) {
+    std::ostringstream out;
     ring.monomialDisplay(out, a, false, true);
     return out.str();
   }
@@ -24,7 +24,7 @@ namespace {
     const PolyRing& ring = b.ring();
     {
       Poly p(b.ring());
-      ::std::istringstream in(left);
+      std::istringstream in(left);
       p.parseDoNotOrder(in);
       size_t colCount = 0;
       for (Poly::iterator it = p.begin(); it != p.end(); ++it) {
@@ -40,7 +40,7 @@ namespace {
     }
     {
       Poly p(b.ring());
-      ::std::istringstream in(right);
+      std::istringstream in(right);
       p.parseDoNotOrder(in);
       size_t colCount = 0;
       for (Poly::iterator it = p.begin(); it != p.end(); ++it) {
@@ -77,7 +77,7 @@ TEST(QuadMatrixBuilder, Empty) {
 }
 
 TEST(QuadMatrixBuilder, Construction) {
-  ::std::unique_ptr<PolyRing> ring(ringFromString("32003 6 1\n1 1 1 1 1 1"));
+  std::unique_ptr<PolyRing> ring(ringFromString("32003 6 1\n1 1 1 1 1 1"));
   QuadMatrixBuilder::Map map(*ring);
   QuadMatrixBuilder::MonomialsType monoLeft;
   QuadMatrixBuilder::MonomialsType monoRight;
@@ -120,7 +120,7 @@ TEST(QuadMatrixBuilder, Construction) {
 }
 
 TEST(QuadMatrixBuilder, ColumnQuery) {
-  ::std::unique_ptr<PolyRing> ring(ringFromString("32003 6 1\n1 1 1 1 1 1"));
+  std::unique_ptr<PolyRing> ring(ringFromString("32003 6 1\n1 1 1 1 1 1"));
   QuadMatrixBuilder::Map map(*ring);
   QuadMatrixBuilder::MonomialsType monoLeft;
   QuadMatrixBuilder::MonomialsType monoRight;
@@ -129,7 +129,7 @@ TEST(QuadMatrixBuilder, ColumnQuery) {
 
   Poly p(b.ring());
   // coefficient 1X=left, 2X=right, 30=not there, % 10 = column index
-  ::std::istringstream in
+  std::istringstream in
     ("10a<1>+11<0>+20b<0>+21c<0>+22bc<0>+30ab<0>+30e<0>+10a<1>");
   p.parseDoNotOrder(in);
   for (Poly::iterator it = p.begin(); it != p.end(); ++it) {
@@ -150,7 +150,7 @@ TEST(QuadMatrixBuilder, ColumnQuery) {
 
 TEST(QuadMatrixBuilder, SortColumns) {
   // construct builder and reverse lex order
-  ::std::unique_ptr<PolyRing> ring(ringFromString("32003 6 1\n1 1 1 1 1 1"));
+  std::unique_ptr<PolyRing> ring(ringFromString("32003 6 1\n1 1 1 1 1 1"));
   Basis basis(*ring);
   
   // one row top, no rows bottom, no columns
@@ -217,7 +217,7 @@ TEST(QuadMatrixBuilder, SortColumns) {
 }
 
 TEST(QuadMatrixBuilder, BuildAndClear) {
-  ::std::unique_ptr<PolyRing> ring(ringFromString("32003 6 1\n1 1 1 1 1 1"));
+  std::unique_ptr<PolyRing> ring(ringFromString("32003 6 1\n1 1 1 1 1 1"));
   QuadMatrixBuilder::Map map(*ring);
   QuadMatrixBuilder::MonomialsType monoLeft;
   QuadMatrixBuilder::MonomialsType monoRight;

@@ -13,9 +13,9 @@
 using namespace mgb;
 
 namespace {
-  ::std::unique_ptr<Poly> parsePoly(const PolyRing& ring, ::std::string str) {
+  std::unique_ptr<Poly> parsePoly(const PolyRing& ring, std::string str) {
     auto p = make_unique<Poly>(ring);
-    ::std::istringstream in(str);
+    std::istringstream in(str);
     p->parse(in);
     return p;
   }
@@ -66,7 +66,7 @@ TEST(SparseMatrix, Simple) {
 TEST(SparseMatrix, toRow) {
   auto ring = ringFromString("32003 6 1\n1 1 1 1 1 1");
   auto polyForMonomials = parsePoly(*ring, "a5+a4+a3+a2+a1+a0");
-  ::std::vector<monomial> monomials;
+  std::vector<monomial> monomials;
   for (auto it = polyForMonomials->begin(); it != polyForMonomials->end(); ++it)
     monomials.push_back(it.getMonomial());
 

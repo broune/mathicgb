@@ -9,7 +9,7 @@
 
 MATHICGB_NAMESPACE_BEGIN
 
-static const auto logDomainGlobalStartTime = mgb::tbb::tick_count::now();
+static const auto logDomainGlobalStartTime = mgb::mtbb::tick_count::now();
 
 LogDomain<true>::LogDomain(
   const char* const name,
@@ -96,7 +96,7 @@ void LogDomain<true>::Timer::stop() {
   if (!mLogger.enabled())
     return;
   TimeInterval interval;
-  interval.realSeconds = (mgb::tbb::tick_count::now() - mRealTicks).seconds();
+  interval.realSeconds = (mgb::mtbb::tick_count::now() - mRealTicks).seconds();
   mLogger.recordTime(interval);
   return;
 }
@@ -105,7 +105,7 @@ void LogDomain<true>::Timer::start() {
   if (!mLogger.enabled() || mTimerRunning)
     return;
   mTimerRunning = true;
-  mRealTicks = mgb::tbb::tick_count::now();
+  mRealTicks = mgb::mtbb::tick_count::now();
 }
 
 LogDomainInternal::LogAliasRegisterer::LogAliasRegisterer(const char* alias, const char* of) {

@@ -641,8 +641,11 @@ TYPED_TEST(Monoid, Order) {
     -6, 9, 4,
     -6, 9, 4
   };
-  std::vector<Exponent> dupGradings
-    (std::begin(dupGradingsArray), std::end(dupGradingsArray));
+  std::vector<Exponent> dupGradings(
+    dupGradingsArray,
+    dupGradingsArray + sizeof(dupGradingsArray)/sizeof(*dupGradingsArray)
+  );
+
   //   b:  2  9
   //   c:  3  4
   //   a:  5 -7
@@ -662,8 +665,10 @@ TYPED_TEST(Monoid, Order) {
     0, 1, 0,
     1, 0, 0
   };
-  std::vector<Exponent> lexGradings
-    (std::begin(lexGradingsArray), std::end(lexGradingsArray));
+  std::vector<Exponent> lexGradings(
+    lexGradingsArray,
+    lexGradingsArray + sizeof(lexGradingsArray)/sizeof(*lexGradingsArray)
+  );
   const auto sortedLex =
     "1 a a2 a3 b ab a2b b2 ab2 b3 c ac bc abc c2 ac2 bc2 c3";
   check(

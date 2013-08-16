@@ -23,7 +23,7 @@ class MonoOrder {
 public:
   typedef W Weight;
   typedef size_t VarIndex;
-  typedef ::std::vector<Weight> Gradings;
+  typedef std::vector<Weight> Gradings;
 
   static const size_t ComponentAfterBaseOrder = static_cast<size_t>(-1);
 
@@ -94,7 +94,7 @@ public:
     const bool schreyering = true
   ):
     mVarCount(varCount),
-    mGradings(::std::move(gradings)),
+    mGradings(std::move(gradings)),
     mBaseOrder(baseOrder),
     mComponentGradingIndex(componentBefore),
     mComponentsAscendingDesired(componentsAscendingDesired),
@@ -174,13 +174,13 @@ private:
     const VarIndex componentBefore
   ) {
     if (componentBefore == ComponentAfterBaseOrder)
-      return ::std::move(gradings);
+      return std::move(gradings);
     MATHICGB_ASSERT(componentBefore <= varCount);
     gradings.resize(gradings.size() + varCount);
     const auto newRow = gradings.begin() + varCount * componentBefore;
-    ::std::copy_n(newRow, varCount, newRow + varCount);
-    ::std::fill_n(newRow, varCount, static_cast<Weight>(0));
-    return ::std::move(gradings);
+    std::copy_n(newRow, varCount, newRow + varCount);
+    std::fill_n(newRow, varCount, static_cast<Weight>(0));
+    return std::move(gradings);
   }
 
   bool debugAssertValid() {

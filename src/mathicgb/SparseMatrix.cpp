@@ -13,7 +13,7 @@ void SparseMatrix::takeRowsFrom(SparseMatrix&& matrix) {
     return;
 
   if (mRows.empty()) {
-    *this = ::std::move(matrix);
+    *this = std::move(matrix);
     return;
   }
 
@@ -24,8 +24,8 @@ void SparseMatrix::takeRowsFrom(SparseMatrix&& matrix) {
   if (mBlock.mHasNoRows) // only put mBlock in chain of blocks if non-empty
     oldestBlock->mPreviousBlock = mBlock.mPreviousBlock;
   else
-    oldestBlock->mPreviousBlock = new Block(::std::move(mBlock));
-  mBlock = ::std::move(matrix.mBlock);
+    oldestBlock->mPreviousBlock = new Block(std::move(mBlock));
+  mBlock = std::move(matrix.mBlock);
 
   mRows.insert(mRows.end(), matrix.mRows.begin(), matrix.mRows.end());
   matrix.clear();
@@ -33,7 +33,7 @@ void SparseMatrix::takeRowsFrom(SparseMatrix&& matrix) {
 
 void SparseMatrix::rowToPolynomial(
   const RowIndex row,
-  const ::std::vector<monomial>& colMonomials,
+  const std::vector<monomial>& colMonomials,
   Poly& poly
 ) {
   poly.setToZero();
@@ -51,7 +51,7 @@ void SparseMatrix::sortRowsByIncreasingPivots() {
   SparseMatrix ordered;
   const auto rowCount = this->rowCount();
 
-  ::std::vector<RowIndex> rows(rowCount);
+  std::vector<RowIndex> rows(rowCount);
   for (RowIndex row = 0; row < rowCount; ++row)
     rows[row] = row;
 
@@ -70,16 +70,16 @@ void SparseMatrix::sortRowsByIncreasingPivots() {
     }
     return aIt == aEnd && bIt != bEnd;
   };
-  ::std::sort(rows.begin(), rows.end(), lexLess);
+  std::sort(rows.begin(), rows.end(), lexLess);
 
   // construct ordered with pivot columns in increasing order
   ordered.clear();
   for (size_t i = 0; i < rowCount; ++i)
     ordered.appendRow(*this, rows[i]);
-  *this = ::std::move(ordered);
+  *this = std::move(ordered);
 }
 
-void SparseMatrix::applyColumnMap(const ::std::vector<ColIndex>& colMap) {
+void SparseMatrix::applyColumnMap(const std::vector<ColIndex>& colMap) {
   MATHICGB_ASSERT(colMap.size() >= computeColCount());
   Block* block = &mBlock;
   for (; block != 0; block = block->mPreviousBlock) {
@@ -100,7 +100,7 @@ void SparseMatrix::multiplyRow(
     it.setScalar(modularProduct(it.scalar(), multiplier, modulus));
 }
 
-void SparseMatrix::print(::std::ostream& out) const {
+void SparseMatrix::print(std::ostream& out) const {
   if (rowCount() == 0)
     out << "matrix with no rows\n";
   for (RowIndex row = 0; row < rowCount(); ++row) {
@@ -112,7 +112,7 @@ void SparseMatrix::print(::std::ostream& out) const {
   }
 }
 
-void SparseMatrix::printStatistics(::std::ostream& out) const {
+void SparseMatrix::printStatistics(std::ostream& out) const {
   typedef mathic::ColumnPrinter ColPr;
 
   ColPr pr;
@@ -143,8 +143,8 @@ void SparseMatrix::printStatistics(::std::ostream& out) const {
   out << '\n' << pr << "\n";
 }
 
-::std::string SparseMatrix::toString() const {
-  ::std::ostringstream out;
+std::string SparseMatrix::toString() const {
+  std::ostringstream out;
   print(out);
   return out.str();
 }
@@ -203,7 +203,7 @@ SparseMatrix& SparseMatrix::operator=(const SparseMatrix& matrix) {
 
 void SparseMatrix::swap(SparseMatrix& matrix) {
   mBlock.swap(matrix.mBlock);
-  using ::std::swap;
+  using std::swap;
   swap(mRows, matrix.mRows);
   swap(mMemoryQuantum, matrix.mMemoryQuantum);
 }
@@ -232,7 +232,7 @@ SparseMatrix::ColIndex SparseMatrix::computeColCount() const {
   for (RowIndex row = 0; row < rowCount(); ++row) {
     const auto end = rowEnd(row);
     for (auto it = rowBegin(row); it != end; ++it)
-      colCount = ::std::max(colCount, it.index() + 1);
+      colCount = std::max(colCount, it.index() + 1);
   }
   return colCount;
 }
@@ -253,7 +253,7 @@ void SparseMatrix::clear() {
 }
 
 void SparseMatrix::appendRowWithModulus(
-  ::std::vector<uint64> const& v,
+  std::vector<uint64> const& v,
   const Scalar modulus
 ) {
   const auto count = static_cast<ColIndex>(v.size());
@@ -266,7 +266,7 @@ void SparseMatrix::appendRowWithModulus(
 }
 
 void SparseMatrix::appendRowWithModulusNormalized(
-  ::std::vector<uint64> const& v,
+  std::vector<uint64> const& v,
   const Scalar modulus
 ) {
   uint16 multiply = 1; 
@@ -290,7 +290,7 @@ void SparseMatrix::appendRowWithModulusNormalized(
 }
 
 bool SparseMatrix::appendRowWithModulusIfNonZero(
-  ::std::vector<uint64> const& v,
+  std::vector<uint64> const& v,
   const Scalar modulus
 ) {
   appendRowWithModulus(v, modulus);
@@ -321,12 +321,12 @@ void SparseMatrix::reserveFreeEntries(const size_t freeCount) {
   const size_t count = freeCount + ( // todo: detect overflow for this addition
     mBlock.mHasNoRows ?
     mBlock.mColIndices.size() :
-    ::std::distance(mRows.back().mIndicesEnd, mBlock.mColIndices.end())
+    std::distance(mRows.back().mIndicesEnd, mBlock.mColIndices.end())
   );
 
   // @todo: fix memory leaks on exception
 
-  auto oldBlock = new Block(::std::move(mBlock));
+  auto oldBlock = new Block(std::move(mBlock));
   MATHICGB_ASSERT(mBlock.mColIndices.begin() == 0);
   MATHICGB_ASSERT(mBlock.mScalars.begin() == 0);
   MATHICGB_ASSERT(mBlock.mHasNoRows);
@@ -360,9 +360,9 @@ void SparseMatrix::reserveFreeEntries(const size_t freeCount) {
     // remove the pending entries from old block so that counting the number
     // of entries will give the correct result in future.
     oldBlock->mColIndices.resize
-      (::std::distance(oldBlock->mColIndices.begin(), mRows.back().mIndicesEnd));
+      (std::distance(oldBlock->mColIndices.begin(), mRows.back().mIndicesEnd));
     oldBlock->mScalars.resize
-      (::std::distance(oldBlock->mScalars.begin(), mRows.back().mScalarsEnd));      
+      (std::distance(oldBlock->mScalars.begin(), mRows.back().mScalarsEnd));      
     mBlock.mPreviousBlock = oldBlock;
   }
 }
@@ -427,7 +427,7 @@ size_t SparseMatrix::Block::memoryUseTrimmed() const {
   return mColIndices.memoryUseTrimmed() + mScalars.memoryUseTrimmed();
 }
 
-::std::ostream& operator<<(::std::ostream& out, const SparseMatrix& matrix) {
+std::ostream& operator<<(std::ostream& out, const SparseMatrix& matrix) {
   matrix.print(out);
   return out;
 }
@@ -448,7 +448,7 @@ namespace {
   }
 
   template<class T>
-  void writeMany(const ::std::vector<T>& v, FILE* file) {
+  void writeMany(const std::vector<T>& v, FILE* file) {
     if (v.empty())
       return;
     if (fwrite(v.data(), sizeof(T), v.size(), file) != v.size())
@@ -456,7 +456,7 @@ namespace {
   }
 
   template<class T>
-  void readMany(FILE* file, size_t count, ::std::vector<T>& v) {
+  void readMany(FILE* file, size_t count, std::vector<T>& v) {
     size_t const originalSize = v.size();
     v.resize(originalSize + count);
     if (fread(v.data() + originalSize, sizeof(T), count, file) != count)
@@ -487,7 +487,7 @@ void SparseMatrix::write(const Scalar modulus, FILE* file) const {
       mathic::reportError("error while writing to file.");
   }
 
-  ::std::vector<uint32> entryCounts;
+  std::vector<uint32> entryCounts;
   for (SparseMatrix::RowIndex row = 0; row < storedRowCount; ++row)
     entryCounts.push_back(entryCountInRow(row));
   writeMany<uint32>(entryCounts, file);
@@ -512,22 +512,22 @@ SparseMatrix::Scalar SparseMatrix::read(FILE* file) {
   // Read scalars.
   {
     mBlock.mScalars.resize(entryCount);
-    ::std::vector<uint16> scalars;
+    std::vector<uint16> scalars;
     readMany(file, entryCount, scalars);
-    ::std::copy(scalars.begin(), scalars.end(), mBlock.mScalars.begin());
+    std::copy(scalars.begin(), scalars.end(), mBlock.mScalars.begin());
   }
 
   // Read column indices.
   {
     mBlock.mColIndices.resize(entryCount);
-    ::std::vector<uint32> indices;
+    std::vector<uint32> indices;
     readMany(file, entryCount, indices);
-    ::std::copy(indices.begin(), indices.end(), mBlock.mColIndices.begin());
+    std::copy(indices.begin(), indices.end(), mBlock.mColIndices.begin());
   }
 
   // Read where rows begin and end.
   {
-    ::std::vector<uint32> sizes;
+    std::vector<uint32> sizes;
     readMany(file, rowCount, sizes);
     uint32 runningOffset = 0;
     for (auto it = sizes.begin(); it != sizes.end(); ++it) {
@@ -555,7 +555,7 @@ void SparseMatrix::writePBM(FILE* file) {
 
   // Write PBM header
   {
-    ::std::stringstream out;
+    std::stringstream out;
     out << "P1 " << colCount << ' ' << rowCount << '\n';
     fputs(out.str().c_str(), file);
   }

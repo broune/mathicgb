@@ -25,18 +25,18 @@ public:
   QuadMatrix() {}
 
   QuadMatrix(QuadMatrix&& matrix):
-    topLeft(::std::move(matrix.topLeft)),
-    topRight(::std::move(matrix.topRight)),
-    bottomLeft(::std::move(matrix.bottomLeft)),
-    bottomRight(::std::move(matrix.bottomRight)),
-    leftColumnMonomials(::std::move(matrix.leftColumnMonomials)),
-    rightColumnMonomials(::std::move(matrix.rightColumnMonomials)),
+    topLeft(std::move(matrix.topLeft)),
+    topRight(std::move(matrix.topRight)),
+    bottomLeft(std::move(matrix.bottomLeft)),
+    bottomRight(std::move(matrix.bottomRight)),
+    leftColumnMonomials(std::move(matrix.leftColumnMonomials)),
+    rightColumnMonomials(std::move(matrix.rightColumnMonomials)),
     ring(matrix.ring)
   {}
 
   QuadMatrix& operator=(QuadMatrix&& matrix) {
     this->~QuadMatrix();
-    new (this) QuadMatrix(::std::move(matrix));
+    new (this) QuadMatrix(std::move(matrix));
     return *this;
   }
 
@@ -44,21 +44,21 @@ public:
   SparseMatrix topRight;
   SparseMatrix bottomLeft;
   SparseMatrix bottomRight;
-  ::std::vector<monomial> leftColumnMonomials;
-  ::std::vector<monomial> rightColumnMonomials;
+  std::vector<monomial> leftColumnMonomials;
+  std::vector<monomial> rightColumnMonomials;
   const PolyRing* ring;
 
   /// Prints whole matrix to out in human-readable format. Useful for
   /// debugging.
-  void print(::std::ostream& out) const;
+  void print(std::ostream& out) const;
 
-  void printStatistics(::std::ostream& out) const;
+  void printStatistics(std::ostream& out) const;
 
   size_t memoryUse() const;
   size_t memoryUseTrimmed() const;
 
   /// Shows whole matrix in a string. Useful for debugging.
-  ::std::string toString() const;
+  std::string toString() const;
 
   /// Return the combined number of non-zero entries.
   size_t entryCount() const;
@@ -94,7 +94,7 @@ private:
   void operator=(const QuadMatrix&); // not available
 };
 
-::std::ostream& operator<<(::std::ostream& out, const QuadMatrix& qm);
+std::ostream& operator<<(std::ostream& out, const QuadMatrix& qm);
 
 MATHICGB_NAMESPACE_END
 

@@ -57,7 +57,7 @@ void PolyRing::monomialSetIdentity(Monomial& result) const
   monoid().setIdentity(result);
 }
 
-void PolyRing::monomialEi(size_t i, Monomial &result) const
+void PolyRing::monomialEi(Monoid::Component i, Monomial &result) const
 {
   monoid().setIdentity(result);
   monoid().setComponent(i, result);

@@ -11,7 +11,7 @@ MATHICGB_NAMESPACE_BEGIN
 
 /// Implements arithmetic in a prime field. T must be an unsigned integer type
 /// that is used to store the elements of the field. The characteristic of the
-/// field must be a prime not exceeding ::std::numeric_limits<T>::max().
+/// field must be a prime not exceeding std::numeric_limits<T>::max().
 template<class T>
 class PrimeField {
 public:
@@ -19,8 +19,8 @@ public:
 
   class Element {
   public:
-    static_assert(!::std::numeric_limits<T>::is_signed, "");
-    static_assert(::std::numeric_limits<T>::is_integer, "");
+    static_assert(!std::numeric_limits<T>::is_signed, "");
+    static_assert(std::numeric_limits<T>::is_integer, "");
 
     Element(const Element& e): mValue(e.value()) {}
 
@@ -55,19 +55,19 @@ public:
   /// Assumes that i is in the range [0;charac()).
   template<class Integer>
   Element toElementInRange(Integer&& i) const {
-    typedef typename ::std::remove_reference<Integer>::type NoRefInteger;
-    static_assert(::std::numeric_limits<NoRefInteger>::is_integer, "");
+    typedef typename std::remove_reference<Integer>::type NoRefInteger;
+    static_assert(std::numeric_limits<NoRefInteger>::is_integer, "");
 
     MATHICGB_ASSERT(0 <= i);
-    typedef typename ::std::make_unsigned<NoRefInteger>::type Unsigned;
+    typedef typename std::make_unsigned<NoRefInteger>::type Unsigned;
     MATHICGB_ASSERT(static_cast<Unsigned>(i) < charac());
     return Element(i);
   }
 
   template<class Integer>
   Element toElement(Integer&& i) const {
-    typedef typename ::std::remove_reference<Integer>::type NoRefInteger;
-    static_assert(::std::numeric_limits<NoRefInteger>::is_integer, "");
+    typedef typename std::remove_reference<Integer>::type NoRefInteger;
+    static_assert(std::numeric_limits<NoRefInteger>::is_integer, "");
 
     // We need to take the modulus of i to put it into the range [0;charac()).
     // That is more tricky to get right than it might seem.
@@ -78,11 +78,11 @@ public:
     // converted to a signed integer since it might not be representable that
     // way.
     //
-    // If Integer is signed and i is ::std::numeric_limits<Integer>::min() then
+    // If Integer is signed and i is std::numeric_limits<Integer>::min() then
     // it is undefined behavior to evaluate the expression -i since -i is not
     // representable, leading to a signed overflow. So we have to cast to
     // unsigned before doing the minus.
-    typedef typename ::std::make_unsigned<NoRefInteger>::type Unsigned;
+    typedef typename std::make_unsigned<NoRefInteger>::type Unsigned;
     if (i < 0) {
       // Negate i to get a positive number, then negate again to cancel out
       // the first negation. The first cast to unsigned is to avoid
@@ -227,8 +227,8 @@ auto PrimeField<T>::inverse(const Element elementA) const -> Element {
 
 
 template<class T>
-::std::ostream& operator<<(
-  ::std::ostream& out,
+std::ostream& operator<<(
+  std::ostream& out,
   typename PrimeField<T>::Element e
 ) {
   out << e.value();

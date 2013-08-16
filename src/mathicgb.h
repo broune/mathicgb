@@ -9,18 +9,25 @@
 // preceding that function for an example of how to use this library
 // interface.
 
-/// Code in this namespace is not part of the public interface of MathicGB.
-/// If you take a dependency on code in this namespace, except indirectly
-/// through using code in the mgb namespace, then you are not using the
-/// library interface as intended.
-namespace mgbi { // Not part of the public interface of MathicGB
-  class PimplOf;
+extern "C" {
+  // Put a C function in the library so that it can be detected by the autoconf
+  // macro AC_CHECK_LIB. That macro can only check for libraries that contain
+  // at least one C function.
+  void libmathicgbIsPresent(void); // This function does nothing.
 }
 
 /// The classes and functions in this namespace make up the public interface
 /// of MathicGB. You should not have to update your code when upgrading to a
 /// newer minor revision of MathicGB if you only use the public interface.
 namespace mgb { // Part of the public interface of MathicGB
+  /// Code in this namespace is not part of the public interface of MathicGB.
+  /// If you take a dependency on code in this namespace, except indirectly
+  /// through using code in the mgb namespace, then you are not using the
+  /// library interface as intended.
+  namespace mgbi { // Not part of the public interface of MathicGB
+    class PimplOf;
+  }
+
   /// Sets time to the number of seconds accumulated on the internal
   /// MathicGB log named logName. Returns true if the logName log was
   /// found and false otherwise.
@@ -410,43 +417,38 @@ namespace mgb { // Part of the public interface of MathicGB
 
   template<class OutputStream>
   void streamSimpleIdeal(OutputStream& output);
-}
 
-namespace mgbi { // Not part of the public interface of MathicGB
-  using namespace mgb;
+  namespace mgbi { // Not part of the public interface of MathicGB
+    /// Class that checks to see if the protocol for an ideal stream is followed.
+    /// A method will return false if that is not the case. This class is not
+    /// itself an ideal stream - it is intended to be used with ideal streams for
+    /// debugging.
+    class StreamStateChecker {
+    public:
+      typedef GroebnerConfiguration::Coefficient Coefficient;
+      typedef GroebnerConfiguration::VarIndex VarIndex;
+      typedef GroebnerConfiguration::Exponent Exponent;
 
-  /// Class that checks to see if the protocol for an ideal stream is followed.
-  /// A method will return false if that is not the case. This class is not
-  /// itself an ideal stream - it is intended to be used with ideal streams for
-  /// debugging.
-  class StreamStateChecker {
-  public:
-    typedef GroebnerConfiguration::Coefficient Coefficient;
-    typedef GroebnerConfiguration::VarIndex VarIndex;
-    typedef GroebnerConfiguration::Exponent Exponent;
+      StreamStateChecker(const Coefficient modulus, const VarIndex varCount);
+      ~StreamStateChecker();
 
-    StreamStateChecker(const Coefficient modulus, const VarIndex varCount);
-    ~StreamStateChecker();
+      void idealBegin();
+      void idealBegin(size_t polyCount);
+      void appendPolynomialBegin();
+      void appendPolynomialBegin(size_t termCount);
+      void appendTermBegin();
+      void appendExponent(VarIndex index, Exponent exponent);
+      void appendTermDone(Coefficient coefficient);
+      void appendPolynomialDone();
+      void idealDone();
 
-    void idealBegin();
-    void idealBegin(size_t polyCount);
-    void appendPolynomialBegin();
-    void appendPolynomialBegin(size_t termCount);
-    void appendTermBegin();
-    void appendExponent(VarIndex index, Exponent exponent);
-    void appendTermDone(Coefficient coefficient);
-    void appendPolynomialDone();
-    void idealDone();
+      bool hasIdeal() const;
 
-    bool hasIdeal() const;
-
-  private:
-    struct Pimpl;
-    Pimpl* const mPimpl;
-  };
-}
-
-namespace mgb { // Part of the public interface of MathicGB
+    private:
+      struct Pimpl;
+      Pimpl* const mPimpl;
+    };
+  }
 
   /// Use this class to check that you are following the correct protocol
   /// for calling methods on an ideal stream. This has significant overhead
@@ -477,15 +479,8 @@ namespace mgb { // Part of the public interface of MathicGB
 
   private:
     Stream& mStream;
-    ::mgbi::StreamStateChecker mChecker;
+    mgbi::StreamStateChecker mChecker;
   };
-}
-
-extern "C" {
-  // Put a C function in the library so that it can be detected by the autoconf
-  // macro AC_CHECK_LIB. That macro can only check for libraries that contain
-  // at least one C function.
-  void libmathicgbIsPresent(void); // This function does nothing.
 }
 
 // ********************************************************
@@ -760,41 +755,39 @@ namespace mgb {
     VarIndex varCount
   ):
     mModulus(modulus), mVarCount(varCount) {}
-}
 
-namespace mgbi {
-  /// Used to read an internal MathicGB ideal without exposing the type of
-  /// the ideal.
-  class IdealAdapter {
-  public:
-    typedef GroebnerConfiguration::Coefficient Coefficient;
-    typedef GroebnerConfiguration::VarIndex VarIndex;
-    typedef GroebnerConfiguration::Exponent Exponent;
-    typedef std::pair<Coefficient, const Exponent*> ConstTerm;
-    typedef size_t PolyIndex;
-    typedef size_t TermIndex;
+  namespace mgbi {
+    /// Used to read an internal MathicGB ideal without exposing the type of
+    /// the ideal.
+    class IdealAdapter {
+    public:
+      typedef GroebnerConfiguration::Coefficient Coefficient;
+      typedef GroebnerConfiguration::VarIndex VarIndex;
+      typedef GroebnerConfiguration::Exponent Exponent;
+      typedef std::pair<Coefficient, const Exponent*> ConstTerm;
+      typedef size_t PolyIndex;
+      typedef size_t TermIndex;
 
-    IdealAdapter();
-    ~IdealAdapter();
+      IdealAdapter();
+      ~IdealAdapter();
 
-    VarIndex varCount() const;
-    size_t polyCount() const;
-    size_t termCount(PolyIndex poly) const;
-    ConstTerm term(PolyIndex poly, TermIndex term) const;
+      VarIndex varCount() const;
+      size_t polyCount() const;
+      size_t termCount(PolyIndex poly) const;
+      ConstTerm term(PolyIndex poly, TermIndex term) const;
 
-  private:
-    friend class ::mgbi::PimplOf;
-    struct Pimpl;
-    Pimpl* mPimpl;
-  };
+    private:
+      friend class mgbi::PimplOf;
+      struct Pimpl;
+      Pimpl* mPimpl;
+    };
 
-  bool internalComputeGroebnerBasis(
-    GroebnerInputIdealStream& inputWhichWillBeCleared,
-    IdealAdapter& output
-  );
-}
+    bool internalComputeGroebnerBasis(
+      GroebnerInputIdealStream& inputWhichWillBeCleared,
+      IdealAdapter& output
+    );
+  }
 
-namespace mgb {
   template<class OutputStream>
   void computeGroebnerBasis(
     GroebnerInputIdealStream& inputWhichWillBeCleared,

@@ -47,7 +47,7 @@
 /// does not alias any other pointer that is used in the current scope.
 #define MATHICGB_RESTRICT __restrict
 
-#pragma warning (disable: 4996) // ::std::copy on pointers is flagged as dangerous
+#pragma warning (disable: 4996) // std::copy on pointers is flagged as dangerous
 #pragma warning (disable: 4290) // VC++ ignores throw () specification.
 #pragma warning (disable: 4127) // Warns about using "while (true)".
 #pragma warning (disable: 4100) // Warns about unused parameters.
@@ -61,7 +61,7 @@
 #pragma warning (disable: 4355)
 
 // Tells Windows.h/Windef.h not to define macroes called min and max since that
-// clashes with ::std::numeric_limits::max and ::std::max and probably lots of
+// clashes with std::numeric_limits::max and std::max and probably lots of
 // other things too.
 #define NOMINMAX
 
@@ -176,9 +176,9 @@ See http://herbsutter.com/gotw/_102/ for a reason to have a
 make_unique function. It's pretty easy to do, too:
 
 template<typename T, typename ...Args>
-::std::unique_ptr<T> make_unique( Args&& ...args )
+std::unique_ptr<T> make_unique( Args&& ...args )
 {
-    return ::std::unique_ptr<T>( new T( ::std::forward<Args>(args)... ) );
+    return std::unique_ptr<T>( new T( std::forward<Args>(args)... ) );
 }
 
 Unfortunately, MSVC does not have variadic templates, so this turns
@@ -191,92 +191,92 @@ parameters.
 MATHICGB_NAMESPACE_BEGIN
 
 template<class T>
-::std::unique_ptr<T> make_unique() {
-  return ::std::unique_ptr<T>(new T());
+std::unique_ptr<T> make_unique() {
+  return std::unique_ptr<T>(new T());
 }
 template<class T, class A1>
-::std::unique_ptr<T> make_unique(A1&& a1) {
-  return ::std::unique_ptr<T>(new T(::std::forward<A1>(a1)));
+std::unique_ptr<T> make_unique(A1&& a1) {
+  return std::unique_ptr<T>(new T(std::forward<A1>(a1)));
 }
 template<class T, class A1, class A2>
-::std::unique_ptr<T> make_unique(A1&& a1, A2&& a2) {
-  return ::std::unique_ptr<T>(new T(::std::forward<A1>(a1), ::std::forward<A2>(a2)));
+std::unique_ptr<T> make_unique(A1&& a1, A2&& a2) {
+  return std::unique_ptr<T>(new T(std::forward<A1>(a1), std::forward<A2>(a2)));
 }
 template<class T, class A1, class A2, class A3>
-::std::unique_ptr<T> make_unique(A1&& a1, A2&& a2, A3&& a3) {
-  return ::std::unique_ptr<T>
-    (new T(::std::forward<A1>(a1), ::std::forward<A2>(a2), ::std::forward<A3>(a3)));
+std::unique_ptr<T> make_unique(A1&& a1, A2&& a2, A3&& a3) {
+  return std::unique_ptr<T>
+    (new T(std::forward<A1>(a1), std::forward<A2>(a2), std::forward<A3>(a3)));
 }
 template<class T, class A1, class A2, class A3, class A4>
-  ::std::unique_ptr<T> make_unique(A1&& a1, A2&& a2, A3&& a3, A4&& a4) {
-  return ::std::unique_ptr<T>
-    (new T(::std::forward<A1>(a1), ::std::forward<A2>(a2),
-           ::std::forward<A3>(a3), ::std::forward<A4>(a4)));
+  std::unique_ptr<T> make_unique(A1&& a1, A2&& a2, A3&& a3, A4&& a4) {
+  return std::unique_ptr<T>
+    (new T(std::forward<A1>(a1), std::forward<A2>(a2),
+           std::forward<A3>(a3), std::forward<A4>(a4)));
 }
 template<class T, class A1, class A2, class A3, class A4, class A5>
-  ::std::unique_ptr<T> make_unique(A1&& a1, A2&& a2, A3&& a3, A4&& a4, A5&& a5) {
-  return ::std::unique_ptr<T>
-    (new T(::std::forward<A1>(a1), ::std::forward<A2>(a2),
-           ::std::forward<A3>(a3), ::std::forward<A4>(a4),
-           ::std::forward<A5>(a5)));
+  std::unique_ptr<T> make_unique(A1&& a1, A2&& a2, A3&& a3, A4&& a4, A5&& a5) {
+  return std::unique_ptr<T>
+    (new T(std::forward<A1>(a1), std::forward<A2>(a2),
+           std::forward<A3>(a3), std::forward<A4>(a4),
+           std::forward<A5>(a5)));
 }
 template<class T, class A1, class A2, class A3, class A4, class A5, class A6>
-  ::std::unique_ptr<T> make_unique
+  std::unique_ptr<T> make_unique
     (A1&& a1, A2&& a2, A3&& a3, A4&& a4, A5&& a5, A6&& a6) {
-  return ::std::unique_ptr<T>
-    (new T(::std::forward<A1>(a1), ::std::forward<A2>(a2),
-           ::std::forward<A3>(a3), ::std::forward<A4>(a4),
-           ::std::forward<A5>(a5), ::std::forward<A6>(a6)));
+  return std::unique_ptr<T>
+    (new T(std::forward<A1>(a1), std::forward<A2>(a2),
+           std::forward<A3>(a3), std::forward<A4>(a4),
+           std::forward<A5>(a5), std::forward<A6>(a6)));
 }
 template<class T, class A1, class A2, class A3, class A4, class A5, class A6,
 class A7>
-  ::std::unique_ptr<T> make_unique
+  std::unique_ptr<T> make_unique
     (A1&& a1, A2&& a2, A3&& a3, A4&& a4, A5&& a5, A6&& a6, A7&& a7) {
-  return ::std::unique_ptr<T>
-    (new T(::std::forward<A1>(a1), ::std::forward<A2>(a2),
-           ::std::forward<A3>(a3), ::std::forward<A4>(a4),
-           ::std::forward<A5>(a5), ::std::forward<A6>(a6),
-           ::std::forward<A7>(a7)));
+  return std::unique_ptr<T>
+    (new T(std::forward<A1>(a1), std::forward<A2>(a2),
+           std::forward<A3>(a3), std::forward<A4>(a4),
+           std::forward<A5>(a5), std::forward<A6>(a6),
+           std::forward<A7>(a7)));
 }
 template<class T, class A1, class A2, class A3, class A4, class A5, class A6,
 class A7, class A8>
-  ::std::unique_ptr<T> make_unique
+  std::unique_ptr<T> make_unique
     (A1&& a1, A2&& a2, A3&& a3, A4&& a4, A5&& a5, A6&& a6, A7&& a7,
     A8&& a8) {
-  return ::std::unique_ptr<T>
-    (new T(::std::forward<A1>(a1), ::std::forward<A2>(a2),
-           ::std::forward<A3>(a3), ::std::forward<A4>(a4),
-           ::std::forward<A5>(a5), ::std::forward<A6>(a6),
-           ::std::forward<A7>(a7), ::std::forward<A8>(a8)));
+  return std::unique_ptr<T>
+    (new T(std::forward<A1>(a1), std::forward<A2>(a2),
+           std::forward<A3>(a3), std::forward<A4>(a4),
+           std::forward<A5>(a5), std::forward<A6>(a6),
+           std::forward<A7>(a7), std::forward<A8>(a8)));
 }
 template<class T, class A1, class A2, class A3, class A4, class A5, class A6,
 class A7, class A8, class A9>
-  ::std::unique_ptr<T> make_unique
+  std::unique_ptr<T> make_unique
     (A1&& a1, A2&& a2, A3&& a3, A4&& a4, A5&& a5, A6&& a6, A7&& a7,
     A8&& a8, A9&& a9) {
-  return ::std::unique_ptr<T>
-    (new T(::std::forward<A1>(a1), ::std::forward<A2>(a2),
-           ::std::forward<A3>(a3), ::std::forward<A4>(a4),
-           ::std::forward<A5>(a5), ::std::forward<A6>(a6),
-           ::std::forward<A7>(a7), ::std::forward<A8>(a8),
-           ::std::forward<A9>(a9)));
+  return std::unique_ptr<T>
+    (new T(std::forward<A1>(a1), std::forward<A2>(a2),
+           std::forward<A3>(a3), std::forward<A4>(a4),
+           std::forward<A5>(a5), std::forward<A6>(a6),
+           std::forward<A7>(a7), std::forward<A8>(a8),
+           std::forward<A9>(a9)));
 }
 template<class T, class A1, class A2, class A3, class A4, class A5, class A6,
 class A7, class A8, class A9, class A10>
-  ::std::unique_ptr<T> make_unique
+  std::unique_ptr<T> make_unique
     (A1&& a1, A2&& a2, A3&& a3, A4&& a4, A5&& a5, A6&& a6, A7&& a7,
     A8&& a8, A9&& a9, A10&& a10) {
-  return ::std::unique_ptr<T>
-    (new T(::std::forward<A1>(a1), ::std::forward<A2>(a2),
-           ::std::forward<A3>(a3), ::std::forward<A4>(a4),
-           ::std::forward<A5>(a5), ::std::forward<A6>(a6),
-           ::std::forward<A7>(a7), ::std::forward<A8>(a8),
-           ::std::forward<A9>(a9), ::std::forward<A9>(a10)));
+  return std::unique_ptr<T>
+    (new T(std::forward<A1>(a1), std::forward<A2>(a2),
+           std::forward<A3>(a3), std::forward<A4>(a4),
+           std::forward<A5>(a5), std::forward<A6>(a6),
+           std::forward<A7>(a7), std::forward<A8>(a8),
+           std::forward<A9>(a9), std::forward<A9>(a10)));
 }
 
 template<class T>
-::std::unique_ptr<T[]> make_unique_array(size_t count) {
-  return ::std::unique_ptr<T[]>(new T[count]);
+std::unique_ptr<T[]> make_unique_array(size_t count) {
+  return std::unique_ptr<T[]>(new T[count]);
 }
 
 // TODO: These types should be defined in some way that actually

@@ -50,7 +50,7 @@ public:
   void setEnabled(const bool enabled) {mEnabled = enabled;}
   void setStreamEnabled(const bool enabled) {mStreamEnabled = enabled;}
 
-  ::std::ostream& stream();
+  std::ostream& stream();
 
   /// Class for recording time that is logged. Movable.
   class Timer;
@@ -90,7 +90,7 @@ private:
     // for all threads, so that didn't work.
     double realSeconds;
 
-    void print(::std::ostream& out) const;
+    void print(std::ostream& out) const;
   };
   void recordTime(TimeInterval interval);
 
@@ -135,7 +135,7 @@ public:
 private:
   LogDomain<true>& mLogger;
   bool mTimerRunning;
-  mgb::tbb::tick_count mRealTicks; // high precision
+  mtbb::tick_count mRealTicks; // high precision
 };
 
 /// This is a compile-time disabled logger. You are not supposed to dynamically
@@ -164,9 +164,9 @@ public:
     return Timer(*this);
   }
 
-  ::std::ostream& stream() {
+  std::ostream& stream() {
     MATHICGB_ASSERT(false);
-    return *static_cast< ::std::ostream*>(0);
+    return *static_cast< std::ostream*>(0);
   }
 
   typedef unsigned long long Counter;
@@ -272,7 +272,7 @@ MATHICGB_NAMESPACE_END
 ///
 /// Example:
 ///   if (MATHICGB_LOGGER_TYPE(MyDomain)::compileTimeEnabled)
-///     ::std::ostream << "MyDomain is compiled time enabled";
+///     std::ostream << "MyDomain is compiled time enabled";
 #define MATHICGB_LOGGER_TYPE(DOMAIN) ::mgb::logs::Type##DOMAIN
 
 /// Runs the code in the following scope delimited by braces {} if the
@@ -283,14 +283,14 @@ MATHICGB_NAMESPACE_END
 ///
 /// Example:
 ///   MATHICGB_IF_STREAM_LOG(MyDomain) {
-///     ::std::string msg;
+///     std::string msg;
 ///     expensiveFunction(msg);
 ///     stream << msg; // or log.stream() << msg;
 ///   }
 #define MATHICGB_IF_STREAM_LOG(DOMAIN) \
   if (MATHICGB_LOGGER(DOMAIN).streamEnabled()) \
     LogDomainInternal::lambdaRunner(MATHICGB_LOGGER(DOMAIN)) + \
-      [&](MATHICGB_LOGGER_TYPE(DOMAIN)& log, ::std::ostream& stream)
+      [&](MATHICGB_LOGGER_TYPE(DOMAIN)& log, std::ostream& stream)
 
 /// Display information to the log using <<.
 /// If domain is not enabled and stream enabled then the log message is not

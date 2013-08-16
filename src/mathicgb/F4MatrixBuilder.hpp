@@ -85,13 +85,13 @@ private:
     const Poly* sPairPoly;
     monomial sPairMultiply;
   };
-  typedef ::mgb::tbb::parallel_do_feeder<RowTask> TaskFeeder;
+  typedef ::mgb::mtbb::parallel_do_feeder<RowTask> TaskFeeder;
 
   /// Creates a column with monomial label x and schedules a new row to
   /// reduce that column if possible. Here x is monoA if monoB is
   /// null and otherwise x is the product of monoA and monoB.
   MATHICGB_NO_INLINE
-  ::std::pair<LeftRightColIndex, ConstMonomial>
+  std::pair<LeftRightColIndex, ConstMonomial>
   createColumn(
     const_monomial monoA,
     const_monomial monoB,
@@ -122,7 +122,7 @@ private:
   );
 
   MATHICGB_NO_INLINE
-  ::std::pair<QuadMatrixBuilder::LeftRightColIndex, ConstMonomial>
+  std::pair<QuadMatrixBuilder::LeftRightColIndex, ConstMonomial>
   findOrCreateColumn(
     const_monomial monoA,
     const_monomial monoB,
@@ -130,7 +130,7 @@ private:
   );
   
   MATHICGB_INLINE
-  ::std::pair<QuadMatrixBuilder::LeftRightColIndex, ConstMonomial>
+  std::pair<QuadMatrixBuilder::LeftRightColIndex, ConstMonomial>
   findOrCreateColumn(
     const_monomial monoA,
     const_monomial monoB,
@@ -146,7 +146,7 @@ private:
     TaskFeeder& feeder
   );
 
-  mgb::tbb::mutex mCreateColumnLock;
+  mgb::mtbb::mutex mCreateColumnLock;
   ColIndex mLeftColCount;
   ColIndex mRightColCount;
   monomial mTmp;
@@ -155,7 +155,7 @@ private:
   Monomials mMonomialsRight;
   QuadMatrixBuilder mBuilder;
   Map mMap;
-  ::std::vector<RowTask> mTodo;
+  std::vector<RowTask> mTodo;
 };
 
 MATHICGB_NAMESPACE_END

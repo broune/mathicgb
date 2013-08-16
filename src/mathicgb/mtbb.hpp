@@ -3,13 +3,12 @@
 #ifndef MATHICGB_M_TBB_GUARD
 #define MATHICGB_M_TBB_GUARD
 
-#define MATHICGB_NO_TBB
 #ifndef MATHICGB_NO_TBB
 #include <tbb/tbb.h>
 
 MATHICGB_NAMESPACE_BEGIN
 
-namespace tbb {
+namespace mtbb {
   using ::tbb::task_scheduler_init;
   using ::tbb::mutex;
   using ::tbb::parallel_do_feeder;
@@ -32,7 +31,7 @@ MATHICGB_NAMESPACE_END
 
 MATHICGB_NAMESPACE_BEGIN
 
-namespace tbb {
+namespace mtbb {
   class task_scheduler_init {
   public:
     task_scheduler_init(int) {}
@@ -130,8 +129,8 @@ namespace tbb {
     }
 
   private:
-    ::std::function<T()> mCreater;
-    ::std::unique_ptr<T> mObj;
+    std::function<T()> mCreater;
+    std::unique_ptr<T> mObj;
   };
 
   template<class Value>
@@ -171,24 +170,24 @@ namespace tbb {
   template<class T>
   class parallel_do_feeder {
   public:
-    parallel_do_feeder(::std::vector<T>& tasks): mTasks(tasks) {}
+    parallel_do_feeder(std::vector<T>& tasks): mTasks(tasks) {}
 
     template<class TT>
-    void add(TT&& t) {mTasks.push_back(::std::forward<TT>(t));}
+    void add(TT&& t) {mTasks.push_back(std::forward<TT>(t));}
 
   private:
-    ::std::vector<T>& mTasks;
+    std::vector<T>& mTasks;
   };
 
   template<class InputIterator, class Body>
   void parallel_do(InputIterator begin, InputIterator end, Body body) {
-    typedef typename ::std::remove_reference<decltype(*begin)>::type Task;
-    ::std::vector<Task> tasks;
+    typedef typename std::remove_reference<decltype(*begin)>::type Task;
+    std::vector<Task> tasks;
     parallel_do_feeder<Task> feeder(tasks);
     for (; begin != end; ++begin) {
       tasks.push_back(*begin);
       while (!tasks.empty()) {
-        auto task = ::std::move(tasks.back());
+        auto task = std::move(tasks.back());
         tasks.pop_back();
         body(task, feeder);
       }
@@ -197,14 +196,14 @@ namespace tbb {
 
   template<class It, class Pred>
   void parallel_sort(It begin, It end, Pred&& pred) {
-    ::std::sort(begin, end, pred);
+    std::sort(begin, end, pred);
   }
 
   class tick_count {
   private:
-    // This really should be ::std::chrono::steady_clock, but GCC 4.5.3 doesn't
+    // This really should be std::chrono::steady_clock, but GCC 4.5.3 doesn't
     // have that.
-    typedef ::std::chrono::system_clock clock;
+    typedef std::chrono::system_clock clock;
 
   public:
     tick_count(): mTime() {}
@@ -226,9 +225,9 @@ namespace tbb {
     };
 
     interval_t operator-(const tick_count t) const {
-      typedef ::std::chrono::duration<double> SecondDuration;
+      typedef std::chrono::duration<double> SecondDuration;
       const auto duration =
-        ::std::chrono::duration_cast<SecondDuration>(mTime - t.mTime);
+        std::chrono::duration_cast<SecondDuration>(mTime - t.mTime);
       return duration.count();
     }
 

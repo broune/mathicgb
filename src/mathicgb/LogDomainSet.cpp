@@ -8,7 +8,7 @@
 MATHICGB_NAMESPACE_BEGIN
 
 LogDomainSet::LogDomainSet():
-  mStartTime(mgb::tbb::tick_count::now()) {
+  mStartTime(mgb::mtbb::tick_count::now()) {
 }
 
 void LogDomainSet::registerLogDomain(LogDomain<true>& domain) {
@@ -148,7 +148,7 @@ void LogDomainSet::printCountReport(std::ostream& out) const {
 }
 
 void LogDomainSet::printTimeReport(std::ostream& out) const {
-  const auto allTime = (mgb::tbb::tick_count::now() - mStartTime).seconds();
+  const auto allTime = (mgb::mtbb::tick_count::now() - mStartTime).seconds();
 
   mathic::ColumnPrinter pr;
   auto& names = pr.addColumn(true);
@@ -200,7 +200,7 @@ void LogDomainSet::printTimeReport(std::ostream& out) const {
 }
 
 void LogDomainSet::reset() {
-  mStartTime = mgb::tbb::tick_count::now();
+  mStartTime = mgb::mtbb::tick_count::now();
   const auto end = logDomains().cend();
   for (auto it = logDomains().cbegin(); it != end; ++it) {
     MATHICGB_ASSERT(*it != 0);

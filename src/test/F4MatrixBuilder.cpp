@@ -28,11 +28,11 @@ namespace {
       mBasis(*mRing, DivisorLookup::makeFactory(*mRing, 1)->create(true, true)) {
     }
 
-    const Poly& addBasisElement(const ::std::string& str) {
-      ::std::unique_ptr<Poly> p(new Poly(*mRing));
-      ::std::istringstream in(str);
+    const Poly& addBasisElement(const std::string& str) {
+      std::unique_ptr<Poly> p(new Poly(*mRing));
+      std::istringstream in(str);
       p->parse(in);
-      mBasis.insert(::std::move(p));
+      mBasis.insert(std::move(p));
       return mBasis.poly(mBasis.size() - 1);
     }
 
@@ -45,16 +45,16 @@ namespace {
     const PolyRing& ring() const {return *mRing;}
      
   private:
-    ::std::unique_ptr<PolyRing> mRing;
+    std::unique_ptr<PolyRing> mRing;
     Basis mIdeal;
     PolyBasis mBasis;
-    ::std::unique_ptr<F4MatrixBuilder> mBuilder;
+    std::unique_ptr<F4MatrixBuilder> mBuilder;
   };
 }
 
 TEST(F4MatrixBuilder, Empty) {
   for (int threadCount = 1; threadCount < 4; ++threadCount) {
-    mgb::tbb::task_scheduler_init scheduler(threadCount);
+    mgb::mtbb::task_scheduler_init scheduler(threadCount);
     BuilderMaker maker;
     F4MatrixBuilder& builder = maker.create();
 
@@ -71,7 +71,7 @@ TEST(F4MatrixBuilder, Empty) {
 
 TEST(F4MatrixBuilder, SPair) {
   for (int threadCount = 1; threadCount < 4; ++threadCount) {
-    mgb::tbb::task_scheduler_init scheduler(threadCount);
+    mgb::mtbb::task_scheduler_init scheduler(threadCount);
     BuilderMaker maker;
     const Poly& p1 = maker.addBasisElement("a4c2-d");
     const Poly& p2 = maker.addBasisElement("a4b+d");
@@ -93,7 +93,7 @@ TEST(F4MatrixBuilder, SPair) {
       "0: 0#1 | 0: 0#1\n"
       "       |       \n"
       "0: 0#1 | 0: 1#3\n";
-    ::std::string qmStr = qm.toString();
+    std::string qmStr = qm.toString();
     ASSERT_TRUE(str1 == qmStr || str2 == qmStr) <<
       "\n** str1: " << str1 << "\n** qm: " << qmStr;
   }
@@ -101,7 +101,7 @@ TEST(F4MatrixBuilder, SPair) {
 
 TEST(F4MatrixBuilder, OneByOne) {
   for (int threadCount = 1; threadCount < 4; ++threadCount) {
-    mgb::tbb::task_scheduler_init scheduler(threadCount);
+    mgb::mtbb::task_scheduler_init scheduler(threadCount);
     BuilderMaker maker;
     const Poly& p = maker.addBasisElement("a");
     F4MatrixBuilder& builder = maker.create();
@@ -129,14 +129,14 @@ TEST(F4MatrixBuilder, DirectReducers) {
 
     Poly p1(builder.ring());
     { 
-      ::std::istringstream in("a3<0>+b2+c+d");
+      std::istringstream in("a3<0>+b2+c+d");
       p1.parse(in);
       builder.addPolynomialToMatrix(p1.getLeadMonomial(), p1);
     }
 
     Poly p2(builder.ring());
     {
-      ::std::istringstream in("a3<0>+2b2+3c+4d");
+      std::istringstream in("a3<0>+2b2+3c+4d");
       p2.parse(in);
       builder.addPolynomialToMatrix(p2.getLeadMonomial(), p2);
     }

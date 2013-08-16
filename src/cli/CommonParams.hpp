@@ -48,7 +48,7 @@ private:
   std::vector<std::string> mExtensions; /// to recognize file type
 
   /// to set thread count
-  std::unique_ptr<mgb::tbb::task_scheduler_init> mTbbInit;
+  std::unique_ptr<mgb::mtbb::task_scheduler_init> mTbbInit;
   std::size_t mMinDirectParams;
   std::size_t mMaxDirectParams;
   std::vector<std::string> mDirectParameters;

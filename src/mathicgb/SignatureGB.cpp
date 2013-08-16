@@ -53,10 +53,10 @@ SignatureGB::SignatureGB(
   mProcessor->setComponentCount(componentCount);
 
   // Populate GB
-  for (size_t j = 0; j < basis.size(); j++)
+  for (Component j = 0; j < componentCount; j++)
     GB->addComponent();
 
-  for (size_t i = 0; i < basis.size(); i++) {
+  for (Component i = 0; i < componentCount; i++) {
     Poly *g = new Poly(*R);
     basis.getPoly(i)->copy(*g);
     g->makeMonic();

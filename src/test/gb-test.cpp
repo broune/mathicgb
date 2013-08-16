@@ -302,7 +302,7 @@ spairQueue	reducerType	divLookup	monTable	buchberger	postponeKoszul	useBaseDivis
 
     MATHICGB_ASSERT(Reducer::makeReducerNullOnUnknown(red, ring).get() != 0);
 
-    mgb::tbb::task_scheduler_init scheduler(threadCount);
+    mgb::mtbb::task_scheduler_init scheduler(threadCount);
     if (buchberger) {
       const auto reducer = Reducer::makeReducer
         (Reducer::reducerType(reducerType), ring);

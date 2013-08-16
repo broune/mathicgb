@@ -72,7 +72,7 @@ public:
 
 private:
   typedef const Map::Reader ColReader;
-  typedef ::std::vector<monomial> Monomials;
+  typedef std::vector<monomial> Monomials;
 
   /// Represents the task of adding a row to the matrix. If sPairPoly is null
   /// then the row to add is multiply * poly. Otherwise, the row to add is
@@ -84,13 +84,13 @@ private:
     const Poly* poly;
     const Poly* sPairPoly;
   };
-  typedef mgb::tbb::parallel_do_feeder<RowTask> TaskFeeder;
+  typedef mgb::mtbb::parallel_do_feeder<RowTask> TaskFeeder;
 
   /// Creates a column with monomial label x and schedules a new row to
   /// reduce that column if possible. Here x is monoA if monoB is
   /// null and otherwise x is the product of monoA and monoB.
   MATHICGB_NO_INLINE
-  ::std::pair<ColIndex, ConstMonomial> createColumn(
+  std::pair<ColIndex, ConstMonomial> createColumn(
     const_monomial monoA,
     const_monomial monoB,
     TaskFeeder& feeder
@@ -112,14 +112,14 @@ private:
   );
 
   MATHICGB_NO_INLINE
-  ::std::pair<ColIndex, ConstMonomial> findOrCreateColumn(
+  std::pair<ColIndex, ConstMonomial> findOrCreateColumn(
     const_monomial monoA,
     const_monomial monoB,
     TaskFeeder& feeder
   );
   
   MATHICGB_INLINE
-  ::std::pair<ColIndex, ConstMonomial> findOrCreateColumn(
+  std::pair<ColIndex, ConstMonomial> findOrCreateColumn(
     const_monomial monoA,
     const_monomial monoB,
     const ColReader& colMap,
@@ -134,13 +134,13 @@ private:
     TaskFeeder& feeder
   );
 
-  ::std::vector<char> mIsColumnToLeft;
+  std::vector<char> mIsColumnToLeft;
   const size_t mMemoryQuantum;
-  mgb::tbb::mutex mCreateColumnLock;
+  mgb::mtbb::mutex mCreateColumnLock;
   monomial mTmp;
   const PolyBasis& mBasis;
   Map mMap;
-  ::std::vector<RowTask> mTodo;
+  std::vector<RowTask> mTodo;
 };
 
 MATHICGB_NAMESPACE_END

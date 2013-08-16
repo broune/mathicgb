@@ -3,8 +3,8 @@
 #ifndef MATHICGB_ATOMIC_GUARD
 #define MATHICGB_ATOMIC_GUARD
 
-// We need this include for ::std::memory_order even if we are not
-// using ::std::atomic.
+// We need this include for std::memory_order even if we are not
+// using std::atomic.
 #include <atomic>
 
 MATHICGB_NAMESPACE_BEGIN
@@ -33,7 +33,9 @@ namespace AtomicInternal {
 }
 
 #if defined(_MSC_VER) && defined(MATHICGB_USE_CUSTOM_ATOMIC_X86_X64)
+MATHICGB_NAMESPACE_END
 #include <Windows.h>
+MATHICGB_NAMESPACE_BEGIN
 namespace AtomicInternal {
   template<class T, size_t size = sizeof(T)>
   struct SeqCst {};
@@ -100,8 +102,8 @@ namespace AtomicInternal {
   public:
     FakeAtomic(): mValue() {}
     FakeAtomic(T value): mValue(value) {}
-    T load(const ::std::memory_order) const {return mValue;}
-    void store(const T value, const ::std::memory_order order) {mValue = value;}
+    T load(const std::memory_order) const {return mValue;}
+    void store(const T value, const std::memory_order order) {mValue = value;}
 
   private:
     T mValue;
@@ -114,11 +116,11 @@ namespace AtomicInternal {
 
 #else
   /// Class for deciding which implementation of atomic to use. The default is
-  /// to use ::std::atomic which is a fine choice if ::std::atomic is implemented
+  /// to use std::atomic which is a fine choice if std::atomic is implemented
   /// in a reasonable way by the standard library implementation you are using.
   template<class T, size_t size>
   struct ChooseAtomic {
-    typedef ::std::atomic<T> type;
+    typedef std::atomic<T> type;
   };
 #endif
 }
@@ -130,7 +132,7 @@ namespace AtomicInternal {
   /// writes are guaranteed to be atomic - this class only takes care of the
   /// ordering constraints using CPU and compiler fences. Since the directives
   /// to achieve this are coming from the compiler it is surprising that
-  /// any compiler ships with a ::std::atomic that is worse than this - but
+  /// any compiler ships with a std::atomic that is worse than this - but
   /// that is very much the case. Though implementing atomic load and store
   /// is very little code, as you can see, it is quite tricky and took me
   /// a long time to understand everything well enough to actually know what
@@ -186,9 +188,9 @@ namespace AtomicInternal {
     CustomAtomicX86X64(T value): mValue(value) {}
 
     MATHICGB_INLINE
-    T load(const ::std::memory_order order) const {
+    T load(const std::memory_order order) const {
       switch (order) {
-      case ::std::memory_order_relaxed:
+      case std::memory_order_relaxed:
         // There are two constraints for memory_order_relaxed. The first
         // constraint is that if you read *p, then you will never
         // after that read a value of *p that was stored before the value
@@ -203,7 +205,7 @@ namespace AtomicInternal {
         // this constraint is broken, but clearly the written value must turn
         // up eventually. This constraint could be broken in cases like this:
         //
-        //   while (x.load(::std::memory_order_relaxed) == 0) {
+        //   while (x.load(std::memory_order_relaxed) == 0) {
         //     // do something that does not write to x
         //   }
         //
@@ -212,7 +214,7 @@ namespace AtomicInternal {
         // the value for every iteration, so the code can safely be transformed
         // to:
         //
-        //   if (x.load(::std::memory_order_relaxed) == 0) {
+        //   if (x.load(std::memory_order_relaxed) == 0) {
         //     while (true) {
         //       // ...
         //     }
@@ -233,7 +235,7 @@ namespace AtomicInternal {
         // volatile read since it is the best choice on GCC.
         return const_cast<volatile T&>(mValue);
 
-      case ::std::memory_order_consume: {
+      case std::memory_order_consume: {
         // Loads in this thread that depend on the loaded value must not be
         // reordered to before this load. So no DLL reorderings past this
         // load from after to before (up). So we need a read barrier AFTER the
@@ -244,7 +246,7 @@ namespace AtomicInternal {
         return value;
       }
 
-      case ::std::memory_order_acquire: {
+      case std::memory_order_acquire: {
         // Loads in this thread must not be reordered to before this load.
         // So no LL reorderings past this load from after to before (up).
         // So we need a read barrier AFTER the load. It is a compiler only
@@ -254,35 +256,35 @@ namespace AtomicInternal {
         return value;
       }
 
-      case ::std::memory_order_seq_cst: {
+      case std::memory_order_seq_cst: {
         // There must be some global order in which all sequentially consistent
         // atomic operations are considered to have happened in. On x86 and x64
         // this is guaranteed by just a normal read as long as all writes use
         // locked instructions like XHCG. See: http://goo.gl/U8xTK
         //
         // We still need to prevent the compiler from reordering the reads,
-        // which is the same constraint as for ::std::memory_order_acquire.
+        // which is the same constraint as for std::memory_order_acquire.
         const auto value = mValue;
         compilerReadMemoryBarrier();
         return value;
       }
 
-      case ::std::memory_order_release: // not available for load
-      case ::std::memory_order_acq_rel: // not available for load
-      default: // specified value is not a known ::std::memory_order
+      case std::memory_order_release: // not available for load
+      case std::memory_order_acq_rel: // not available for load
+      default: // specified value is not a known std::memory_order
         MATHICGB_UNREACHABLE;
       }
     }
 
     MATHICGB_INLINE
-    void store(const T value, const ::std::memory_order order) {
+    void store(const T value, const std::memory_order order) {
       switch (order) {
-      case ::std::memory_order_relaxed:
+      case std::memory_order_relaxed:
         // There are no reordering constraints here but we need to tell the
         // compiler that it must actually write out the value to memory in
         // a scenario like this:
         //
-        //   x.store(1, ::std::memory_order_relaxed);
+        //   x.store(1, std::memory_order_relaxed);
         //   while (true) {}
         //
         // So as for relaxed store we need either a volatile access or a memory
@@ -291,7 +293,7 @@ namespace AtomicInternal {
         const_cast<volatile T&>(mValue) = value;
         break;
 
-      case ::std::memory_order_release:
+      case std::memory_order_release:
         // Stores in this thread must not be reordered to after this store.
         // So no SS reorderings past this load from before to after (down).
         // So we need a barrier BEFORE the load. It is a compiler only barrier
@@ -300,9 +302,9 @@ namespace AtomicInternal {
         mValue = value;
         break;
 
-      case ::std::memory_order_acq_rel:
-        // Combine the guarantees for ::std::memory_order_acquire and
-        // ::std::memory_order_release. So no loads moved up past here (SL) and
+      case std::memory_order_acq_rel:
+        // Combine the guarantees for std::memory_order_acquire and
+        // std::memory_order_release. So no loads moved up past here (SL) and
         // no stores moved down past here (LL). We need a compiler barrier
         // BEFORE the load to avoid LL and a CPU (+compiler) barrier AFTER the
         // load to avoid SL, since x86 and x64 CPUs can in fact do SL
@@ -312,15 +314,15 @@ namespace AtomicInternal {
         cpuReadWriteMemoryBarrier();
         break;
 
-      case ::std::memory_order_seq_cst:
+      case std::memory_order_seq_cst:
         // All operations happen in a globally consistent total order.
         seqCstStore(value, mValue);
 
         break;
 
-      case ::std::memory_order_consume: // not available for store
-      case ::std::memory_order_acquire: // not available for store
-      default: // specified value is not a known ::std::memory_order
+      case std::memory_order_consume: // not available for store
+      case std::memory_order_acquire: // not available for store
+      default: // specified value is not a known std::memory_order
         MATHICGB_UNREACHABLE;
       }
     }
@@ -345,18 +347,18 @@ namespace AtomicInternal {
 }
 #endif
 
-/// This class is equivalent to ::std::atomic<T>. Some functions from the
-/// interface of ::std::atomic are missing - add them as necessary. Do not add
+/// This class is equivalent to std::atomic<T>. Some functions from the
+/// interface of std::atomic are missing - add them as necessary. Do not add
 /// operator= and operator T() --- it is better to make the code explicit
 /// about when and how loading and storing of atomic variables occurs.
 ///
 /// The purpose of the class is that it performs far better than
-/// ::std::atomic for some implementations. For example the ::std::atomic in MSVC
+/// std::atomic for some implementations. For example the std::atomic in MSVC
 /// 2012 performs a compare-and-swap operation on a load even with the
-/// paramter ::std::memory_order_relaxed.
+/// paramter std::memory_order_relaxed.
 ///
 /// We force all the functions to be inline because they can contain switches
-/// on the value of ::std::memory_order. This will usually be a compile-time
+/// on the value of std::memory_order. This will usually be a compile-time
 /// constant parameter so that after inlining the switch will disappear. Yet
 /// the code size of the switch may make some compilers avoid the inline.
 template<class T>
@@ -374,7 +376,7 @@ public:
   MATHICGB_INLINE
   void store(
     const T value,
-    const ::std::memory_order order = ::std::memory_order_seq_cst
+    const std::memory_order order = std::memory_order_seq_cst
   ) {
     MATHICGB_ASSERT(debugAligned());
     mValue.store(value, order);
@@ -392,4 +394,5 @@ private:
 };
 
 MATHICGB_NAMESPACE_END
+
 #endif

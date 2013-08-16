@@ -22,10 +22,10 @@ public:
   /// Sets the handle to null if the file cannot be opened - does not
   /// throw an exception. The purpose of the NoTrowTag parameter is only
   /// to indicate that no exception should be thrown on error.
-  CFile(const ::std::string& fileName, const char* mode, NoThrowTag);
+  CFile(const std::string& fileName, const char* mode, NoThrowTag);
 
   /// Opens the file and throws an exception if the file cannot be opened.
-  CFile(const ::std::string& fileName, const char* mode);
+  CFile(const std::string& fileName, const char* mode);
 
   ~CFile();
 

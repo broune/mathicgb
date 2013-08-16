@@ -28,13 +28,13 @@ namespace {
   /// portable. There could be a solution with freopen, but unfortunately
   /// freopen is allowed to fail on any change to the mode so it is not
   /// a portable solution.
-  bool fileExists(const ::std::string fileName) {
+  bool fileExists(const std::string fileName) {
     return CFile(fileName, "r", CFile::NoThrowTag()).hasFile();
   }
 }
 
 MatrixAction::MatrixAction():
-  mParams(1, ::std::numeric_limits<size_t>::max()) {
+  mParams(1, std::numeric_limits<size_t>::max()) {
   mParams.registerFileNameExtension(QuadMatrixExtension);
   mParams.registerFileNameExtension(LowerRightMatrixExtension);
   mParams.registerFileNameExtension(ReducedLowerRightMatrixExtension);
@@ -42,7 +42,7 @@ MatrixAction::MatrixAction():
 }
 
 void MatrixAction::directOptions(
-  ::std::vector< ::std::string> tokens,
+  std::vector< std::string> tokens,
   mic::CliParser& parser
 ) {
   mParams.directOptions(tokens, parser);
@@ -57,7 +57,7 @@ void MatrixAction::performAction() {
     const auto lowerRightFileName = fileNameStem + LowerRightMatrixExtension;
     const auto reducedLowerRightFileName =
       fileNameStem + ReducedLowerRightMatrixExtension;
-    ::std::string inputFileName;
+    std::string inputFileName;
 
     SparseMatrix lowerRightMatrix;
     SparseMatrix::Scalar modulus;
@@ -103,10 +103,10 @@ void MatrixAction::performAction() {
       referenceMatrix.read(file.handle());
 
       if (lowerRightMatrix != referenceMatrix) {
-        const ::std::string wrongFile =
+        const std::string wrongFile =
           fileNameStem + ".out" + ReducedLowerRightMatrixExtension;
-        const ::std::string wrongFilePbm = fileNameStem + ".out.pbm";
-        ::std::cerr << "Reducing " << inputFileName
+        const std::string wrongFilePbm = fileNameStem + ".out.pbm";
+        std::cerr << "Reducing " << inputFileName
           << " does not yield the matrix "
           << reducedLowerRightFileName << ".\n"
           << "Writing computed matrix to " << wrongFile << ".\n";
@@ -115,7 +115,7 @@ void MatrixAction::performAction() {
         CFile filePbm(wrongFilePbm, "wb");
         lowerRightMatrix.writePBM(filePbm.handle());
       } else if (tracingLevel > 0) {
-        ::std::cerr << "Match for " << inputFileName 
+        std::cerr << "Match for " << inputFileName 
           << " -> " << ReducedLowerRightMatrixExtension << ".\n";
       }
     }
@@ -140,7 +140,7 @@ const char* MatrixAction::shortDescription() const {
 }
 
 void MatrixAction::pushBackParameters(
-  ::std::vector<mic::CliParameter*>& parameters
+  std::vector<mic::CliParameter*>& parameters
 ) {
   mParams.pushBackParameters(parameters);
 }

@@ -45,11 +45,11 @@ private:
     ColIndex index;
     bool isLeft;
   };
-  ::std::vector<ColProjectTo> mColProjectTo;
+  std::vector<ColProjectTo> mColProjectTo;
 
-  ::std::vector<F4ProtoMatrix*> mMatrices;
-  ::std::vector<monomial> mLeftMonomials;
-  ::std::vector<monomial> mRightMonomials;
+  std::vector<F4ProtoMatrix*> mMatrices;
+  std::vector<monomial> mLeftMonomials;
+  std::vector<monomial> mRightMonomials;
   const PolyRing& mRing;
 };
 

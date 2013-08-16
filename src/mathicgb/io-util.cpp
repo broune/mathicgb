@@ -22,114 +22,114 @@
 
 MATHICGB_NAMESPACE_BEGIN
 
-::std::unique_ptr<Poly> polyParseFromString(const PolyRing *R, const ::std::string &s)
+std::unique_ptr<Poly> polyParseFromString(const PolyRing *R, const std::string &s)
 {
-  ::std::unique_ptr<Poly> f(new Poly(*R));
-  ::std::istringstream in(s);
+  std::unique_ptr<Poly> f(new Poly(*R));
+  std::istringstream in(s);
   f->parse(in);
   return f;
 }
 
-::std::string toString(const Poly *g)
+std::string toString(const Poly *g)
 {
-  ::std::ostringstream o;
+  std::ostringstream o;
   g->display(o);
   return o.str();
 }
 
-::std::unique_ptr<Basis> basisParseFromString(::std::string str)
+std::unique_ptr<Basis> basisParseFromString(std::string str)
 {
-  ::std::istringstream inStream(str);
+  std::istringstream inStream(str);
   Scanner in(inStream);
   auto p = MathicIO().readRing(true, in);
   auto& ring = *p.first.release(); // todo: fix leak
   return make_unique<Basis>(MathicIO().readBasis(ring, false, in));
 }
 
-::std::unique_ptr<PolyRing> ringFromString(::std::string ringinfo)
+std::unique_ptr<PolyRing> ringFromString(std::string ringinfo)
 {
-  ::std::stringstream ifil(ringinfo);
-  return ::std::unique_ptr<PolyRing>(PolyRing::read(ifil).first);
+  std::stringstream ifil(ringinfo);
+  return std::unique_ptr<PolyRing>(PolyRing::read(ifil).first);
 }
 
-Monomial stringToMonomial(const PolyRing *R, ::std::string mon)
+Monomial stringToMonomial(const PolyRing *R, std::string mon)
 {
   Monomial result = R->allocMonomial();
-  ::std::stringstream ifil(mon);
+  std::stringstream ifil(mon);
   R->monomialParse(ifil, result);
   return result;
 }
 
-::std::string monomialToString(const PolyRing *R, const Monomial& mon)
+std::string monomialToString(const PolyRing *R, const Monomial& mon)
 {
-  ::std::ostringstream o;
+  std::ostringstream o;
   R->monomialDisplay(o,mon);
   return o.str();
 }
 
-monomial monomialParseFromString(const PolyRing *R, ::std::string mon)
+monomial monomialParseFromString(const PolyRing *R, std::string mon)
 {
   // This is poor code, to only be used for testing!
   monomial result = R->allocMonomial();
-  ::std::stringstream ifil(mon);
+  std::stringstream ifil(mon);
   R->monomialParse(ifil, result);
   return result;
 }
 
-::std::string monomialDisplay(const PolyRing *R, const_monomial mon)
+std::string monomialDisplay(const PolyRing *R, const_monomial mon)
 {
-  ::std::ostringstream o;
+  std::ostringstream o;
   R->monomialDisplay(o,mon);
   return o.str();
 }
 ////////////////////////////////////////////////////////////////
 
-::std::string toString(SigPolyBasis *I)
+std::string toString(SigPolyBasis *I)
 {
-  ::std::ostringstream o;
+  std::ostringstream o;
   for (size_t i=0; i<I->size(); i++)
     {
       o << "  ";
       I->poly(i).display(o, false);
-      o << ::std::endl;
+      o << std::endl;
     }
   return o.str();
 }
 
-::std::string toString(SigPolyBasis *I, int)
+std::string toString(SigPolyBasis *I, int)
 {
-  ::std::ostringstream o;
+  std::ostringstream o;
   I->display(o);
   return o.str();
 }
 
-::std::string toString(MonomialTableArray* H)
+std::string toString(MonomialTableArray* H)
 {
-  ::std::ostringstream o;
+  std::ostringstream o;
   H->display(o, 1);
   return o.str();
 }
 
-::std::string toString(Basis *I)
+std::string toString(Basis *I)
 {
-  ::std::ostringstream o;
+  std::ostringstream o;
   for (size_t i=0; i<I->size(); i++)
     {
       o << "  ";
       I->getPoly(i)->display(o,false);
-      o << ::std::endl;
+      o << std::endl;
     }
   return o.str();
 }
 
-void output(::std::ostream &o, const PolyBasis &I)
+void output(std::ostream &o, const PolyBasis &I)
 {
   for (size_t i = 0; i < I.size(); i++)
     {
       if (!I.retired(i))
         {
           I.poly(i).display(o, false);
-          o << ::std::endl;
+          o << std::endl;
         }
     }
 }

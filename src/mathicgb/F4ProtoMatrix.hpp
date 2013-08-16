@@ -29,7 +29,7 @@ public:
 
   ColIndex* makeRowWithTheseScalars(const Poly& scalars);
 
-  ::std::pair<ColIndex*, Scalar*> makeRow(ColIndex entryCount);
+  std::pair<ColIndex*, Scalar*> makeRow(ColIndex entryCount);
 
   void removeLastEntries(const RowIndex row, const ColIndex count);
 
@@ -41,9 +41,9 @@ private:
     const ExternalScalar* externalScalars;
   };
 
-  ::std::vector<ColIndex> mIndices;
-  ::std::vector<Scalar> mScalars;
-  ::std::vector<InternalRow> mRows;
+  std::vector<ColIndex> mIndices;
+  std::vector<Scalar> mScalars;
+  std::vector<InternalRow> mRows;
 };
 
 MATHICGB_NAMESPACE_END

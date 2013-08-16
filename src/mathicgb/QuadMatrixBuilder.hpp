@@ -34,7 +34,7 @@ class QuadMatrixBuilder {
   class LeftRightColIndex {
   public:
     LeftRightColIndex():
-      mRawIndex(::std::numeric_limits<ColIndex>::max()), mLeft(false) {}
+      mRawIndex(std::numeric_limits<ColIndex>::max()), mLeft(false) {}
     LeftRightColIndex(ColIndex index, bool left):
       mRawIndex(index), mLeft(left) {
     }
@@ -67,7 +67,7 @@ class QuadMatrixBuilder {
     }
 
     bool valid() const {
-      return mRawIndex != ::std::numeric_limits<ColIndex>::max();
+      return mRawIndex != std::numeric_limits<ColIndex>::max();
     }
 
     bool operator==(const LeftRightColIndex& index) const {
@@ -84,7 +84,7 @@ class QuadMatrixBuilder {
   };
 
   typedef MonomialMap<LeftRightColIndex> Map;
-  typedef ::std::vector<monomial> MonomialsType;
+  typedef std::vector<monomial> MonomialsType;
 
   QuadMatrixBuilder(
     const PolyRing& ring,
@@ -165,13 +165,13 @@ class QuadMatrixBuilder {
   /** Creates a new column associated to the monomial
     monomialToBeCopied to the left matrices. There must not already
     exist a column for this monomial on the left or on the right. */
-  ::std::pair<QuadMatrixBuilder::LeftRightColIndex, ConstMonomial>
+  std::pair<QuadMatrixBuilder::LeftRightColIndex, ConstMonomial>
   createColumnLeft(const_monomial monomialToBeCopied);
 
   /** Creates a new column associated to the monomial monomialToBeCopied
     to the right matrices. There must not already exist a column for
     this monomial on the left or on the right. */
-  ::std::pair<QuadMatrixBuilder::LeftRightColIndex, ConstMonomial>
+  std::pair<QuadMatrixBuilder::LeftRightColIndex, ConstMonomial>
   createColumnRight(const_monomial monomialToBeCopied);
 
   // *** Querying columns

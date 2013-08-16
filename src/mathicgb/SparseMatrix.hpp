@@ -59,15 +59,15 @@ public:
   {}
 
   SparseMatrix(SparseMatrix&& matrix):
-    mRows(::std::move(matrix.mRows)),
-    mBlock(::std::move(matrix.mBlock)),
+    mRows(std::move(matrix.mRows)),
+    mBlock(std::move(matrix.mBlock)),
     mMemoryQuantum(matrix.mMemoryQuantum)
   {
   }
 
   SparseMatrix& operator=(SparseMatrix&& matrix) {
     this->~SparseMatrix();
-    new (this) SparseMatrix(::std::move(matrix));
+    new (this) SparseMatrix(std::move(matrix));
     return *this;
   }
 
@@ -159,11 +159,11 @@ public:
 
   /// Prints the matrix in a human readable format to out.
   /// Useful for debugging.
-  void print(::std::ostream& out) const;
+  void print(std::ostream& out) const;
 
-  void printStatistics(::std::ostream& out) const;
+  void printStatistics(std::ostream& out) const;
 
-  ::std::string toString() const;
+  std::string toString() const;
 
   /// Removes the leading trimThisMany columns. The columns are
   /// removed by replacing all column indices col by col -
@@ -222,26 +222,26 @@ public:
   
   void appendRow(const SparseMatrix& matrix, RowIndex row);
 
-  void appendRowWithModulus(const ::std::vector<uint64>& v, Scalar modulus);
+  void appendRowWithModulus(const std::vector<uint64>& v, Scalar modulus);
   
   template<class T>
-  void appendRow(const ::std::vector<T>& v, ColIndex leadCol = 0);
+  void appendRow(const std::vector<T>& v, ColIndex leadCol = 0);
 
-  void appendRowWithModulusNormalized(const ::std::vector<uint64>& v, Scalar modulus);
+  void appendRowWithModulusNormalized(const std::vector<uint64>& v, Scalar modulus);
 
   // Returns true if the row was non-zero. Otherwise the row was not
   // appended.
-  bool appendRowWithModulusIfNonZero(const ::std::vector<uint64>& v, Scalar modulus);
+  bool appendRowWithModulusIfNonZero(const std::vector<uint64>& v, Scalar modulus);
 
   /// Replaces all column indices i with colMap[i].
-  void applyColumnMap(const ::std::vector<ColIndex>& colMap);
+  void applyColumnMap(const std::vector<ColIndex>& colMap);
 
   void multiplyRow(RowIndex row, Scalar multiplier, Scalar modulus);
 
   /// Let poly be the dot product of colMonomials and the given row.
   void rowToPolynomial(
     RowIndex row,
-    const ::std::vector<monomial>& colMonomials,
+    const std::vector<monomial>& colMonomials,
     Poly& poly);
 
   /// Reorders the rows so that the index of the leading column in
@@ -262,12 +262,12 @@ public:
   /// Iterates through the entries in a row.
   class ConstRowIterator {
   public:
-    typedef const ::std::pair<ColIndex, Scalar> value_type;
+    typedef const std::pair<ColIndex, Scalar> value_type;
 	typedef ptrdiff_t difference_type;
     typedef size_t distance_type;
     typedef value_type* pointer;
     typedef value_type& reference;
-    typedef ::std::random_access_iterator_tag iterator_category;
+    typedef std::random_access_iterator_tag iterator_category;
 
     ConstRowIterator& operator++() {
       ++mScalarIt;
@@ -317,12 +317,12 @@ public:
   /// Iterates through the entries in a row.
   class RowIterator {
   public:
-    typedef const ::std::pair<ColIndex, Scalar> value_type;
+    typedef const std::pair<ColIndex, Scalar> value_type;
 	typedef ptrdiff_t difference_type;
     typedef size_t distance_type;
     typedef value_type* pointer;
     typedef value_type& reference;
-    typedef ::std::random_access_iterator_tag iterator_category;
+    typedef std::random_access_iterator_tag iterator_category;
 
     RowIterator& operator++() {
       ++mScalarIt;
@@ -388,20 +388,20 @@ private:
 
     bool empty() const {return mIndicesBegin == mIndicesEnd;}
     ColIndex size() const {
-      return static_cast<ColIndex>(::std::distance(mIndicesBegin, mIndicesEnd));
+      return static_cast<ColIndex>(std::distance(mIndicesBegin, mIndicesEnd));
     }
   };
-  ::std::vector<Row> mRows;
+  std::vector<Row> mRows;
 
   /// Memory is allocated a block at a time. This avoids the need for copying
-  /// that a ::std::vector normally does on reallocation. Believe it or not,
+  /// that a std::vector normally does on reallocation. Believe it or not,
   /// copying sparse matrix memory due to reallocation was accounting for 5%
   /// of the running time before this change.
   struct Block {
     Block(): mPreviousBlock(0), mHasNoRows(true) {}
     Block(Block&& block):
-      mColIndices(::std::move(block.mColIndices)),
-      mScalars(::std::move(block.mScalars)),
+      mColIndices(std::move(block.mColIndices)),
+      mScalars(std::move(block.mScalars)),
       mPreviousBlock(block.mPreviousBlock),
       mHasNoRows(block.mHasNoRows) 
     {
@@ -410,15 +410,15 @@ private:
     }
 
     void swap(Block& block) {
-      ::std::swap(mColIndices, block.mColIndices);
-      ::std::swap(mScalars, block.mScalars);
-      ::std::swap(mPreviousBlock, block.mPreviousBlock);
-      ::std::swap(mHasNoRows, block.mHasNoRows);
+      std::swap(mColIndices, block.mColIndices);
+      std::swap(mScalars, block.mScalars);
+      std::swap(mPreviousBlock, block.mPreviousBlock);
+      std::swap(mHasNoRows, block.mHasNoRows);
     }
 
     Block& operator=(Block&& block) {
       this->~Block();
-      new (this) Block(::std::move(block));
+      new (this) Block(std::move(block));
       return *this;
     }
 
@@ -441,7 +441,7 @@ private:
 
 template<class T>
 void SparseMatrix::appendRow(
-  ::std::vector<T> const& v,
+  std::vector<T> const& v,
   const ColIndex leadCol
 ) {
 #ifdef MATHICGB_DEBUG
@@ -452,7 +452,7 @@ void SparseMatrix::appendRow(
 
   const auto count = static_cast<ColIndex>(v.size());
   for (ColIndex col = leadCol; col < count; ++col) {
-	MATHICGB_ASSERT(v[col] < ::std::numeric_limits<Scalar>::max());
+	MATHICGB_ASSERT(v[col] < std::numeric_limits<Scalar>::max());
     if (v[col] != 0)
       appendEntry(col, static_cast<Scalar>(v[col]));
   }
@@ -464,7 +464,7 @@ inline void swap(SparseMatrix& a, SparseMatrix& b) {
   a.swap(b);
 }
 
-::std::ostream& operator<<(::std::ostream& out, const SparseMatrix& matrix);
+std::ostream& operator<<(std::ostream& out, const SparseMatrix& matrix);
 
 MATHICGB_NAMESPACE_END
 #endif

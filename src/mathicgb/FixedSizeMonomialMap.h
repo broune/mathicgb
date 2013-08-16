@@ -4,8 +4,8 @@
 #define MATHICGB_FIXED_SIZE_MONOMIAL_MAP_GUARD
 
 #include "Atomic.hpp"
-#include "PolyRing.hpp"
 #include "mtbb.hpp"
+#include "PolyRing.hpp"
 #include <memtailor.h>
 #include <limits>
 #include <vector>
@@ -27,7 +27,7 @@ template<class T>
 class FixedSizeMonomialMap {
 public:
   typedef T mapped_type;
-  typedef ::std::pair<const_monomial, mapped_type> value_type;
+  typedef std::pair<const_monomial, mapped_type> value_type;
 
   /// Iterates through entries in the hash table.
   class const_iterator;
@@ -46,7 +46,7 @@ public:
     mRing(ring),
     mNodeAlloc(sizeofNode(ring))
   {
-    // Calling new int[x] does not zero the array. ::std::atomic has a trivial
+    // Calling new int[x] does not zero the array. std::atomic has a trivial
     // constructor so the same thing is true of new atomic[x]. Calling
     // new int[x]() is supposed to zero initialize but this apparently
     // does not work on GCC. So we have to fill the table with nulls
@@ -72,7 +72,7 @@ public:
       make_unique_array<Atomic<Node*>>(hashMaskToBucketCount(mHashToIndexMask))
     ),
     mRing(map.ring()),
-    mNodeAlloc(::std::move(map.mNodeAlloc))
+    mNodeAlloc(std::move(map.mNodeAlloc))
   {
     // We can store relaxed as the constructor does not run concurrently.
     setTableEntriesToNullRelaxed();
@@ -82,7 +82,7 @@ public:
         const size_t index = hashToIndex(mRing.monomialHashValue(node->mono));
         Node* const next = node->next.load();
         node->next.store(mBuckets[index].load());
-        mBuckets[index].store(node, ::std::memory_order_relaxed);
+        mBuckets[index].store(node, std::memory_order_relaxed);
         node = next;
       }
     }
@@ -113,44 +113,44 @@ public:
   /// Returns the value associated to mono or null if there is no such value.
   /// Also returns an internal monomial that equals mono of such a monomial
   /// exists.
-  ::std::pair<const mapped_type*, ConstMonomial>
+  std::pair<const mapped_type*, ConstMonomial>
   find(const const_monomial mono) const {
     const HashValue monoHash = mRing.monomialHashValue(mono);
     const Node* node = bucketAtIndex(hashToIndex(monoHash));
-    for (; node != 0; node = node->next.load(::std::memory_order_consume)) {
+    for (; node != 0; node = node->next.load(std::memory_order_consume)) {
       // To my surprise, it seems to be faster to comment out this branch.
       // I guess the hash table has too few collisions to make it worth it.
       //if (monoHash != mRing.monomialHashValue(node->mono))
       //  continue;
       if (mRing.monomialEqualHintTrue(mono, node->mono))
-        return ::std::make_pair(&node->value, node->mono);
+        return std::make_pair(&node->value, node->mono);
     }
-    return ::std::make_pair(static_cast<const mapped_type*>(0), ConstMonomial(0));
+    return std::make_pair(static_cast<const mapped_type*>(0), ConstMonomial(0));
   }
 
   // As find on the product a*b but also returns the monomial that is the
   // product.
   MATHICGB_INLINE
-  ::std::pair<const mapped_type*, ConstMonomial> findProduct(
+  std::pair<const mapped_type*, ConstMonomial> findProduct(
     const const_monomial a,
     const const_monomial b
   ) const {
     const HashValue abHash = mRing.monomialHashOfProduct(a, b);
     const Node* node = bucketAtIndex(hashToIndex(abHash));
-    for (; node != 0; node = node->next.load(::std::memory_order_consume)) {
+    for (; node != 0; node = node->next.load(std::memory_order_consume)) {
       // To my surprise, it seems to be faster to comment out this branch.
       // I guess the hash table has too few collisions to make it worth it.
       //if (abHash != mRing.monomialHashValue(node->mono))
       //  continue;
       if (mRing.monomialIsProductOfHintTrue(a, b, node->mono))
-        return ::std::make_pair(&node->value, node->mono);
+        return std::make_pair(&node->value, node->mono);
     }
-    return ::std::make_pair(static_cast<const mapped_type*>(0), ConstMonomial(0));
+    return std::make_pair(static_cast<const mapped_type*>(0), ConstMonomial(0));
   }
 
   /// As findProduct but looks for a1*b and a2*b at one time.
   MATHICGB_INLINE
-  ::std::pair<const mapped_type*, const mapped_type*> findTwoProducts(
+  std::pair<const mapped_type*, const mapped_type*> findTwoProducts(
     const const_monomial a1,
     const const_monomial a2,
     const const_monomial b
@@ -163,9 +163,9 @@ public:
     if (node1 != 0 && node2 != 0 && mRing.monomialIsTwoProductsOfHintTrue
       (a1, a2, b, node1->mono, node2->mono)
     )
-      return ::std::make_pair(&node1->value, &node2->value);
+      return std::make_pair(&node1->value, &node2->value);
     else
-      return ::std::make_pair(findProduct(a1, b).first, findProduct(a2, b).first);
+      return std::make_pair(findProduct(a1, b).first, findProduct(a2, b).first);
   }
 
   /// Makes value.first map to value.second unless value.first is already
@@ -176,9 +176,9 @@ public:
   /// inserted value equals the already present value.
   ///
   /// p.first.second is a internal monomial that equals value.first.
-  ::std::pair< ::std::pair<const mapped_type*, ConstMonomial>, bool>
+  std::pair< std::pair<const mapped_type*, ConstMonomial>, bool>
   insert(const value_type& value) {
-    const mgb::tbb::mutex::scoped_lock lockGuard(mInsertionMutex);
+    const mgb::mtbb::mutex::scoped_lock lockGuard(mInsertionMutex);
     // find() loads buckets with memory_order_consume, so it may seem like
     // we need some extra synchronization to make sure that we have the
     // most up to date view of the bucket that value.first goes in -
@@ -190,7 +190,7 @@ public:
     {
       const auto found = find(value.first);
       if (found.first != 0)
-        return ::std::make_pair(found, false); // key already present
+        return std::make_pair(found, false); // key already present
     }
 
     const auto node = static_cast<Node*>(mNodeAlloc.alloc());
@@ -205,8 +205,8 @@ public:
     // we cannot store with memory_order_relaxed here because unlocking the
     // lock only synchronizes with threads who later grab the lock - it does
     // not synchronize with reading threads since they do not grab the lock.
-    mBuckets[index].store(node, ::std::memory_order_release);
-    return ::std::make_pair(::std::make_pair(&node->value, node->mono), true); // successful insertion
+    mBuckets[index].store(node, std::memory_order_release);
+    return std::make_pair(std::make_pair(&node->value, node->mono), true); // successful insertion
   }
 
   /// This operation removes all entries from the table. This operation
@@ -235,7 +235,7 @@ private:
   void setTableEntriesToNullRelaxed() {
     const auto tableEnd = mBuckets.get() + bucketCount();
     for (auto tableIt = mBuckets.get(); tableIt != tableEnd; ++tableIt)
-      tableIt->store(0, ::std::memory_order_relaxed);
+      tableIt->store(0, std::memory_order_relaxed);
   }
 
   struct Node {
@@ -257,7 +257,7 @@ private:
     // possible number of buckets based on the range of the hash
     // value type. Only unsigned overflow is defined, so we need
     // to assert that the hash type is unsigned.
-    static_assert(!::std::numeric_limits<HashValue>::is_signed, "");
+    static_assert(!std::numeric_limits<HashValue>::is_signed, "");
     const auto hashToIndexMask = static_cast<HashValue>(pow2 - 1);
     MATHICGB_ASSERT(pow2 == hashMaskToBucketCount(hashToIndexMask));
     return hashToIndexMask;
@@ -281,25 +281,25 @@ private:
 
   Node* bucketAtIndex(size_t index) {
     MATHICGB_ASSERT(index < bucketCount());
-    return mBuckets[index].load(::std::memory_order_consume);
+    return mBuckets[index].load(std::memory_order_consume);
   }
 
   const Node* bucketAtIndex(size_t index) const {
     MATHICGB_ASSERT(index < bucketCount());
-    return mBuckets[index].load(::std::memory_order_consume);
+    return mBuckets[index].load(std::memory_order_consume);
   }
 
   const HashValue mHashToIndexMask;
-  ::std::unique_ptr<Atomic<Node*>[]> const mBuckets;
+  std::unique_ptr<Atomic<Node*>[]> const mBuckets;
   const PolyRing& mRing;
   memt::BufferPool mNodeAlloc; // nodes are allocated from here.
-  mgb::tbb::mutex mInsertionMutex;
+  mgb::mtbb::mutex mInsertionMutex;
 
 public:
   class const_iterator {
   public:
-    typedef ::std::forward_iterator_tag iterator_category;
-    typedef ::std::pair<mapped_type, ConstMonomial> value_type;
+    typedef std::forward_iterator_tag iterator_category;
+    typedef std::pair<mapped_type, ConstMonomial> value_type;
     typedef ptrdiff_t difference_type;
 	typedef size_t distance_type;
 	typedef value_type* pointer;
@@ -310,7 +310,7 @@ public:
     const_iterator& operator++() {
       MATHICGB_ASSERT(mNode != 0);
       MATHICGB_ASSERT(mBucket != mBucketsEnd);
-      const Node* const node = mNode->next.load(::std::memory_order_consume);
+      const Node* const node = mNode->next.load(std::memory_order_consume);
       if (node != 0)
         mNode = node;
       else
@@ -329,7 +329,7 @@ public:
 
     const value_type operator*() const {
       MATHICGB_ASSERT(mNode != 0);
-      return ::std::make_pair(mNode->value, mNode->mono);
+      return std::make_pair(mNode->value, mNode->mono);
     }
 
   private:
@@ -345,7 +345,7 @@ public:
         mNode = 0;
         return;
       }
-      const Node* const node = bucketBegin->load(::std::memory_order_consume);
+      const Node* const node = bucketBegin->load(std::memory_order_consume);
       if (node != 0)
         mNode = node;
       else
@@ -360,7 +360,7 @@ public:
           mNode = 0;
           break;
         }
-        const Node* const node = mBucket->load(::std::memory_order_consume);
+        const Node* const node = mBucket->load(std::memory_order_consume);
         if (node != 0) {
           mNode = node;
           break;

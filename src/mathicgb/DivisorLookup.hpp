@@ -40,27 +40,27 @@ public:
   // but the outcome must be deterministic.
   virtual size_t classicReducer(const_monomial mon) const = 0;
 
-  virtual ::std::string getName() const = 0;
+  virtual std::string getName() const = 0;
 
   virtual size_t getMemoryUse() const = 0;
 
   virtual size_t highBaseDivisor(size_t newGenerator) const = 0;
   virtual void lowBaseDivisors(
-    ::std::vector<size_t>& divisors,
+    std::vector<size_t>& divisors,
     size_t maxDivisors,
     size_t newGenerator) const = 0;
   virtual size_t minimalLeadInSig(const_monomial sig) const = 0;
 
   virtual int type() const = 0;
 
-  static void displayDivisorLookupTypes(::std::ostream &o);
+  static void displayDivisorLookupTypes(std::ostream &o);
 
   class Factory {
   public:
-    virtual ::std::unique_ptr<DivisorLookup> create
+    virtual std::unique_ptr<DivisorLookup> create
       (bool preferSparseReducers, bool allowRemovals) const = 0;
   };
-  static ::std::unique_ptr<Factory> makeFactory
+  static std::unique_ptr<Factory> makeFactory
     (const PolyRing& ring, int type);
   // choices for type: 1: divlist, 2:kdtree.
 

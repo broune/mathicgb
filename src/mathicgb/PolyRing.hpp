@@ -22,8 +22,8 @@ MATHICGB_NAMESPACE_BEGIN
 
 template<class T>
 PrimeField<
-  typename ::std::make_unsigned<
-    typename ::std::remove_reference<T>::type
+  typename std::make_unsigned<
+    typename std::remove_reference<T>::type
   >::type
 > makeField(T charac) {
   return charac;
@@ -153,7 +153,7 @@ public:
   Monomial(exponent *val) : ConstMonomial(val) {}
 
   void swap(Monomial& monomial) {
-    ::std::swap(mValue, monomial.mValue);
+    std::swap(mValue, monomial.mValue);
   }
 
   exponent * unsafeGetRepresentation() { return const_cast<exponent *>(mValue); }
@@ -205,7 +205,7 @@ public:
     coefficient charac,
     int nvars,
     bool lexBaseOrder,
-    ::std::vector<exponent>&& weights
+    std::vector<exponent>&& weights
   );
   PolyRing(const Field& field, Monoid&& monoid);
 
@@ -217,11 +217,11 @@ public:
   coefficient charac() const { return mField.charac(); }
   size_t getNumVars() const { return varCount();}
   size_t varCount() const {return monoid().varCount();}
-  //       const ::std::vector<int> &degs,
-  //       const ::std::string &monorder);
+  //       const std::vector<int> &degs,
+  //       const std::string &monorder);
 
-  static ::std::pair<PolyRing*, ::std::pair<bool, bool>> read(::std::istream &i);
-  void write(::std::ostream &o, bool componentIncreasingDesired) const;
+  static std::pair<PolyRing*, std::pair<bool, bool>> read(std::istream &i);
+  void write(std::ostream &o, bool componentIncreasingDesired) const;
   // Format for ring
   //   <char> <mNumVars> <deg1> ... <deg_n> <monorder>
 
@@ -234,7 +234,7 @@ public:
     // fill with value that do not make sense to catch bugs in debug
     // mode. The maximum value of setting all bits increases the
     // chances of getting an assert.
-    ::std::fill_n(reinterpret_cast<char*>(ptr), maxMonomialByteSize(),
+    std::fill_n(reinterpret_cast<char*>(ptr), maxMonomialByteSize(),
                 ~static_cast<char>(0));
 #endif
     return ptr;
@@ -256,7 +256,7 @@ public:
     // fill with value that do not make sense to catch bugs in debug
     // mode. The maximum value of setting all bits increases the
     // chances of getting an assert.
-    ::std::fill_n(reinterpret_cast<char*>(ptr), maxMonomialByteSize(),
+    std::fill_n(reinterpret_cast<char*>(ptr), maxMonomialByteSize(),
                 ~static_cast<char>(0));
 #endif
     return ptr;
@@ -384,7 +384,7 @@ public:
 
   void monomialSetIdentity(Monomial& result) const;
 
-  void monomialEi(size_t i, Monomial &result) const;
+  void monomialEi(Monoid::Component i, Monomial &result) const;
 
   void monomialMult(ConstMonomial a, ConstMonomial b, Monomial &result) const;
 
@@ -459,10 +459,10 @@ public:
     ConstMonomial smaller1,
     ConstMonomial smaller2) const;
 
-  void monomialParse(::std::istream& i, 
+  void monomialParse(std::istream& i, 
                      Monomial& result) const;
 
-  void monomialDisplay(::std::ostream& o, 
+  void monomialDisplay(std::ostream& o, 
                        ConstMonomial a, 
                        bool print_comp=true, 
                        bool print_one=true) const;
@@ -471,7 +471,7 @@ public:
                        bool printComponent = true, 
                        bool printOne = true) const;
 
-  void printMonomialFrobbyM2Format(::std::ostream& out, ConstMonomial m) const;
+  void printMonomialFrobbyM2Format(std::ostream& out, ConstMonomial m) const;
 
   ///////////////////////////////////////////
   ///////////////////////////////////////////

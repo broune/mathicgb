@@ -20,19 +20,19 @@ public:
   // Ring must live for as long as this object.
   PolyBasis(
     const PolyRing& ring,
-    ::std::unique_ptr<DivisorLookup> divisorLookup
+    std::unique_ptr<DivisorLookup> divisorLookup
   );
 
   // Deletes the Poly's stored in the basis.
   ~PolyBasis();
 
   // Returns the initial monomial basis of the basis.
-  ::std::unique_ptr<Basis> initialIdeal() const;
+  std::unique_ptr<Basis> initialIdeal() const;
 
   // Inserts a polynomial into the basis at index size().
   // Lead monomials must be unique among basis elements.
   // So the index is size() - 1 afterwards since size() will increase by 1.
-  void insert(::std::unique_ptr<Poly> poly);
+  void insert(std::unique_ptr<Poly> poly);
 
   // Returns the index of a basis element whose lead term divides mon.
   // Returns -1 if there is no such basis element.
@@ -48,7 +48,7 @@ public:
   // Replaces basis element at index with the given new value. The lead
   // term of the new polynomial must be the same as the previous one.
   // This is useful for auto-tail-reduction.
-  void replaceSameLeadTerm(size_t index, ::std::unique_ptr<Poly> newValue) {
+  void replaceSameLeadTerm(size_t index, std::unique_ptr<Poly> newValue) {
     MATHICGB_ASSERT(index < size());
     MATHICGB_ASSERT(!retired(index));
     MATHICGB_ASSERT(newValue.get() != 0);
@@ -76,12 +76,12 @@ public:
 
   // Retires the basis element at index, which frees the memory associated
   // to it, including the basis element polynomial, and marks it as retired. 
-  ::std::unique_ptr<Poly> retire(size_t index);
+  std::unique_ptr<Poly> retire(size_t index);
 
   /// Returns an basis containing all non-retired basis elements and
   /// retires all those basis elements. The point of the simultaneous
   /// retirement is that this way no polynomials need be copied.
-  ::std::unique_ptr<Basis> toBasisAndRetireAll();
+  std::unique_ptr<Basis> toBasisAndRetireAll();
 
   // Returns true of the basis element at index has been retired.
   bool retired(size_t index) const {
@@ -214,13 +214,13 @@ private:
     mutable unsigned long long possibleReducerCount;
     mutable unsigned long long nonSignatureReducerCount;
   };
-  typedef ::std::vector<Entry> EntryCont;
+  typedef std::vector<Entry> EntryCont;
   typedef EntryCont::iterator EntryIter;
   typedef EntryCont::const_iterator EntryCIter;
 
   const PolyRing& mRing;
-  ::std::unique_ptr<DivisorLookup> mDivisorLookup;
-  ::std::vector<Entry> mEntries;
+  std::unique_ptr<DivisorLookup> mDivisorLookup;
+  std::vector<Entry> mEntries;
 };
 
 MATHICGB_NAMESPACE_END

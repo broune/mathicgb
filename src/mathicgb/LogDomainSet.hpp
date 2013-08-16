@@ -88,7 +88,7 @@ private:
 
   std::vector<LogDomain<true>*> mLogDomains;
   std::vector<std::pair<const char*, const char*>> mAliases;
-  mgb::tbb::tick_count mStartTime;
+  mgb::mtbb::tick_count mStartTime;
 };
 
 MATHICGB_NAMESPACE_END
