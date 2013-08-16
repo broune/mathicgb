@@ -315,6 +315,7 @@ namespace AtomicInternal {
       case ::std::memory_order_seq_cst:
         // All operations happen in a globally consistent total order.
         seqCstStore(value, mValue);
+
         break;
 
       case ::std::memory_order_consume: // not available for store
@@ -365,7 +366,7 @@ public:
   Atomic(T value): mValue(value) {}
 
   MATHICGB_INLINE
-  T load(const ::std::memory_order order = ::std::memory_order_seq_cst) const {
+  T load(const std::memory_order order = std::memory_order_seq_cst) const {
     MATHICGB_ASSERT(debugAligned());
     return mValue.load(order);
   }

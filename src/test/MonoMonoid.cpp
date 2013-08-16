@@ -632,7 +632,7 @@ TYPED_TEST(Monoid, Order) {
     sortedTotalDegreeRevLex
   );
 
-  std::vector<Exponent> dupGradings = {
+  Exponent dupGradingsArray[] = {
      5, 2, 3,
     10, 4, 6, // duplicate, just multiplied by 2
     -6, 9, 4,
@@ -641,6 +641,8 @@ TYPED_TEST(Monoid, Order) {
     -6, 9, 4,
     -6, 9, 4
   };
+  std::vector<Exponent> dupGradings
+    (std::begin(dupGradingsArray), std::end(dupGradingsArray));
   //   b:  2  9
   //   c:  3  4
   //   a:  5 -7
@@ -655,11 +657,13 @@ TYPED_TEST(Monoid, Order) {
     sortedDupGradingsRevLex
   );
 
-  std::vector<Exponent> lexGradings = {
+  Exponent lexGradingsArray[] = {
     0, 0, 1,
     0, 1, 0,
     1, 0, 0
   };
+  std::vector<Exponent> lexGradings
+    (std::begin(lexGradingsArray), std::end(lexGradingsArray));
   const auto sortedLex =
     "1 a a2 a3 b ab a2b b2 ab2 b3 c ac bc abc c2 ac2 bc2 c3";
   check(

@@ -3,6 +3,7 @@
 #ifndef MATHICGB_M_TBB_GUARD
 #define MATHICGB_M_TBB_GUARD
 
+#define MATHICGB_NO_TBB
 #ifndef MATHICGB_NO_TBB
 #include <tbb/tbb.h>
 

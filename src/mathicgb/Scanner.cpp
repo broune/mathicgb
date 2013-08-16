@@ -91,7 +91,7 @@ bool Scanner::match(const char* const str) {
 }
 
 bool Scanner::ensureBuffer(size_t min) {
-  const auto got = std::distance(mBufferPos, mBuffer.end()) + 1;
+  const auto got = size_t(std::distance(mBufferPos, mBuffer.end()) + 1);
   return got >= min || readBuffer(min - got);
 }
 

@@ -29,7 +29,7 @@ namespace UncharInternal {
 
 template<>
 struct Unchar<char> {
-  typedef typename UncharInternal::ExtendedChar<>::type type;
+  typedef UncharInternal::ExtendedChar<>::type type;
 };
 template<>
 struct Unchar<signed char> {typedef short type;};

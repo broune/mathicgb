@@ -190,14 +190,14 @@ namespace mgb { // Part of the public interface of MathicGB
     /// For matrix-based reducers, use a high value. For serial classic
     /// reduction, use a low value, preferably 1. Setting the value to
     /// 0 already takes care of this.
-    void setMaxSPairGroupSize(size_t size);
-    size_t maxSPairGroupSize() const;
+    void setMaxSPairGroupSize(unsigned int size);
+    unsigned int maxSPairGroupSize() const;
 
     /// Sets the maximum number of threads to use. May use fewer threads.
     /// A value of 0 indicates to let the library decide this value for
     /// itself, which is also the default value.
-    void setMaxThreadCount(size_t maxThreadCount);
-    size_t maxThreadCount() const;
+    void setMaxThreadCount(unsigned int maxThreadCount);
+    unsigned int maxThreadCount() const;
 
     /// Sets logging to occur according to the string. The format of the
     /// string is the same as for the -logs command line parameter.
@@ -500,10 +500,10 @@ namespace mgb {
 
   // This method is made inline to avoid the overhead from calling a function
   // for every exponent. This is also why mExponents is not inside the pimpl -
-  // otherwise we couldn't access it fro here. That then explains why mExponents
-  // is a raw pointer instead of a std::vector - the compiler for the caller
-  // and the library must agree on the memory layout of the object and that is
-  // less likely to introduce problems for a raw pointer than for a
+  // otherwise we couldn't access it from here. That then explains why
+  // mExponents is a raw pointer instead of a std::vector - the compiler for the
+  // caller and the library must agree on the memory layout of the object and
+  // that is less likely to introduce problems for a raw pointer than for a
   // std::vector. In particular, doing it this way allows the library and
   // the caller to use different implementations of the STL.
   inline void GroebnerInputIdealStream::appendExponent(

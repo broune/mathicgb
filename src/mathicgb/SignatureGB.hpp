@@ -23,6 +23,7 @@ public:
   typedef PolyRing::Monoid Monoid;
   typedef Monoid::MonoVector MonoVector;
   typedef MonoProcessor<Monoid> Processor;
+  typedef Monoid::Component Component;
 
   SignatureGB(
     Basis&& basis,

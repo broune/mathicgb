@@ -392,8 +392,8 @@ namespace mgb {
     bool mComponentsAscending;
     bool mSchreyering;
     Reducer mReducer;
-    size_t mMaxSPairGroupSize;
-    size_t mMaxThreadCount;
+    unsigned int mMaxSPairGroupSize;
+    unsigned int mMaxThreadCount;
     std::string mLogging;
     void* mCallbackData;
     Callback::Action (*mCallback) (void*);
@@ -532,19 +532,19 @@ namespace mgb {
     return mPimpl->mReducer;
   }
 
-  void GroebnerConfiguration::setMaxSPairGroupSize(size_t size) {
+  void GroebnerConfiguration::setMaxSPairGroupSize(unsigned int size) {
     mPimpl->mMaxSPairGroupSize = size;
   }
 
-  size_t GroebnerConfiguration::maxSPairGroupSize() const {
+  uint32 GroebnerConfiguration::maxSPairGroupSize() const {
     return mPimpl->mMaxSPairGroupSize;
   }
 
-  void GroebnerConfiguration::setMaxThreadCount(size_t maxThreadCount) {
+  void GroebnerConfiguration::setMaxThreadCount(unsigned int maxThreadCount) {
     mPimpl->mMaxThreadCount = maxThreadCount;
   }
 
-  size_t GroebnerConfiguration::maxThreadCount() const {
+  unsigned int GroebnerConfiguration::maxThreadCount() const {
     return mPimpl->mMaxThreadCount;
   }
 
@@ -831,7 +831,7 @@ namespace mgbi {
     MATHICGB_ASSERT(PimplOf()(conf).debugAssertValid());
 
     // Tell tbb how many threads to use
-    const auto maxThreadCount = conf.maxThreadCount();
+    const auto maxThreadCount = int(conf.maxThreadCount());
     const auto tbbMaxThreadCount = maxThreadCount == 0 ?
       mgb::tbb::task_scheduler_init::automatic : maxThreadCount;
     mgb::tbb::task_scheduler_init scheduler(tbbMaxThreadCount);

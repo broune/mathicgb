@@ -14,6 +14,7 @@
 #include <ostream>
 #include <cstdlib>
 #include <cstring>
+#include <cctype>
 #include <mathic.h>
 
 MATHICGB_NAMESPACE_BEGIN
@@ -1630,7 +1631,8 @@ private:
 
   void updateOrderComponent(const VarIndex newComponent, MonoRef mono) const {
     if (componentGradingIndex() != Order::ComponentAfterBaseOrder)
-      ptr(mono, orderIndexBegin())[componentGradingIndex()] = newComponent;
+      ptr(mono, orderIndexBegin())[componentGradingIndex()] =
+        static_cast<Exponent>(newComponent);
   }
 
   Exponent computeDegree(ConstMonoRef mono, VarIndex grading) const {

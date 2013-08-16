@@ -55,7 +55,7 @@ F4Reducer::F4Reducer(const PolyRing& ring, Type type):
   mMatrixSaveCount(0) {
 }
 
-size_t F4Reducer::preferredSetSize() const {
+unsigned int F4Reducer::preferredSetSize() const {
   return 100000;
 }
 

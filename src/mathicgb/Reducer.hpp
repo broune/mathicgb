@@ -26,7 +26,7 @@ public:
   /// one reduction at a time, so it should say that. A matrix-based or
   /// parallel reducer will have benefit from being presented with
   /// larger sets of reductions at a time.
-  virtual size_t preferredSetSize() const = 0;
+  virtual unsigned int preferredSetSize() const = 0;
 
   // ***** Methods that do reduction
 

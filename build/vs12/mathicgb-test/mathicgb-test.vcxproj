@@ -398,7 +398,6 @@
   <ItemGroup>
     <ClCompile Include="..\..\..\src\test\F4MatrixBuilder.cpp" />
     <ClCompile Include="..\..\..\src\test\F4MatrixReducer.cpp" />
-    <ClCompile Include="..\..\..\src\test\FreeModuleOrderTest.cpp" />
     <ClCompile Include="..\..\..\src\test\gb-test.cpp" />
     <ClCompile Include="..\..\..\src\test\gtestInclude.cpp" />
     <ClCompile Include="..\..\..\src\test\ideals.cpp" />

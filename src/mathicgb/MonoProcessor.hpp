@@ -25,6 +25,7 @@ public:
   typedef typename Monoid::MonoRef MonoRef;
   typedef typename Monoid::ConstMonoRef ConstMonoRef;
   typedef typename Monoid::ConstMonoPtr ConstMonoPtr;
+  typedef typename Monoid::Component Component;
 
   MonoProcessor(
     const Monoid& monoid,
@@ -104,8 +105,8 @@ public:
     return !mSchreyerMultipliers.empty();
   }
 
-  void setComponentCount(VarIndex count) {mComponentCount = count;}
-  VarIndex componentCount() const {return mComponentCount;}
+  void setComponentCount(Component count) {mComponentCount = count;}
+  Component componentCount() const {return mComponentCount;}
   const Monoid& monoid() const {return mSchreyerMultipliersMemory.monoid();}
 
 private:
@@ -126,7 +127,7 @@ private:
   }
 
   bool mComponentsAscendingDesired;
-  VarIndex mComponentCount;
+  Component mComponentCount;
   bool mSchreyering;
   MonoVector mSchreyerMultipliersMemory;
   std::vector<ConstMonoPtr> mSchreyerMultipliers;

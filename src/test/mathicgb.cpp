@@ -522,7 +522,10 @@ TEST(MathicGBLib, EarlyExit) {
 }
 
 TEST(MathicGBLib, SimpleEliminationGB) {
-  std::vector<mgb::GroebnerConfiguration::Exponent> gradings = {1,0,0,0,  1,1,1,1};
+  typedef mgb::GroebnerConfiguration::Exponent Exponent;
+  Exponent v[] = {1,0,0,0,  1,1,1,1};
+  std::vector<Exponent> gradings(std::begin(v), std::end(v));
+
   for (int i = 0; i < 2; ++i) {
     mgb::GroebnerConfiguration configuration(101, 4);
     const auto reducer = i == 0 ?
@@ -566,25 +569,30 @@ TEST(MathicGBLib, GlobalOrderOrNot) {
   const auto revLex =
     mgb::GroebnerConfiguration::BaseOrder::ReverseLexicographicBaseOrder;
 
-  std::vector<mgb::GroebnerConfiguration::Exponent> mat;
+  typedef mgb::GroebnerConfiguration::Exponent Exponent;
+  std::vector<Exponent> mat;
 
-  mat = {};
+  mat.clear();
   ASSERT_TRUE(conf.setMonomialOrder(lex, mat));
   ASSERT_FALSE(conf.setMonomialOrder(revLex, mat));
 
-  mat = {1,2,3,0};
+  Exponent mat2[] = {1,2,3,0};
+  mat.assign(std::begin(mat2), std::end(mat2));
   ASSERT_TRUE(conf.setMonomialOrder(lex, mat));
   ASSERT_FALSE(conf.setMonomialOrder(revLex, mat));
 
-  mat = {1,0,0,0,  -3,0,1,2};
+  Exponent mat3[] = {1,0,0,0,  -3,0,1,2};
+  mat.assign(std::begin(mat3), std::end(mat3));
   ASSERT_TRUE(conf.setMonomialOrder(lex, mat));
   ASSERT_FALSE(conf.setMonomialOrder(revLex, mat));
 
-  mat = {1,1,0,0,  3,0,1,2};
+  Exponent mat4[] = {1,1,0,0,  3,0,1,2};
+  mat.assign(std::begin(mat4), std::end(mat4));
   ASSERT_TRUE(conf.setMonomialOrder(lex, mat));
   ASSERT_TRUE(conf.setMonomialOrder(revLex, mat));
 
-  mat = {1,0,0,0,  3,1,1,-2};
+  Exponent mat5[] = {1,0,0,0,  3,1,1,-2};
+  mat.assign(std::begin(mat5), std::end(mat5));
   ASSERT_FALSE(conf.setMonomialOrder(lex, mat));
   ASSERT_FALSE(conf.setMonomialOrder(revLex, mat));
 }

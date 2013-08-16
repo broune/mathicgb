@@ -9,7 +9,7 @@
 
 MATHICGB_NAMESPACE_BEGIN
 
-size_t TypicalReducer::preferredSetSize() const {
+unsigned int TypicalReducer::preferredSetSize() const {
   return 1;
 }
 

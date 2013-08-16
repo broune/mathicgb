@@ -9,6 +9,7 @@
 #include "PolyHeap.hpp"
 #include "MTArray.hpp"
 #include <mathic.h>
+#include <limits>
 
 MATHICGB_NAMESPACE_BEGIN
 
@@ -46,7 +47,10 @@ SignatureGB::SignatureGB(
   SP(make_unique<SigSPairs>(R, GB.get(), Hsyz.get(), reducer.get(), mPostponeKoszul, mUseBaseDivisors, useSingularCriterionEarly, queueType))
 {
   mProcessor = make_unique<MonoProcessor<Monoid>>(std::move(processor));
-  mProcessor->setComponentCount(basis.size());
+  if (basis.size() > std::numeric_limits<Component>::max())
+    mathic::reportError("Dimension of module too large.");
+  const auto componentCount = Component(basis.size());
+  mProcessor->setComponentCount(componentCount);
 
   // Populate GB
   for (size_t j = 0; j < basis.size(); j++)

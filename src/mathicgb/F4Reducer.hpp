@@ -20,7 +20,7 @@ public:
 
   F4Reducer(const PolyRing& ring, Type type);
 
-  virtual size_t preferredSetSize() const;
+  virtual unsigned int preferredSetSize() const;
 
   /// Store all future matrices to file-1.mat, file-2.mat and so on.
   /// Matrices with less than minEntries non-zero entries are not stored.

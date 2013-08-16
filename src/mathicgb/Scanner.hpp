@@ -12,6 +12,7 @@
 #include <limits>
 #include <sstream>
 #include <istream>
+#include <cctype>
 
 MATHICGB_NAMESPACE_BEGIN
 
@@ -109,9 +110,9 @@ public:
 
   /// Returns true if the next character is a digit. Does not skip
   /// whitespace.
-  bool peekDigit() {return std::isdigit(peek());}
+  bool peekDigit() {return ::std::isdigit(peek());}
 
-  bool peekAlpha() {return std::isalpha(peek());}
+  bool peekAlpha() {return ::std::isalpha(peek());}
 
   /// Returns true if the next character is whitespace. Does not skip
   /// whitespace. Whitespace is defined by std::isspace().

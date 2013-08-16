@@ -36,8 +36,8 @@ public:
   typedef T value_type;
   typedef T* pointer;
   typedef const T* const_pointer;
-  typedef std::reverse_iterator<iterator> reverse_iterator;
-  typedef std::reverse_iterator<const_iterator> const_reverse_iterator;
+  typedef ::std::reverse_iterator<iterator> reverse_iterator;
+  typedef ::std::reverse_iterator<const_iterator> const_reverse_iterator;
 
   /// Initializes to the null state.
   RawVector(): mBegin(0), mEnd(0), mCapacityEnd(0) {}
@@ -301,12 +301,13 @@ private:
   T* mCapacityEnd;
 };
 
+MATHICGB_NAMESPACE_END
+
 namespace std {
   template<class T>
-  void swap(RawVector<T>& a, RawVector<T>& b) {
+  void swap(mgb::RawVector<T>& a, mgb::RawVector<T>& b) {
     a.swap(b);
   }
 }
 
-MATHICGB_NAMESPACE_END
 #endif
