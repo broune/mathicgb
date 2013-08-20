@@ -10,11 +10,9 @@ MATHICGB_NAMESPACE_BEGIN
 
 /// Class used to describe an monomial order and/or a module monomial
 /// order. Use this class to construct a monoid. The monoid does the
-/// actual comparisons.
-///
-/// You can extend the functionality for ordering offered here for
-/// module mononials by pre- and post-processing of monomials. See
-/// MonoProcessor.
+/// actual comparisons. Monomials must be preprocessed by MonoProcessor -
+/// otherwise the ordering may not be correct. MonoProcessor also offers
+/// additional parameters for making orders.
 template<class Weight>
 class MonoOrder;
 
@@ -28,18 +26,24 @@ public:
   static const size_t ComponentAfterBaseOrder = static_cast<size_t>(-1);
 
   enum BaseOrder {
-    /// Lexicographic order with x0 < x1 < ... < x_n.
-    LexBaseOrder = 0,
+    /// Lexicographic order with x_0 < x_1 < ... < x_n.
+    LexBaseOrderFromRight = 0,
 
-    /// Reverse lexicographic order with x0 > x1 > ... > x_n.
-    RevLexBaseOrder = 1
+    /// Reverse lexicographic order with x_0 > x_1 > ... > x_n.
+    RevLexBaseOrderFromRight = 1,
+
+    /// Lexicographic order with x_0 > x_1 > ... > x_n.
+    LexBaseOrderFromLeft = 2,
+
+    /// Reverse lexicographic order with x_0 < x_1 < ... < x_n.
+    RevLexBaseOrderFromLeft = 3
   };
 
   /// Same as MonoOrder(varCount, varOrder, gradings, componentBefore)
   /// where gradings has a single row of varCount 1's.
   MonoOrder(
     const VarIndex varCount,
-    const BaseOrder baseOrder = RevLexBaseOrder,
+    const BaseOrder baseOrder = RevLexBaseOrderFromRight,
     const size_t componentBefore = ComponentAfterBaseOrder,
     const bool componentsAscendingDesired = true,
     const bool schreyering = true
@@ -88,7 +92,7 @@ public:
   MonoOrder(
     const VarIndex varCount,
     Gradings&& gradings,
-    const BaseOrder baseOrder = RevLexBaseOrder,
+    const BaseOrder baseOrder = RevLexBaseOrderFromRight,
     const size_t componentBefore = ComponentAfterBaseOrder,
     const bool componentsAscendingDesired = true,
     const bool schreyering = true
@@ -101,6 +105,7 @@ public:
     mSchreyering(schreyering)
   {
 #ifdef MATHCGB_DEBUG
+    // todo: fix this, it isn't checking the right row of the matrix
     if (componentBefore != ComponentAfterBaseOrder) {
       for (VarIndex var = 0; var < varCount(); ++var) {
         MATHICGB_ASSERT(mGradings[var] == 0);
@@ -133,6 +138,18 @@ public:
 
   BaseOrder baseOrder() const {return mBaseOrder;}
 
+  bool hasFromLeftBaseOrder() const {
+    return
+      baseOrder() == LexBaseOrderFromLeft ||
+      baseOrder() == RevLexBaseOrderFromLeft;
+  }
+
+  bool hasLexBaseOrder() const {
+    return
+      baseOrder() == LexBaseOrderFromLeft ||
+      baseOrder() == LexBaseOrderFromRight;
+  }
+
   /// Returns true if the order is a monomial order. A monomial order
   /// is a total order on monomials where a>b => ac>bc for all
   /// monomials a,b,c and where the order is a well order. Only the
@@ -145,7 +162,7 @@ public:
         if (grading == gradingCount) {
           // The column was entirely zero, so x_var > 1 if and only if the
           // base ordering is lex.
-          if (baseOrder() != LexBaseOrder)
+          if (!hasLexBaseOrder())
             return false;
           break;
         }
@@ -191,12 +208,14 @@ private:
       mComponentGradingIndex < gradingCount()
     );
     MATHICGB_ASSERT(
-      mBaseOrder == LexBaseOrder ||
-      mBaseOrder == RevLexBaseOrder
+      mBaseOrder == LexBaseOrderFromLeft ||
+      mBaseOrder == RevLexBaseOrderFromLeft ||
+      mBaseOrder == LexBaseOrderFromRight ||
+      mBaseOrder == RevLexBaseOrderFromRight 
     );
     if (varCount() == 0) {
       MATHICGB_ASSERT(mGradings.empty());
-      MATHICGB_ASSERT(baseOrder() == RevLexBaseOrder());
+      MATHICGB_ASSERT(baseOrder() == RevLexBaseOrderFromRight());
       MATHICGB_ASSERT(mComponentGradingIndex == ComponentAfterBaseOrder);
     }
 #endif

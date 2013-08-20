@@ -587,7 +587,10 @@ TYPED_TEST(Monoid, Order) {
   typedef typename Monoid::Order Order;
   typedef typename Monoid::Exponent Exponent;
 
-  auto check = [](const Monoid& m, const char* sorted) -> void {
+  auto check = [](
+    const Monoid& m,
+    const char* const sorted
+  ) -> void {
     auto v = parseVector(m, sorted);
     for (auto greater = v.begin(); greater != v.end(); ++greater) {
       ASSERT_EQ(m.compare(*greater, *greater), Monoid::EqualTo);
@@ -610,11 +613,17 @@ TYPED_TEST(Monoid, Order) {
     "1 Z A z c b a c2 bc ac b2 ab a2 c3 abc b3 a3";
   check(Monoid(52), sortedTotalDegreeRevLex);
   check(
-    Monoid(Order(52, std::vector<Exponent>(52, 1), Order::RevLexBaseOrder)),
+    Monoid(
+      Order(52, std::vector<Exponent>(52, 1),
+      Order::RevLexBaseOrderFromRight)
+    ),
     sortedTotalDegreeRevLex
   );
   check(
-    Monoid(Order(52, std::vector<Exponent>(52, 7), Order::RevLexBaseOrder)),
+    Monoid(
+      Order(52, std::vector<Exponent>(52, 7),
+      Order::RevLexBaseOrderFromRight)
+    ),
     sortedTotalDegreeRevLex
   );
   std::vector<Exponent> revLexGradings(52, 1);
@@ -623,12 +632,16 @@ TYPED_TEST(Monoid, Order) {
       revLexGradings.push_back(var == grading ? -1 : 0);
   check(
     Monoid(
-      Order(52, std::vector<Exponent>(revLexGradings), Order::RevLexBaseOrder)
+      Order(52, std::vector<Exponent>(revLexGradings),
+      Order::RevLexBaseOrderFromRight)
     ),
     sortedTotalDegreeRevLex
   );
   check(
-    Monoid(Order(52, std::move(revLexGradings), Order::LexBaseOrder)),
+    Monoid(
+      Order(52, std::move(revLexGradings),
+      Order::LexBaseOrderFromRight)
+    ),
     sortedTotalDegreeRevLex
   );
 
@@ -656,7 +669,7 @@ TYPED_TEST(Monoid, Order) {
   // ab3: 11 21
   const auto sortedDupGradingsRevLex = "1 b c a bc c2 b3 bc3 ab3";
   check(
-    Monoid(Order(3, std::move(dupGradings), Order::RevLexBaseOrder)),
+    Monoid(Order(3, std::move(dupGradings), Order::RevLexBaseOrderFromRight)),
     sortedDupGradingsRevLex
   );
 
@@ -667,20 +680,30 @@ TYPED_TEST(Monoid, Order) {
   };
   std::vector<Exponent> lexGradings(
     lexGradingsArray,
-    lexGradingsArray + sizeof(lexGradingsArray)/sizeof(*lexGradingsArray)
+    lexGradingsArray + sizeof(lexGradingsArray) / sizeof(*lexGradingsArray)
   );
-  const auto sortedLex =
+  const auto sortedLexFromRight =
     "1 a a2 a3 b ab a2b b2 ab2 b3 c ac bc abc c2 ac2 bc2 c3";
+  auto lexGradingsCheck = [&](typename Order::BaseOrder baseOrder) {
+    check(
+      Monoid(Order(3, std::vector<Exponent>(lexGradings), baseOrder)),
+      sortedLexFromRight
+    );
+  };
+  lexGradingsCheck(Order::LexBaseOrderFromRight);
+  lexGradingsCheck(Order::RevLexBaseOrderFromRight);
+  lexGradingsCheck(Order::LexBaseOrderFromLeft);
+  lexGradingsCheck(Order::RevLexBaseOrderFromLeft);
   check(
-    Monoid(
-      Order(3, std::vector<Exponent>(lexGradings), Order::RevLexBaseOrder)
-    ),
-    sortedLex
+    Monoid(Order(3, std::vector<Exponent>(), Order::LexBaseOrderFromRight)),
+    sortedLexFromRight
   );
-  check
-    (Monoid(Order(3, std::move(lexGradings), Order::LexBaseOrder)), sortedLex);
-  check
-    (Monoid(Order(3, std::vector<Exponent>(), Order::LexBaseOrder)), sortedLex);
+  const auto sortedLexFromLeft =
+    "1 c c2 c3 b cb bc2 b2 b2c b3 a ac ab abc a2 a2c a2b a3";
+  check(
+    Monoid(Order(3, std::vector<Exponent>(), Order::LexBaseOrderFromLeft)),
+    sortedLexFromLeft
+  );
 }
 
 TYPED_TEST(Monoid, RelativelyPrime) {
@@ -706,12 +729,16 @@ TYPED_TEST(Monoid, RelativelyPrime) {
 
 TYPED_TEST(Monoid, SetExponents) {
   typedef TypeParam Monoid;
+  typedef typename Monoid::VarIndex VarIndex;
+  typedef typename Monoid::MonoVector MonoVector;
   Monoid m(5);
-  auto v = parseVector(m, "a1b2c3d4e5");
-  typename Monoid::Exponent exponents[] = {1, 2, 3, 4, 5};
+  MonoVector v(m);
   v.push_back();
-  m.setExponents(exponents, v.back());
-  ASSERT_TRUE(m.equal(v.front(), v.back()));  
+  typename Monoid::Exponent exponents[] = {1, 2, 3, 4, 5};
+  m.setExternalExponents(exponents, v.back());
+  for (VarIndex var = 0; var < m.varCount(); ++var) {
+    ASSERT_EQ(exponents[var], m.externalExponent(v.back(), var));
+  }
 }
 
 TYPED_TEST(Monoid, HasAmpleCapacityTotalDegree) {
@@ -725,12 +752,14 @@ TYPED_TEST(Monoid, HasAmpleCapacityTotalDegree) {
     
     std::vector<Exponent> ones(varCount, 1);
     Monoid monoidTotalDegreeImplicit
-      (Order(varCount, std::move(ones), Order::RevLexBaseOrder));
+      (Order(varCount, std::move(ones), Order::RevLexBaseOrderFromRight));
 
     std::vector<Exponent> mostlyOnes(varCount, 1);
     mostlyOnes[0] = 7;
-    Monoid monoidGeneral
-      (Order(varCount, std::move(mostlyOnes), Order::RevLexBaseOrder));
+    Monoid monoidGeneral(
+      Order(varCount, std::move(mostlyOnes),
+      Order::RevLexBaseOrderFromRight)
+    );
 
     Monoid* monoids[] = {
       &monoidTotalDegree,
@@ -784,8 +813,11 @@ TYPED_TEST(Monoid, CopyEqualConversion) {
   typedef MonoMonoid<Exponent, HasComponent, false, false> MonoidNone;
   typedef MonoMonoid<Exponent, HasComponent, true, true> MonoidAll;
   for (VarIndex varCount = 1; varCount < 33; ++varCount) {
-    const Order order
-      (varCount, std::vector<Exponent>(varCount, 1), Order::RevLexBaseOrder);
+    const Order order(
+      varCount,
+      std::vector<Exponent>(varCount, 1),
+      Order::RevLexBaseOrderFromRight
+    );
     MonoidNone none(order);
     Monoid some(Monoid::create(none));
     MonoidAll all(MonoidAll::create(some));
@@ -875,3 +907,4 @@ TYPED_TEST(Monoid, CopyEqualConversion) {
     ASSERT_TRUE(some.equal(some2, some3));
   }
 }
+

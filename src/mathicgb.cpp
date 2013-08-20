@@ -336,7 +336,7 @@ struct GroebnerConfiguration::Pimpl {
   Pimpl(Coefficient modulus, VarIndex varCount):
     mModulus(modulus),
     mVarCount(varCount),
-    mBaseOrder(ReverseLexicographicBaseOrder),
+    mBaseOrder(RevLexDescendingBaseOrder),
     mGradings(varCount, 1),
     mComponentBefore(ComponentAfterBaseOrder),
     mComponentsAscending(true),
@@ -360,8 +360,10 @@ struct GroebnerConfiguration::Pimpl {
 
   static bool baseOrderValid(const BaseOrder order) {
     return
-      order == LexicographicBaseOrder ||
-      order == ReverseLexicographicBaseOrder;
+      order == RevLexDescendingBaseOrder ||
+      order == LexDescendingBaseOrder ||
+      order == RevLexAscendingBaseOrder ||
+      order == LexAscendingBaseOrder;
   }
 
   static bool reducerValid(const Reducer reducer) {
@@ -443,6 +445,21 @@ auto GroebnerConfiguration::varCount() const -> VarIndex {
   return mPimpl->mVarCount;
 }
 
+const char* GroebnerConfiguration::baseOrderName(BaseOrder order) {
+  switch (order) {
+    case RevLexDescendingBaseOrder:
+      return "reverse lexicographic descending";
+    case LexDescendingBaseOrder:
+      return "lexicographic descending";
+    case RevLexAscendingBaseOrder:
+      return "reverse lexicographic ascending";
+    case LexAscendingBaseOrder:
+      return "lexicographic ascending";
+    default:
+      return "(ERROR: invalid base order)";
+  }
+}
+
 bool GroebnerConfiguration::setMonomialOrderInternal(
   MonomialOrderData order
 ) {
@@ -462,7 +479,10 @@ bool GroebnerConfiguration::setMonomialOrderInternal(
         if (e > 0)
           goto orderGlobalForVar;
       }
-      if (order.baseOrder == ReverseLexicographicBaseOrder)
+      if (
+        order.baseOrder == RevLexAscendingBaseOrder ||
+        order.baseOrder == RevLexDescendingBaseOrder
+      )
         return false; // order not global
     orderGlobalForVar:;
     }
@@ -559,6 +579,27 @@ const char* GroebnerConfiguration::logging() const {
 }
 
 // ** Implementation of class GroebnerInputIdealStream
+namespace {
+  PolyRing::Monoid::Order::BaseOrder translateBaseOrder(
+    const GroebnerConfiguration::BaseOrder baseOrder
+  ) {
+    typedef PolyRing::Monoid::Order Internal;
+    typedef GroebnerConfiguration External;
+    switch (baseOrder) {
+    default:
+      MATHICGB_ASSERT(false);
+    case External:: RevLexDescendingBaseOrder:
+      return Internal::RevLexBaseOrderFromRight;
+    case External::LexDescendingBaseOrder:
+      return Internal::LexBaseOrderFromLeft;
+    case External::RevLexAscendingBaseOrder:
+      return Internal::RevLexBaseOrderFromLeft;
+    case External::LexAscendingBaseOrder:
+      return Internal::LexBaseOrderFromRight;
+    }
+  }
+}
+
 struct GroebnerInputIdealStream::Pimpl {
   Pimpl(const GroebnerConfiguration& conf):
     ring(
@@ -566,10 +607,7 @@ struct GroebnerInputIdealStream::Pimpl {
       PolyRing::Monoid::Order(
         conf.varCount(),
         std::move(conf.monomialOrder().second),
-        conf.monomialOrder().first ==
-          GroebnerConfiguration::LexicographicBaseOrder ?
-          PolyRing::Monoid::Order::LexBaseOrder :
-          PolyRing::Monoid::Order::RevLexBaseOrder,
+        translateBaseOrder(conf.monomialOrder().first),
         conf.componentBefore(),
         conf.componentsAscending(),
         conf.schreyering()
@@ -681,7 +719,7 @@ void GroebnerInputIdealStream::appendTermDone(Coefficient coefficient) {
 
   // @todo: do this directly into the polynomial instead of copying a second
   // time.
-  mPimpl->ring.monomialSetExponents(mPimpl->monomial, mExponents);
+  mPimpl->ring.monomialSetExternalExponents(mPimpl->monomial, mExponents);
   mPimpl->poly.appendTerm(coefficient, mPimpl->monomial);
 
   MATHICGB_ASSERT(debugAssertValid());
@@ -737,6 +775,7 @@ namespace mgbi {
 namespace mgbi {
   struct IdealAdapter::Pimpl {
     std::unique_ptr<Basis> basis;
+    std::unique_ptr<Exponent[]> tmpTerm;
   };
 
   IdealAdapter::IdealAdapter():
@@ -770,13 +809,17 @@ namespace mgbi {
   ) const -> std::pair<Coefficient, const Exponent*> {
     MATHICGB_ASSERT(mPimpl->basis.get() != 0);
     MATHICGB_ASSERT(poly < mPimpl->basis->size());
-    const auto& p = *mPimpl->basis->getPoly(poly);
 
+    const auto& monoid = mPimpl->basis->ring().monoid();
+    const auto& p = *mPimpl->basis->getPoly(poly);
     MATHICGB_ASSERT(term < p.nTerms());
-    return std::make_pair(
-      p.coefficientAt(term),
-      p.monomialAt(term).unsafeGetRepresentation() + 1
-    );
+    MATHICGB_ASSERT(p.ring().monoid() == monoid);
+
+    const auto& from = p.monomialAt(term);
+    auto to = mPimpl->tmpTerm.get();
+    for (VarIndex var = 0; var < monoid.varCount(); ++var)
+      to[var] = monoid.externalExponent(from, var);
+    return std::make_pair(p.coefficientAt(term), to);
   }
 }
 
@@ -870,6 +913,8 @@ namespace mgbi {
     typedef mgb::GroebnerConfiguration::Callback::Action Action;
     if (callback.lastAction() != Action::StopWithNoOutputAction) {
       PimplOf()(output).basis = alg.basis().toBasisAndRetireAll();
+      PimplOf()(output).tmpTerm =
+        make_unique_array<GConf::Exponent>(basis.ring().varCount());
       return true;
     } else
       return false;

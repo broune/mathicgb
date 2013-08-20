@@ -30,8 +30,8 @@ PolyRing::PolyRing(
       nvars,
       std::move(weights),
       lexBaseOrder ?
-        MonoOrder<exponent>::LexBaseOrder :
-        MonoOrder<exponent>::RevLexBaseOrder
+        MonoOrder<exponent>::LexBaseOrderFromRight :
+        MonoOrder<exponent>::RevLexBaseOrderFromRight
     )
   )
 {}

@@ -533,7 +533,7 @@ TEST(MathicGBLib, SimpleEliminationGB) {
       mgb::GroebnerConfiguration::MatrixReducer;
     configuration.setReducer(reducer);
     configuration.setMonomialOrder(
-      mgb::GroebnerConfiguration::BaseOrder::ReverseLexicographicBaseOrder, 
+      mgb::GroebnerConfiguration::BaseOrder::RevLexDescendingBaseOrder, 
       gradings
     );
 
@@ -565,9 +565,9 @@ TEST(MathicGBLib, SimpleEliminationGB) {
 TEST(MathicGBLib, GlobalOrderOrNot) {
   mgb::GroebnerConfiguration conf(101, 4);
   const auto lex =
-    mgb::GroebnerConfiguration::BaseOrder::LexicographicBaseOrder;
+    mgb::GroebnerConfiguration::BaseOrder::LexAscendingBaseOrder;
   const auto revLex =
-    mgb::GroebnerConfiguration::BaseOrder::ReverseLexicographicBaseOrder;
+    mgb::GroebnerConfiguration::BaseOrder::RevLexDescendingBaseOrder;
 
   typedef mgb::GroebnerConfiguration::Exponent Exponent;
   std::vector<Exponent> mat;

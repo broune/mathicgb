@@ -61,16 +61,30 @@ namespace mgb { // Part of the public interface of MathicGB
     VarIndex varCount() const;
 
     enum BaseOrder {
-      /// Lexicographic order where variables with higher
-      /// index are greater (x_1 > x_2 > ... > x_n). TODO: or is it the
-      /// other way around?
-      LexicographicBaseOrder = 0,
+      /// Reverse lexicographic order with x_1 > x_2 > ... > x_n.
+      /// Can be described as rev-lex-descending or rev-lex-from-right.
+      /// This is what people usually mean when they say rev-lex.
+      RevLexDescendingBaseOrder = 0,
 
-      /// Reverse lexicographic order where variables with higher
-      /// index are greater (x_1 > x_2 > ... > x_n). TODO: or is it the
-      /// other way around?
-      ReverseLexicographicBaseOrder = 1
+      /// Lexicographic order with x_1 > x_2 > ... > x_n.
+      /// Can be described as lex-descending or lex-from-left.
+      /// This is what people usually mean when they say lex.
+      LexDescendingBaseOrder = 1,
+
+      /// Reverse lexicographic order with x_1 < x_2 < ... < x_n.
+      /// Can be described as rev-lex-ascending or rev-lex-from-left.
+      RevLexAscendingBaseOrder = 2,
+
+      /// Lexicographic order with x_1 < x_2 < ... < x_n.
+      /// Can be described as lex-ascending or lex-from-right.
+      LexAscendingBaseOrder = 3
     };
+
+    /// Returns a name for the passed in base order.
+    /// Ownership of the string is not passed on. You should not depend on
+    /// the string having any particular value, except that it is something
+    /// that will identify the order to a human.
+    static const char* baseOrderName(BaseOrder order);
 
     /// Specifies the monomial order to compute a Groebner basis with
     /// respect to. You must ensure that the order that you are specifying
@@ -774,6 +788,8 @@ namespace mgb {
       VarIndex varCount() const;
       size_t polyCount() const;
       size_t termCount(PolyIndex poly) const;
+
+      // Return value only valid until the next call to term.
       ConstTerm term(PolyIndex poly, TermIndex term) const;
 
     private:

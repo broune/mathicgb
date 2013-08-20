@@ -25,7 +25,11 @@ auto MathicIO::readRing(
   auto ring = make_unique<PolyRing>
     (std::move(baseField), Monoid(std::move(order)));
 
-  Processor processor(ring->monoid(), componentsAscendingDesired, schreyering);
+  Processor processor(
+    ring->monoid(),
+    componentsAscendingDesired,
+    schreyering
+  );
 
   return std::make_pair(std::move(ring), std::move(processor));
 }
@@ -92,7 +96,8 @@ auto MathicIO::readOrder(
   Order order(
     varCount,
     std::move(gradings),
-    lexBaseOrder ? Order::LexBaseOrder : Order::RevLexBaseOrder,
+    lexBaseOrder ?
+      Order::LexBaseOrderFromRight : Order::RevLexBaseOrderFromRight,
     componentCompareIndex,
     componentsAscendingDesired,
     schreyering
@@ -108,7 +113,7 @@ void MathicIO::writeOrder(
   MATHICGB_ASSERT(Monoid::HasComponent || !withComponent);
 
   const auto baseOrder =
-    order.baseOrder() == Order::LexBaseOrder ? "lex" : "revlex";
+    order.baseOrder() == Order::LexBaseOrderFromRight ? "lex" : "revlex";
   const auto componentOrder =
     order.componentsAscendingDesired() ? "component" : "revcomponent";
 

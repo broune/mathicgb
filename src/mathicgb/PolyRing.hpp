@@ -328,8 +328,8 @@ public:
     monoid().setExponent(var, c, m);
   }
 
-  void monomialSetExponents(Monomial m, exponent* exponents) const {
-    monoid().setExponents(exponents, m);
+  void monomialSetExternalExponents(Monomial m, exponent* exponents) const {
+    monoid().setExternalExponents(exponents, m);
   }
 
   exponent monomialExponent(ConstMonomial m, size_t var) const {

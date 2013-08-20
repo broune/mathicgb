@@ -53,15 +53,15 @@ namespace MonoMonoidInternal {
       mEntryCount(std::max<VarIndex>(mOrderIndexEnd + StoreHash, 1)),
       mHashCoefficients(makeHashCoefficients(order.varCount())),
       mOrderIsTotalDegreeRevLex
-        (order.baseOrder() == Order::RevLexBaseOrder && order.isTotalDegree()),
-      mLexBaseOrder(order.baseOrder() == Order::LexBaseOrder),
+        (!order.hasLexBaseOrder() && order.isTotalDegree()),
+      mLexBaseOrder(order.hasLexBaseOrder()),
       mGradings(makeGradings(order)),
       mComponentGradingIndex(
         reverseComponentGradingIndex
           (order.gradingCount(), order.componentGradingIndex())
-      )
-    {
-    }
+      ),
+      mVarsReversed(order.hasFromLeftBaseOrder())
+    {}
 
     VarIndex varCount() const {return mVarCount;}
     VarIndex gradingCount() const {return mGradingCount;}
@@ -71,6 +71,7 @@ namespace MonoMonoidInternal {
     VarIndex orderIndexBegin() const {return mOrderIndexBegin;}
     VarIndex hashIndex() const {return mOrderIndexEnd;}
     VarIndex componentGradingIndex() const {return mComponentGradingIndex;}
+    bool varsReversed() const {return mVarsReversed;}
 
   protected:
     typedef std::vector<Exponent> HashCoefficients;
@@ -79,7 +80,9 @@ namespace MonoMonoidInternal {
     static Gradings makeGradings(const Order& order) {
       auto gradings = order.gradings();
       reverseGradings(order.varCount(), gradings);
-      if (order.baseOrder() == Order::RevLexBaseOrder)
+      if (order.hasFromLeftBaseOrder())
+        reverseVarsInGradings(order.varCount(), gradings);
+      if (!order.hasLexBaseOrder())
         negateGradings(gradings);
       return gradings;
     }
@@ -108,6 +111,22 @@ namespace MonoMonoidInternal {
       const auto size = gradings.size();
       for (size_t i = 0; i < size; ++i)
         gradings[i] = -gradings[i];
+    }
+
+    /// Replace each row (e_0, e_1, ..., e_n) with (e_n, ..., e_1, e_0).
+    static void reverseVarsInGradings(
+      const size_t varCount,
+      Gradings& gradings
+    ) {
+      if (varCount == 0)
+        return;
+      MATHICGB_ASSERT(gradings.size() % varCount == 0);
+      auto rowBegin = gradings.begin();
+      while (rowBegin != gradings.end()) {
+        const auto rowEnd = rowBegin + varCount;
+        std::reverse(rowBegin, rowEnd);
+        rowBegin = rowEnd;
+      }
     }
 
     /// Since comparisons go opposite direction, we need to reverse
@@ -196,7 +215,7 @@ namespace MonoMonoidInternal {
     /// used. This applies as well to degrees, which implies that
     /// degrees have to be stored negated if doing revlex.
     const bool mLexBaseOrder;
-    
+
     /// Defines a matrix where each row is a grading. The degree of a
     /// monomial with respect to grading g is the dot product of the
     /// exponent vector of that monomial with row g of the matrix
@@ -204,7 +223,15 @@ namespace MonoMonoidInternal {
     /// mOrderIsTotalDegreeRevLex is true then mGradings is empty but
     /// implicitly it is a single grading consisting of all 1s and the
     /// base order is revlex.
-    std::vector<Exponent> mGradings;    
+    std::vector<Exponent> mGradings;
+
+    /// All base comparison considers exponents starting from the right,
+    /// yet we need to support base orders starting from the left. This
+    /// is achieved by reversing the order of the variables. The value
+    /// of this variable indicates whether this has happened, in which
+    /// case it needs to be done again before showing a monomial to the
+    /// outside world.
+    const bool mVarsReversed;
   };
 }
 
@@ -353,7 +380,8 @@ public:
     return Order(
       varCount(),
       std::move(orderGradings),
-      isLexBaseOrder() ? Order::LexBaseOrder : Order::RevLexBaseOrder,
+      isLexBaseOrder() ?
+        Order::LexBaseOrderFromRight : Order::RevLexBaseOrderFromRight,
       Base::reverseComponentGradingIndex
         (gradingCount(), componentGradingIndex()),
       componentsAscendingDesired,
@@ -378,7 +406,11 @@ public:
   /// Returns the number of variables. This is also the number of
   /// exponents in the exponent vector of a monomial.
   using Base::varCount;
-  //VarIndex varCount() const {return mVarCount;}
+
+  /// Returns true if the variables in this ring have been reversed
+  /// so that the first one becomes the last one and so on. Use
+  /// MonoProcessor to reverse monomials for input and output.
+  using Base::varsReversed;
 
 
   // *** Monomial accessors and queries
@@ -393,11 +425,39 @@ public:
     return ptr(mono, exponentsIndexEnd());
   }
 
+  /// The indices of variables might be permuted in this monoid in order to
+  /// implement certain monomial orders in a fast way. This method returns
+  /// the unpermuted index that gets permuted to var. Knowing this mapping
+  /// is necessary when importing monomials from and when exporting monomials
+  /// to a party that does not use this scheme. For example when writing a
+  /// monomial to a file in a format that is intended to be readable by
+  /// other programs or by a human.
+  VarIndex externalVar(const VarIndex var) const {
+    // At the moment, this method happens to be its own inverse. Do not depend
+    // on that.
+    MATHICGB_ASSERT(var < varCount());
+    const auto eVar = varsReversed() ? varCount() - 1 - var : var;
+    MATHICGB_ASSERT(eVar < varCount());
+    return eVar;
+  }
+
+  /// The inverse mapping of externalVar().
+  VarIndex internalVar(const VarIndex var) const {
+    // Do not depend on knowing that this is the implementation.
+    return externalVar(var);
+  }
+
   /// Returns the exponent of var in mono.
   Exponent exponent(ConstMonoRef mono, const VarIndex var) const {
     MATHICGB_ASSERT(var < varCount());
     return access(mono, exponentsIndexBegin() + var);
-  } 
+  }
+
+  // The exponent of var as it would be if variables were not permuted.
+  Exponent externalExponent(ConstMonoRef mono, const VarIndex var) const {
+    MATHICGB_ASSERT(var < varCount());
+    return exponent(mono, externalVar(var));
+  }
 
   /// Returns the component of the monomial. Monomials not from a
   /// module have component zero. In a module mono*e_i has component
@@ -806,6 +866,7 @@ public:
     MATHICGB_ASSERT(HasComponent == MonoidFrom::HasComponent);
     MATHICGB_ASSERT(monoidFrom.debugValid(from));
     MATHICGB_ASSERT(monoidFrom.varCount() == varCount());
+    MATHICGB_ASSERT(monoidFrom.varsReversed() == varsReversed());
     MATHICGB_ASSERT
       ((std::is_same<Exponent, typename MonoidFrom::Exponent>::value));
 
@@ -844,14 +905,19 @@ public:
     MATHICGB_ASSERT(debugValid(mono));
   }
 
-  /// Sets all the exponents of mono. exponents must point to an array
-  /// of size varCount().
-  void setExponents(const Exponent* exponents, MonoRef mono) const {
+  /// Sets all the exponents of mono from an external/unpermuted array.
+  /// exponents must point to an array of size varCount().
+  /// After this, exponent(mono, var) is exponents[externalVar(var)].
+  /// The value of exponents[var] becomes the exponent of internalVar(var).
+  void setExternalExponents(const Exponent* exponents, MonoRef mono) const {
     MATHICGB_ASSERT(exponents != 0);
 
     if (HasComponent)
       access(mono, componentIndex()) = 0;
-    std::copy_n(exponents, varCount(), ptr(mono, exponentsIndexBegin()));
+    for (VarIndex iVar = 0; iVar < varCount(); ++iVar) {
+      const auto eVar = externalVar(iVar);
+      access(mono, exponentsIndexBegin() + iVar) = exponents[eVar];
+    }
     setOrderData(mono);
     setHash(mono);
 
@@ -1867,7 +1933,8 @@ auto MonoMonoid<E, HC, SH, SO>::readMonoid(std::istream& in) ->
   Order order(
     varCount,
     std::move(gradings),
-    lexBaseOrder ? Order::LexBaseOrder : Order::RevLexBaseOrder,
+    lexBaseOrder ?
+      Order::LexBaseOrderFromRight : Order::RevLexBaseOrderFromRight,
     componentCompareIndex
   );
   return std::make_pair(
@@ -1941,7 +2008,7 @@ void MonoMonoid<E, HC, SH, SO>::parseM2(std::istream& in, MonoRef mono) const {
     }
 
     in.get();
-    auto& exponent = access(mono, exponentsIndexBegin() + var);
+    auto& exponent = access(mono, exponentsIndexBegin() + externalVar(var));
     if (isdigit(in.peek())) {
       typename unchar<Exponent>::type e;
       in >> e;
@@ -1987,7 +2054,8 @@ void MonoMonoid<E, HC, SH, SO>::printM2(
 
   bool printedSome = false;
   for (VarIndex var = 0; var < varCount(); ++var) {
-    if (exponent(mono, var) == 0)
+    const Exponent& e = externalExponent(mono, var);
+    if (e == 0)
       continue;
     char letter;
     if (var < letterCount)
@@ -2000,8 +2068,8 @@ void MonoMonoid<E, HC, SH, SO>::printM2(
     }
     printedSome = true;
     out << letter;
-    if (exponent(mono, var) != 1)
-      out << static_cast<typename unchar<Exponent>::type>(exponent(mono, var));
+    if (e != 1)
+      out << static_cast<typename unchar<Exponent>::type>(e);
   }
   if (!printedSome)
     out << '1';

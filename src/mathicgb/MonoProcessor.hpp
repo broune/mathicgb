@@ -8,11 +8,10 @@
 MATHICGB_NAMESPACE_BEGIN
 
 /// Does pre- and post-processing of monomials to implement monomial
-/// orders not directly supported by the monoid. This is so far only
-/// relevant for module monomials.
+/// orders not directly supported by the monoid.
 ///
-/// todo: distinguish monomials from module monomials using two
-/// different monoids.
+/// @todo: distinguish monomials from module monomials, perhaps with
+/// two separate classes.
 template<class Monoid>
 class MonoProcessor;
 
@@ -21,11 +20,11 @@ class MonoProcessor {
 public:
   typedef M Monoid;
   typedef typename Monoid::VarIndex VarIndex;
+  typedef typename Monoid::Component Component;
   typedef typename Monoid::MonoVector MonoVector;
   typedef typename Monoid::MonoRef MonoRef;
   typedef typename Monoid::ConstMonoRef ConstMonoRef;
   typedef typename Monoid::ConstMonoPtr ConstMonoPtr;
-  typedef typename Monoid::Component Component;
 
   MonoProcessor(
     const Monoid& monoid,
@@ -37,6 +36,11 @@ public:
     mSchreyering(schreyering),
     mSchreyerMultipliersMemory(monoid)
   {}
+
+  void setComponentsAscendingDesired(bool value) {
+    mComponentsAscendingDesired = value;
+  }
+  bool componentsAscendingDesired() const {return mComponentsAscendingDesired;}
 
   void setSchreyering(bool value) {mSchreyering = true;}
   bool schreyering() const {return mSchreyering;}
@@ -69,7 +73,6 @@ public:
       mSchreyerMultipliers.emplace_back((*it).ptr());
     }
   }
-    
 
   void preprocess(MonoRef mono) const {
     if (hasSchreyerMultipliers())
@@ -96,11 +99,6 @@ public:
       componentsAscendingDesired() != monoid().componentsAscending();
   }
 
-  void setComponentsAscendingDesired(bool value) {
-    mComponentsAscendingDesired = value;
-  }
-  bool componentsAscendingDesired() const {return mComponentsAscendingDesired;}
-
   bool hasSchreyerMultipliers() const {
     return !mSchreyerMultipliers.empty();
   }
@@ -126,6 +124,7 @@ private:
     return *mSchreyerMultipliers[component];
   }
 
+  bool mOrderFromLeft;
   bool mComponentsAscendingDesired;
   Component mComponentCount;
   bool mSchreyering;
