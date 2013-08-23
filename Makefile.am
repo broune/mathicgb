@@ -67,7 +67,7 @@ libmathicgb_la_SOURCES = src/mathicgb/BjarkeGeobucket2.cpp		\
   src/mathicgb/MonoProcessor.hpp src/mathicgb/MonoOrder.hpp		\
   src/mathicgb/Scanner.hpp src/mathicgb/Scanner.cpp			\
   src/mathicgb/Unchar.hpp src/mathicgb/MathicIO.hpp			\
-  src/mathicgb/MathicIO.cpp src/mathicgb/NonCopyable.hpp
+  src/mathicgb/NonCopyable.hpp
 
 
 # The headers that libmathicgb installs.

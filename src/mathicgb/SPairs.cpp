@@ -5,6 +5,7 @@
 
 #include "SigPolyBasis.hpp"
 #include "LogDomain.hpp"
+#include "MathicIO.hpp"
 #include <iostream>
 
 MATHICGB_DEFINE_LOG_DOMAIN_WITH_DEFAULTS(
@@ -94,7 +95,8 @@ std::pair<size_t, size_t> SPairs::pop(exponent& w) {
     mEliminated.setBit(p.first, p.second, true);
     MATHICGB_IF_STREAM_LOG(SPairLcm) {
       stream << "Scheduling S-pair with lcm ";
-      bareMonoid().printM2(lcm, stream);
+      MathicIO<BareMonoid>().writeMonomial
+        (bareMonoid(), BareMonoid::HasComponent, lcm, stream);
       stream << '.' << std::endl;
     };
     return p;

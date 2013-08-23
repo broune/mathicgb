@@ -33,22 +33,11 @@ public:
   typedef typename Monoid::VarIndex VarIndex;
   typedef typename Monoid::ConstMonoRef ConstMonoRef;
   typedef typename Monoid::Order Order;
+  typedef typename Monoid::MonoVector MonoVector;
   typedef MonoProcessor<Monoid> Processor;
 
   typedef typename  Order::Gradings Gradings;
 
-/*
-  /// reads ring, #gens, each generator in turn
-  typedef std::tuple<
-    std::unique_ptr<PolyRing>,
-    std::unique_ptr<Basis>,
-    std::unique_ptr<MonoProcessor<PolyRing::Monoid>>
-  > BasisData;
-  BasisData readBasis();
-
-
-
-*/
   BaseField readBaseField(Scanner& in);
   void writeBaseField(const BaseField& field, std::ostream& out);
 
@@ -138,6 +127,37 @@ public:
     ConstMonoRef mono,
     std::ostream& out
   );
+
+  /// Reads a non-empty space-separated list of monomials. The monomials
+  /// are appended to the end of the vector.
+  void readMonomialVector(
+    const bool readComponents,
+    Scanner& in,
+    MonoVector& v
+  ) {
+    MATHICGB_ASSERT(Monoid::HasComponent || !readComponents);
+    while (true) {
+      v.push_back();
+      readMonomial(v.monoid(), readComponents, v.back(), in);
+      if (in.peek() != ' ')
+        break;
+      in.get();
+    }
+  }
+
+  void writeMonomialVector(
+    const MonoVector& v,
+    const bool writeComponent,
+    std::ostream& out
+  ) {
+    MATHICGB_ASSERT(Monoid::HasComponent || !writeComponent);
+    for (auto it = v.begin(); it != v.end(); ++it) {
+      if (it != v.begin())
+        out << ' ';
+      writeMonomial(v.monoid(), writeComponent, *it, out);
+    }
+    out << '\n';
+  }
 
   /// Read the trailing indicator of the component of a module monomial.
   void readComponent(
@@ -492,7 +512,7 @@ void MathicIO<M, BF>::readMonomial(
         in.reportError(err.str());
         return;
       }
-      if (monoid.exponent(mono, var) > static_cast<Exponent>(0)) {
+      if (monoid.externalExponent(mono, var) > static_cast<Exponent>(0)) {
         std::ostringstream err;
         err << "Variable " << static_cast<char>(letter) <<
           " must not be written twice in one monomial.";
@@ -500,9 +520,9 @@ void MathicIO<M, BF>::readMonomial(
       }
       
       if (in.peekDigit())
-        monoid.setExponent(var, in.readInteger<Exponent>(), mono);
+        monoid.setExternalExponent(var, in.readInteger<Exponent>(), mono);
       else
-        monoid.setExponent(var, static_cast<Exponent>(1), mono);
+        monoid.setExternalExponent(var, static_cast<Exponent>(1), mono);
       sawSome = true;
     }
   }
@@ -545,7 +565,8 @@ void MathicIO<M, BF>::writeMonomial(
 
   bool printedSome = false;
   for (VarIndex var = 0; var < monoid.varCount(); ++var) {
-    if (monoid.exponent(mono, var) == 0)
+    const auto e = monoid.exponent(mono, var);
+    if (e == 0)
       continue;
     char letter;
     if (var < letterCount)
@@ -558,8 +579,8 @@ void MathicIO<M, BF>::writeMonomial(
     }
     printedSome = true;
     out << letter;
-    if (monoid.exponent(mono, var) != 1)
-      out << unchar(monoid.exponent(mono, var));
+    if (e != 1)
+      out << unchar(e);
   }
   if (!printedSome)
     out << '1';

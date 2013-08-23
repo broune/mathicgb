@@ -457,7 +457,6 @@
     <ClCompile Include="..\..\..\src\mathicgb\io-util.cpp" />
     <ClCompile Include="..\..\..\src\mathicgb\LogDomain.cpp" />
     <ClCompile Include="..\..\..\src\mathicgb\LogDomainSet.cpp" />
-    <ClCompile Include="..\..\..\src\mathicgb\MathicIO.cpp" />
     <ClCompile Include="..\..\..\src\mathicgb\MonTableNaive.cpp" />
     <ClCompile Include="..\..\..\src\mathicgb\MTArray.cpp" />
     <ClCompile Include="..\..\..\src\mathicgb\PairTriangle.cpp" />

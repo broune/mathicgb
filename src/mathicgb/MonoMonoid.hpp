@@ -394,15 +394,6 @@ public:
     return MonoMonoid(monoid.makeOrder(false, false));
   }
 
-  /// The second.first value of the return pair indicates whether it
-  /// is desired that i>j => e_i > e_j. the second.second value
-  /// indicates whether to do a Schreyer order. TODO: clearly this is
-  /// a mess that needs to be cleaned up. Step 1 is to move IO out of
-  /// MonoMonoid entirely.
-  static std::pair<MonoMonoid, std::pair<bool, bool>> readMonoid(std::istream& in);
-  void printMonoid
-    (const bool componentsAscendingDesired, std::ostream& out) const;
-
   /// Returns an Order object that is equivalent to the order that
   /// this monoid was constructed with. The settings not handled by
   /// the monoid, and therefore not known by the monoid, are passed in
@@ -947,6 +938,16 @@ public:
     MATHICGB_ASSERT(debugValid(mono));
   }
 
+  /// Sets an exponent based on external/unpermtuted var.
+  /// After this, exponent(mono, internvalVar(exVar)) is newExponent.
+  void setExternalExponent(
+    const VarIndex exVar,
+    const Exponent newExponent,
+    MonoRef mono
+  ) const {
+    setExponent(internalVar(exVar), newExponent, mono);
+  }
+
   /// Sets all the exponents of mono from an external/unpermuted array.
   /// exponents must point to an array of size varCount().
   /// After this, exponent(mono, var) is exponents[externalVar(var)].
@@ -1164,27 +1165,6 @@ public:
   void freeRaw(MonoRef mono) const {mPool.freeRaw(mono);}
   bool fromPool(ConstMonoRef mono) const {mPool.fromPool(mono);}
 
-  /// Parses a monomial out of a string. Valid examples: 1 abc a2bc
-  /// aA. Variable names are case sensitive. Whitespace terminates the
-  /// parse as does any other character that is not a letter or a
-  /// digit.  The monomial must not include a coefficient, not even 1,
-  /// except for the special case of a 1 on its own. An input like 1a
-  /// will be parsed as two separate monomials. A suffix like <2> puts
-  /// the monomial in component 2, so a5<2> is a^5e_2. The default
-  /// component is 0.
-  void parseM2(std::istream& in, MonoRef mono) const;
-
-  // Inverse of parseM2().
-  void printM2(ConstMonoRef mono, std::ostream& out) const;
-
-  // As printM2, but returns a string.
-  std::string toString(ConstMonoRef mono) const {
-    std::ostringstream out;
-    printM2(mono, out);
-    return out.str();
-  }
-
-
   // *** Classes for holding and referring to monomials
 
   class ConstMonoPtr {
@@ -1390,7 +1370,7 @@ public:
     /// relevant methods to call. Implement it if you need it.
     ///
     /// There are no postfix increment operator as prefix is
-    /// better. Add it if you y need it (you probably do not).
+    /// better. Add it if you need it (you probably do not).
     ///
     /// We could make this a random access iterator, but that would
     /// make it tricky to support variable-sized exponent vectors
@@ -1535,29 +1515,6 @@ public:
     // ** Other
     size_t memoryBytesUsed() const {
       return mMonos.capacity() * sizeof(mMonos[0]);
-    }
-
-    /// As parseM2 on monoid, but accepts a non-empty space-separated
-    /// list of monomials. The monomials are appended to the end of
-    /// the vector.
-    void parseM2(std::istream& in) {
-      while(true) {
-        push_back();
-        monoid().parseM2(in, back());
-        if (in.peek() != ' ')
-          break;
-        in.get();
-      }
-    }
-
-    /// The inverse of parseM2.
-    void printM2(std::ostream& out) const {
-      for (auto it = begin(); it != end(); ++it) {
-      if (it != begin())
-        out << ' ';
-       monoid().printM2(*it, out);
-      }
-      out << '\n';
     }
 
     const MonoMonoid& monoid() const {return mMonoid;}
@@ -1875,251 +1832,6 @@ namespace MonoMonoidHelper {
   struct unchar<signed char> {typedef short type;};
   template<>
   struct unchar<unsigned char> {typedef unsigned short type;};
-}
-
-template<class E, bool HC, bool SH, bool SO>
-auto MonoMonoid<E, HC, SH, SO>::readMonoid(std::istream& in) ->
-  std::pair<MonoMonoid, std::pair<bool, bool>>
-{
-  using MonoMonoidHelper::unchar;
-  VarIndex varCount;
-  in >> varCount;
-
-  bool doSchreyer = false;
-  bool lexBaseOrder = false;
-  std::string str;
-  char c;
-  in >> c;
-  in.unget();
-  if (!std::isdigit(c)) {
-    std::string str;
-    in >> str;
-    if (str == "schreyer") {
-      doSchreyer = true;
-      in >> str;
-    }
-
-    if (str == "revlex")
-      lexBaseOrder = false;
-    else if (str == "lex")
-      lexBaseOrder = true;
-    else
-      mathic::reportError("Expected lex or revlex but read \"" + str + "\".");
-  }
-
-  VarIndex gradingCount;
-  in >> gradingCount;
-
-  Gradings gradings(static_cast<size_t>(varCount) * gradingCount);
-  bool componentsAscendingDesired = true;
-  auto componentCompareIndex = Order::ComponentAfterBaseOrder;
-  size_t w = 0;
-  for (VarIndex grading = 0; grading <  gradingCount; ++grading) {
-    char c;
-    in >> c;
-    in.unget();
-    if (!std::isdigit(c)) {
-      std::string str;
-      in >> str;
-    
-      if (str == "component")
-        componentsAscendingDesired = true;
-      else if (str == "revcomponent")
-        componentsAscendingDesired = false;
-      else
-        mathic::reportError
-          ("Expected component or revcomponent but read \"" + str + "\".");
-      if (!HasComponent)
-        mathic::reportError
-          ("Cannot specify component comparison for non-modules.");
-      if (componentCompareIndex != Order::ComponentAfterBaseOrder)
-        mathic::reportError("Component must be considered at most once.");
-      componentCompareIndex = grading;
-      w += varCount;
-    } else {
-      for (VarIndex i = 0; i < varCount; ++i, ++w) {
-        typename unchar<Exponent>::type e;
-        in >> e;
-        gradings[w] = static_cast<Exponent>(e);
-      } 
-    }
-  }
-  MATHICGB_ASSERT(w == gradings.size());
-
-  in >> c;
-  in.unget();
-  if (c == '_') {
-    in >> str;
-
-    if (str == "_revlex")
-      lexBaseOrder = false;
-    else if (str == "_lex")
-      lexBaseOrder = true;
-    else
-      mathic::reportError("Expected _lex or _revlex but read \"" + str + "\".");
-
-    in >> c;
-    in.unget();
-    if (!std::isdigit(c)) {
-      in >> str;
-      if (str == "component")
-        componentsAscendingDesired = true;
-      else if (str == "revcomponent")
-        componentsAscendingDesired = false;
-      else
-        mathic::reportError
-          ("Expected component or revcomponent but read \"" + str + "\".");
-    }
-  }
-
-  Order order(
-    varCount,
-    std::move(gradings),
-    lexBaseOrder ?
-      Order::LexBaseOrderFromRight : Order::RevLexBaseOrderFromRight,
-    componentCompareIndex
-  );
-  return std::make_pair(
-    MonoMonoid(order),
-    std::make_pair(componentsAscendingDesired, doSchreyer)
-  );
-}
-
-template<class E, bool HC, bool SH, bool SO>
-void MonoMonoid<E, HC, SH, SO>::printMonoid(
-  const bool componentsAscendingDesired,
-  std::ostream& out
-) const {
-  using MonoMonoidHelper::unchar;
-  typedef typename unchar<Exponent>::type UncharredExponent;
-
-  out << varCount() << '\n'
-      << (isLexBaseOrder() ? "lex" : "revlex")
-      << ' ' << gradingCount() << '\n';
-  MATHICGB_ASSERT(gradings().size() == gradingCount() * varCount());
-  for (VarIndex grading = 0; grading < gradingCount(); ++grading) {
-    if (
-      HasComponent &&
-      grading == gradingCount() - 1 - componentGradingIndex()
-    ) {
-      out << (componentsAscendingDesired ? " component\n" : " revcomponent\n");
-      continue;
-    }
-
-    for (VarIndex var = 0; var < varCount(); ++var) {
-      auto w = gradings()[gradingsOppositeRowIndex(grading, var)];
-      if (!isLexBaseOrder())
-        w = -w;
-      out << ' ' << static_cast<UncharredExponent>(w);
-    }
-    out << '\n';
-  }
-}
-
-template<class E, bool HC, bool SH, bool SO>
-void MonoMonoid<E, HC, SH, SO>::parseM2(std::istream& in, MonoRef mono) const {
-  using MonoMonoidHelper::unchar;
-  // todo: signal error on exponent overflow
-
-  setIdentity(mono);
-
-  bool sawSome = false;
-  while (true) {
-    const char next = in.peek();
-    if (!sawSome && next == '1') {
-      in.get();
-      break;
-    }
-
-    VarIndex var;
-    const auto letterCount = 'z' - 'a' + 1;
-    if ('a' <= next && next <= 'z')
-      var = next - 'a';
-    else if ('A' <= next && next <= 'Z')
-      var = (next - 'A') + letterCount;
-    else if (sawSome)
-      break;
-    else {
-      mathic::reportError("Could not parse monomial.");
-      return;
-    }
-    MATHICGB_ASSERT(var < 2 * letterCount);
-    if (var >= varCount()) {
-      mathic::reportError("Unknown variable.");
-      return;
-    }
-
-    in.get();
-    auto& exponent = access(mono, exponentsIndexBegin() + externalVar(var));
-    if (isdigit(in.peek())) {
-      typename unchar<Exponent>::type e;
-      in >> e;
-      exponent = static_cast<Exponent>(e);
-    } else
-      exponent = 1;
-    sawSome = true;
-  }
-
-  if (in.peek() == '<') {
-    if (!HasComponent) {
-      mathic::reportError("Read unexpected < for start of module component\n");
-      return;
-    }
-
-    in.get();
-    if (!isdigit(in.peek())) {
-      mathic::reportError("Component was not integer.");
-      return;
-    }
-    typename unchar<Exponent>::type e;
-    in >> e;
-    access(mono, componentIndex()) = static_cast<Exponent>(e);
-    if (in.peek() != '>') {
-      mathic::reportError("Component < was not matched by >.");
-      return;
-    }
-    in.get();
-  }
-
-  setOrderData(mono);
-  setHash(mono);
-  MATHICGB_ASSERT(debugValid(mono));
-}
-
-template<class E, bool HC, bool SH, bool SO>
-void MonoMonoid<E, HC, SH, SO>::printM2(
-  ConstMonoRef mono,
-  std::ostream& out
-) const {
-  using MonoMonoidHelper::unchar;
-  const auto letterCount = 'z' - 'a' + 1;
-
-  bool printedSome = false;
-  for (VarIndex var = 0; var < varCount(); ++var) {
-    const Exponent& e = externalExponent(mono, var);
-    if (e == 0)
-      continue;
-    char letter;
-    if (var < letterCount)
-      letter = 'a' + static_cast<char>(var);
-    else if (var < 2 * letterCount)
-      letter = 'A' + (static_cast<char>(var) - letterCount);
-    else {
-      mathic::reportError("Too few letters in alphabet to print variable.");
-      return;
-    }
-    printedSome = true;
-    out << letter;
-    if (e != 1)
-      out << static_cast<typename unchar<Exponent>::type>(e);
-  }
-  if (!printedSome)
-    out << '1';
-  if (HasComponent && component(mono) != 0) {
-    out << '<'
-        << static_cast<typename unchar<Exponent>::type>(component(mono))
-        << '>';
-  }
 }
 
 MATHICGB_NAMESPACE_END

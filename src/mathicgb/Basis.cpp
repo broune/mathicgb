@@ -30,14 +30,4 @@ void Basis::sort() {
   std::sort(mGenerators.begin(), mGenerators.end(), cmp);
 }
 
-void Basis::display(std::ostream& out, bool printComponent, bool componentIncreasingDesired) const
-{
-  mRing.write(out, componentIncreasingDesired);
-  out << '\n' << mGenerators.size() << '\n';
-  for (size_t i = 0; i < mGenerators.size(); ++i) {
-    mGenerators[i]->display(out, printComponent);
-    out << '\n';
-  }
-}
-
 MATHICGB_NAMESPACE_END

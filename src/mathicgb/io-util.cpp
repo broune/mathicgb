@@ -46,10 +46,11 @@ std::unique_ptr<Basis> basisParseFromString(std::string str)
   return make_unique<Basis>(MathicIO<>().readBasis(ring, false, in));
 }
 
-std::unique_ptr<PolyRing> ringFromString(std::string ringinfo)
+std::unique_ptr<PolyRing> ringFromString(std::string ringStr)
 {
-  std::stringstream ifil(ringinfo);
-  return std::unique_ptr<PolyRing>(PolyRing::read(ifil).first);
+  std::stringstream inStream(ringStr);
+  Scanner in(inStream);
+  return MathicIO<>().readRing(true, in).first;
 }
 
 Monomial stringToMonomial(const PolyRing *R, std::string mon)

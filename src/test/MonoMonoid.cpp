@@ -315,25 +315,29 @@ TYPED_TEST(Monoids, MonoPool) {
 
 namespace {
   template<class M>
-  typename M::MonoVector parseVector(M& monoid, const char* str) {
+  typename M::MonoVector parseVector(
+    M& monoid,
+    const char* str,
+    const bool readComponent
+  ) {
     typename M::MonoVector v(monoid);
-    std::istringstream in(str);
-    v.parseM2(in);
+    Scanner in(str);
+    MathicIO<M>().readMonomialVector(readComponent, in, v);
     return v;
   }
 }
 
-TYPED_TEST(Monoids, ParsePrintM2) {
+
+TYPED_TEST(Monoids, setExponentAndComponent) {
   typedef TypeParam Monoid;
   Monoid m(100);
-  std::string str = "1 a z A Z ab a2 a2b ab2 a20b30";
-  if (Monoid::HasComponent)
-    str += " 1<1> a<2> a2<3> ab<11>\n";
-  else
-    str += '\n';
-  auto v2 = parseVector(m, str.c_str());
+  const std::string str = Monoid::HasComponent ?
+    "1<0> a<0> z<0> A<0> Z<0> ab<0> a2<0> a2b<0> ab2<0> "
+      "a20b30<0> 1<1> a<2> a2<3> ab<11>\n" :
+    "1 a z A Z ab a2 a2b ab2 a20b30\n";
+  auto v2 = parseVector(m, str.c_str(), Monoid::HasComponent);
   std::ostringstream v2Out;
-  v2.printM2(v2Out);
+  MathicIO<Monoid>().writeMonomialVector(v2, Monoid::HasComponent, v2Out);
   ASSERT_EQ(str, v2Out.str());
 
   decltype(v2) v(m);
@@ -389,12 +393,11 @@ TYPED_TEST(Monoids, ParsePrintM2) {
   }
 
   std::ostringstream vOut;
-  v.printM2(vOut);
+  MathicIO<Monoid>().writeMonomialVector(v, Monoid::HasComponent, vOut);
   ASSERT_EQ(str, vOut.str());
-  
+
   ASSERT_EQ(v, v2);
 }
-
 
 TYPED_TEST(Monoids, MultiplyDivide) {
   typedef TypeParam Monoid;
@@ -404,7 +407,7 @@ TYPED_TEST(Monoids, MultiplyDivide) {
   auto check = [&](const char* const str, const bool component) -> void {
     if (component && !Monoid::HasComponent)
       return;
-    auto v = parseVector(m, str);
+    auto v = parseVector(m, str, component);
     MATHICGB_ASSERT(v.size() == 3);
     const auto& a = v.front();
     const auto& b = *++v.begin();
@@ -510,13 +513,14 @@ TYPED_TEST(Monoids, MultiplyDivide) {
     ASSERT_TRUE(m.equal(mono, a));
   };
   check("1 1 1", false);
-  check("a<5> 1 a<5>", true);
+  check("a<5> 1<0> a<5>", true);
   check("1 Vx Vx", false);
   check("aV bx abxV", false);
   check("a a2 a3", false);
-  check("V<2> V2 V3<2>", true);
+  check("V<2> V2<0> V3<2>", true);
   check("arlgh svug arlg2hsvu", false);
-  check("abcdefghiV<7> ab2c3d4e5f6g7h8i9V11 a2b3c4d5e6f7g8h9i10V12<7>", true);
+  check
+    ("abcdefghiV<7> ab2c3d4e5f6g7h8i9V11<0> a2b3c4d5e6f7g8h9i10V12<7>", true);
 }
 
 TYPED_TEST(Monoids, LcmColon) {
@@ -529,7 +533,7 @@ TYPED_TEST(Monoids, LcmColon) {
   auto check = [&](const char* const str, const bool component) -> void {
     if (component && !Monoid::HasComponent)
       return;
-    auto v = parseVector(m, str);
+    auto v = parseVector(m, str, component);
     MATHICGB_ASSERT(v.size() == 3);
     const auto& a = v.front();
     const auto& b = *++v.begin();
@@ -594,12 +598,18 @@ TYPED_TEST(Monoids, Order) {
   typedef TypeParam Monoid;
   typedef typename Monoid::Order Order;
   typedef typename Monoid::Exponent Exponent;
+  typedef typename Monoid::ConstMonoRef ConstMonoRef;
 
   auto check = [](
     const Monoid& m,
     const char* const sorted
   ) -> void {
-    auto v = parseVector(m, sorted);
+    auto toStr = [&](ConstMonoRef mono) {
+      std::ostringstream out;
+      MathicIO<Monoid>().writeMonomial(m, false, mono, out);
+      return out.str();
+    };
+    auto v = parseVector(m, sorted, false);
     for (auto greater = v.begin(); greater != v.end(); ++greater) {
       ASSERT_EQ(m.compare(*greater, *greater), Monoid::EqualTo);
       ASSERT_TRUE(m.equal(*greater, *greater));
@@ -608,8 +618,9 @@ TYPED_TEST(Monoids, Order) {
       for (auto lesser = v.begin(); lesser != greater; ++lesser) {
         ASSERT_FALSE(m.equal(*lesser, *greater));
         ASSERT_TRUE(m.lessThan(*lesser, *greater))
-          << "*lesser  is " << m.toString(*lesser) << '\n'
-          << "*greater is " << m.toString(*greater) << '\n';
+          << "String   = " << sorted << '\n'
+          << "*lesser  = " << toStr(*lesser) << '\n'
+          << "*greater = " << toStr(*greater) << '\n';
         ASSERT_FALSE(m.lessThan(*greater, *lesser));
         ASSERT_EQ(m.compare(*lesser, *greater), Monoid::LessThan);
         ASSERT_EQ(m.compare(*greater, *lesser), Monoid::GreaterThan);
@@ -721,7 +732,7 @@ TYPED_TEST(Monoids, RelativelyPrime) {
   auto mono = pool.alloc();
   auto mono2 = pool.alloc();
   auto check = [&](const char* str, bool relativelyPrime) -> void {
-    auto v = parseVector(m, str);
+    auto v = parseVector(m, str, false);
     MATHICGB_ASSERT(v.size() == 2);
     ASSERT_EQ(relativelyPrime, m.relativelyPrime(v.front(), v.back()));
     ASSERT_EQ(relativelyPrime, m.relativelyPrime(v.back(), v.front()));

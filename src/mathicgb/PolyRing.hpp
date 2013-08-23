@@ -217,16 +217,9 @@ public:
   coefficient charac() const { return mField.charac(); }
   size_t getNumVars() const { return varCount();}
   size_t varCount() const {return monoid().varCount();}
-  //       const std::vector<int> &degs,
-  //       const std::string &monorder);
 
-  static std::pair<PolyRing*, std::pair<bool, bool>> read(std::istream &i);
-  void write(std::ostream &o, bool componentIncreasingDesired) const;
-  // Format for ring
-  //   <char> <mNumVars> <deg1> ... <deg_n> <monorder>
-
-  //  Allocate a monomial from an arena A
-  //  This monomial may only be freed if no other elements that were allocated
+  // Allocate a monomial from an arena A.
+  // This monomial may only be freed if no other elements that were allocated
   // later are live on A.  In this case, use freeMonomial(A,m) to free 'm'.
   Monomial allocMonomial(memt::Arena &A) const {
     exponent* ptr = static_cast<exponent*>(A.alloc(maxMonomialByteSize()));
@@ -304,13 +297,6 @@ public:
   bool coefficientIsZero(coefficient a) const { return a == 0; }
   bool coefficientIsOne(coefficient a) const { return a == 1; }
   bool coefficientEQ(coefficient a, coefficient b) const { return a == b; }
-
-  // Format for monomials might be changeable, but for now, let us just do
-  // array of ints:
-  //  -comp exp0 exp1 ... exp(mNumVars-1) -wtr ... -wt1
-  // However when written and read from a file the format will be:
-  //  nterms comp v1 e1 ... v_nterms e_nterms
-  // with each e_i nonzero, and v_1 > v_2 > ... > v_nterms
 
   size_t maxMonomialByteSize() const { return maxMonomialSize() * sizeof(exponent); }
 

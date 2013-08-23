@@ -43,15 +43,6 @@ a2c2d-b2d3 \
 c3d3-b2d4 \
 ";
 
-TEST(PolyRing, read) {
-  std::stringstream o;
-  std::string ringinfo = "32003 6\n1 1 1 1 1 1";
-  std::unique_ptr<PolyRing> R(ringFromString(ringinfo));
-  R->write(o, true);
-
-  EXPECT_EQ("32003 6\nrevlex 1\n 1 1 1 1 1 1\n", o.str());
-}
-
 TEST(Poly,readwrite) {
   std::string f1 = "14ce2<72>+13adf<16>";
   std::unique_ptr<PolyRing> R(ringFromString("32003 6 1\n1 1 1 1 1 1"));

@@ -24,13 +24,6 @@ public:
 
   void insert(std::unique_ptr<Poly>&& p);
 
-  /// inverse operation to parse().
-  void display(
-    std::ostream &o,
-    bool print_comp,
-    bool componentIncreasingDesired
-  ) const;
-
   const PolyRing& ring() const { return mRing; }
 
   const PolyRing *getPolyRing() const { return &mRing; }

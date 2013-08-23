@@ -231,20 +231,4 @@ void PolyRing::printMonomialFrobbyM2Format(std::ostream& out, ConstMonomial m) c
     out << '1';
 }
 
-std::pair<PolyRing*, std::pair<bool, bool>> PolyRing::read(std::istream &i)
-{
-  int64 characInt;
-  coefficient charac;
-  i >> characInt;
-  charac = static_cast<exponent>(characInt);
-  auto p = Monoid::readMonoid(i);
-  return std::make_pair(new PolyRing(charac, std::move(p.first)), p.second);
-}
-
-void PolyRing::write(std::ostream &o, bool componentIncreasingDesired) const
-{
-  o << charac() << ' ';
-  monoid().printMonoid(componentIncreasingDesired, o);
-}
-
 MATHICGB_NAMESPACE_END
