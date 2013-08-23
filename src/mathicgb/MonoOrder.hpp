@@ -39,24 +39,6 @@ public:
     RevLexBaseOrderFromLeft = 3
   };
 
-  /// Same as MonoOrder(varCount, varOrder, gradings, componentBefore)
-  /// where gradings has a single row of varCount 1's.
-  MonoOrder(
-    const VarIndex varCount,
-    const BaseOrder baseOrder = RevLexBaseOrderFromRight,
-    const size_t componentBefore = ComponentAfterBaseOrder,
-    const bool componentsAscendingDesired = true,
-    const bool schreyering = true
-  ):
-    mVarCount(varCount),
-    mGradings
-      (addComponentGrading(Gradings(varCount, 1), varCount, componentBefore)),
-    mBaseOrder(baseOrder),
-    mComponentGradingIndex(componentBefore),
-    mComponentsAscendingDesired(componentsAscendingDesired),
-    mSchreyering(schreyering)
-  {}
-
   /// The specified base order is graded by the gradings matrix.
   ///
   /// The layout of the gradings matrix is row-major. For comparisons,
@@ -75,20 +57,7 @@ public:
   /// - 1. If componentBefore == gradingCount(), then the component is
   /// considered after all gradings and before the base order. If
   /// componentBefore = ComponentAfterBaseOrder then the component is
-  /// considered after everything else.
-  ///
-  /// The ordering represented by this object will be equivalent to
-  /// the specified order, but it may be encoded differently. For
-  /// example, if varCount == 0, then all orders are equivalent so all
-  /// the other parameters are ignored and the encoding will be chosen
-  /// to be the minimal-overhead one: ungraded lex with component
-  /// considered last (do not depend on this particular choice - it
-  /// may change). Therefore, you cannot count on any setting of this
-  /// order to match what you passed in as a parameter.
-  ///
-  /// If the ordering you hav specified is not a monomial order, then
-  /// the only guarantee in terms of encoding is that isMonomialOrder
-  /// will return false.
+  /// considered after everything else, including afte the base order.
   MonoOrder(
     const VarIndex varCount,
     Gradings&& gradings,
@@ -100,23 +69,35 @@ public:
     mVarCount(varCount),
     mGradings(std::move(gradings)),
     mBaseOrder(baseOrder),
-    mComponentGradingIndex(componentBefore),
+    mComponentBefore(componentBefore),
     mComponentsAscendingDesired(componentsAscendingDesired),
     mSchreyering(schreyering)
   {
-#ifdef MATHCGB_DEBUG
-    // todo: fix this, it isn't checking the right row of the matrix
-    if (componentBefore != ComponentAfterBaseOrder) {
-      for (VarIndex var = 0; var < varCount(); ++var) {
-        MATHICGB_ASSERT(mGradings[var] == 0);
-      }
-    }
-#endif
+    MATHICGB_ASSERT(debugAssertValid());
+  }
+
+  /// Same as MonoOrder(varCount, varOrder, gradings, componentBefore)
+  /// where gradings has a single row of varCount 1's.
+  MonoOrder(
+    const VarIndex varCount,
+    const BaseOrder baseOrder = RevLexBaseOrderFromRight,
+    const size_t componentBefore = ComponentAfterBaseOrder,
+    const bool componentsAscendingDesired = true,
+    const bool schreyering = true
+  ):
+    mVarCount(varCount),
+    mGradings(varCount, 1),
+    mBaseOrder(baseOrder),
+    mComponentBefore(componentBefore),
+    mComponentsAscendingDesired(componentsAscendingDesired),
+    mSchreyering(schreyering)
+  {
+    MATHICGB_ASSERT(debugAssertValid());
   }
 
   VarIndex varCount() const {return mVarCount;}
 
-  VarIndex componentGradingIndex() const {return mComponentGradingIndex;}
+  VarIndex componentBefore() const {return mComponentBefore;}
 
   /// Returns the number of rows in the grading vector.
   size_t gradingCount() const {
@@ -159,20 +140,19 @@ public:
     for (VarIndex var = 0; var < varCount(); ++var) {
       // Check that x_var > 1.
       for (size_t grading = 0; ; ++grading) {
-        if (grading == gradingCount) {
+        if (grading == gradingCount()) {
           // The column was entirely zero, so x_var > 1 if and only if the
           // base ordering is lex.
           if (!hasLexBaseOrder())
             return false;
           break;
         }
-        const auto index = grading * gradingCount() + var;
+        const auto index = grading * varCount() + var;
         MATHICGB_ASSERT(index < mGradings.size());
-        const auto weight = mGradings[index];
-        if (weight != 0) {
+        if (mGradings[index] != 0) {
           // We have found the first non-zero weight in this column,
           // so x_var > 1 if and only if this weight is positive.
-          if (weight < 0)
+          if (mGradings[index] < 0)
             return false;
           break;
         }
@@ -185,27 +165,12 @@ public:
   bool schreyering() const {return mSchreyering;}
 
 private:
-  static Gradings addComponentGrading(
-    Gradings&& gradings,
-    const VarIndex varCount,
-    const VarIndex componentBefore
-  ) {
-    if (componentBefore == ComponentAfterBaseOrder)
-      return std::move(gradings);
-    MATHICGB_ASSERT(componentBefore <= varCount);
-    gradings.resize(gradings.size() + varCount);
-    const auto newRow = gradings.begin() + varCount * componentBefore;
-    std::copy_n(newRow, varCount, newRow + varCount);
-    std::fill_n(newRow, varCount, static_cast<Weight>(0));
-    return std::move(gradings);
-  }
-
   bool debugAssertValid() {
 #ifdef MATHICGB_DEBUG
     MATHICGB_ASSERT(mGradings.size() == gradingCount() * varCount());
     MATHICGB_ASSERT(
-      mComponentGradingIndex == ComponentAfterBaseOrder ||
-      mComponentGradingIndex < gradingCount()
+      mComponentBefore == ComponentAfterBaseOrder ||
+      mComponentBefore <= gradingCount()
     );
     MATHICGB_ASSERT(
       mBaseOrder == LexBaseOrderFromLeft ||
@@ -213,11 +178,6 @@ private:
       mBaseOrder == LexBaseOrderFromRight ||
       mBaseOrder == RevLexBaseOrderFromRight 
     );
-    if (varCount() == 0) {
-      MATHICGB_ASSERT(mGradings.empty());
-      MATHICGB_ASSERT(baseOrder() == RevLexBaseOrderFromRight());
-      MATHICGB_ASSERT(mComponentGradingIndex == ComponentAfterBaseOrder);
-    }
 #endif
     return true;
   }
@@ -226,7 +186,7 @@ private:
 
   const Gradings mGradings;
   const BaseOrder mBaseOrder;
-  const size_t mComponentGradingIndex;
+  const size_t mComponentBefore;
   const bool mSchreyering;
   const bool mComponentsAscendingDesired;
 };

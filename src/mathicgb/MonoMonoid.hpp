@@ -47,21 +47,29 @@ namespace MonoMonoidInternal {
 
     Base(const Order& order):
       mVarCount(order.varCount()),
-      mGradingCount(order.gradingCount()),
+      mGradingCount(
+        order.gradingCount() +
+          (order.componentBefore() != Order::ComponentAfterBaseOrder)
+      ),
       mOrderIndexBegin(HasComponent + order.varCount()),
-      mOrderIndexEnd(mOrderIndexBegin + StoreOrder * order.gradingCount()),
+      mOrderIndexEnd(mOrderIndexBegin + StoreOrder * mGradingCount),
       mEntryCount(std::max<VarIndex>(mOrderIndexEnd + StoreHash, 1)),
       mHashCoefficients(makeHashCoefficients(order.varCount())),
-      mOrderIsTotalDegreeRevLex
-        (!order.hasLexBaseOrder() && order.isTotalDegree()),
+      mOrderIsTotalDegreeRevLex(
+        !order.hasLexBaseOrder() &&
+        order.isTotalDegree() &&
+        order.componentBefore() == Order::ComponentAfterBaseOrder
+      ),
       mLexBaseOrder(order.hasLexBaseOrder()),
       mGradings(makeGradings(order)),
       mComponentGradingIndex(
-        reverseComponentGradingIndex
-          (order.gradingCount(), order.componentGradingIndex())
+        reverseComponentGradingIndex(mGradingCount, order.componentBefore())
       ),
       mVarsReversed(order.hasFromLeftBaseOrder())
-    {}
+    {
+      MATHICGB_ASSERT(order.isMonomialOrder());
+      MATHICGB_ASSERT(mGradings.size() == gradingCount() * varCount());
+    }
 
     VarIndex varCount() const {return mVarCount;}
     VarIndex gradingCount() const {return mGradingCount;}
@@ -79,6 +87,8 @@ namespace MonoMonoidInternal {
 
     static Gradings makeGradings(const Order& order) {
       auto gradings = order.gradings();
+      if (order.componentBefore() != Order::ComponentAfterBaseOrder)
+        insertZeroRow(order.varCount(), order.componentBefore(), gradings);
       reverseGradings(order.varCount(), gradings);
       if (order.hasFromLeftBaseOrder())
         reverseVarsInGradings(order.varCount(), gradings);
@@ -111,6 +121,35 @@ namespace MonoMonoidInternal {
       const auto size = gradings.size();
       for (size_t i = 0; i < size; ++i)
         gradings[i] = -gradings[i];
+    }
+
+    static void insertZeroRow(
+      const VarIndex varCount,
+      const size_t insertBeforeRow,
+      Gradings& gradings
+    ) {
+      if (varCount == 0)
+        return;
+      MATHICGB_ASSERT(gradings.size() % varCount == 0);
+      MATHICGB_ASSERT(insertBeforeRow <= gradings.size() / varCount);
+      gradings.resize(gradings.size() + varCount);
+      const auto rowBegin = gradings.begin() + insertBeforeRow * varCount;
+      std::copy_backward(rowBegin, gradings.end() - varCount, gradings.end());
+      std::fill_n(rowBegin, varCount, 0);
+    }
+
+    static void removeZeroRow(
+      const VarIndex varCount,
+      const size_t row,
+      Gradings& gradings
+    ) {
+      if (varCount == 0)
+        return;
+      MATHICGB_ASSERT(gradings.size() % varCount == 0);
+      MATHICGB_ASSERT(row < gradings.size() / varCount);
+      const auto rowBegin = gradings.begin() + row * varCount;
+      std::copy(rowBegin + varCount, gradings.end(), rowBegin);
+      gradings.resize(gradings.size() - varCount);
     }
 
     /// Replace each row (e_0, e_1, ..., e_n) with (e_n, ..., e_1, e_0).
@@ -377,13 +416,16 @@ public:
     reverseGradings(varCount(), orderGradings);
     if (!isLexBaseOrder())
       negateGradings(orderGradings);
+    const auto componentIndex = Base::reverseComponentGradingIndex
+      (gradingCount(), componentGradingIndex());
+    if (componentIndex != Order::ComponentAfterBaseOrder)
+      removeZeroRow(varCount(), componentIndex, orderGradings);
     return Order(
       varCount(),
       std::move(orderGradings),
       isLexBaseOrder() ?
         Order::LexBaseOrderFromRight : Order::RevLexBaseOrderFromRight,
-      Base::reverseComponentGradingIndex
-        (gradingCount(), componentGradingIndex()),
+      componentIndex,
       componentsAscendingDesired,
       schreyering
     );

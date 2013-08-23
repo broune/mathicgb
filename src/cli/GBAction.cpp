@@ -61,9 +61,9 @@ void GBAction::performAction() {
     mic::reportError("Could not read input file \"" + inputBasisFile + '\n');
 
   Scanner in(inputFile);
-  auto p = MathicIO().readRing(true, in);
+  auto p = MathicIO<>().readRing(true, in);
   auto& ring = *p.first;
-  auto basis = MathicIO().readBasis(ring, false, in);
+  auto basis = MathicIO<>().readBasis(ring, false, in);
 
   // run algorithm
   const auto reducerType = Reducer::reducerType(mGBParams.mReducer.value());

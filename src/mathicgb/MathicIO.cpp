@@ -4,16 +4,22 @@
 #include "MathicIO.hpp"
 
 MATHICGB_NAMESPACE_BEGIN
-
-auto MathicIO::readBaseField(Scanner& in) -> BaseField {
+  /*
+template<class M, class BF>
+auto MathicIO<M, BF>::readBaseField(Scanner& in) -> BaseField {
   return BaseField(in.readInteger<RawCoefficient>());
 }
 
-void MathicIO::writeBaseField(const BaseField& field, std::ostream& out) {
+template<class M, class BF>
+void MathicIO<M, BF>::writeBaseField(
+  const BaseField& field,
+  std::ostream& out
+) {
   out << field.charac();
 }
 
-auto MathicIO::readRing(
+template<class M, class BF>
+auto MathicIO<M, BF>::readRing(
   const bool withComponent,
   Scanner& in
 ) -> std::pair<std::unique_ptr<PolyRing>, Processor> {
@@ -34,7 +40,8 @@ auto MathicIO::readRing(
   return std::make_pair(std::move(ring), std::move(processor));
 }
 
-void MathicIO::writeRing(
+template<class M, class BF>
+void MathicIO<M, BF>::writeRing(
   const PolyRing& ring,
   const Processor& processor,
   const bool withComponent,
@@ -50,7 +57,8 @@ void MathicIO::writeRing(
   writeOrder(order, withComponent, out);
 }
 
-auto MathicIO::readOrder(
+template<class M, class BF>
+auto MathicIO<M, BF>::readOrder(
   const VarIndex varCount,
   const bool withComponent,
   Scanner& in
@@ -58,7 +66,7 @@ auto MathicIO::readOrder(
   const bool schreyering = in.match("schreyer");
   bool lexBaseOrder = !in.match("revlex") && in.match("lex");
 
-  const auto gradingCount = in.readInteger<VarIndex>();
+  auto gradingCount = in.readInteger<VarIndex>();
   bool componentsAscendingDesired = true;
   auto componentCompareIndex = Order::ComponentAfterBaseOrder;
   Gradings gradings(static_cast<size_t>(varCount) * gradingCount);
@@ -105,7 +113,8 @@ auto MathicIO::readOrder(
   return std::move(order);
 }
 
-void MathicIO::writeOrder(
+template<class M, class BF>
+void MathicIO<M, BF>::writeOrder(
   const Order& order,
   const bool withComponent,
   std::ostream& out
@@ -140,7 +149,8 @@ void MathicIO::writeOrder(
   }
 }
 
-Basis MathicIO::readBasis(
+template<class M, class BF>
+Basis MathicIO<M, BF>::readBasis(
   const PolyRing& ring,
   const bool readComponent,
   Scanner& in
@@ -155,7 +165,8 @@ Basis MathicIO::readBasis(
   return std::move(basis);
 }
 
-void MathicIO::writeBasis(
+template<class M, class BF>
+void MathicIO<M, BF>::writeBasis(
   const Basis& basis,
   const bool writeComponent,
   std::ostream& out
@@ -168,7 +179,8 @@ void MathicIO::writeBasis(
   }
 }
 
-Poly MathicIO::readPoly(
+template<class M, class BF>
+Poly MathicIO<M, BF>::readPoly(
   const PolyRing& ring,
   const bool readComponent,
   Scanner& in
@@ -191,7 +203,8 @@ Poly MathicIO::readPoly(
   return std::move(p);
 }
 
-void MathicIO::writePoly(
+template<class M, class BF>
+void MathicIO<M, BF>::writePoly(
   const Poly& poly,
   const bool writeComponent,
   std::ostream& out
@@ -215,7 +228,8 @@ void MathicIO::writePoly(
   }
 }
 
-void MathicIO::readTerm(
+template<class M, class BF>
+void MathicIO<M, BF>::readTerm(
   const PolyRing& ring,
   const bool readComponent,
   Coefficient& coef,
@@ -244,7 +258,8 @@ void MathicIO::readTerm(
   readMonomial(monoid, readComponent, mono, in);
 }
 
-void MathicIO::writeTerm(
+template<class M, class BF>
+void MathicIO<M, BF>::writeTerm(
   const PolyRing& ring,
   const bool writeComponent,
   const Coefficient coef,
@@ -262,7 +277,8 @@ void MathicIO::writeTerm(
   writeMonomial(ring.monoid(), writeComponent, mono, out);
 }
 
-void MathicIO::readMonomial(
+template<class M, class BF>
+void MathicIO<M, BF>::readMonomial(
   const Monoid& monoid,
   const bool readComponent,
   MonoRef mono,
@@ -328,7 +344,8 @@ void MathicIO::readMonomial(
     this->readComponent(monoid, mono, in);
 }
 
-void MathicIO::readComponent(
+template<class M, class BF>
+void MathicIO<M, BF>::readComponent(
   const Monoid& monoid,
   MonoRef mono,
   Scanner& in
@@ -339,7 +356,8 @@ void MathicIO::readComponent(
   in.expect('>');
 }
 
-void MathicIO::writeComponent(
+template<class M, class BF>
+void MathicIO<M, BF>::writeComponent(
   const Monoid& monoid,
   ConstMonoRef mono,
   std::ostream& out
@@ -349,7 +367,8 @@ void MathicIO::writeComponent(
 }
 
 /// Print a monomial with no coefficient.
-void MathicIO::writeMonomial(
+template<class M, class BF>
+void MathicIO<M, BF>::writeMonomial(
   const Monoid& monoid,
   const bool writeComponent,
   ConstMonoRef mono,
@@ -380,5 +399,5 @@ void MathicIO::writeMonomial(
   if (writeComponent)
     this->writeComponent(monoid, mono, out);
 }
-
+*/
 MATHICGB_NAMESPACE_END

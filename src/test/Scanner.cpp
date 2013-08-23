@@ -58,7 +58,7 @@ TEST(Scanner, ExpectTwoChars) {
 }
 
 TEST(Scanner, ExpectString) {
-  Scanner in{std::string(alphaSpaced)};
+  Scanner in(alphaSpaced);
   const auto size = sizeof(alphas) / sizeof(*alphas);
   for (size_t i = 0; i < size; ++i) {
     if (i % 2 == 0)
@@ -69,7 +69,7 @@ TEST(Scanner, ExpectString) {
 }
 
 TEST(Scanner, MatchString) {
-  Scanner in{std::string(alphaSpaced)};
+  Scanner in(alphaSpaced);
   const auto size = sizeof(alphas) / sizeof(*alphas);
   for (size_t i = 0; i < size; ++i) {
     ASSERT_FALSE(in.match("ef"));

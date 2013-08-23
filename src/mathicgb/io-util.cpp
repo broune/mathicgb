@@ -41,9 +41,9 @@ std::unique_ptr<Basis> basisParseFromString(std::string str)
 {
   std::istringstream inStream(str);
   Scanner in(inStream);
-  auto p = MathicIO().readRing(true, in);
+  auto p = MathicIO<>().readRing(true, in);
   auto& ring = *p.first.release(); // todo: fix leak
-  return make_unique<Basis>(MathicIO().readBasis(ring, false, in));
+  return make_unique<Basis>(MathicIO<>().readBasis(ring, false, in));
 }
 
 std::unique_ptr<PolyRing> ringFromString(std::string ringinfo)

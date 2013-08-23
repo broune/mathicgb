@@ -52,10 +52,10 @@ void SigGBAction::performAction() {
 
 
   Scanner in(inputFile);
-  auto p = MathicIO().readRing(true, in);
+  auto p = MathicIO<>().readRing(true, in);
   auto& ring = *p.first;
   auto& processor = p.second;
-  auto basis = MathicIO().readBasis(ring, false, in);
+  auto basis = MathicIO<>().readBasis(ring, false, in);
   if (processor.schreyering())
     processor.setSchreyerMultipliers(basis);
 

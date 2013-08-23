@@ -293,10 +293,10 @@ spairQueue	reducerType	divLookup	monTable	buchberger	postponeKoszul	useBaseDivis
     std::istringstream inStream(idealStr);
 
     Scanner in(inStream);
-    auto p = MathicIO().readRing(true, in);
+    auto p = MathicIO<>().readRing(true, in);
     auto& ring = *p.first;
     auto& processor = p.second;
-    auto basis = MathicIO().readBasis(ring, false, in);
+    auto basis = MathicIO<>().readBasis(ring, false, in);
     if (processor.schreyering())
       processor.setSchreyerMultipliers(basis);
 

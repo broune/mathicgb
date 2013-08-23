@@ -18,9 +18,9 @@ TEST(MathicIO, Combined) {
     " -bc2+a2e\n";
   std::istringstream inStream(str);
   Scanner in(inStream);
-  auto p = MathicIO().readRing(true, in);
+  auto p = MathicIO<>().readRing(true, in);
   auto& ring = *p.first;
-  auto basis = MathicIO().readBasis(ring, false, in);
+  auto basis = MathicIO<>().readBasis(ring, false, in);
 }
 
 TEST(MathicIO, ReadWriteRing) {
@@ -43,14 +43,14 @@ TEST(MathicIO, ReadWriteRing) {
       if (str == 0)
         continue;
       Scanner in(str);
-      const auto p = MathicIO().readRing(withComponent, in);
+      const auto p = MathicIO<>().readRing(withComponent, in);
       const auto& monoid = p.first->monoid();
       const auto& field = p.first->field();
       ASSERT_EQ(charac, field.charac());
       ASSERT_EQ(varCount, monoid.varCount());
       ASSERT_EQ(gradingCount, monoid.gradingCount());
       std::ostringstream out;
-      MathicIO().writeRing(*p.first, p.second, withComponent, out);
+      MathicIO<>().writeRing(*p.first, p.second, withComponent, out);
       ASSERT_EQ(outStr, out.str());
     }
   };
@@ -79,18 +79,18 @@ TEST(MathicIO, ReadWriteMonomial) {
   auto check = [&](
     const char* const str,
     const Exponent component,
-    const VarIndex var1 = -1,
-    const Exponent exp1 = -1,
-    const VarIndex var2 = -1,
-    const Exponent exp2 = -1,
-    const char* const canonicalStr = 0
+    const VarIndex var1,
+    const Exponent exp1,
+    const VarIndex var2,
+    const Exponent exp2,
+    const char* const canonicalStr
   ) {
     const bool doComponent = component != NoComponent;
 
     // read monomial from string
     auto monoRead = m.alloc();
     Scanner in(str);
-    MathicIO().readMonomial(m, doComponent, monoRead, in);
+    MathicIO<>().readMonomial(m, doComponent, monoRead, in);
 
     // directly make monomial
     auto monoSet = m.alloc();
@@ -104,25 +104,25 @@ TEST(MathicIO, ReadWriteMonomial) {
 
     // print monomial
     std::ostringstream out;
-    MathicIO().writeMonomial(m, doComponent, monoRead, out);
+    MathicIO<>().writeMonomial(m, doComponent, monoRead, out);
     const auto correctStr = canonicalStr == 0 ? str : canonicalStr;
     ASSERT_EQ(correctStr, out.str());
   };
 
-  check("1", NoComponent);
-  check("1<0>", 0);
-  check("1<1>", 1);
-  check("1<999>", 999);
+  check("1", NoComponent,  -1,-1,  -1,-1,  0);
+  check("1<0>", 0,  -1,-1,  -1,-1,  0);
+  check("1<1>", 1,  -1,-1,  -1,-1,  0);
+  check("1<999>", 999,  -1,-1,  -1,-1,  0);
 
   check("a1", NoComponent,  0,1,  -1,-1,  "a");
-  check("b10<0>", 0,   1,10);
-  check("A11", NoComponent,  26,11);
-  check("B99<1>", 1,   27,99);
+  check("b10<0>", 0,  1,10,  -1,-1,  0);
+  check("A11", NoComponent,  26,11, -1,-1,  0);
+  check("B99<1>", 1,   27,99,  -1,-1,  0);
 
-  check("ab", NoComponent,  0,1,  1,1);
+  check("ab", NoComponent,  0,1,  1,1,  0);
   check("ba", NoComponent,  0,1,  1,1,  "ab");
   check("a0c3b1", NoComponent,  1,1,  2,3,  "bc3");
-  check("ab<2>", 2,  0,1,  1,1);
+  check("ab<2>", 2,  0,1,  1,1,  0);
 }
 
 TEST(MathicIO, ReadWriteBasis) {
@@ -141,9 +141,9 @@ TEST(MathicIO, ReadWriteBasis) {
         continue;
 
       Scanner in(str);
-      const auto basis = MathicIO().readBasis(ring, doComponent, in);
+      const auto basis = MathicIO<>().readBasis(ring, doComponent, in);
       std::ostringstream out;
-      MathicIO().writeBasis(basis, doComponent, out);
+      MathicIO<>().writeBasis(basis, doComponent, out);
       const auto correctStr = outStr == 0 ? inStr : outStr;
       ASSERT_EQ(correctStr, out.str());
     }
@@ -175,9 +175,9 @@ TEST(MathicIO, ReadWritePoly) {
         continue;
 
       Scanner in(str);
-      const auto poly = MathicIO().readPoly(ring, doComponent, in);
+      const auto poly = MathicIO<>().readPoly(ring, doComponent, in);
       std::ostringstream out;
-      MathicIO().writePoly(poly, doComponent, out);
+      MathicIO<>().writePoly(poly, doComponent, out);
       const auto correctStr = outStr == 0 ? inStr : outStr;
       ASSERT_EQ(correctStr, out.str());
     }
@@ -224,13 +224,13 @@ TEST(MathicIO, ReadWriteTerm) {
       auto monoRead = m.alloc();
       Coefficient readCoef = f.zero();
       Scanner in(str);
-      MathicIO().readTerm(ring, doComponent, readCoef, monoRead, in);
+      MathicIO<>().readTerm(ring, doComponent, readCoef, monoRead, in);
       
       ASSERT_EQ(coef, readCoef.value());
 
       // print monomial
       std::ostringstream out;
-      MathicIO().writeTerm(ring, doComponent, readCoef, monoRead, out);
+      MathicIO<>().writeTerm(ring, doComponent, readCoef, monoRead, out);
       const auto correctStr = outStr == 0 ? inStr : outStr;
       ASSERT_EQ(correctStr, out.str());
     }
@@ -254,10 +254,10 @@ TEST(MathicIO, ReadWriteTerm) {
 
 TEST(MathicIO, ReadWriteBaseField) {
   Scanner in("101");
-  auto field = MathicIO().readBaseField(in);
+  auto field = MathicIO<>().readBaseField(in);
   ASSERT_EQ(101, field.charac());
   std::ostringstream out;
-  MathicIO().writeBaseField(field, out);
+  MathicIO<>().writeBaseField(field, out);
   ASSERT_EQ("101", out.str());
 }
 
@@ -270,9 +270,9 @@ TEST(MathicIO, ReadWriteOrder) {
     const char* const outStr,
     const VarIndex varCount,
     const VarIndex gradingCount,
-    const bool withComponent = false,
-    const bool componentsAscendingDesired = true,
-    const bool schreyering = false
+    const bool withComponent,
+    const bool componentsAscendingDesired,
+    const bool schreyering
   ) -> void {
     for (int i = 0; i < 2; ++i) {
       const char* str = i == 0 ? inStr : outStr;
@@ -280,34 +280,34 @@ TEST(MathicIO, ReadWriteOrder) {
         continue;
 
       Scanner in(str);
-      const auto order = MathicIO().readOrder(varCount, withComponent, in);
+      const auto order = MathicIO<>().readOrder(varCount, withComponent, in);
       ASSERT_EQ(varCount, order.varCount());
-      ASSERT_EQ(gradingCount, order.gradingCount());
+      ASSERT_EQ(gradingCount, order.gradingCount()) << inStr;
       ASSERT_EQ(componentsAscendingDesired, order.componentsAscendingDesired());
       ASSERT_EQ(schreyering, order.schreyering()) << inStr;
 
       std::ostringstream out;
-      MathicIO().writeOrder(order, withComponent, out);
+      MathicIO<>().writeOrder(order, withComponent, out);
       ASSERT_EQ(outStr, out.str());
     }
   };
-  check("0\n", "revlex 0\n", 0, 0);
-  check("1\n 2\n", "revlex 1\n 2\n", 1, 1);
-  check("2\n 3\n 4\n", "revlex 2\n 3\n 4\n", 1, 2);
-  check("2\n 3 4\n 5 6\n", "revlex 2\n 3 4\n 5 6\n", 2, 2);
-  check("1\n 1 1 1 1\n", "revlex 1\n 1 1 1 1\n", 4, 1);
+  check("0\n", "revlex 0\n", 0, 0,  0,1,0);
+  check("1\n 2\n", "revlex 1\n 2\n", 1, 1,  0,1,0);
+  check("2\n 3\n 4\n", "revlex 2\n 3\n 4\n", 1, 2,  0,1,0);
+  check("2\n 3 4\n 5 6\n", "revlex 2\n 3 4\n 5 6\n", 2, 2,  0,1,0);
+  check("1\n 1 1 1 1\n", "revlex 1\n 1 1 1 1\n", 4, 1,  0,1,0);
 
-  check("lex 0", "lex 0\n", 0, 0);
-  check("lex 1 2", "lex 1\n 2\n", 1, 1);
-  check("lex 2 3 4", "lex 2\n 3\n 4\n", 1, 2);
-  check("lex 2 3 4 5 6", "lex 2\n 3 4\n 5 6\n", 2, 2);
-  check("lex 1 1 1 1 1", "lex 1\n 1 1 1 1\n", 4, 1);
+  check("lex 0", "lex 0\n", 0, 0,  0,1,0);
+  check("lex 1 2", "lex 1\n 2\n", 1, 1,  0,1,0);
+  check("lex 2 3 4", "lex 2\n 3\n 4\n", 1, 2,  0,1,0);
+  check("lex 2 3 4 5 6", "lex 2\n 3 4\n 5 6\n", 2, 2,  0,1,0);
+  check("lex 1 1 1 1 1", "lex 1\n 1 1 1 1\n", 4, 1,  0,1,0);
 
-  check("2 component\n 5 6\n", "revlex 2\n component\n 5 6\n", 2, 2, 1, 1, 0);
-  check("2 3 4\nrevcomponent\n","revlex 2\n 3 4\n revcomponent\n",2,2, 1,0,0);
-  check("lex 1 component", "lex 0\n", 0, 0,  1, 1, 0);
-  check("lex 1 revcomponent", "lex 1\n revcomponent\n", 1, 1, 1, 0, 0);
-  check("lex 1 revcomponent", "lex 1\n revcomponent\n", 5, 1, 1, 0, 0);
+  check("2 component\n 5 6\n", "revlex 2\n component\n 5 6\n", 2, 1, 1, 1, 0);
+  check("2 3 4\nrevcomponent\n","revlex 2\n 3 4\n revcomponent\n",2, 1, 1,0,0);
+  check("lex 1 component", "lex 1\n component\n", 0, 0,  1, 1, 0);
+  check("lex 1 revcomponent", "lex 1\n revcomponent\n", 1, 0, 1, 0, 0);
+  check("lex 1 revcomponent", "lex 1\n revcomponent\n", 5, 0, 1, 0, 0);
 
   check(
     "schreyer lex 1 1 _revlex revcomponent",

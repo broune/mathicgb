@@ -3,6 +3,7 @@
 #include "mathicgb/stdinc.h"
 #include "mathicgb/MonoMonoid.hpp"
 
+#include "mathicgb/MathicIO.hpp"
 #include <gtest/gtest.h>
 #include <sstream>
 
@@ -25,8 +26,8 @@ typedef ::testing::Types<
 > MonoidTypes;
 
 template <typename T>
-class Monoid : public ::testing::Test {};
-TYPED_TEST_CASE(Monoid, MonoidTypes);
+class Monoids : public ::testing::Test {};
+TYPED_TEST_CASE(Monoids, MonoidTypes);
 
 // expect(i,j) encodes a matrix with interesting bit patterns that
 // are supposed to be likely to surface errors in how monomials are
@@ -81,7 +82,7 @@ uint32 expect(size_t mono, size_t var, size_t varCount) {
   }
 };
 
-TYPED_TEST(Monoid, VarCount) {
+TYPED_TEST(Monoids, VarCount) {
   typedef TypeParam Monoid;
   ASSERT_EQ(0, Monoid(0).varCount());
   ASSERT_EQ(1000 * 1000, Monoid(1000 * 1000).varCount());
@@ -90,7 +91,7 @@ TYPED_TEST(Monoid, VarCount) {
   ASSERT_EQ(12, Monoid(12).varCount());
 }
 
-TYPED_TEST(Monoid, MonoVector) {
+TYPED_TEST(Monoids, MonoVector) {
   typedef TypeParam Monoid;
   typedef typename Monoid::VarIndex VarIndex;
   typedef typename Monoid::MonoVector MonoVector;
@@ -194,7 +195,7 @@ TYPED_TEST(Monoid, MonoVector) {
   ASSERT_TRUE(v.empty());
 }
 
-TYPED_TEST(Monoid, ReadWriteMonoid) {
+TYPED_TEST(Monoids, ReadWriteMonoid) {
   typedef TypeParam Monoid;
   typedef typename Monoid::VarIndex VarIndex;
 
@@ -209,15 +210,22 @@ TYPED_TEST(Monoid, ReadWriteMonoid) {
       if (str == 0)
         continue;
 
-      std::istringstream in(str);
-      const auto p = Monoid::readMonoid(in);
-      const auto& m = p.first;
-
+      std::istringstream inStream(str);
+      Scanner in(inStream);
+      const auto order = MathicIO<Monoid>().
+        readOrderWithVarCount(Monoid::HasComponent, in);
+      const Monoid monoid(order);
+      const auto constructedOrder =
+        monoid.makeOrder
+          (order.componentsAscendingDesired(), order.schreyering());
       std::ostringstream out;
-      m.printMonoid(p.second.first, out);
+      MathicIO<Monoid>().writeOrderWithVarCount
+        (constructedOrder, Monoid::HasComponent, out);
       ASSERT_EQ(outStr, out.str());
-      ASSERT_EQ(varCount, m.varCount());
-      ASSERT_EQ(gradingCount, m.gradingCount());
+      ASSERT_EQ(varCount, order.varCount());
+      ASSERT_EQ(varCount, monoid.varCount());
+      ASSERT_EQ(varCount, constructedOrder.varCount());
+      ASSERT_EQ(gradingCount, monoid.gradingCount());
     }
   };
   check("0 0\n", "0\nrevlex 0\n", 0, 0);
@@ -236,13 +244,13 @@ TYPED_TEST(Monoid, ReadWriteMonoid) {
     check("2 2\n component\n 5 6\n", "2\nrevlex 2\n component\n 5 6\n", 2, 2);
     check
       ("2 2\n 3 4\n revcomponent\n","2\nrevlex 2\n 3 4\n revcomponent\n", 2, 2);
-    check("0 lex 1 component", "0\nlex 0\n", 0, 0);
+    check("0 lex 1 component", "0\nlex 1\n component\n", 0, 1);
     check("1 lex 1 revcomponent", "1\nlex 1\n revcomponent\n", 1, 1);
     check("5 lex 1 revcomponent", "5\nlex 1\n revcomponent\n", 5, 1);
   }
 }
 
-TYPED_TEST(Monoid, MonoPool) {
+TYPED_TEST(Monoids, MonoPool) {
   typedef TypeParam Monoid;
   typedef typename Monoid::VarIndex VarIndex;
   typedef typename Monoid::Mono Mono;
@@ -315,7 +323,7 @@ namespace {
   }
 }
 
-TYPED_TEST(Monoid, ParsePrintM2) {
+TYPED_TEST(Monoids, ParsePrintM2) {
   typedef TypeParam Monoid;
   Monoid m(100);
   std::string str = "1 a z A Z ab a2 a2b ab2 a20b30";
@@ -388,7 +396,7 @@ TYPED_TEST(Monoid, ParsePrintM2) {
 }
 
 
-TYPED_TEST(Monoid, MultiplyDivide) {
+TYPED_TEST(Monoids, MultiplyDivide) {
   typedef TypeParam Monoid;
   Monoid m(49);
   typename Monoid::MonoPool pool(m);
@@ -511,7 +519,7 @@ TYPED_TEST(Monoid, MultiplyDivide) {
   check("abcdefghiV<7> ab2c3d4e5f6g7h8i9V11 a2b3c4d5e6f7g8h9i10V12<7>", true);
 }
 
-TYPED_TEST(Monoid, LcmColon) {
+TYPED_TEST(Monoids, LcmColon) {
   typedef TypeParam Monoid;
   Monoid mNonConst(49);
   auto& m = mNonConst;
@@ -582,7 +590,7 @@ TYPED_TEST(Monoid, LcmColon) {
   check("a6b7c8d9efghiV ab2c3d4e5f6g7h8i9V11 a6b7c8d9e5f6g7h8i9V11", false);
 }
 
-TYPED_TEST(Monoid, Order) {
+TYPED_TEST(Monoids, Order) {
   typedef TypeParam Monoid;
   typedef typename Monoid::Order Order;
   typedef typename Monoid::Exponent Exponent;
@@ -706,7 +714,7 @@ TYPED_TEST(Monoid, Order) {
   );
 }
 
-TYPED_TEST(Monoid, RelativelyPrime) {
+TYPED_TEST(Monoids, RelativelyPrime) {
   typedef TypeParam Monoid;
   Monoid m(49);
   typename Monoid::MonoPool pool(m);
@@ -727,7 +735,7 @@ TYPED_TEST(Monoid, RelativelyPrime) {
   check("fgh abcdef", false);
 }
 
-TYPED_TEST(Monoid, SetExponents) {
+TYPED_TEST(Monoids, SetExponents) {
   typedef TypeParam Monoid;
   typedef typename Monoid::VarIndex VarIndex;
   typedef typename Monoid::MonoVector MonoVector;
@@ -741,7 +749,7 @@ TYPED_TEST(Monoid, SetExponents) {
   }
 }
 
-TYPED_TEST(Monoid, HasAmpleCapacityTotalDegree) {
+TYPED_TEST(Monoids, HasAmpleCapacityTotalDegree) {
   typedef TypeParam Monoid;
   typedef typename Monoid::Order Order;
   typedef typename Monoid::Exponent Exponent;
@@ -804,7 +812,7 @@ TYPED_TEST(Monoid, HasAmpleCapacityTotalDegree) {
   }
 }
 
-TYPED_TEST(Monoid, CopyEqualConversion) {
+TYPED_TEST(Monoids, CopyEqualConversion) {
   typedef TypeParam Monoid;
   typedef typename Monoid::Order Order;
   typedef typename Monoid::Exponent Exponent;
