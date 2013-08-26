@@ -457,7 +457,6 @@
     <ClCompile Include="..\..\..\src\mathicgb\io-util.cpp" />
     <ClCompile Include="..\..\..\src\mathicgb\LogDomain.cpp" />
     <ClCompile Include="..\..\..\src\mathicgb\LogDomainSet.cpp" />
-    <ClCompile Include="..\..\..\src\mathicgb\MonTableNaive.cpp" />
     <ClCompile Include="..\..\..\src\mathicgb\MTArray.cpp" />
     <ClCompile Include="..\..\..\src\mathicgb\PairTriangle.cpp" />
     <ClCompile Include="..\..\..\src\mathicgb\Poly.cpp" />
@@ -512,7 +511,6 @@
     <ClInclude Include="..\..\..\src\mathicgb\MonoProcessor.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\MonTableDivList.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\MonTableKDTree.hpp" />
-    <ClInclude Include="..\..\..\src\mathicgb\MonTableNaive.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\MTArray.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\mtbb.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\NonCopyable.hpp" />

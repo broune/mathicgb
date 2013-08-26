@@ -3,7 +3,6 @@
 #include "stdinc.h"
 #include "MTArray.hpp"
 
-#include "MonTableNaive.hpp"
 #include "MonTableKDTree.hpp"
 #include "MonTableDivList.hpp"
 
@@ -208,7 +207,6 @@ int MonomialTableArray::displayMTTypes(std::ostream &o)
  // returns n s.t. 0..n-1 are valid types
 {
   o << "Monomial table types:" << std::endl;
-  o << "  0   naive" << std::endl;
   o << "  1   divlist+divmask" << std::endl;
   o << "  2   kdtree+divmask" << std::endl;
   o << "  3   divlist" << std::endl;
@@ -219,9 +217,6 @@ int MonomialTableArray::displayMTTypes(std::ostream &o)
 std::unique_ptr<MonomialTableArray> MonomialTableArray::make(const PolyRing *R, int typ, size_t components, bool allowRemovals)
 {
   switch (typ) {
-    case 0:
-      return make_unique<MTArrayT<MonTableNaive>>(components, R);
-
     case 1: {
       typedef MonTableDivList<false,true> MT;
       return make_unique<MTArrayT<MT>>(components, MT::Configuration
