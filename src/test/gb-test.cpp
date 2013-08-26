@@ -5,7 +5,6 @@
 #include "mathicgb/Poly.hpp"
 #include "mathicgb/Basis.hpp"
 #include "mathicgb/MTArray.hpp"
-#include "mathicgb/MonTableNaive.hpp"
 #include "mathicgb/io-util.hpp"
 #include "mathicgb/PolyHeap.hpp"
 #include "mathicgb/SigPolyBasis.hpp"

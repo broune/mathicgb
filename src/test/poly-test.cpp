@@ -4,7 +4,6 @@
 #include "mathicgb/Poly.hpp"
 
 #include "mathicgb/Basis.hpp"
-#include "mathicgb/MonTableNaive.hpp"
 #include "mathicgb/MonTableKDTree.hpp"
 #include "mathicgb/MonTableDivList.hpp"
 #include "mathicgb/MTArray.hpp"
@@ -503,32 +502,6 @@ TEST(Coeff, addone) {
       EXPECT_EQ(a,a1);
     }
 }
-
-TEST(MTArray,Naive1) {
-  // We create a table here
-  size_t not_used = 0;
-  std::unique_ptr<PolyRing> R(ringFromString("32003 6 1\n1 1 1 1 1 1"));
-  std::unique_ptr<MonomialTableArray> M(MonomialTableArray::make(R.get(), 1, 6, false));
-  std::string mons[2] = {
-    "abc<1>",
-    "a2d<1>"
-  };
-  for (int i=0; i<2; i++)
-    {
-      monomial m = monomialParseFromString(R.get(), mons[i]);
-      M->insert(m,0);
-    }
-  //  M.display(std::cout);
-
-  // Now we test membership
-  EXPECT_TRUE(M->member(monomialParseFromString(R.get(), "abc4d<1>"),not_used));
-  EXPECT_TRUE(M->member(monomialParseFromString(R.get(), "a2d2<1>"),not_used));
-  EXPECT_TRUE(M->member(monomialParseFromString(R.get(), "abc<1>"),not_used));
-  EXPECT_TRUE(M->member(monomialParseFromString(R.get(), "a2d<1>"),not_used));
-  EXPECT_FALSE(M->member(monomialParseFromString(R.get(), "a2d<2>"),not_used));
-  EXPECT_FALSE(M->member(monomialParseFromString(R.get(), "ad<1>"),not_used));
-}
-
 
 TEST(MTArray,DivList1) {
   // We create a table here
