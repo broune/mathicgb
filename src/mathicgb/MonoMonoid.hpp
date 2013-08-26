@@ -410,7 +410,7 @@ public:
     const auto componentIndex = Base::reverseComponentGradingIndex
       (gradingCount(), componentGradingIndex());
     if (componentIndex != Order::ComponentAfterBaseOrder)
-      removeZeroRow(varCount(), componentIndex, orderGradings);
+      Base::removeZeroRow(varCount(), componentIndex, orderGradings);
     return Order(
       varCount(),
       std::move(orderGradings),
