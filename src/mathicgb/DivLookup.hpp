@@ -154,6 +154,15 @@ public:
 
   DivLookup(const Configuration& c): mLookup(c) {}
 
+  DivLookup(
+    const Monoid& monoid,
+    int type,
+    bool preferSparseReducers
+  ):
+    mLookup(Configuration(monoid, type, preferSparseReducers))
+  {}
+
+
   virtual void setBasis(const PolyBasis& basis) {
     mLookup.getConfiguration().setBasis(basis);
   }
@@ -172,9 +181,46 @@ public:
   private:
     Lambda& mLambda;
   };
+
   template<class Lambda>
   static LambdaWrap<Lambda> lambdaWrap(Lambda& lambda) {
     return LambdaWrap<Lambda>(lambda);
+  }
+
+  // *** Signature specific functionality
+
+  virtual size_t regularReducer(ConstMonoRef sig, ConstMonoRef mono) const {
+    const auto& conf = mLookup.getConfiguration();
+    SigPolyBasis::StoredRatioCmp ratioCmp
+      (Monoid::toOld(sig), Monoid::toOld(mono), conf.sigBasis());
+    const auto& basis = conf.basis();
+    const bool preferSparse = conf.preferSparseReducers();
+
+    auto reducer = size_t(-1);
+    auto proceed = [&](const Entry& e) {
+      if (ratioCmp.compare(e.index) != GT)
+        return true;
+
+      if (reducer != size_t(-1)) {
+        if (preferSparse) {
+          const auto newTermCount = basis.poly(e.index).nTerms();
+          const auto oldTermCount = basis.poly(reducer).nTerms();
+          if (newTermCount > oldTermCount)
+            return true; // what we already have is sparser
+          // resolve ties by picking oldest
+          if (newTermCount == oldTermCount && e.index > reducer)
+            return true;
+        } else { // pick oldest
+          if (e.index > reducer)
+            return true; // what we already have is older
+        }
+      }
+      reducer = e.index;
+      return true;
+    };
+    auto wrap = lambdaWrap(proceed);
+    mLookup.findAllDivisors(mono, wrap);
+    return reducer;
   }
 
   virtual void lowBaseDivisors(
@@ -284,6 +330,8 @@ public:
     return minLeadGen;
   }
 
+  // *** Classic GB specific functionality
+
   virtual size_t classicReducer(ConstMonoRef mono) const {
     const auto& basis = mLookup.getConfiguration().basis();
     const auto preferSparse =
@@ -314,6 +362,8 @@ public:
     mLookup.findAllDivisors(mono, wrap);
     return reducer;
   }
+
+  // *** General functionality
 
   virtual size_t divisor(ConstMonoRef mono) const {
     const Entry* entry = mLookup.findDivisor(mono);
@@ -349,40 +399,6 @@ public:
 
   virtual void insert(ConstMonoRef mono, size_t value) {
     mLookup.insert(Entry(mono, value));
-  }
-
-  virtual size_t regularReducer(ConstMonoRef sig, ConstMonoRef mono) const {
-    const auto& conf = mLookup.getConfiguration();
-    SigPolyBasis::StoredRatioCmp ratioCmp
-      (Monoid::toOld(sig), Monoid::toOld(mono), conf.sigBasis());
-    const auto& basis = conf.basis();
-    const bool preferSparse = conf.preferSparseReducers();
-
-    auto reducer = size_t(-1);
-    auto proceed = [&](const Entry& e) {
-      if (ratioCmp.compare(e.index) != GT)
-        return true;
-
-      if (reducer != size_t(-1)) {
-        if (preferSparse) {
-          const auto newTermCount = basis.poly(e.index).nTerms();
-          const auto oldTermCount = basis.poly(reducer).nTerms();
-          if (newTermCount > oldTermCount)
-            return true; // what we already have is sparser
-          // resolve ties by picking oldest
-          if (newTermCount == oldTermCount && e.index > reducer)
-            return true;
-        } else { // pick oldest
-          if (e.index > reducer)
-            return true; // what we already have is older
-        }
-      }
-      reducer = e.index;
-      return true;
-    };
-    auto wrap = lambdaWrap(proceed);
-    mLookup.findAllDivisors(mono, wrap);
-    return reducer;
   }
 
 private:

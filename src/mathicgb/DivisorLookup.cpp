@@ -10,72 +10,78 @@
 MATHICGB_NAMESPACE_BEGIN
 
 namespace {
-  class DivListFactory : public DivisorLookup::Factory {
-  public:
-    DivListFactory(const PolyRing& ring, bool useDivMask): mRing(ring), mUseDivMask(useDivMask) {}
-    virtual std::unique_ptr<DivisorLookup> create(
-      bool preferSparseReducers,
-      bool allowRemovals
-    ) const {
-      if (mUseDivMask)
-        return createIt<true>(preferSparseReducers);
+  template<
+    template<class> class BaseLookup,
+    bool AllowRemovals,
+    bool UseDivMask
+  >
+  std::unique_ptr<DivisorLookup> create(
+    const DivisorLookup::Monoid& monoid,
+    int type,
+    bool preferSparseReducers
+  ) {
+    typedef DivLookupConfiguration<AllowRemovals, UseDivMask> Configuration;
+    auto p = new DivLookup<BaseLookup<Configuration>>
+      (monoid, type, preferSparseReducers);
+    return std::unique_ptr<DivisorLookup>(p);
+  }
+
+  std::unique_ptr<DivisorLookup> createGeneral(
+    const DivisorLookup::Monoid& monoid,
+    int type,
+    bool preferSparseReducers,
+    bool allowRemovals
+  ) {
+    const bool sparse = preferSparseReducers;
+    switch (type) {
+    case 1:
+      if (allowRemovals)
+        return create<mathic::DivList, true, true>(monoid, type, sparse);
       else
-        return createIt<false>(preferSparseReducers);
+        return create<mathic::DivList, false, true>(monoid, type, sparse);
+
+    case 2:
+      if (allowRemovals)
+        return create<mathic::KDTree, true, true>(monoid, type, sparse);
+      else
+        return create<mathic::KDTree, false, true>(monoid, type, sparse);
+
+    case 3:
+      if (allowRemovals)
+        return create<mathic::DivList, true, false>(monoid, type, sparse);
+      else
+        return create<mathic::DivList, false, false>(monoid, type, sparse);
+
+    case 4:
+      if (allowRemovals)
+        return create<mathic::KDTree, true, false>(monoid, type, sparse);
+      else
+        return create<mathic::KDTree, false, false>(monoid, type, sparse);
+
+    default:
+      MATHICGB_ASSERT_NO_ASSUME(false);
+      throw std::runtime_error("Unknown code for monomial data structure");
     }
+  }
 
-  private:
-    template<bool UseDivMask>
-    std::unique_ptr<DivisorLookup> createIt(bool preferSparseReducers) const {
-      typedef DivLookupConfiguration<true, UseDivMask> Configuration;
-      bool useDM = UseDivMask;
-      Configuration configuration(
-        mRing.monoid(),
-        (useDM ? 1 : 3),
-        preferSparseReducers);
-      return std::unique_ptr<DivisorLookup>
-        (new DivLookup<mathic::DivList<Configuration> >(configuration));
-    }
-
-    const PolyRing& mRing;
-    bool mUseDivMask;
-  };
-
-  class KDTreeFactory : public DivisorLookup::Factory {
+  class ConcreteFactory : public DivisorLookup::Factory {
   public:
-    KDTreeFactory(const PolyRing& ring, bool useDivMask): mRing(ring), mUseDivMask(useDivMask) {}
+    ConcreteFactory(const Monoid& monoid, int type): 
+      mMonoid(monoid),
+      mType(type)
+    {}
+
     virtual std::unique_ptr<DivisorLookup> create(
       bool preferSparseReducers,
       bool allowRemovals
     ) const {
-      if (allowRemovals) {
-        if (mUseDivMask)
-          return createAllowRemovals<true,true>(preferSparseReducers);
-        else
-          return createAllowRemovals<true,false>(preferSparseReducers);
-      } else {
-        if (mUseDivMask)
-          return createAllowRemovals<false,true>(preferSparseReducers);
-        else
-          return createAllowRemovals<false,false>(preferSparseReducers);
-      }
+      return createGeneral
+        (mMonoid, mType, preferSparseReducers, allowRemovals);
     }
 
   private:
-    template<bool AllowRemovals, bool UseDivMask>
-    std::unique_ptr<DivisorLookup> createAllowRemovals(
-      bool preferSparseReducers
-    ) const {
-      typedef DivLookupConfiguration<AllowRemovals, UseDivMask> Configuration;
-      bool useDM = UseDivMask;
-      Configuration configuration(
-        mRing.monoid(),
-        (useDM ? 2 : 4),
-        preferSparseReducers);
-      return std::unique_ptr<DivisorLookup>
-        (new DivLookup<mathic::KDTree<Configuration> >(configuration));
-    }
-    const PolyRing& mRing;
-    bool mUseDivMask;
+    const Monoid& mMonoid;
+    const int mType;
   };
 }
 
@@ -83,18 +89,7 @@ std::unique_ptr<DivisorLookup::Factory> DivisorLookup::makeFactory(
   const PolyRing& ring,
   int type
 ) {
-  if (type == 1)
-    return std::unique_ptr<Factory>(new DivListFactory(ring, true));
-  else if (type == 2)
-    return std::unique_ptr<Factory>(new KDTreeFactory(ring, true));
-  if (type == 3)
-    return std::unique_ptr<Factory>(new DivListFactory(ring, false));
-  else if (type == 4)
-    return std::unique_ptr<Factory>(new KDTreeFactory(ring, false));
-  else if (type == 0)
-    throw std::runtime_error("Divisor lookup 0 (DivisorLookupGB) disabled.");
-  else
-    throw std::runtime_error("Unknown divisor lookup code.");
+  return std::unique_ptr<Factory>(new ConcreteFactory(ring.monoid(), type));
 }
 
 void DivisorLookup::displayDivisorLookupTypes(std::ostream &o)
