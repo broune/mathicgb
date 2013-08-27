@@ -236,16 +236,83 @@ public:
   }
 
   virtual size_t minimalLeadInSig(ConstMonoRef sig) const {
-    MinimalLeadInSig searchObject(mLookup.getConfiguration().sigBasis());
-    mLookup.findAllDivisors(sig, searchObject);
-    return searchObject.minLeadGen();
+    // Given signature sig, we want to minimize (S/G)g where
+    // g and G are the lead term and signature taken over basis elements
+    // whose signature G divide S. The code here instead maximizes G/g,
+    // which is equivalent and also faster since the basis has a data
+    // structure to accelerate comparisons between the ratio of
+    // signature to lead term.
+    //
+    // In case of ties, we select the sparser elements. If there is
+    // still a tie, we select the basis element with the largest
+    // signature. There can be no further ties since all basis
+    // elements have distinct signatures.
+    const auto& basis = mLookup.getConfiguration().sigBasis();
+
+    auto minLeadGen = size_t(-1);
+    auto proceed = [&](const Entry& entry) {
+      if (minLeadGen != size_t(-1)) {
+        const int ratioCmp = basis.ratioCompare(entry.index, minLeadGen);
+        if (ratioCmp == LT)
+          return true;
+        if (ratioCmp == EQ) {
+          // If same lead monomial in signature, pick the one with fewer terms
+          // as that one might be less effort to reduce.
+          const size_t minTerms = basis.poly(minLeadGen).nTerms();
+          const size_t terms = basis.poly(entry.index).nTerms();
+          if (minTerms > terms)
+            return true;
+          if (minTerms == terms) {
+            // If same number of terms, pick the one with larger signature
+            // before being multiplied into the same signature. That one
+            // might be more reduced as the constraint on regular reduction
+            // is less. Also, as no two generators have same signature, this
+            // ensures deterministic behavior.
+            const auto minSig = basis.getSignature(minLeadGen);
+            const auto genSig = basis.getSignature(entry.index);
+            const auto sigCmp = basis.monoid().compare(minSig, genSig);
+            if (basis.monoid().lessThan(genSig, minSig))
+              return true;
+          }
+        }
+      }
+      minLeadGen = entry.index;
+      return true;
+    };
+    auto wrap = lambdaWrap(proceed);
+    mLookup.findAllDivisors(sig, wrap);
+    return minLeadGen;
   }
 
   virtual size_t classicReducer(ConstMonoRef mono) const {
-    const auto& conf = mLookup.getConfiguration();
-    ClassicReducer searchObject(conf.basis(), conf.preferSparseReducers());
-    mLookup.findAllDivisors(mono, searchObject);
-    return searchObject.reducer();
+    const auto& basis = mLookup.getConfiguration().basis();
+    const auto preferSparse =
+      mLookup.getConfiguration().preferSparseReducers();
+
+    auto reducer = size_t(-1);
+    auto proceed = [&](const Entry& entry) {
+      if (reducer == size_t(-1)) {
+        reducer = entry.index;
+        return true;
+      }
+      if (preferSparse) {
+        const auto oldTermCount = basis.poly(reducer).nTerms();
+        const auto newTermCount = basis.poly(entry.index).nTerms();
+        if (oldTermCount > newTermCount) {
+          reducer = entry.index; // prefer sparser
+          return true;
+        }
+        if (oldTermCount < newTermCount)
+          return true;
+      } // break ties by age
+
+      if (reducer > entry.index)
+        reducer = entry.index; // prefer older
+      return true;
+    };
+    auto wrap = lambdaWrap(proceed);
+    mLookup.findAllDivisors(mono, wrap);
+    return reducer;
   }
 
   virtual size_t divisor(ConstMonoRef mono) const {
@@ -254,13 +321,15 @@ public:
   }
 
   virtual void divisors(ConstMonoRef mono, EntryOutput& consumer) const {
-    PassOn out(consumer);
-    mLookup.findAllDivisors(mono, out);
+    auto proceed = [&](const Entry& e) {return consumer.proceed(e.index);};
+    auto wrap = lambdaWrap(proceed);
+    mLookup.findAllDivisors(mono, wrap);
   }
 
   virtual void multiples(ConstMonoRef mono, EntryOutput& consumer) const {
-    PassOn out(consumer);
-    mLookup.findAllMultiples(mono, out);
+    auto proceed = [&](const Entry& e) {return consumer.proceed(e.index);};
+    auto wrap = lambdaWrap(proceed);
+    mLookup.findAllMultiples(mono, wrap);
   }
 
   virtual void removeMultiples(ConstMonoRef mono) {
@@ -278,174 +347,42 @@ public:
 
   size_t getMemoryUse() const {return mLookup.getMemoryUse();}
 
-private:
-  // Class used in multiples() and divisors()
-  struct PassOn {
-  public:
-    PassOn(EntryOutput& out): mOut(out) {}
-    bool proceed(const Entry& entry) {
-      return mOut.proceed(entry.index);
-    }
-  private:
-    EntryOutput& mOut;
-  };
-
-  // Class used in minimalLeadInSig()
-  class MinimalLeadInSig {
-  public:
-    MinimalLeadInSig(const SigPolyBasis& basis):
-      mSigBasis(basis),
-      mMinLeadGen(static_cast<size_t>(-1)) {}
-
-    bool proceed(const Entry& entry) {
-      // Given signature sig, we want to minimize (S/G)g where
-      // g and G are the lead term and signature taken over basis elements
-      // whose signature G divide S. The code here instead maximizes G/g,
-      // which is equivalent and also faster since the basis has a data
-      // structure to accelerate comparisons between the ratio of
-      // signature to lead term.
-      //
-      // In case of ties, we select the sparser elements. If there is
-      // still a tie, we select the basis element with the largest
-      // signature. There can be no further ties since all basis
-      // elements have distinct signatures.
-
-      if (mMinLeadGen != static_cast<size_t>(-1)) {
-        const int ratioCmp = mSigBasis.ratioCompare(entry.index, mMinLeadGen);
-        if (ratioCmp == LT)
-          return true;
-        if (ratioCmp == EQ) {
-          // If same lead monomial in signature, pick the one with fewer terms
-          // as that one might be less effort to reduce.
-          const size_t minTerms = mSigBasis.poly(mMinLeadGen).nTerms();
-          const size_t terms = mSigBasis.poly(entry.index).nTerms();
-          if (minTerms > terms)
-            return true;
-          if (minTerms == terms) {
-            // If same number of terms, pick the one with larger signature
-            // before being multiplied into the same signature. That one
-            // might be more reduced as the constraint on regular reduction
-            // is less. Also, as no two generators have same signature, this
-            // ensures deterministic behavior.
-            const auto minSig = mSigBasis.getSignature(mMinLeadGen);
-            const auto genSig = mSigBasis.getSignature(entry.index);
-            int sigCmp = mSigBasis.monoid().compare(minSig, genSig);
-            MATHICGB_ASSERT(sigCmp != EQ); // no two generators have same signature
-            if (sigCmp == GT)
-              return true;
-          }
-        }
-      }
-      mMinLeadGen = entry.index;
-      return true;
-    }
-
-    size_t minLeadGen() const {return mMinLeadGen;}
-  private:
-    const SigPolyBasis& mSigBasis;
-    size_t mMinLeadGen;
-  };
-
-  // Class used in ClassicReducer.
-  class ClassicReducer {
-  public:
-    ClassicReducer(const PolyBasis& basis, const bool preferSparse):
-      mBasis(basis),
-      mPreferSparse(preferSparse),
-      mReducer(static_cast<size_t>(-1)) {}
-
-    bool proceed(const Entry& entry) {
-      if (mReducer == static_cast<size_t>(-1)) {
-        mReducer = entry.index;
-        return true;
-      }
-
-      if (mPreferSparse) {
-        const auto oldTermCount = mBasis.poly(mReducer).nTerms();
-        const auto newTermCount = mBasis.poly(entry.index).nTerms();
-        if (oldTermCount > newTermCount) {
-          mReducer = entry.index; // prefer sparser
-          return true;
-        }
-        if (oldTermCount < newTermCount)
-          return true;
-        // break ties by age
-      }
-
-      if (mReducer > entry.index)
-        mReducer = entry.index; // prefer older
-      return true;
-    }
-
-    size_t reducer() const {return mReducer;}
-
-  private:
-    const PolyBasis& mBasis;
-    const bool mPreferSparse;
-    size_t mReducer;
-  };
-
-  class DOCheckAll {
-  public:
-    DOCheckAll(
-      const SigPolyBasis& basis,
-      ConstMonoRef sig,
-      ConstMonoRef monom,
-      bool preferSparseReducers
-    ):
-      mRatioCmp(Monoid::toOld(sig), Monoid::toOld(monom), basis),
-      mSigBasis(basis),
-      mReducer(static_cast<size_t>(-1)),
-      mPreferSparseReducers(preferSparseReducers)
-    {}
-
-    bool proceed(const Entry& e)
-    {
-      if (mRatioCmp.compare(e.index) != GT) {
-        mSigBasis.basis().wasNonSignatureReducer(e.index);
-        return true;
-      }
-
-      mSigBasis.basis().wasPossibleReducer(e.index);
-      if (mReducer != static_cast<size_t>(-1)) {
-        if (mPreferSparseReducers) {
-          // pick sparsest
-          size_t const newTermCount = mSigBasis.poly(e.index).nTerms();
-          size_t const oldTermCount = mSigBasis.poly(mReducer).nTerms();
-          if (newTermCount > oldTermCount)
-            return true; // what we already have is sparser
-          // resolve ties by picking oldest
-          if (newTermCount == oldTermCount && e.index > mReducer)
-            return true; // same sparsity and what we already have is older
-        } else {
-          // pick oldest
-          if (e.index > mReducer)
-            return true; // what we already have is older
-        }
-      }
-      mReducer = e.index;
-      return true;
-    }
-
-    size_t reducer() {return mReducer;}
-
-  private:
-    SigPolyBasis::StoredRatioCmp const mRatioCmp;
-    SigPolyBasis const& mSigBasis;
-    size_t mReducer;
-    bool const mPreferSparseReducers;
-  };
-
-public:
   virtual void insert(ConstMonoRef mono, size_t value) {
     mLookup.insert(Entry(mono, value));
   }
 
   virtual size_t regularReducer(ConstMonoRef sig, ConstMonoRef mono) const {
     const auto& conf = mLookup.getConfiguration();
-    DOCheckAll out(conf.sigBasis(), sig, mono, conf.preferSparseReducers());
-    mLookup.findAllDivisors(mono, out);
-    return out.reducer();
+    SigPolyBasis::StoredRatioCmp ratioCmp
+      (Monoid::toOld(sig), Monoid::toOld(mono), conf.sigBasis());
+    const auto& basis = conf.basis();
+    const bool preferSparse = conf.preferSparseReducers();
+
+    auto reducer = size_t(-1);
+    auto proceed = [&](const Entry& e) {
+      if (ratioCmp.compare(e.index) != GT)
+        return true;
+
+      if (reducer != size_t(-1)) {
+        if (preferSparse) {
+          const auto newTermCount = basis.poly(e.index).nTerms();
+          const auto oldTermCount = basis.poly(reducer).nTerms();
+          if (newTermCount > oldTermCount)
+            return true; // what we already have is sparser
+          // resolve ties by picking oldest
+          if (newTermCount == oldTermCount && e.index > reducer)
+            return true;
+        } else { // pick oldest
+          if (e.index > reducer)
+            return true; // what we already have is older
+        }
+      }
+      reducer = e.index;
+      return true;
+    };
+    auto wrap = lambdaWrap(proceed);
+    mLookup.findAllDivisors(mono, wrap);
+    return reducer;
   }
 
 private:
