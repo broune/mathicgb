@@ -10,15 +10,6 @@
 MATHICGB_NAMESPACE_BEGIN
 
 namespace {
-  struct DefaultParams {
-    static bool const minimizeOnInsert = false;
-    static bool const sortOnInsert = false;
-    static bool const useDivisorCache = true;
-    static double const rebuildRatio;
-    static size_t const minRebuildRatio = 50;
-  };
-  double const DefaultParams::rebuildRatio = 0.5;
-
   class DivListFactory : public DivisorLookup::Factory {
   public:
     DivListFactory(const PolyRing& ring, bool useDivMask): mRing(ring), mUseDivMask(useDivMask) {}
@@ -38,12 +29,7 @@ namespace {
       typedef DivLookupConfiguration<true, UseDivMask> Configuration;
       bool useDM = UseDivMask;
       Configuration configuration(
-        mRing,
-        DefaultParams::minimizeOnInsert,
-        DefaultParams::sortOnInsert,
-        DefaultParams::useDivisorCache,
-        DefaultParams::rebuildRatio,
-        DefaultParams::minRebuildRatio,
+        mRing.monoid(),
         (useDM ? 1 : 3),
         preferSparseReducers);
       return std::unique_ptr<DivisorLookup>
@@ -82,12 +68,7 @@ namespace {
       typedef DivLookupConfiguration<AllowRemovals, UseDivMask> Configuration;
       bool useDM = UseDivMask;
       Configuration configuration(
-        mRing,
-        DefaultParams::minimizeOnInsert,
-        DefaultParams::sortOnInsert,
-        DefaultParams::useDivisorCache,
-        DefaultParams::rebuildRatio,
-        DefaultParams::minRebuildRatio,
+        mRing.monoid(),
         (useDM ? 2 : 4),
         preferSparseReducers);
       return std::unique_ptr<DivisorLookup>

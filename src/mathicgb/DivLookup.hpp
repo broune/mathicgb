@@ -21,40 +21,26 @@ class DivLookupConfiguration;
 
 template<bool AR, bool DM>
 class DivLookupConfiguration {
-
 public:
+  typedef PolyRing::Monoid Monoid;
+
   DivLookupConfiguration(
-    const PolyRing& ring,
-    bool minimizeOnInsert,
-    bool sortOnInsert,
-    bool useDivisorCache,
-    double rebuildRatio,
-    size_t minRebuild,
+    const Monoid& monoid,
     int type,
     bool preferSparseReducers
   ):
     mBasis(0),
     mSigBasis(0),
-    mRing(&ring),
-    _varCount(ring.getNumVars()),
-    _minimize_on_insert(minimizeOnInsert),
-    _sortOnInsert(sortOnInsert),
-    _useDivisorCache(useDivisorCache),
-    _useAutomaticRebuild((rebuildRatio > 0.0 || minRebuild > 0) && UseDivMask),
-    _rebuildRatio(rebuildRatio),
-    _minRebuild(minRebuild),
-    _expQueryCount(0),
-    _type(type),
+    mMonoid(monoid),
+    mType(type),
     _preferSparseReducers(preferSparseReducers)
-  {
-    MATHICGB_ASSERT(rebuildRatio >= 0);
-  }
+  {}
 
   void setBasis(const PolyBasis& basis) {
     if (mBasis == &basis)
       return;
     MATHICGB_ASSERT(mBasis == 0);
-    MATHICGB_ASSERT(mRing == &basis.ring());
+    MATHICGB_ASSERT(monoid() == basis.ring().monoid());
     mBasis = &basis;
   }
 
@@ -63,14 +49,18 @@ public:
       return;
     MATHICGB_ASSERT(mSigBasis == 0);
     MATHICGB_ASSERT(mBasis == 0 || mBasis == &sigBasis.basis());
-    MATHICGB_ASSERT(mRing == &sigBasis.basis().ring());
+    MATHICGB_ASSERT(monoid() == sigBasis.basis().ring().monoid());
     mSigBasis = &sigBasis;
     setBasis(sigBasis.basis());
   }
 
-  //////////////////////////
-  // Functions and types required by KDTree, or by DivList, or by ...
-  //////////////////////////
+  const SigPolyBasis* sigBasis() const {return mSigBasis;}
+  const PolyBasis* basis() const {return mBasis;}
+  const Monoid& monoid() const {return mMonoid;}
+  int type() const {return mType;}
+  bool preferSparseReducers() const {return _preferSparseReducers;}
+
+  // *** Interface expected by mathic follows below
 
   typedef int Exponent;
   typedef const_monomial Monomial;
@@ -83,94 +73,38 @@ public:
       monom(monom0), index(index0) {}
   };
 
-  Exponent getExponent(const Monomial& m, size_t var) const
-  {
-    ++_expQueryCount;
-    return mRing->monomialExponent(m, var);
-  }
-  Exponent getExponent(const Entry& e, size_t var) const
-  {
-    ++_expQueryCount;
-    return mRing->monomialExponent(e.monom, var);
+  Exponent getExponent(const Monomial& m, size_t var) const {
+    return monoid().exponent(m, var);
   }
 
-  bool divides(const Monomial& a, const Monomial& b) const
-  {
-    for (size_t var = 0; var < getVarCount(); ++var)
-      if (getExponent(b, var) < getExponent(a, var))
-        return false;
-    return true;
+  Exponent getExponent(const Entry& e, size_t var) const {
+    return monoid().exponent(e.monom, var);
   }
 
-  bool divides(const Entry& a, const Monomial& b) const
-  {
-    for (size_t var = 0; var < getVarCount(); ++var)
-      if (getExponent(b, var) < getExponent(a, var))
-        return false;
-    return true;
+  bool divides(const Monomial& a, const Monomial& b) const {
+    return monoid().divides(a, b);
   }
 
-  bool divides(const Monomial& a, const Entry& b) const
-  {
-    for (size_t var = 0; var < getVarCount(); ++var)
-      if (getExponent(b, var) < getExponent(a, var))
-        return false;
-    return true;
+  bool divides(const Entry& a, const Monomial& b) const {
+    return monoid().divides(a.monom, b);
   }
 
-  bool divides(const Entry& a, const Entry& b) const
-  {
-    for (size_t var = 0; var < getVarCount(); ++var)
-      if (getExponent(b, var) < getExponent(a, var))
-        return false;
-    return true;
+  bool divides(const Monomial& a, const Entry& b) const {
+    return monoid().divides(a, b.monom);
   }
 
-  bool isLessThan(const Monomial& a, const Monomial& b) const
-  {
-    for (size_t var = 0; var < getVarCount(); ++var) {
-      if (getExponent(a, var) < getExponent(b, var))
-        return true;
-      if (getExponent(b, var) < getExponent(a, var))
-        return false;
-        }
+  bool divides(const Entry& a, const Entry& b) const {
+    return monoid().divides(a.monom, b.monom);
+  }
+
+  bool getSortOnInsert() const {return false;}
+  template<class A, class B>
+  bool isLessThan(const A& a, const B& b) const {
+    MATHICGB_ASSERT(false);
     return false;
   }
 
-  bool isLessThan(const Entry& a, const Monomial& b) const
-  {
-    for (size_t var = 0; var < getVarCount(); ++var) {
-      if (getExponent(a, var) < getExponent(b, var))
-        return true;
-      if (getExponent(b, var) < getExponent(a, var))
-        return false;
-        }
-    return false;
-  }
-
-  bool isLessThan(const Monomial& a, const Entry& b) const
-  {
-    for (size_t var = 0; var < getVarCount(); ++var) {
-      if (getExponent(a, var) < getExponent(b, var))
-        return true;
-      if (getExponent(b, var) < getExponent(a, var))
-        return false;
-        }
-    return false;
-  }
-
-  bool isLessThan(const Entry& a, const Entry& b) const
-  {
-    for (size_t var = 0; var < getVarCount(); ++var) {
-      if (getExponent(a, var) < getExponent(b, var))
-        return true;
-      if (getExponent(b, var) < getExponent(a, var))
-        return false;
-        }
-    return false;
-  }
-
-  size_t getVarCount() const {return _varCount;}
+  size_t getVarCount() const {return monoid().varCount();}
 
   static const bool UseTreeDivMask = DM;
   static const bool UseLinkedList = false;
@@ -179,59 +113,18 @@ public:
   static const bool PackedTree = true;
   static const bool AllowRemovals = AR;
 
-  bool getSortOnInsert() const {return _sortOnInsert;}
-  bool getUseDivisorCache() const {return _useDivisorCache;}
-  bool getMinimizeOnInsert() const {return _minimize_on_insert;}
+  bool getUseDivisorCache() const {return true;}
+  bool getMinimizeOnInsert() const {return false;}
 
-  bool getDoAutomaticRebuilds() const {return _useAutomaticRebuild;}
-  double getRebuildRatio() const {return _rebuildRatio;}
-  size_t getRebuildMin() const {return _minRebuild;}
-
-///////////////////////////
-// Stats gathering ////////
-///////////////////////////
-public:
-  struct Stats {
-    size_t n_member;
-    size_t n_inserts;  // includes koszuls
-    size_t n_insert_already_there;
-    size_t n_compares;
-    unsigned long long n_expQuery;
-
-    Stats():
-      n_member(0),
-      n_inserts(0),
-      n_insert_already_there(0),
-      n_compares(0),
-      n_expQuery(0)
-    {}
-
-  };
-
-  void displayStats(std::ostream &o) const;
-
-///////////////////////////
-  const SigPolyBasis* sigBasis() const {return mSigBasis;}
-  const PolyBasis* basis() const {return mBasis;}
-  const PolyRing* getPolyRing() const {return mRing;}
-  unsigned long long getExpQueryCount() const {return _expQueryCount;}
-  int type() const {return _type;}
-  bool preferSparseReducers() const {return _preferSparseReducers;}
+  bool getDoAutomaticRebuilds() const {return UseDivMask;}
+  double getRebuildRatio() const {return 0.5;}
+  size_t getRebuildMin() const {return 50;}
 
 private:
   PolyBasis const* mBasis;
   SigPolyBasis const* mSigBasis;
-  const PolyRing* mRing;
-  const size_t _varCount;
-  const bool _minimize_on_insert;
-  const bool _sortOnInsert;
-  const bool _useDivisorCache;
-  const bool _useAutomaticRebuild;
-  const double _rebuildRatio;
-  const size_t _minRebuild;
-  mutable unsigned long long _expQueryCount;
-  mutable Stats _stats;
-  const int _type;
+  const Monoid& mMonoid;
+  const int mType;
   bool const _preferSparseReducers;
 };
 
