@@ -23,6 +23,8 @@ template<bool AR, bool DM>
 class DivLookupConfiguration {
 public:
   typedef PolyRing::Monoid Monoid;
+  typedef Monoid::ConstMonoPtr ConstMonoPtr;
+  typedef Monoid::ConstMonoRef ConstMonoRef;
 
   DivLookupConfiguration(
     const Monoid& monoid,
@@ -33,7 +35,7 @@ public:
     mSigBasis(0),
     mMonoid(monoid),
     mType(type),
-    _preferSparseReducers(preferSparseReducers)
+    mPreferSparseReducers(preferSparseReducers)
   {}
 
   void setBasis(const PolyBasis& basis) {
@@ -54,23 +56,31 @@ public:
     setBasis(sigBasis.basis());
   }
 
-  const SigPolyBasis* sigBasis() const {return mSigBasis;}
-  const PolyBasis* basis() const {return mBasis;}
+  const SigPolyBasis& sigBasis() const {
+    MATHICGB_ASSERT(mSigBasis != 0);
+    return *mSigBasis;
+  }
+  
+  const PolyBasis& basis() const {
+    MATHICGB_ASSERT(mBasis != 0);
+    return *mBasis;
+  }
+
   const Monoid& monoid() const {return mMonoid;}
   int type() const {return mType;}
-  bool preferSparseReducers() const {return _preferSparseReducers;}
+  bool preferSparseReducers() const {return mPreferSparseReducers;}
 
   // *** Interface expected by mathic follows below
 
   typedef int Exponent;
-  typedef const_monomial Monomial;
+  typedef ConstMonoRef Monomial;
   struct Entry {
-    const_monomial monom;
-    size_t index;
+    Entry(): monom(), index(static_cast<size_t>(-1)) {}
+    Entry(ConstMonoRef monom0, size_t index0):
+      monom(monom0.ptr()), index(index0) {}
 
-    Entry(): monom(0), index(static_cast<size_t>(-1)) {}
-    Entry(const_monomial monom0, size_t index0):
-      monom(monom0), index(index0) {}
+    ConstMonoPtr monom;
+    size_t index;
   };
 
   Exponent getExponent(const Monomial& m, size_t var) const {
@@ -78,7 +88,7 @@ public:
   }
 
   Exponent getExponent(const Entry& e, size_t var) const {
-    return monoid().exponent(e.monom, var);
+    return monoid().exponent(*e.monom, var);
   }
 
   bool divides(const Monomial& a, const Monomial& b) const {
@@ -86,15 +96,15 @@ public:
   }
 
   bool divides(const Entry& a, const Monomial& b) const {
-    return monoid().divides(a.monom, b);
+    return monoid().divides(*a.monom, b);
   }
 
   bool divides(const Monomial& a, const Entry& b) const {
-    return monoid().divides(a, b.monom);
+    return monoid().divides(a, *b.monom);
   }
 
   bool divides(const Entry& a, const Entry& b) const {
-    return monoid().divides(a.monom, b.monom);
+    return monoid().divides(*a.monom, *b.monom);
   }
 
   bool getSortOnInsert() const {return false;}
@@ -125,107 +135,148 @@ private:
   SigPolyBasis const* mSigBasis;
   const Monoid& mMonoid;
   const int mType;
-  bool const _preferSparseReducers;
+  bool const mPreferSparseReducers;
 };
 
-template<class Finder>
+template<class BaseLookup>
+class DivLookup;
+
+template<class BL>
 class DivLookup : public DivisorLookup {
- public:
-  typedef typename Finder::Monomial Monomial;
-  typedef typename Finder::Entry Entry;
-  typedef typename Finder::Configuration Configuration;
-  typedef Configuration C;
+public:
+  typedef BL BaseLookup;
+  typedef typename BaseLookup::Monomial Monomial;
+  typedef typename BaseLookup::Entry Entry;
+  typedef typename BaseLookup::Configuration Configuration;
 
-  DivLookup(const Configuration &C) :
-        _finder(C)
-  {
-    MATHICGB_ASSERT(!C.UseTreeDivMask || C.UseDivMask);
-  }
+  static_assert
+    (!Configuration::UseTreeDivMask || Configuration::UseDivMask, "");
 
-  ~DivLookup() {}
+  DivLookup(const Configuration& c): mLookup(c) {}
 
   virtual void setBasis(const PolyBasis& basis) {
-    _finder.getConfiguration().setBasis(basis);
+    mLookup.getConfiguration().setBasis(basis);
   }
 
   virtual void setSigBasis(const SigPolyBasis& sigBasis) {
-    _finder.getConfiguration().setSigBasis(sigBasis);
+    mLookup.getConfiguration().setSigBasis(sigBasis);
   }
 
+  virtual int type() const {return mLookup.getConfiguration().type();}
 
-  virtual int type() const {return _finder.getConfiguration().type();}
+  template<class Lambda>
+  class LambdaWrap {
+  public:
+    LambdaWrap(Lambda& lambda): mLambda(lambda) {}
+    bool proceed(const Entry& entry) const {return mLambda(entry);}
+  private:
+    Lambda& mLambda;
+  };
+  template<class Lambda>
+  static LambdaWrap<Lambda> lambdaWrap(Lambda& lambda) {
+    return LambdaWrap<Lambda>(lambda);
+  }
 
   virtual void lowBaseDivisors(
     std::vector<size_t>& divisors,
     size_t maxDivisors,
     size_t newGenerator
   ) const {
-    const SigPolyBasis* GB = _finder.getConfiguration().sigBasis();
+    const auto& basis = mLookup.getConfiguration().sigBasis();
+    MATHICGB_ASSERT(newGenerator < basis.size());
 
-    const_monomial sigNew = GB->getSignature(newGenerator);
-
-    MATHICGB_ASSERT(newGenerator < GB->size());
-    LowBaseDivisor searchObject(*GB, divisors, maxDivisors, newGenerator);
-    _finder.findAllDivisors(sigNew, searchObject);
+    auto proceed = [&](const Entry& entry) {
+      if (entry.index >= newGenerator)
+        return true;
+      for (size_t j = 0; j <= divisors.size(); ++j) {
+        if (j == divisors.size()) {
+          divisors.push_back(entry.index);
+          break;
+        }
+        int cmp = basis.ratioCompare(entry.index, divisors[j]);
+        if (cmp == EQ && (entry.index < divisors[j]))
+          cmp = GT; // prefer minimum index to ensure deterministic behavior
+        if (cmp == GT) {
+          divisors.insert(divisors.begin() + j, entry.index);
+          break;
+        }
+      }
+      if (divisors.size() > maxDivisors)
+        divisors.pop_back();
+      MATHICGB_ASSERT(divisors.size() <= maxDivisors);
+      return true;
+    };
+    divisors.clear();
+    divisors.reserve(maxDivisors + 1);
+    auto wrap = lambdaWrap(proceed);
+    mLookup.findAllDivisors(basis.getSignature(newGenerator), wrap);
   }
 
   virtual size_t highBaseDivisor(size_t newGenerator) const {
-    const SigPolyBasis* basis = _finder.getConfiguration().sigBasis();
-    MATHICGB_ASSERT(newGenerator < basis->size());
+    const auto& basis = mLookup.getConfiguration().sigBasis();
+    MATHICGB_ASSERT(newGenerator < basis.size());
+    auto highDivisor = size_t(-1);
 
-    HighBaseDivisor searchObject(*basis, newGenerator);
-    _finder.findAllDivisors
-      (basis->getLeadMonomial(newGenerator), searchObject);
-    return searchObject.highDivisor();
+    auto proceed = [&](const Entry& entry) {
+      if (entry.index >= newGenerator)
+        return true;
+      if (highDivisor != size_t(-1)) {
+        int cmp = basis.ratioCompare(highDivisor, entry.index);
+        if (cmp == LT)
+          return true;
+        if (cmp == EQ && (entry.index > highDivisor))
+          return true; // prefer minimum index to ensure deterministic behavior
+      }
+      highDivisor = entry.index;
+      return true;
+    };
+    auto wrap = lambdaWrap(proceed);
+    mLookup.findAllDivisors(basis.getLeadMonomial(newGenerator), wrap);
+    return highDivisor;
   }
 
-  virtual size_t minimalLeadInSig(const_monomial sig) const {
-    MinimalLeadInSig searchObject(*_finder.getConfiguration().sigBasis());
-    _finder.findAllDivisors(sig, searchObject);
+  virtual size_t minimalLeadInSig(ConstMonoRef sig) const {
+    MinimalLeadInSig searchObject(mLookup.getConfiguration().sigBasis());
+    mLookup.findAllDivisors(sig, searchObject);
     return searchObject.minLeadGen();
   }
 
-  virtual size_t classicReducer(const_monomial mon) const {
-    const auto& conf = _finder.getConfiguration();
-    ClassicReducer searchObject(*conf.basis(), conf.preferSparseReducers());
-    _finder.findAllDivisors(mon, searchObject);
+  virtual size_t classicReducer(ConstMonoRef mono) const {
+    const auto& conf = mLookup.getConfiguration();
+    ClassicReducer searchObject(conf.basis(), conf.preferSparseReducers());
+    mLookup.findAllDivisors(mono, searchObject);
     return searchObject.reducer();
   }
 
-  virtual size_t divisor(const_monomial mon) const {
-    const Entry* entry = _finder.findDivisor(mon);
+  virtual size_t divisor(ConstMonoRef mono) const {
+    const Entry* entry = mLookup.findDivisor(mono);
     return entry == 0 ? static_cast<size_t>(-1) : entry->index;
   }
 
-  virtual void divisors(const_monomial mon, EntryOutput& consumer) const {
+  virtual void divisors(ConstMonoRef mono, EntryOutput& consumer) const {
     PassOn out(consumer);
-    _finder.findAllDivisors(mon, out);
+    mLookup.findAllDivisors(mono, out);
   }
 
-  virtual void multiples(const_monomial mon, EntryOutput& consumer) const {
+  virtual void multiples(ConstMonoRef mono, EntryOutput& consumer) const {
     PassOn out(consumer);
-    _finder.findAllMultiples(mon, out);
+    mLookup.findAllMultiples(mono, out);
   }
 
-  virtual void removeMultiples(const_monomial mon) {
-    _finder.removeMultiples(mon);
+  virtual void removeMultiples(ConstMonoRef mono) {
+    mLookup.removeMultiples(mono);
   }
 
-  virtual void remove(const_monomial mon) {
-    _finder.removeElement(mon);
-  }
+  virtual void remove(ConstMonoRef mono) {mLookup.removeElement(mono);}
 
   virtual size_t size() const {
-    return _finder.size();
+    return mLookup.size();
   }
 
-  const C& getConfiguration() const {return _finder.getConfiguration();}
-  C& getConfiguration() {return _finder.getConfiguration();}
+  std::string getName() const {return mLookup.getName();}
+  const PolyRing& ring() const {return mLookup.configuration().ring();}
 
-  std::string getName() const;
-  const PolyRing * getPolyRing() const { return getConfiguration().getPolyRing(); }
-
-  size_t getMemoryUse() const;
+  size_t getMemoryUse() const {return mLookup.getMemoryUse();}
 
 private:
   // Class used in multiples() and divisors()
@@ -237,79 +288,6 @@ private:
     }
   private:
     EntryOutput& mOut;
-  };
-
-  // Class used in lowBaseDivisor()
-  class LowBaseDivisor {
-  public:
-    LowBaseDivisor(
-      const SigPolyBasis& basis,
-      std::vector<size_t>& divisors,
-      size_t maxDivisors,
-      size_t newGenerator
-    ):
-      mSigBasis(basis),
-      mDivisors(divisors),
-      mMaxDivisors(maxDivisors),
-      mNewGenerator(newGenerator)
-    {
-      mDivisors.clear();
-      mDivisors.reserve(maxDivisors + 1);
-    }
-
-    bool proceed(const Entry& entry) {
-      if (entry.index >= mNewGenerator)
-        return true;
-      for (size_t j = 0; j <= mDivisors.size(); ++j) {
-        if (j == mDivisors.size()) {
-          mDivisors.push_back(entry.index);
-          break;
-        }
-        int cmp = mSigBasis.ratioCompare(entry.index, mDivisors[j]);
-        if (cmp == EQ && (entry.index < mDivisors[j]))
-          cmp = GT; // prefer minimum index to ensure deterministic behavior
-        if (cmp == GT) {
-          mDivisors.insert(mDivisors.begin() + j, entry.index);
-          break;
-        }
-      }
-      if (mDivisors.size() > mMaxDivisors)
-        mDivisors.pop_back();
-      MATHICGB_ASSERT(mDivisors.size() <= mMaxDivisors);
-      return true;
-    }
-  private:
-    const SigPolyBasis& mSigBasis;
-    std::vector<size_t>& mDivisors;
-    const size_t mMaxDivisors;
-    const size_t mNewGenerator;
-  };
-
-  // Class used in highBaseDivisor()
-  class HighBaseDivisor {
-  public:
-    HighBaseDivisor(const SigPolyBasis& basis, size_t newGenerator):
-      mSigBasis(basis),
-      mNewGenerator(newGenerator),
-      mHighDivisor(static_cast<size_t>(-1)) {}
-    bool proceed(const Entry& entry) {
-      if (entry.index >= mNewGenerator)
-        return true;
-      if (mHighDivisor != static_cast<size_t>(-1)) {
-        int cmp = mSigBasis.ratioCompare(mHighDivisor, entry.index);
-        if (cmp == LT)
-          return true;
-        if (cmp == EQ && (entry.index > mHighDivisor))
-          return true; // prefer minimum index to ensure deterministic behavior
-      }
-      mHighDivisor = entry.index;
-      return true;
-    }
-    size_t highDivisor() const {return mHighDivisor;}
-  private:
-    const SigPolyBasis& mSigBasis;
-    const size_t mNewGenerator;
-    size_t mHighDivisor;
   };
 
   // Class used in minimalLeadInSig()
@@ -349,8 +327,8 @@ private:
             // might be more reduced as the constraint on regular reduction
             // is less. Also, as no two generators have same signature, this
             // ensures deterministic behavior.
-            const const_monomial minSig = mSigBasis.getSignature(mMinLeadGen);
-            const const_monomial genSig = mSigBasis.getSignature(entry.index);
+            const auto minSig = mSigBasis.getSignature(mMinLeadGen);
+            const auto genSig = mSigBasis.getSignature(entry.index);
             int sigCmp = mSigBasis.monoid().compare(minSig, genSig);
             MATHICGB_ASSERT(sigCmp != EQ); // no two generators have same signature
             if (sigCmp == GT)
@@ -411,14 +389,15 @@ private:
   public:
     DOCheckAll(
       const SigPolyBasis& basis,
-      const_monomial sig,
-      const_monomial monom,
+      ConstMonoRef sig,
+      ConstMonoRef monom,
       bool preferSparseReducers
     ):
-      mRatioCmp(sig, monom, basis),
+      mRatioCmp(Monoid::toOld(sig), Monoid::toOld(monom), basis),
       mSigBasis(basis),
       mReducer(static_cast<size_t>(-1)),
-      mPreferSparseReducers(preferSparseReducers) {}
+      mPreferSparseReducers(preferSparseReducers)
+    {}
 
     bool proceed(const Entry& e)
     {
@@ -458,45 +437,20 @@ private:
   };
 
 public:
-  virtual void insert(const_monomial mon, size_t val) {
-        _finder.insert(Entry(mon, val));
+  virtual void insert(ConstMonoRef mono, size_t value) {
+    mLookup.insert(Entry(mono, value));
   }
 
-  virtual size_t regularReducer(const_monomial sig, const_monomial mon) const
-  {
-    DOCheckAll out(
-      *getConfiguration().sigBasis(),
-      sig,
-      mon,
-      getConfiguration().preferSparseReducers()
-    );
-    _finder.findAllDivisors(mon, out);
+  virtual size_t regularReducer(ConstMonoRef sig, ConstMonoRef mono) const {
+    const auto& conf = mLookup.getConfiguration();
+    DOCheckAll out(conf.sigBasis(), sig, mono, conf.preferSparseReducers());
+    mLookup.findAllDivisors(mono, out);
     return out.reducer();
   }
 
-  unsigned long long getExpQueryCount() const {
-    return _finder.getConfiguration().getExpQueryCount();
-  }
-
-  size_t n_elems() const { return _finder.size(); }
-
-  void display(std::ostream &o, int level) const;  /**TODO: WRITE ME */
-  void dump(int level) const; /**TODO: WRITE ME */
- private:
-  Finder _finder;
+private:
+  BaseLookup mLookup;
 };
-
-template<typename C>
-inline std::string DivLookup<C>::getName() const {
-  return "DL " + _finder.getName();
-}
-
-template<typename C>
-size_t DivLookup<C>::getMemoryUse() const
-{
-//#warning "implement getMemoryUse for DivLookup"
-  return 4 * sizeof(void *) * _finder.size();  // NOT CORRECT!!
-}
 
 MATHICGB_NAMESPACE_END
 #endif

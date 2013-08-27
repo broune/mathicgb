@@ -395,8 +395,9 @@ bool SPairs::simpleBuchbergerLcmCriterion(
         ++mStats.buchbergerLcmCacheHits;
     } else {
       MATHICGB_ASSERT(!criterion.applies());
+      // This will be a tough nut to crack in terms of getting the types to match.
       mBasis.divisorLookup().divisors
-        (BareMonoid::toOld(criterion.lcmAB()), criterion);
+        (Monoid::toRef(BareMonoid::toOld(criterion.lcmAB())), criterion);
       applies = criterion.applies();
 
       if (mUseBuchbergerLcmHitCache && applies) {
@@ -508,7 +509,8 @@ bool SPairs::advancedBuchbergerLcmCriterion(
   Graph& graph = mAdvancedBuchbergerLcmCriterionGraph;
   graph.clear();
   GraphBuilder builder(graph);
-  mBasis.divisorLookup().divisors(BareMonoid::toOld(lcmAB), builder);
+  // This will be a tough nut to crack in terms of getting the types to match.
+  mBasis.divisorLookup().divisors(Monoid::toRef(BareMonoid::toOld(lcmAB)), builder);
 
   if (graph.size() <= 3) {
     // For the graph approach to be better than the simpler approach of

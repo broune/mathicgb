@@ -125,7 +125,11 @@ public:
   exponent component() const { return *mValue; }
 
   operator Monoid::ConstMonoRef() const {
+    MATHICGB_ASSERT(!isNull());
     return Monoid::toRef(mValue);
+  }
+  operator Monoid::ConstMonoPtr() const {
+    return Monoid::toRef(mValue).ptr();
   }
 
 private:
@@ -160,7 +164,11 @@ public:
   exponent const * unsafeGetRepresentation() const { return mValue; }
 
   operator Monoid::MonoRef() {
+    MATHICGB_ASSERT(!isNull());
     return Monoid::toRef(unsafeGetRepresentation());
+  }
+  operator Monoid::MonoPtr() {
+    return Monoid::toRef(unsafeGetRepresentation()).ptr();
   }
 
 private:
