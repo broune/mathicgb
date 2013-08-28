@@ -30,8 +30,13 @@ template<
 class DivLookup;
 
 template<template<class> class BaseLookupTemplate, bool AR, bool DM>
-class DivLookup : public DivisorLookup {
+class DivLookup {
 private:
+  typedef PolyRing::Monoid Monoid;
+  typedef Monoid::ConstMonoRef ConstMonoRef;
+  typedef Monoid::ConstMonoPtr ConstMonoPtr;
+  typedef DivisorLookup::EntryOutput EntryOutput;
+
   /// Configuration for a Mathic KDTree or DivList.
   class Configuration {
   public:
@@ -107,50 +112,9 @@ public:
   static_assert
     (!Configuration::UseTreeDivMask || Configuration::UseDivMask, "");
 
-  DivLookup(
-    const Monoid& monoid,
-    int type,
-    bool preferSparseReducers
-  ):
-    mLookup(Configuration(monoid)),
-    mType(type),
-    mPreferSparseReducers(preferSparseReducers),
-    mBasis(0),
-    mSigBasis(0)
-  {}
-
-  virtual int type() const {return mType;}
-
-  void setBasis(const PolyBasis& basis) {
-    if (mBasis == &basis)
-      return;
-    MATHICGB_ASSERT(mBasis == 0);
-    MATHICGB_ASSERT(monoid() == basis.ring().monoid());
-    mBasis = &basis;
-  }
-
-  void setSigBasis(const SigPolyBasis& sigBasis) {
-    if (mSigBasis == &sigBasis)
-      return;
-    MATHICGB_ASSERT(mSigBasis == 0);
-    MATHICGB_ASSERT(mBasis == 0 || mBasis == &sigBasis.basis());
-    MATHICGB_ASSERT(monoid() == sigBasis.basis().ring().monoid());
-    mSigBasis = &sigBasis;
-    setBasis(sigBasis.basis());
-  }
-
-  const SigPolyBasis& sigBasis() const {
-    MATHICGB_ASSERT(mSigBasis != 0);
-    return *mSigBasis;
-  }
-
-  const PolyBasis& basis() const {
-    MATHICGB_ASSERT(mBasis != 0);
-    return *mBasis;
-  }
+  DivLookup(const Monoid& monoid): mLookup(Configuration(monoid)) {}
 
   const Monoid& monoid() const {return mLookup.getConfiguration().monoid();}
-  bool preferSparseReducers() const {return mPreferSparseReducers;}
 
   template<class Lambda>
   class LambdaWrap {
@@ -168,20 +132,23 @@ public:
 
   // *** Signature specific functionality
 
-  virtual size_t regularReducer(ConstMonoRef sig, ConstMonoRef mono) const {
+  size_t regularReducer(
+    ConstMonoRef sig,
+    ConstMonoRef mono,
+    const SigPolyBasis& sigBasis,
+    const bool preferSparseReducers
+  ) const {
     SigPolyBasis::StoredRatioCmp ratioCmp
-      (Monoid::toOld(sig), Monoid::toOld(mono), sigBasis());
+      (Monoid::toOld(sig), Monoid::toOld(mono), sigBasis);
+    const auto& basis = sigBasis.basis();
 
     auto reducer = size_t(-1);
-    const auto& basis = this->basis(); // workaround for issue in gcc 4.5.3 
-    const bool preferSparse =
-      preferSparseReducers(); // workaround for issue in gcc 4.5.3 
     auto proceed = [&, this](const Entry& e) {
       if (ratioCmp.compare(e.index) != GT)
         return true;
 
       if (reducer != size_t(-1)) {
-        if (preferSparse) {
+        if (preferSparseReducers) {
           const auto newTermCount = basis.poly(e.index).nTerms();
           const auto oldTermCount = basis.poly(reducer).nTerms();
           if (newTermCount > oldTermCount)
@@ -202,13 +169,13 @@ public:
     return reducer;
   }
 
-  virtual void lowBaseDivisors(
+  void lowBaseDivisors(
     std::vector<size_t>& divisors,
-    size_t maxDivisors,
-    size_t newGenerator
+    const size_t maxDivisors,
+    const size_t newGenerator,
+    const SigPolyBasis& basis
   ) const {
-    MATHICGB_ASSERT(newGenerator < sigBasis().size());
-    const auto& basis = sigBasis(); // workaround for issue in gcc 4.5.3 
+    MATHICGB_ASSERT(newGenerator < basis.size());
     auto proceed = [&](const Entry& entry) {
       if (entry.index >= newGenerator)
         return true;
@@ -233,14 +200,16 @@ public:
     divisors.clear();
     divisors.reserve(maxDivisors + 1);
     auto wrap = lambdaWrap(proceed);
-    mLookup.findAllDivisors(sigBasis().getSignature(newGenerator), wrap);
+    mLookup.findAllDivisors(basis.getSignature(newGenerator), wrap);
   }
 
-  virtual size_t highBaseDivisor(size_t newGenerator) const {
-    MATHICGB_ASSERT(newGenerator < sigBasis().size());
+  size_t highBaseDivisor(
+    const size_t newGenerator,
+    const SigPolyBasis& basis
+  ) const {
+    MATHICGB_ASSERT(newGenerator < basis.size());
     auto highDivisor = size_t(-1);
-    const auto& basis = sigBasis(); // workaround for issue in gcc 4.5.3 
-    auto proceed = [&, this](const Entry& entry) {
+    auto proceed = [&](const Entry& entry) {
       if (entry.index >= newGenerator)
         return true;
       if (highDivisor != size_t(-1)) {
@@ -254,11 +223,14 @@ public:
       return true;
     };
     auto wrap = lambdaWrap(proceed);
-    mLookup.findAllDivisors(sigBasis().getLeadMonomial(newGenerator), wrap);
+    mLookup.findAllDivisors(basis.getLeadMonomial(newGenerator), wrap);
     return highDivisor;
   }
 
-  virtual size_t minimalLeadInSig(ConstMonoRef sig) const {
+  size_t minimalLeadInSig(
+    ConstMonoRef sig,
+    const SigPolyBasis& basis
+  ) const {
     // Given signature sig, we want to minimize (S/G)g where
     // g and G are the lead term and signature taken over basis elements
     // whose signature G divide S. The code here instead maximizes G/g,
@@ -270,7 +242,6 @@ public:
     // still a tie, we select the basis element with the largest
     // signature. There can be no further ties since all basis
     // elements have distinct signatures.
-    const auto& basis = sigBasis(); // workaround for issue in gcc 4.5.3 
     auto minLeadGen = size_t(-1);
     auto proceed = [&](const Entry& entry) {
       if (minLeadGen != size_t(-1)) {
@@ -308,17 +279,18 @@ public:
 
   // *** Classic GB specific functionality
 
-  virtual size_t classicReducer(ConstMonoRef mono) const {
+  size_t classicReducer(
+    ConstMonoRef mono,
+    const PolyBasis& basis,
+    const bool preferSparseReducers
+  ) const {
     auto reducer = size_t(-1);
-    const auto& basis = this->basis(); // workaround for issue in gcc 4.5.3 
-    const bool preferSparse =
-      preferSparseReducers(); // workaround for issue in gcc 4.5.3 
     auto proceed = [&](const Entry& entry) {
       if (reducer == size_t(-1)) {
         reducer = entry.index;
         return true;
       }
-      if (preferSparse) {
+      if (preferSparseReducers) {
         const auto oldTermCount = basis.poly(reducer).nTerms();
         const auto newTermCount = basis.poly(entry.index).nTerms();
         if (oldTermCount > newTermCount) {
@@ -340,48 +312,42 @@ public:
 
   // *** General functionality
 
-  virtual size_t divisor(ConstMonoRef mono) const {
+  size_t divisor(ConstMonoRef mono) const {
     const Entry* entry = mLookup.findDivisor(mono);
     return entry == 0 ? static_cast<size_t>(-1) : entry->index;
   }
 
-  virtual void divisors(ConstMonoRef mono, EntryOutput& consumer) const {
+  void divisors(ConstMonoRef mono, EntryOutput& consumer) const {
     auto proceed = [&](const Entry& e) {return consumer.proceed(e.index);};
     auto wrap = lambdaWrap(proceed);
     mLookup.findAllDivisors(mono, wrap);
   }
 
-  virtual void multiples(ConstMonoRef mono, EntryOutput& consumer) const {
+  void multiples(ConstMonoRef mono, EntryOutput& consumer) const {
     auto proceed = [&](const Entry& e) {return consumer.proceed(e.index);};
     auto wrap = lambdaWrap(proceed);
     mLookup.findAllMultiples(mono, wrap);
   }
 
-  virtual void removeMultiples(ConstMonoRef mono) {
+  void removeMultiples(ConstMonoRef mono) {
     mLookup.removeMultiples(mono);
   }
 
-  virtual void remove(ConstMonoRef mono) {mLookup.removeElement(mono);}
+  void remove(ConstMonoRef mono) {mLookup.removeElement(mono);}
 
-  virtual size_t size() const {
-    return mLookup.size();
-  }
+  size_t size() const {return mLookup.size();}
 
   std::string getName() const {return mLookup.getName();}
   const PolyRing& ring() const {return mLookup.configuration().ring();}
 
   size_t getMemoryUse() const {return mLookup.getMemoryUse();}
 
-  virtual void insert(ConstMonoRef mono, size_t value) {
+  void insert(ConstMonoRef mono, size_t value) {
     mLookup.insert(Entry(mono, value));
   }
 
 private:
   BaseLookup mLookup;
-  const int mType;
-  const bool mPreferSparseReducers;
-  PolyBasis const* mBasis;
-  SigPolyBasis const* mSigBasis;
 };
 
 MATHICGB_NAMESPACE_END
