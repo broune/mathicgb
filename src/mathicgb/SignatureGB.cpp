@@ -179,7 +179,6 @@ bool SignatureGB::processSPair
     std::unique_ptr<Poly> uniqueF(f);
     GB->insert(sig, std::move(uniqueF));
   }
-  Hsyz->addComponent();
   SP->newPairs(GB->size()-1);
 
   if (tracingLevel >= 1) {
@@ -302,7 +301,7 @@ void SignatureGB::displayStats(std::ostream &o) const
     << (mUseBaseDivisors ? "-basediv" : "") << '\n';
   o << " reduction type: " << reducer->description() << '\n';
   o << " divisor tab type: " << GB->basis().monoLookup().getName() << '\n';
-  o << " syzygy tab type: " << Hsyz->description() << '\n';
+  o << " syzygy tab type: " << Hsyz->name() << '\n';
   o << " S-pair queue type: " << SP->name() << '\n';
   o << " total compute time:  " << stats_nsecs << " -- seconds" << '\n';
 

@@ -20,11 +20,6 @@ public:
   // active until it is removed from the table.
   virtual bool insert(const_monomial m) = 0;
 
-  // Adds a new component, increasing the number of monomial tables
-  // in the array by one. Its index is one more than the previous
-  // maximum index.
-  virtual void addComponent() = 0;
-
   virtual bool member(const_monomial m) = 0;
 
   virtual void display(std::ostream& o) const = 0;
@@ -33,7 +28,7 @@ public:
 
   virtual size_t n_elems() const = 0;
 
-  virtual std::string description() const = 0;
+  virtual std::string name() const = 0;
 
   virtual size_t getMemoryUse() const = 0;
 
@@ -41,10 +36,6 @@ public:
   static int displayMTTypes(std::ostream &o); // returns n s.t. 0..n-1 are valid types
   static std::unique_ptr<MonomialTableArray>
     make(const PolyRing *R, int typ, size_t components, bool allowRemovals);
-
-protected:
-  MonomialTableArray(const PolyRing *R0) : R(R0) {}
-  const PolyRing *R;
 };
 
 MATHICGB_NAMESPACE_END

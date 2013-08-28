@@ -15,7 +15,7 @@ class MTArrayT : public MonomialTableArray
   typedef typename MT::Configuration Conf;
 public:
   MTArrayT(size_t components, const Conf &conf):
-    MonomialTableArray(conf.getPolyRing()), conf_(conf) {
+    R(conf.getPolyRing()), conf_(conf) {
     for (size_t i = 0; i < components; ++i)
       addComponent();
   }
@@ -37,7 +37,7 @@ public:
 
   bool member(const_monomial m);
 
-  std::string description() const;
+  virtual std::string name() const;
 
   void display(std::ostream &o) const;
 
@@ -47,6 +47,7 @@ public:
 
   size_t getMemoryUse() const;
 private:
+  const PolyRing* R;
   Conf conf_; // Used to create new instances of T.
   std::vector<T *> tables;
 };
@@ -133,7 +134,7 @@ size_t MTArrayT<MT>::getMemoryUse() const
 }
 
 template <typename MT>
-std::string MTArrayT<MT>::description() const
+std::string MTArrayT<MT>::name() const
 {
   T obj(getConfiguration());
   return obj.getName();
