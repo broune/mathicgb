@@ -20,8 +20,7 @@ namespace {
     int type,
     bool preferSparseReducers
   ) {
-    typedef DivLookupConfiguration<AllowRemovals, UseDivMask> Configuration;
-    auto p = new DivLookup<BaseLookup<Configuration>>
+    auto p = new DivLookup<BaseLookup, AllowRemovals, UseDivMask>
       (monoid, type, preferSparseReducers);
     return std::unique_ptr<DivisorLookup>(p);
   }

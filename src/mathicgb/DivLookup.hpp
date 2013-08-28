@@ -6,37 +6,120 @@
 #include "SigPolyBasis.hpp"
 #include "DivisorLookup.hpp"
 #include "PolyRing.hpp"
+#include <mathic.h>
+#include <type_traits>
 #include <string>
 #include <vector>
 #include <iostream>
 
 MATHICGB_NAMESPACE_BEGIN
 
-/** Configuration class for interface to KDTree, DivList */
-/* As such, it has entries that both will expect */
-/* It also contains enough for the Naive monomial table use */
+template<
+  /// Should be mathic::DivList or mathic::KDTree
+  template<class> class BaseLookupTemplate,
 
-template<bool AllowRemovals, bool UseDivMask>
-class DivLookupConfiguration;
+  /// Indicate whether elements should be allowed to be removed from the
+  /// data structure. There can be a slight performance benefit from
+  /// disallowing removal.
+  bool AllowRemovals,
 
-template<bool AR, bool DM>
-class DivLookupConfiguration {
+  /// Whether to use bit vectors of features to speed up divisibility
+  /// checks. This is usually a big speed up.
+  bool UseDivMask
+>
+class DivLookup;
+
+template<template<class> class BaseLookupTemplate, bool AR, bool DM>
+class DivLookup : public DivisorLookup {
+private:
+  /// Configuration for a Mathic KDTree or DivList.
+  class Configuration {
+  public:
+    Configuration(const Monoid& monoid): mMonoid(monoid) {}
+    const Monoid& monoid() const {return mMonoid;}
+
+    typedef int Exponent;
+    typedef ConstMonoRef Monomial;
+    struct Entry {
+      Entry(): monom(), index(static_cast<size_t>(-1)) {}
+      Entry(ConstMonoRef monom0, size_t index0):
+        monom(monom0.ptr()), index(index0) {}
+
+      ConstMonoPtr monom;
+      size_t index;
+    };
+
+    Exponent getExponent(const Monomial& m, size_t var) const {
+      return monoid().exponent(m, var);
+    }
+
+    Exponent getExponent(const Entry& e, size_t var) const {
+      return monoid().exponent(*e.monom, var);
+    }
+
+    bool divides(const Monomial& a, const Monomial& b) const {
+      return monoid().divides(a, b);
+    }
+
+    bool divides(const Entry& a, const Monomial& b) const {
+      return monoid().divides(*a.monom, b);
+    }
+
+    bool divides(const Monomial& a, const Entry& b) const {
+      return monoid().divides(a, *b.monom);
+    }
+
+    bool divides(const Entry& a, const Entry& b) const {
+      return monoid().divides(*a.monom, *b.monom);
+    }
+
+    bool getSortOnInsert() const {return false;}
+    template<class A, class B>
+    bool isLessThan(const A& a, const B& b) const {
+      MATHICGB_ASSERT(false);
+      return false;
+    }
+
+    size_t getVarCount() const {return monoid().varCount();}
+
+    static const bool UseTreeDivMask = DM;
+    static const bool UseLinkedList = false;
+    static const bool UseDivMask = DM;
+    static const size_t LeafSize = 1;
+    static const bool PackedTree = true;
+    static const bool AllowRemovals = AR;
+
+    bool getUseDivisorCache() const {return true;}
+    bool getMinimizeOnInsert() const {return false;}
+
+    bool getDoAutomaticRebuilds() const {return UseDivMask;}
+    double getRebuildRatio() const {return 0.5;}
+    size_t getRebuildMin() const {return 50;}
+
+  private:
+    const Monoid& mMonoid;
+  };
+
 public:
-  typedef PolyRing::Monoid Monoid;
-  typedef Monoid::ConstMonoPtr ConstMonoPtr;
-  typedef Monoid::ConstMonoRef ConstMonoRef;
+  typedef BaseLookupTemplate<Configuration> BaseLookup;
+  typedef typename BaseLookup::Entry Entry;
 
-  DivLookupConfiguration(
+  static_assert
+    (!Configuration::UseTreeDivMask || Configuration::UseDivMask, "");
+
+  DivLookup(
     const Monoid& monoid,
     int type,
     bool preferSparseReducers
   ):
-    mBasis(0),
-    mSigBasis(0),
-    mMonoid(monoid),
+    mLookup(Configuration(monoid)),
     mType(type),
-    mPreferSparseReducers(preferSparseReducers)
+    mPreferSparseReducers(preferSparseReducers),
+    mBasis(0),
+    mSigBasis(0)
   {}
+
+  virtual int type() const {return mType;}
 
   void setBasis(const PolyBasis& basis) {
     if (mBasis == &basis)
@@ -60,118 +143,14 @@ public:
     MATHICGB_ASSERT(mSigBasis != 0);
     return *mSigBasis;
   }
-  
+
   const PolyBasis& basis() const {
     MATHICGB_ASSERT(mBasis != 0);
     return *mBasis;
   }
 
-  const Monoid& monoid() const {return mMonoid;}
-  int type() const {return mType;}
+  const Monoid& monoid() const {return mLookup.getConfiguration().monoid();}
   bool preferSparseReducers() const {return mPreferSparseReducers;}
-
-  // *** Interface expected by mathic follows below
-
-  typedef int Exponent;
-  typedef ConstMonoRef Monomial;
-  struct Entry {
-    Entry(): monom(), index(static_cast<size_t>(-1)) {}
-    Entry(ConstMonoRef monom0, size_t index0):
-      monom(monom0.ptr()), index(index0) {}
-
-    ConstMonoPtr monom;
-    size_t index;
-  };
-
-  Exponent getExponent(const Monomial& m, size_t var) const {
-    return monoid().exponent(m, var);
-  }
-
-  Exponent getExponent(const Entry& e, size_t var) const {
-    return monoid().exponent(*e.monom, var);
-  }
-
-  bool divides(const Monomial& a, const Monomial& b) const {
-    return monoid().divides(a, b);
-  }
-
-  bool divides(const Entry& a, const Monomial& b) const {
-    return monoid().divides(*a.monom, b);
-  }
-
-  bool divides(const Monomial& a, const Entry& b) const {
-    return monoid().divides(a, *b.monom);
-  }
-
-  bool divides(const Entry& a, const Entry& b) const {
-    return monoid().divides(*a.monom, *b.monom);
-  }
-
-  bool getSortOnInsert() const {return false;}
-  template<class A, class B>
-  bool isLessThan(const A& a, const B& b) const {
-    MATHICGB_ASSERT(false);
-    return false;
-  }
-
-  size_t getVarCount() const {return monoid().varCount();}
-
-  static const bool UseTreeDivMask = DM;
-  static const bool UseLinkedList = false;
-  static const bool UseDivMask = DM;
-  static const size_t LeafSize = 1;
-  static const bool PackedTree = true;
-  static const bool AllowRemovals = AR;
-
-  bool getUseDivisorCache() const {return true;}
-  bool getMinimizeOnInsert() const {return false;}
-
-  bool getDoAutomaticRebuilds() const {return UseDivMask;}
-  double getRebuildRatio() const {return 0.5;}
-  size_t getRebuildMin() const {return 50;}
-
-private:
-  PolyBasis const* mBasis;
-  SigPolyBasis const* mSigBasis;
-  const Monoid& mMonoid;
-  const int mType;
-  bool const mPreferSparseReducers;
-};
-
-template<class BaseLookup>
-class DivLookup;
-
-template<class BL>
-class DivLookup : public DivisorLookup {
-public:
-  typedef BL BaseLookup;
-  typedef typename BaseLookup::Monomial Monomial;
-  typedef typename BaseLookup::Entry Entry;
-  typedef typename BaseLookup::Configuration Configuration;
-
-  static_assert
-    (!Configuration::UseTreeDivMask || Configuration::UseDivMask, "");
-
-  DivLookup(const Configuration& c): mLookup(c) {}
-
-  DivLookup(
-    const Monoid& monoid,
-    int type,
-    bool preferSparseReducers
-  ):
-    mLookup(Configuration(monoid, type, preferSparseReducers))
-  {}
-
-
-  virtual void setBasis(const PolyBasis& basis) {
-    mLookup.getConfiguration().setBasis(basis);
-  }
-
-  virtual void setSigBasis(const SigPolyBasis& sigBasis) {
-    mLookup.getConfiguration().setSigBasis(sigBasis);
-  }
-
-  virtual int type() const {return mLookup.getConfiguration().type();}
 
   template<class Lambda>
   class LambdaWrap {
@@ -190,14 +169,14 @@ public:
   // *** Signature specific functionality
 
   virtual size_t regularReducer(ConstMonoRef sig, ConstMonoRef mono) const {
-    const auto& conf = mLookup.getConfiguration();
     SigPolyBasis::StoredRatioCmp ratioCmp
-      (Monoid::toOld(sig), Monoid::toOld(mono), conf.sigBasis());
-    const auto& basis = conf.basis();
-    const bool preferSparse = conf.preferSparseReducers();
+      (Monoid::toOld(sig), Monoid::toOld(mono), sigBasis());
 
     auto reducer = size_t(-1);
-    auto proceed = [&](const Entry& e) {
+    const auto& basis = this->basis(); // workaround for issue in gcc 4.5.3 
+    const bool preferSparse =
+      preferSparseReducers(); // workaround for issue in gcc 4.5.3 
+    auto proceed = [&, this](const Entry& e) {
       if (ratioCmp.compare(e.index) != GT)
         return true;
 
@@ -228,9 +207,8 @@ public:
     size_t maxDivisors,
     size_t newGenerator
   ) const {
-    const auto& basis = mLookup.getConfiguration().sigBasis();
-    MATHICGB_ASSERT(newGenerator < basis.size());
-
+    MATHICGB_ASSERT(newGenerator < sigBasis().size());
+    const auto& basis = sigBasis(); // workaround for issue in gcc 4.5.3 
     auto proceed = [&](const Entry& entry) {
       if (entry.index >= newGenerator)
         return true;
@@ -255,15 +233,14 @@ public:
     divisors.clear();
     divisors.reserve(maxDivisors + 1);
     auto wrap = lambdaWrap(proceed);
-    mLookup.findAllDivisors(basis.getSignature(newGenerator), wrap);
+    mLookup.findAllDivisors(sigBasis().getSignature(newGenerator), wrap);
   }
 
   virtual size_t highBaseDivisor(size_t newGenerator) const {
-    const auto& basis = mLookup.getConfiguration().sigBasis();
-    MATHICGB_ASSERT(newGenerator < basis.size());
+    MATHICGB_ASSERT(newGenerator < sigBasis().size());
     auto highDivisor = size_t(-1);
-
-    auto proceed = [&](const Entry& entry) {
+    const auto& basis = sigBasis(); // workaround for issue in gcc 4.5.3 
+    auto proceed = [&, this](const Entry& entry) {
       if (entry.index >= newGenerator)
         return true;
       if (highDivisor != size_t(-1)) {
@@ -277,7 +254,7 @@ public:
       return true;
     };
     auto wrap = lambdaWrap(proceed);
-    mLookup.findAllDivisors(basis.getLeadMonomial(newGenerator), wrap);
+    mLookup.findAllDivisors(sigBasis().getLeadMonomial(newGenerator), wrap);
     return highDivisor;
   }
 
@@ -293,8 +270,7 @@ public:
     // still a tie, we select the basis element with the largest
     // signature. There can be no further ties since all basis
     // elements have distinct signatures.
-    const auto& basis = mLookup.getConfiguration().sigBasis();
-
+    const auto& basis = sigBasis(); // workaround for issue in gcc 4.5.3 
     auto minLeadGen = size_t(-1);
     auto proceed = [&](const Entry& entry) {
       if (minLeadGen != size_t(-1)) {
@@ -333,11 +309,10 @@ public:
   // *** Classic GB specific functionality
 
   virtual size_t classicReducer(ConstMonoRef mono) const {
-    const auto& basis = mLookup.getConfiguration().basis();
-    const auto preferSparse =
-      mLookup.getConfiguration().preferSparseReducers();
-
     auto reducer = size_t(-1);
+    const auto& basis = this->basis(); // workaround for issue in gcc 4.5.3 
+    const bool preferSparse =
+      preferSparseReducers(); // workaround for issue in gcc 4.5.3 
     auto proceed = [&](const Entry& entry) {
       if (reducer == size_t(-1)) {
         reducer = entry.index;
@@ -403,6 +378,10 @@ public:
 
 private:
   BaseLookup mLookup;
+  const int mType;
+  const bool mPreferSparseReducers;
+  PolyBasis const* mBasis;
+  SigPolyBasis const* mSigBasis;
 };
 
 MATHICGB_NAMESPACE_END
