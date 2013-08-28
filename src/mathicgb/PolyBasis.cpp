@@ -4,19 +4,18 @@
 #include "PolyBasis.hpp"
 
 #include "Basis.hpp"
-#include "DivisorLookup.hpp"
 
 MATHICGB_NAMESPACE_BEGIN
 
 PolyBasis::PolyBasis(
   const PolyRing& ring,
-  std::unique_ptr<DivisorLookup> divisorLookup
+  std::unique_ptr<MonoLookup> monoLookup
 ):
   mRing(ring),
-  mDivisorLookup(std::move(divisorLookup))
+  mMonoLookup(std::move(monoLookup))
 {
-  MATHICGB_ASSERT(mDivisorLookup.get() != 0);
-  mDivisorLookup->setBasis(*this);
+  MATHICGB_ASSERT(mMonoLookup.get() != 0);
+  mMonoLookup->setBasis(*this);
 }
 
 PolyBasis::~PolyBasis() {
@@ -62,7 +61,7 @@ void PolyBasis::insert(std::unique_ptr<Poly> poly) {
   // Update information about minimal lead terms.
   const bool leadMinimal = (divisor(lead) == static_cast<size_t>(-1));
   if (leadMinimal) {
-    class MultipleOutput : public DivisorLookup::EntryOutput {
+    class MultipleOutput : public MonoLookup::EntryOutput {
     public:
       MultipleOutput(EntryCont& entries): mEntries(entries) {}
       virtual bool proceed(size_t index) {
@@ -74,10 +73,10 @@ void PolyBasis::insert(std::unique_ptr<Poly> poly) {
       EntryCont& mEntries;
     };
     MultipleOutput out(mEntries);
-    divisorLookup().multiples(lead, out);
+    monoLookup().multiples(lead, out);
   }
 
-  mDivisorLookup->insert(lead, index);
+  mMonoLookup->insert(lead, index);
 
   mEntries.push_back(Entry());
   Entry& entry = mEntries.back();
@@ -90,7 +89,7 @@ void PolyBasis::insert(std::unique_ptr<Poly> poly) {
 std::unique_ptr<Poly> PolyBasis::retire(size_t index) {
   MATHICGB_ASSERT(index < size());
   MATHICGB_ASSERT(!retired(index));
-  mDivisorLookup->remove(leadMonomial(index));
+  mMonoLookup->remove(leadMonomial(index));
   std::unique_ptr<Poly> poly(mEntries[index].poly);
   mEntries[index].poly = 0;
   mEntries[index].retired = true;
@@ -106,7 +105,7 @@ std::unique_ptr<Basis> PolyBasis::toBasisAndRetireAll() {
 }
 
 size_t PolyBasis::divisor(const_monomial mon) const {
-  size_t index = divisorLookup().divisor(mon);
+  size_t index = monoLookup().divisor(mon);
   MATHICGB_ASSERT((index == static_cast<size_t>(-1)) ==
     (divisorSlow(mon) == static_cast<size_t>(-1)));
   MATHICGB_ASSERT(index == static_cast<size_t>(-1) ||
@@ -115,8 +114,8 @@ size_t PolyBasis::divisor(const_monomial mon) const {
 }
 
 size_t PolyBasis::classicReducer(const_monomial mon) const {
-  return divisorLookup().classicReducer(mon);
-  size_t index = divisorLookup().classicReducer(mon);
+  return monoLookup().classicReducer(mon);
+  size_t index = monoLookup().classicReducer(mon);
   MATHICGB_ASSERT((index == static_cast<size_t>(-1)) ==
     (divisorSlow(mon) == static_cast<size_t>(-1)));
   MATHICGB_ASSERT(index == static_cast<size_t>(-1) ||

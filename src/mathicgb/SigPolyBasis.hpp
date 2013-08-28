@@ -5,7 +5,7 @@
 
 #include "PolyRing.hpp"
 #include "Poly.hpp"
-#include "DivisorLookup.hpp"
+#include "MonoLookup.hpp"
 #include "PolyBasis.hpp"
 #include "MonoProcessor.hpp"
 #include <vector>
@@ -23,7 +23,7 @@ public:
 
   SigPolyBasis(
     const PolyRing* R,
-    int divisorLookupType,
+    int monoLookupType,
     int monTableType,
     bool preferSparseReducers
   );
@@ -144,11 +144,9 @@ private:
 
   friend class StoredRatioCmp;
 
-  const DivisorLookup& divisorLookup() const {
-    return mBasis.divisorLookup();
-  }
+  const MonoLookup& monoLookup() const {return mBasis.monoLookup();}
 
-  std::unique_ptr<DivisorLookup::Factory const> const mDivisorLookupFactory;
+  std::unique_ptr<MonoLookup::Factory const> const mMonoLookupFactory;
 
   // may change at next insert!
   size_t ratioRank(size_t index) const {
@@ -186,10 +184,10 @@ private:
   RatioSortedType mRatioSorted;
   std::vector<Rank> mRatioRanks;
 
-  std::vector<DivisorLookup*> mSignatureLookup;
+  std::vector<MonoLookup*> mSignatureLookup;
 
   // Contains those lead terms that are minimal.
-  std::unique_ptr<DivisorLookup> const mMinimalDivisorLookup;
+  std::unique_ptr<MonoLookup> const mMinimalMonoLookup;
 
   PolyBasis mBasis;
   bool const mPreferSparseReducers;

@@ -446,7 +446,6 @@
     <ClCompile Include="..\..\..\src\mathicgb\CFile.cpp" />
     <ClCompile Include="..\..\..\src\mathicgb\ChainedHashTable.cpp" />
     <ClCompile Include="..\..\..\src\mathicgb\ClassicGBAlg.cpp" />
-    <ClCompile Include="..\..\..\src\mathicgb\DivisorLookup.cpp" />
     <ClCompile Include="..\..\..\src\mathicgb\F4MatrixBuilder.cpp" />
     <ClCompile Include="..\..\..\src\mathicgb\F4MatrixBuilder2.cpp" />
     <ClCompile Include="..\..\..\src\mathicgb\F4MatrixProjection.cpp" />
@@ -457,6 +456,7 @@
     <ClCompile Include="..\..\..\src\mathicgb\io-util.cpp" />
     <ClCompile Include="..\..\..\src\mathicgb\LogDomain.cpp" />
     <ClCompile Include="..\..\..\src\mathicgb\LogDomainSet.cpp" />
+    <ClCompile Include="..\..\..\src\mathicgb\MonoLookup.cpp" />
     <ClCompile Include="..\..\..\src\mathicgb\MTArray.cpp" />
     <ClCompile Include="..\..\..\src\mathicgb\PairTriangle.cpp" />
     <ClCompile Include="..\..\..\src\mathicgb\Poly.cpp" />
@@ -489,8 +489,6 @@
     <ClInclude Include="..\..\..\src\mathicgb\CFile.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\ChainedHashTable.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\ClassicGBAlg.hpp" />
-    <ClInclude Include="..\..\..\src\mathicgb\DivisorLookup.hpp" />
-    <ClInclude Include="..\..\..\src\mathicgb\DivLookup.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\F4MatrixBuilder.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\F4MatrixBuilder2.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\F4MatrixProjection.hpp" />
@@ -504,6 +502,7 @@
     <ClInclude Include="..\..\..\src\mathicgb\LogDomain.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\LogDomainSet.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\MathicIO.hpp" />
+    <ClInclude Include="..\..\..\src\mathicgb\MonoLookup.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\MonomialHashTable.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\MonomialMap.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\MonoMonoid.hpp" />
@@ -543,6 +542,7 @@
     <ClInclude Include="..\..\..\src\mathicgb\SigSPairs.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\SPairs.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\SparseMatrix.hpp" />
+    <ClInclude Include="..\..\..\src\mathicgb\StaticMonoLookup.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\stdinc.h" />
     <ClInclude Include="..\..\..\src\mathicgb\TournamentReducer.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\TypicalReducer.hpp" />

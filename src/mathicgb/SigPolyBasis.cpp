@@ -12,19 +12,19 @@ MATHICGB_NAMESPACE_BEGIN
 
 SigPolyBasis::SigPolyBasis(
   const PolyRing* R0,
-  int divisorLookupType,
+  int monoLookupType,
   int monTableType,
   bool preferSparseReducers):
-  mDivisorLookupFactory
-    (DivisorLookup::makeFactory(*R0, divisorLookupType)),
+  mMonoLookupFactory
+    (MonoLookup::makeFactory(*R0, monoLookupType)),
   mRatioSorted(RatioOrder(sigLeadRatio, R0->monoid())),
-  mMinimalDivisorLookup(mDivisorLookupFactory->create(preferSparseReducers, true)),
-  mBasis(*R0, mDivisorLookupFactory->create(preferSparseReducers, true)),
+  mMinimalMonoLookup(mMonoLookupFactory->create(preferSparseReducers, true)),
+  mBasis(*R0, mMonoLookupFactory->create(preferSparseReducers, true)),
   mPreferSparseReducers(preferSparseReducers)
 {
   mTmp = mBasis.ring().allocMonomial();
-  const_cast<DivisorLookup&>(mBasis.divisorLookup()).setSigBasis(*this);
-  mMinimalDivisorLookup->setSigBasis(*this);
+  const_cast<MonoLookup&>(mBasis.monoLookup()).setSigBasis(*this);
+  mMinimalMonoLookup->setSigBasis(*this);
 }
 
 SigPolyBasis::~SigPolyBasis()
@@ -44,8 +44,8 @@ SigPolyBasis::~SigPolyBasis()
 }
 
 void SigPolyBasis::addComponent() {
-  std::unique_ptr<DivisorLookup> lookup =
-    mDivisorLookupFactory->create(mPreferSparseReducers, true);
+  std::unique_ptr<MonoLookup> lookup =
+    mMonoLookupFactory->create(mPreferSparseReducers, true);
   lookup->setSigBasis(*this);
   mSignatureLookup.push_back(0);
   mSignatureLookup.back() = lookup.release(); // only release after alloc
@@ -75,12 +75,12 @@ void SigPolyBasis::insert(monomial sig, std::unique_ptr<Poly> f)
   const_monomial const lead = f->getLeadMonomial();
   mBasis.insert(std::move(f));
   if (mBasis.leadMinimal(mBasis.size() - 1)) {
-    mMinimalDivisorLookup->removeMultiples(lead);
-    mMinimalDivisorLookup->insert(lead, index);
+    mMinimalMonoLookup->removeMultiples(lead);
+    mMinimalMonoLookup->insert(lead, index);
   }
 
-  MATHICGB_ASSERT(mMinimalDivisorLookup->type() == 0 ||
-    mBasis.minimalLeadCount() == mMinimalDivisorLookup->size());
+  MATHICGB_ASSERT(mMinimalMonoLookup->type() == 0 ||
+    mBasis.minimalLeadCount() == mMinimalMonoLookup->size());
   MATHICGB_ASSERT(mSignatures.size() == index + 1);
   MATHICGB_ASSERT(mBasis.size() == index + 1);
   if (!mUseRatioRank || sig.isNull())
@@ -167,7 +167,7 @@ size_t SigPolyBasis::regularReducer(
   const_monomial sig,
   const_monomial term
 ) const {
-  size_t reducer = divisorLookup().regularReducer(sig, term);
+  size_t reducer = monoLookup().regularReducer(sig, term);
 #ifdef MATHICGB_SLOW_DEBUG
   const size_t debugValue = regularReducerSlow(sig, term);
   if (reducer == static_cast<size_t>(-1)) {
@@ -265,7 +265,7 @@ void SigPolyBasis::lowBaseDivisorsSlow(
 
 size_t SigPolyBasis::highBaseDivisor(size_t newGenerator) const {
   MATHICGB_ASSERT(newGenerator < size());
-  size_t highDivisor = divisorLookup().highBaseDivisor(newGenerator);
+  size_t highDivisor = monoLookup().highBaseDivisor(newGenerator);
 #ifdef MATHICGB_DEBUG
   size_t debugValue = highBaseDivisorSlow(newGenerator);
   MATHICGB_ASSERT((highDivisor == static_cast<size_t>(-1)) ==
@@ -423,8 +423,8 @@ size_t SigPolyBasis::getMemoryUse() const
   total += mSignatures.capacity() * sizeof(mSignatures.front());
   total += sigLeadRatio.capacity() * sizeof(sigLeadRatio.front());
   total += mRatioRanks.capacity() * sizeof(mRatioRanks.front());
-  total += divisorLookup().getMemoryUse();
-  total += mMinimalDivisorLookup->getMemoryUse();
+  total += monoLookup().getMemoryUse();
+  total += mMinimalMonoLookup->getMemoryUse();
 
   // This is an estimate of how much memory mRatioSorted uses per item.
   // It is based on assuming a tree representation with a left pointer,

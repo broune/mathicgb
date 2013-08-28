@@ -85,7 +85,7 @@ void GBAction::performAction() {
   ClassicGBAlg alg(
     basis,
     *reducer,
-    mGBParams.mDivisorLookup.value(),
+    mGBParams.mMonoLookup.value(),
     mGBParams.mPreferSparseReducers.value(),
     mGBParams.mSPairQueue.value());
   alg.setBreakAfter(mGBParams.mBreakAfter.value());

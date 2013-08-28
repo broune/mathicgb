@@ -4,7 +4,7 @@
 #include "SignatureGB.hpp"
 
 #include "Basis.hpp"
-#include "DivisorLookup.hpp"
+#include "MonoLookup.hpp"
 #include "SigSPairs.hpp"
 #include "PolyHeap.hpp"
 #include "MTArray.hpp"
@@ -309,7 +309,7 @@ void SignatureGB::displayStats(std::ostream &o) const
     << (mPostponeKoszul ? "-postpone" : "")
     << (mUseBaseDivisors ? "-basediv" : "") << '\n';
   o << " reduction type: " << reducer->description() << '\n';
-  o << " divisor tab type: " << GB->basis().divisorLookup().getName() << '\n';
+  o << " divisor tab type: " << GB->basis().monoLookup().getName() << '\n';
   o << " syzygy tab type: " << Hsyz->description() << '\n';
   o << " S-pair queue type: " << SP->name() << '\n';
   o << " total compute time:  " << stats_nsecs << " -- seconds" << '\n';

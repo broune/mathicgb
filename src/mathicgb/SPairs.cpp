@@ -107,7 +107,7 @@ std::pair<size_t, size_t> SPairs::pop(exponent& w) {
 namespace {
   // Records multiples of a basis element.
   // Used in addPairs().
-  class RecordIndexes : public DivisorLookup::EntryOutput {
+  class RecordIndexes : public MonoLookup::EntryOutput {
   public:
     RecordIndexes(
       size_t newGen,
@@ -160,7 +160,7 @@ void SPairs::addPairsAssumeAutoReduce(
     }
 
     RecordIndexes indexes(newGen, mEliminated, toRetireAndReduce);
-    mBasis.divisorLookup().multiples(mBasis.leadMonomial(newGen), indexes);
+    mBasis.monoLookup().multiples(mBasis.leadMonomial(newGen), indexes);
   }
   addPairs(newGen);
 }
@@ -279,7 +279,7 @@ bool SPairs::simpleBuchbergerLcmCriterion(
   );
   MATHICGB_ASSERT(mEliminated.columnCount() == mBasis.size());
 
-  class Criterion : public DivisorLookup::EntryOutput {
+  class Criterion : public MonoLookup::EntryOutput {
   public:
     Criterion(
       const size_t a,
@@ -396,7 +396,7 @@ bool SPairs::simpleBuchbergerLcmCriterion(
     } else {
       MATHICGB_ASSERT(!criterion.applies());
       // This will be a tough nut to crack in terms of getting the types to match.
-      mBasis.divisorLookup().divisors
+      mBasis.monoLookup().divisors
         (Monoid::toRef(BareMonoid::toOld(criterion.lcmAB())), criterion);
       applies = criterion.applies();
 
@@ -496,7 +496,7 @@ bool SPairs::advancedBuchbergerLcmCriterion(
   // node in question is so far known to be connected to, if any.
 
   typedef std::vector<std::pair<size_t, Connection> > Graph;
-  class GraphBuilder : public DivisorLookup::EntryOutput {
+  class GraphBuilder : public MonoLookup::EntryOutput {
   public:
     GraphBuilder(Graph& graph): mGraph(graph) {graph.clear();}
     virtual bool proceed(size_t index) {
@@ -510,7 +510,8 @@ bool SPairs::advancedBuchbergerLcmCriterion(
   graph.clear();
   GraphBuilder builder(graph);
   // This will be a tough nut to crack in terms of getting the types to match.
-  mBasis.divisorLookup().divisors(Monoid::toRef(BareMonoid::toOld(lcmAB)), builder);
+  mBasis.monoLookup().divisors
+    (Monoid::toRef(BareMonoid::toOld(lcmAB)), builder);
 
   if (graph.size() <= 3) {
     // For the graph approach to be better than the simpler approach of

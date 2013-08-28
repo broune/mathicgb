@@ -20,7 +20,7 @@ public:
   mathic::IntegerParameter mBreakAfter;
   mathic::IntegerParameter mPrintInterval;
   mathic::IntegerParameter mMonomialTable;
-  mathic::IntegerParameter mDivisorLookup;
+  mathic::IntegerParameter mMonoLookup;
   mathic::IntegerParameter mReducer;
   mathic::IntegerParameter mMemoryQuantum;
 };

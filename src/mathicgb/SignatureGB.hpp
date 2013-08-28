@@ -16,7 +16,6 @@
 MATHICGB_NAMESPACE_BEGIN
 
 class SigSPairs;
-class DivisorLookup;
 
 class SignatureGB {
 public:

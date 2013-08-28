@@ -1,7 +1,7 @@
 // MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
 // NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
-#ifndef MATHICGB_DIVISOR_LOOKUP_GUARD
-#define MATHICGB_DIVISOR_LOOKUP_GUARD
+#ifndef MATHICGB_MONO_LOOKUP_GUARD
+#define MATHICGB_MONO_LOOKUP_GUARD
 
 #include "PolyRing.hpp"
 #include <vector>
@@ -13,7 +13,7 @@ class SigPolyBasis;
 
 // Supports queries on the lead terms of the monomials in a PolyBasis.
 // todo: rename to MonomialLookup.
-class DivisorLookup
+class MonoLookup
 {
 public:
   typedef PolyRing::Monoid Monoid;
@@ -28,7 +28,7 @@ public:
   // parameter object is the same each time.
   virtual void setSigBasis(const SigPolyBasis& sigBasis) = 0;
 
-  virtual ~DivisorLookup() {}
+  virtual ~MonoLookup() {}
 
   virtual void insert(ConstMonoRef mono, size_t index) = 0;
 
@@ -57,11 +57,11 @@ public:
 
   virtual int type() const = 0;
 
-  static void displayDivisorLookupTypes(std::ostream& o);
+  static void displayMonoLookupTypes(std::ostream& out);
 
   class Factory {
   public:
-    virtual std::unique_ptr<DivisorLookup> create
+    virtual std::unique_ptr<MonoLookup> create
       (bool preferSparseReducers, bool allowRemovals) const = 0;
   };
   static std::unique_ptr<Factory> makeFactory

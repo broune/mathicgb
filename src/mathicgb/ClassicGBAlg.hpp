@@ -21,7 +21,7 @@ public:
   ClassicGBAlg(
     const Basis& basis,
     Reducer& reducer,
-    int divisorLookupType,
+    int monoLookupType,
     bool preferSparseReducers,
     size_t queueType
   );

@@ -25,7 +25,7 @@ namespace {
     BuilderMaker():
       mRing(ringFromString("101 6 1\n1 1 1 1 1 1")),
       mIdeal(*mRing),
-      mBasis(*mRing, DivisorLookup::makeFactory(*mRing, 1)->create(true, true)) {
+      mBasis(*mRing, MonoLookup::makeFactory(*mRing, 1)->create(true, true)) {
     }
 
     const Poly& addBasisElement(const std::string& str) {

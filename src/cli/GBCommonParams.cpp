@@ -5,7 +5,7 @@
 
 #include "mathicgb/MTArray.hpp"
 #include "mathicgb/PolyReducer.hpp"
-#include "mathicgb/DivisorLookup.hpp"
+#include "mathicgb/MonoLookup.hpp"
 
 MATHICGB_NAMESPACE_BEGIN
 
@@ -46,8 +46,8 @@ GBCommonParams::GBCommonParams():
     "The kind of monomial table data structure to use.\n",
     2),
 
-  mDivisorLookup("divisorLookup",
-    "The divisor lookup data structure to use.\n",
+  mMonoLookup("divisorLookup",
+    "The monomial lookup data structure to use.\n",
     2),
 
   mReducer("reducer",
@@ -64,9 +64,9 @@ GBCommonParams::GBCommonParams():
     mReducer.appendToDescription(reducerOut.str());
   }
   {
-    std::ostringstream divisorLookupOut;
-    DivisorLookup::displayDivisorLookupTypes(divisorLookupOut);
-    mDivisorLookup.appendToDescription(divisorLookupOut.str());
+    std::ostringstream monoLookupOut;
+    MonoLookup::displayMonoLookupTypes(monoLookupOut);
+    mMonoLookup.appendToDescription(monoLookupOut.str());
   }
   {
     std::ostringstream monomialTableOut;
@@ -84,7 +84,7 @@ void GBCommonParams::pushBackParameters(
   parameters.push_back(&mBreakAfter);
   parameters.push_back(&mPrintInterval);
   parameters.push_back(&mMonomialTable);
-  parameters.push_back(&mDivisorLookup);
+  parameters.push_back(&mMonoLookup);
   parameters.push_back(&mReducer);
   parameters.push_back(&mMemoryQuantum);
 }

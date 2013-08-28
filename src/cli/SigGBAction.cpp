@@ -63,7 +63,7 @@ void SigGBAction::performAction() {
     std::move(basis),
     std::move(processor),
     Reducer::reducerType(mGBParams.mReducer.value()),
-    mGBParams.mDivisorLookup.value(),
+    mGBParams.mMonoLookup.value(),
     mGBParams.mMonomialTable.value(),
     mPostponeKoszul.value(),
     mUseBaseDivisors.value(),

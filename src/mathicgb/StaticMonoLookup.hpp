@@ -1,19 +1,21 @@
 // MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
 // NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
-#ifndef MATHICGB_DIV_LOOKUP_GUARD
-#define MATHICGB_DIV_LOOKUP_GUARD
+#ifndef MATHICGB_STATIC_MONO_LOOKUP_GUARD
+#define MATHICGB_STATIC_MONO_LOOKUP_GUARD
 
 #include "SigPolyBasis.hpp"
-#include "DivisorLookup.hpp"
+#include "PolyBasis.hpp"
+#include "MonoLookup.hpp"
 #include "PolyRing.hpp"
 #include <mathic.h>
 #include <type_traits>
 #include <string>
 #include <vector>
-#include <iostream>
 
 MATHICGB_NAMESPACE_BEGIN
 
+/// Data structure for performing queries on a set of monomials.
+/// This is static in the sense that the interface is not virtual.
 template<
   /// Should be mathic::DivList or mathic::KDTree
   template<class> class BaseLookupTemplate,
@@ -27,15 +29,15 @@ template<
   /// checks. This is usually a big speed up.
   bool UseDivMask
 >
-class DivLookup;
+class StaticMonoLookup;
 
 template<template<class> class BaseLookupTemplate, bool AR, bool DM>
-class DivLookup {
+class StaticMonoLookup {
 private:
   typedef PolyRing::Monoid Monoid;
   typedef Monoid::ConstMonoRef ConstMonoRef;
   typedef Monoid::ConstMonoPtr ConstMonoPtr;
-  typedef DivisorLookup::EntryOutput EntryOutput;
+  typedef MonoLookup::EntryOutput EntryOutput;
 
   /// Configuration for a Mathic KDTree or DivList.
   class Configuration {
@@ -112,7 +114,7 @@ public:
   static_assert
     (!Configuration::UseTreeDivMask || Configuration::UseDivMask, "");
 
-  DivLookup(const Monoid& monoid): mLookup(Configuration(monoid)) {}
+  StaticMonoLookup(const Monoid& monoid): mLookup(Configuration(monoid)) {}
 
   const Monoid& monoid() const {return mLookup.getConfiguration().monoid();}
 

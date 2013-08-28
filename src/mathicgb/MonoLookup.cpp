@@ -1,10 +1,10 @@
 // MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
 // NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
 #include "stdinc.h"
-#include "DivisorLookup.hpp"
+#include "MonoLookup.hpp"
 
 #include "SigPolyBasis.hpp"
-#include "DivLookup.hpp"
+#include "StaticMonoLookup.hpp"
 #include <mathic.h>
 
 MATHICGB_NAMESPACE_BEGIN
@@ -15,9 +15,9 @@ namespace {
     bool AllowRemovals,
     bool UseDivMask
   >
-  class ConcreteDivisorLookup : public DivisorLookup {
+  class ConcreteMonoLookup : public MonoLookup {
   public:
-    ConcreteDivisorLookup(
+    ConcreteMonoLookup(
       const Monoid& monoid,
       int type,
       bool preferSparseReducers
@@ -120,7 +120,7 @@ namespace {
     virtual size_t size() const {return mLookup.size();}
 
   private:
-    DivLookup<BaseLookupTemplate, AllowRemovals, UseDivMask> mLookup;
+    StaticMonoLookup<BaseLookupTemplate, AllowRemovals, UseDivMask> mLookup;
     const int mType;
     const bool mPreferSparseReducers;
     PolyBasis const* mBasis;
@@ -132,18 +132,18 @@ namespace {
     bool AllowRemovals,
     bool UseDivMask
   >
-  std::unique_ptr<DivisorLookup> create(
-    const DivisorLookup::Monoid& monoid,
+  std::unique_ptr<MonoLookup> create(
+    const MonoLookup::Monoid& monoid,
     int type,
     bool preferSparseReducers
   ) {
-    auto p = new ConcreteDivisorLookup<BaseLookup, AllowRemovals, UseDivMask>
+    auto p = new ConcreteMonoLookup<BaseLookup, AllowRemovals, UseDivMask>
       (monoid, type, preferSparseReducers);
-    return std::unique_ptr<DivisorLookup>(p);
+    return std::unique_ptr<MonoLookup>(p);
   }
 
-  std::unique_ptr<DivisorLookup> createGeneral(
-    const DivisorLookup::Monoid& monoid,
+  std::unique_ptr<MonoLookup> createGeneral(
+    const MonoLookup::Monoid& monoid,
     int type,
     bool preferSparseReducers,
     bool allowRemovals
@@ -180,14 +180,14 @@ namespace {
     }
   }
 
-  class ConcreteFactory : public DivisorLookup::Factory {
+  class ConcreteFactory : public MonoLookup::Factory {
   public:
     ConcreteFactory(const Monoid& monoid, int type): 
       mMonoid(monoid),
       mType(type)
     {}
 
-    virtual std::unique_ptr<DivisorLookup> create(
+    virtual std::unique_ptr<MonoLookup> create(
       bool preferSparseReducers,
       bool allowRemovals
     ) const {
@@ -201,20 +201,19 @@ namespace {
   };
 }
 
-std::unique_ptr<DivisorLookup::Factory> DivisorLookup::makeFactory(
+std::unique_ptr<MonoLookup::Factory> MonoLookup::makeFactory(
   const PolyRing& ring,
   int type
 ) {
   return std::unique_ptr<Factory>(new ConcreteFactory(ring.monoid(), type));
 }
 
-void DivisorLookup::displayDivisorLookupTypes(std::ostream &o)
-{
-  o << "Divisor Lookup Types:" << std::endl;
-  o << "  1   divlist+divmask" << std::endl;
-  o << "  2   kdtree+divmask" << std::endl;
-  o << "  3   divlist" << std::endl;
-  o << "  4   kdtree" << std::endl;
+void MonoLookup::displayMonoLookupTypes(std::ostream& out) {
+  out << "Mono Lookup Types:" << std::endl;
+  out << "  1   divlist+divmask" << std::endl;
+  out << "  2   kdtree+divmask" << std::endl;
+  out << "  3   divlist" << std::endl;
+  out << "  4   kdtree" << std::endl;
 }
 
 MATHICGB_NAMESPACE_END

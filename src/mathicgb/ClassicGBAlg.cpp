@@ -18,7 +18,7 @@ MATHICGB_NAMESPACE_BEGIN
 ClassicGBAlg::ClassicGBAlg(
   const Basis& basis,
   Reducer& reducer,
-  int divisorLookupType,
+  int monoLookupType,
   bool preferSparseReducers,
   size_t queueType
 ):
@@ -30,9 +30,9 @@ ClassicGBAlg::ClassicGBAlg(
   mUseAutoTailReduction(false),
   mRing(*basis.getPolyRing()),
   mReducer(reducer),
-  mBasis(mRing, DivisorLookup::makeFactory(
+  mBasis(mRing, MonoLookup::makeFactory(
     *basis.getPolyRing(),
-    divisorLookupType)->create(preferSparseReducers, true)
+    monoLookupType)->create(preferSparseReducers, true)
   ),
   mSPairs(mBasis, preferSparseReducers),
   mSPolyReductionCount(0)
@@ -331,7 +331,7 @@ size_t ClassicGBAlg::getMemoryUse() const {
 
 void ClassicGBAlg::printStats(std::ostream& out) const {
   out << " reduction type:     " << mReducer.description() << '\n';
-  out << " divisor tab type:   " << mBasis.divisorLookup().getName() << '\n';
+  out << " divisor tab type:   " << mBasis.monoLookup().getName() << '\n';
   out << " S-pair queue type:  " << mSPairs.name() << '\n';
   out << " total compute time: " << mTimer.getMilliseconds()/1000.0 << " seconds " << '\n';
   out << " S-pair group size:  " << mSPairGroupSize << '\n';

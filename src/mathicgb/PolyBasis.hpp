@@ -4,7 +4,7 @@
 #define MATHICGB_POLY_BASIS_GUARD
 
 #include "Poly.hpp"
-#include "DivisorLookup.hpp"
+#include "MonoLookup.hpp"
 #include <vector>
 #include <memory>
 
@@ -20,7 +20,7 @@ public:
   // Ring must live for as long as this object.
   PolyBasis(
     const PolyRing& ring,
-    std::unique_ptr<DivisorLookup> divisorLookup
+    std::unique_ptr<MonoLookup> monoLookup
   );
 
   // Deletes the Poly's stored in the basis.
@@ -55,10 +55,10 @@ public:
     MATHICGB_ASSERT(!newValue->isZero());
     MATHICGB_ASSERT(mRing.monomialEQ
                     (leadMonomial(index), newValue->getLeadMonomial()));
-    mDivisorLookup->remove(leadMonomial(index));
+    mMonoLookup->remove(leadMonomial(index));
     delete mEntries[index].poly;
     mEntries[index].poly = newValue.release();
-    mDivisorLookup->insert(leadMonomial(index), index);    
+    mMonoLookup->insert(leadMonomial(index), index);    
     MATHICGB_ASSERT(mEntries[index].poly != 0);
   }
 
@@ -72,7 +72,7 @@ public:
 
   // Returns a data structure containing the lead monomial of each lead
   // monomial.
-  const DivisorLookup& divisorLookup() const {return *mDivisorLookup;}
+  const MonoLookup& monoLookup() const {return *mMonoLookup;}
 
   // Retires the basis element at index, which frees the memory associated
   // to it, including the basis element polynomial, and marks it as retired. 
@@ -130,7 +130,7 @@ public:
   // basis element. Equality counts as divisibility.
   bool leadMinimal(const Poly& poly) const {
     MATHICGB_ASSERT(&poly != 0);
-    return mDivisorLookup->divisor(poly.getLeadMonomial()) !=
+    return mMonoLookup->divisor(poly.getLeadMonomial()) !=
       static_cast<size_t>(-1);
   }
 
@@ -219,7 +219,7 @@ private:
   typedef EntryCont::const_iterator EntryCIter;
 
   const PolyRing& mRing;
-  std::unique_ptr<DivisorLookup> mDivisorLookup;
+  std::unique_ptr<MonoLookup> mMonoLookup;
   std::vector<Entry> mEntries;
 };
 
