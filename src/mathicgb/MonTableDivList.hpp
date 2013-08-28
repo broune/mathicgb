@@ -168,15 +168,14 @@ public:
 
   const PolyRing * getPolyRing() const { return getConfiguration().getPolyRing(); }
 
-  bool member(const_monomial t, ValueType & val) const {
+  bool member(const_monomial t) const {
       const Entry* i = findDivisor(t);
       if (i == 0) return false;
-      val = 0;
       return true;
   }
   bool insert(const_monomial t, ValueType /* val */) { return insert(t); } // Only insert if not there
 
-  void display(std::ostream &o, int level) const;
+  void display(std::ostream &o) const;
 
   void dump(int level) const;
 
@@ -243,7 +242,7 @@ inline std::string MonTableDivList<ULL, UDM>::getName() const {
 }
 
 template <bool UDL, bool UDM>
-void MonTableDivList<UDL,UDM>::display(std::ostream &o, int /* level */) const
+void MonTableDivList<UDL,UDM>::display(std::ostream &o) const
 {
   const_iterator e = _finder.end();
 
@@ -259,7 +258,7 @@ template <bool UDL, bool UDM>
 void MonTableDivList<UDL,UDM>::dump(int level) const
 {
   displayStats(std::cerr);
-  if (level > 0) display(std::cerr, level-1);
+  if (level > 0) display(std::cerr);
 }
 
 template <bool UDL, bool UDM>

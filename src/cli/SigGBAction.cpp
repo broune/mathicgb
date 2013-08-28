@@ -96,7 +96,7 @@ void SigGBAction::performAction() {
       {
         std::ofstream syzygyOut((mParams.inputFileNameStem(0) + ".syz").c_str());
         syzygyOut << "-- syz: ----\n";
-        alg.getSyzTable()->display(syzygyOut, 1);
+        alg.getSyzTable()->display(syzygyOut);
         syzygyOut << std::endl;
       }
     }

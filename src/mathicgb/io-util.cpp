@@ -107,7 +107,7 @@ std::string toString(SigPolyBasis *I, int)
 std::string toString(MonomialTableArray* H)
 {
   std::ostringstream o;
-  H->display(o, 1);
+  H->display(o);
   return o.str();
 }
 

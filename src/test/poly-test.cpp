@@ -505,7 +505,6 @@ TEST(Coeff, addone) {
 
 TEST(MTArray,DivList1) {
   // We create a table here
-  size_t not_used = 0;
   std::unique_ptr<PolyRing> R(ringFromString("32003 6 1\n1 1 1 1 1 1"));
   auto M = MonomialTableArray::make(R.get(), 1, 6, false);
   std::string mons[2] = {
@@ -515,22 +514,21 @@ TEST(MTArray,DivList1) {
   for (int i=0; i<2; i++)
     {
       monomial m = monomialParseFromString(R.get(), mons[i]);
-      M->insert(m,0);
+      M->insert(m);
     }
   //  M.display(std::cout);
 
   // Now we test membership
-  EXPECT_TRUE(M->member(monomialParseFromString(R.get(), "abc4d<1>"),not_used));
-  EXPECT_TRUE(M->member(monomialParseFromString(R.get(), "a2d2<1>"),not_used));
-  EXPECT_TRUE(M->member(monomialParseFromString(R.get(), "abc<1>"),not_used));
-  EXPECT_TRUE(M->member(monomialParseFromString(R.get(), "a2d<1>"),not_used));
-  EXPECT_FALSE(M->member(monomialParseFromString(R.get(), "a2d<2>"),not_used));
-  EXPECT_FALSE(M->member(monomialParseFromString(R.get(), "ad<1>"),not_used));
+  EXPECT_TRUE(M->member(monomialParseFromString(R.get(), "abc4d<1>")));
+  EXPECT_TRUE(M->member(monomialParseFromString(R.get(), "a2d2<1>")));
+  EXPECT_TRUE(M->member(monomialParseFromString(R.get(), "abc<1>")));
+  EXPECT_TRUE(M->member(monomialParseFromString(R.get(), "a2d<1>")));
+  EXPECT_FALSE(M->member(monomialParseFromString(R.get(), "a2d<2>")));
+  EXPECT_FALSE(M->member(monomialParseFromString(R.get(), "ad<1>")));
 }
 
 TEST(MTArray,KDTree1) {
   // We create a table here
-  size_t not_used = 0;
   std::unique_ptr<PolyRing> R(ringFromString("32003 6 1\n1 1 1 1 1 1"));
   std::unique_ptr<MonomialTableArray> M(MonomialTableArray::make(R.get(), 2, 6, false));
   std::string mons[2] = {
@@ -540,17 +538,17 @@ TEST(MTArray,KDTree1) {
   for (int i=0; i<2; i++)
     {
       monomial m = monomialParseFromString(R.get(), mons[i]);
-      M->insert(m,0);
+      M->insert(m);
     }
   //  M.display(std::cout);
 
   // Now we test membership
-  EXPECT_TRUE(M->member(monomialParseFromString(R.get(), "abc4d<1>"),not_used));
-  EXPECT_TRUE(M->member(monomialParseFromString(R.get(), "a2d2<1>"),not_used));
-  EXPECT_TRUE(M->member(monomialParseFromString(R.get(), "abc<1>"),not_used));
-  EXPECT_TRUE(M->member(monomialParseFromString(R.get(), "a2d<1>"),not_used));
-  EXPECT_FALSE(M->member(monomialParseFromString(R.get(), "a2d<2>"),not_used));
-  EXPECT_FALSE(M->member(monomialParseFromString(R.get(), "ad<1>"),not_used));
+  EXPECT_TRUE(M->member(monomialParseFromString(R.get(), "abc4d<1>")));
+  EXPECT_TRUE(M->member(monomialParseFromString(R.get(), "a2d2<1>")));
+  EXPECT_TRUE(M->member(monomialParseFromString(R.get(), "abc<1>")));
+  EXPECT_TRUE(M->member(monomialParseFromString(R.get(), "a2d<1>")));
+  EXPECT_FALSE(M->member(monomialParseFromString(R.get(), "a2d<2>")));
+  EXPECT_FALSE(M->member(monomialParseFromString(R.get(), "ad<1>")));
 }
 
 //#warning "remove this code"

@@ -74,10 +74,6 @@ SignatureGB::SignatureGB(
   // Populate SP
   for (size_t i = 0; i < basis.size(); i++)
     SP->newPairs(i);
-
-  if (tracingLevel >= 2) {
-    Hsyz->dump();
-  }
 }
 
 void SignatureGB::computeGrobnerBasis()
@@ -98,8 +94,7 @@ void SignatureGB::computeGrobnerBasis()
         if (sig.isNull())
           break;
         ++sigs;
-        size_t dummy;
-        if (Hsyz->member(sig, dummy))
+        if (Hsyz->member(sig))
           ++syzygySigs;
         else
           GB->minimalLeadInSig(sig);
@@ -137,7 +132,7 @@ void SignatureGB::computeGrobnerBasis()
       auto sig = R->allocMonomial();
       R->monomialCopy(v[i], sig);
       mProcessor->postprocess(sig);
-      Hsyz2->insert(sig, 0);
+      Hsyz2->insert(sig);
     }
   }
 }
@@ -171,7 +166,7 @@ bool SignatureGB::processSPair
   if (f->isZero()) { // reduction to zero
     if (tracingLevel >= 7)
       std::cerr << "zero reduction" << std::endl;
-    Hsyz->insert(sig, 0);
+    Hsyz->insert(sig);
     SP->newSyzygy(sig);
     SP->setKnownSyzygies(mSpairTmp);
     delete f;
@@ -215,8 +210,7 @@ bool SignatureGB::step()
     std::cerr << std::endl;
   }
 
-  size_t result_ignored = 0;
-  if (Hsyz->member(sig, result_ignored)) {
+  if (Hsyz->member(sig)) {
     ++stats_SignatureCriterionLate;
     SP->setKnownSyzygies(mSpairTmp);
     if (tracingLevel >= 3)
@@ -236,7 +230,7 @@ bool SignatureGB::step()
     {
       ++stats_koszulEliminated;
       // This signature is of a syzygy that is not in Hsyz, so add it
-      Hsyz->insert(sig, 0);
+      Hsyz->insert(sig);
       SP->newSyzygy(sig);
       SP->setKnownSyzygies(mSpairTmp);
       return true;
@@ -252,9 +246,8 @@ bool SignatureGB::step()
           const_monomial b = GB->getLeadMonomial(it->second);
           if (R->monomialRelativelyPrime(a, b))
             {
-              int not_used = 0;
               ++stats_relativelyPrimeEliminated;
-              Hsyz->insert(sig, not_used);
+              Hsyz->insert(sig);
               SP->newSyzygy(sig);
               SP->setKnownSyzygies(mSpairTmp);
               return true;
@@ -282,8 +275,7 @@ bool SignatureGB::step()
     const_monomial smallerLead = GB->getLeadMonomial(p.second);   
     monomial koszul = R->allocMonomial();
     R->monomialMult(greaterSig, smallerLead, koszul);
-    size_t dummy;
-    if (Hsyz->member(koszul, dummy))
+    if (Hsyz->member(koszul))
       R->freeMonomial(koszul);
     else
       mKoszuls.push(koszul);
@@ -313,14 +305,6 @@ void SignatureGB::displayStats(std::ostream &o) const
   o << " syzygy tab type: " << Hsyz->description() << '\n';
   o << " S-pair queue type: " << SP->name() << '\n';
   o << " total compute time:  " << stats_nsecs << " -- seconds" << '\n';
-
-  MonomialTableArray::Stats hsyz_stats;
-  Hsyz->getStats(hsyz_stats);
-  o << " syz-n-compares: " << hsyz_stats.n_compares << '\n';
-  o << " syz-n-member-calls: " << hsyz_stats.n_calls_member << '\n';
-  o << " syz-n-inserts: " << (hsyz_stats.n_calls_insert) << '\n';
-  o << " syz-n-actual-inserts: " << (hsyz_stats.n_actual_inserts) << '\n';
-  o << " syz sig denseness: " << hsyz_stats.denseness << '\n';
 
   displayMemoryUse(o);
   displaySomeStats(o);

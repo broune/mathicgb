@@ -156,11 +156,10 @@ public:
 
   const PolyRing * getPolyRing() const { return getConfiguration().getPolyRing(); }
 
-  inline bool member(const_monomial t, ValueType & val) const {
+  inline bool member(const_monomial t) const {
     const Entry* entry = findDivisor(t);
     if (entry == 0)
       return false;
-    val = 0;
     return true;
   }
   bool insert(const_monomial t, ValueType /* val */) { return insert(t); } // Only insert if not there

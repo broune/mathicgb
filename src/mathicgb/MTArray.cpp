@@ -13,7 +13,6 @@ class MTArrayT : public MonomialTableArray
 {
   typedef MT T;
   typedef typename MT::Configuration Conf;
-  typedef MonomialTableArray::V V; // value type
 public:
   MTArrayT(size_t components, const Conf &conf):
     MonomialTableArray(conf.getPolyRing()), conf_(conf) {
@@ -30,87 +29,45 @@ public:
   Conf& getConfiguration() { return conf_; }
   const Conf &getConfiguration() const { return conf_; }
 
-  bool insert(const_monomial m, V val);
+  bool insert(const_monomial m);
   // Only inserts if minimal, in this case "true" is returned.
   // and the object takes ownership of 'm'.
 
   void addComponent() {tables.push_back(new T(conf_));}
 
-  bool member(const_monomial m, V &result);
-
-  void getStats(MonomialTableArray::Stats &stats) const;
+  bool member(const_monomial m);
 
   std::string description() const;
 
-  void displayStats(std::ostream &o) const;
-
-  void display(std::ostream &o, int level) const;
+  void display(std::ostream &o) const;
 
   void getMonomials(std::vector<const_monomial>& monomials) const;
   
-  virtual void printFrobbyM2Format
-    (std::ostream& out, size_t component) const;
-
-  void dump(int level=0) const;
-
   size_t n_elems() const;
 
   size_t getMemoryUse() const;
 private:
   Conf conf_; // Used to create new instances of T.
   std::vector<T *> tables;
-
-  mutable MonomialTableArray::Stats stats_;
 };
 
 template <typename MT>
-bool MTArrayT<MT>::insert(const_monomial m, V val)
+bool MTArrayT<MT>::insert(const_monomial m)
 {
-  stats_.n_calls_insert++;
   size_t x = R->monomialGetComponent(m);
   MATHICGB_ASSERT(x < tables.size());
   MATHICGB_ASSERT(tables[x] != 0);
-  bool result = tables[x]->insert(m, val);
-  if (result) stats_.n_actual_inserts++;
+  bool result = tables[x]->insert(m);
   return result;
 }
 
 template <typename MT>
-bool MTArrayT<MT>::member(const_monomial m, V &result)
+bool MTArrayT<MT>::member(const_monomial m)
 {
-  stats_.n_calls_member++;
   size_t x = R->monomialGetComponent(m);
   MATHICGB_ASSERT(x < tables.size());
   MATHICGB_ASSERT(tables[x] != 0);
-  return tables[x]->member(m, result);
-}
-
-template <typename MT>
-void MTArrayT<MT>::getStats(Stats &stats) const
-{
-  stats = stats_;
-
-  // compute denseness
-  std::vector<const_monomial> monomials;
-  unsigned long long support = 0;
-  unsigned long long exponentCount = 0;
-  for (size_t i=0; i<tables.size(); i++) {
-    T *p = tables[i];
-    MATHICGB_ASSERT(p != 0);
-    monomials.clear();
-    p->getMonomials(monomials);
-    typedef std::vector<const_monomial>::const_iterator iter;
-    for (iter it = monomials.begin(); it != monomials.end(); ++it) {
-      support += R->monomialSizeOfSupport(*it);
-      exponentCount += R->getNumVars();
-    }
-  }
-  stats.denseness = static_cast<double>(support) / exponentCount;
-}
-
-template <typename MT>
-void MTArrayT<MT>::displayStats(std::ostream & /* o */) const
-{
+  return tables[x]->member(m);
 }
 
 template <typename MT>
@@ -120,8 +77,18 @@ void MTArrayT<MT>::getMonomials(std::vector<const_monomial>& monomials) const {
 }
 
 template <typename MT>
-void MTArrayT<MT>::display(std::ostream &o, int level) const
+void MTArrayT<MT>::display(std::ostream &o) const
 {
+  class MonomialCompare {
+  public:
+    MonomialCompare(const PolyRing& ring): mRing(ring) {}
+    bool operator()(const_monomial a, const_monomial b) {
+      return mRing.monomialLT(a, b);
+    }
+  private:
+    const PolyRing& mRing;
+  };
+
   std::vector<const_monomial> monomials;
   for (size_t i=0; i<tables.size(); i++)
     {
@@ -133,8 +100,7 @@ void MTArrayT<MT>::display(std::ostream &o, int level) const
       o << "  " << i << ": ";
       monomials.clear();
       p->getMonomials(monomials);
-      std::sort(monomials.begin(), monomials.end(),
-        MonomialTableArray::MonomialCompare(*R));
+      std::sort(monomials.begin(), monomials.end(), MonomialCompare(*R));
       typedef std::vector<const_monomial>::const_iterator iter;
       for (iter it = monomials.begin(); it != monomials.end(); ++it)
         {
@@ -143,36 +109,6 @@ void MTArrayT<MT>::display(std::ostream &o, int level) const
         }
       o << '\n';
     }
-}
-
-template <typename MT>
-void MTArrayT<MT>::printFrobbyM2Format
-  (std::ostream& out, size_t component) const
-{
-  MATHICGB_ASSERT(component < tables.size());
-  T* p = tables[component];
-  MATHICGB_ASSERT(p != 0);
-  std::vector<const_monomial> monomials;
-  p->getMonomials(monomials);
-  std::sort(monomials.begin(), monomials.end(),
-    MonomialTableArray::MonomialCompare(*R));
-
-  out << "I = monomialIdeal(\n";
-  typedef std::vector<const_monomial>::const_iterator iter;
-  for (iter it = monomials.begin(); it != monomials.end(); ++it) {
-    if (it != monomials.begin())
-      out << ",\n";
-    R->printMonomialFrobbyM2Format(out, *it);
-  }
-  out << "\n);\n";
-}
-
-template <typename MT>
-void MTArrayT<MT>::dump(int level) const
-{
-  // display on stderr the table.
-  displayStats(std::cerr);
-  if (level > 0) display(std::cerr, level-1);
 }
 
 template <typename MT>

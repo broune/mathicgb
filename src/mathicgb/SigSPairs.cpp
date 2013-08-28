@@ -228,8 +228,7 @@ void SigSPairs::makePreSPairs(size_t newGen)
       R->monomialFindSignature(oldLead, newLead, oldSig, pairSig);
     }
 
-    size_t result_ignored;
-    if (Hsyz->member(pairSig, result_ignored)) {
+    if (Hsyz->member(pairSig)) {
       ++mStats.syzygyModuleHits;
 #ifdef DEBUG
       // Check if actually already elim. by low/high base divisor.
@@ -253,7 +252,7 @@ void SigSPairs::makePreSPairs(size_t newGen)
         R->monomialMult(newSig, oldLead, hsyz);
       else
         R->monomialMult(oldSig, newLead, hsyz);
-      if (Hsyz->insert(hsyz, 0))
+      if (Hsyz->insert(hsyz))
         hsyz = R->allocMonomial();
       if (R->monomialRelativelyPrime(newLead, oldLead))
         {
