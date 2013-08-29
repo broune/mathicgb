@@ -508,8 +508,6 @@
     <ClInclude Include="..\..\..\src\mathicgb\MonoMonoid.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\MonoOrder.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\MonoProcessor.hpp" />
-    <ClInclude Include="..\..\..\src\mathicgb\MonTableDivList.hpp" />
-    <ClInclude Include="..\..\..\src\mathicgb\MonTableKDTree.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\MTArray.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\mtbb.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\NonCopyable.hpp" />

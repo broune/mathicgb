@@ -66,7 +66,6 @@ public:
   };
   static std::unique_ptr<Factory> makeFactory
     (const PolyRing& ring, int type);
-  // choices for type: 1: divlist, 2:kdtree.
 
   class EntryOutput {
   public:

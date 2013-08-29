@@ -11,7 +11,7 @@ MATHICGB_NAMESPACE_BEGIN
 
 namespace {
   template<
-    template<class> class BaseLookupTemplate,
+    bool UseKDTree,
     bool AllowRemovals,
     bool UseDivMask
   >
@@ -102,7 +102,8 @@ namespace {
     }
 
     virtual size_t divisor(ConstMonoRef mono) const {
-      return mLookup.divisor(mono);
+      const auto entry = mLookup.divisor(mono);
+      return entry == 0 ? size_t(-1) : entry->data();
     }
 
     virtual void divisors(ConstMonoRef mono, EntryOutput& consumer) const {
@@ -120,65 +121,12 @@ namespace {
     virtual size_t size() const {return mLookup.size();}
 
   private:
-    StaticMonoLookup<BaseLookupTemplate, AllowRemovals, UseDivMask> mLookup;
+    StaticMonoLookup<UseKDTree, size_t, AllowRemovals, UseDivMask> mLookup;
     const int mType;
     const bool mPreferSparseReducers;
     PolyBasis const* mBasis;
     SigPolyBasis const* mSigBasis;
   };
-
-  template<
-    template<class> class BaseLookup,
-    bool AllowRemovals,
-    bool UseDivMask
-  >
-  std::unique_ptr<MonoLookup> create(
-    const MonoLookup::Monoid& monoid,
-    int type,
-    bool preferSparseReducers
-  ) {
-    auto p = new ConcreteMonoLookup<BaseLookup, AllowRemovals, UseDivMask>
-      (monoid, type, preferSparseReducers);
-    return std::unique_ptr<MonoLookup>(p);
-  }
-
-  std::unique_ptr<MonoLookup> createGeneral(
-    const MonoLookup::Monoid& monoid,
-    int type,
-    bool preferSparseReducers,
-    bool allowRemovals
-  ) {
-    const bool sparse = preferSparseReducers;
-    switch (type) {
-    case 1:
-      if (allowRemovals)
-        return create<mathic::DivList, true, true>(monoid, type, sparse);
-      else
-        return create<mathic::DivList, false, true>(monoid, type, sparse);
-
-    case 2:
-      if (allowRemovals)
-        return create<mathic::KDTree, true, true>(monoid, type, sparse);
-      else
-        return create<mathic::KDTree, false, true>(monoid, type, sparse);
-
-    case 3:
-      if (allowRemovals)
-        return create<mathic::DivList, true, false>(monoid, type, sparse);
-      else
-        return create<mathic::DivList, false, false>(monoid, type, sparse);
-
-    case 4:
-      if (allowRemovals)
-        return create<mathic::KDTree, true, false>(monoid, type, sparse);
-      else
-        return create<mathic::KDTree, false, false>(monoid, type, sparse);
-
-    default:
-      MATHICGB_ASSERT_NO_ASSUME(false);
-      throw std::runtime_error("Unknown code for monomial data structure");
-    }
-  }
 
   class ConcreteFactory : public MonoLookup::Factory {
   public:
@@ -191,11 +139,27 @@ namespace {
       bool preferSparseReducers,
       bool allowRemovals
     ) const {
-      return createGeneral
-        (mMonoid, mType, preferSparseReducers, allowRemovals);
+      Params params = {mMonoid, mType, preferSparseReducers};
+      return staticMonoLookupCreate
+        <Create, std::unique_ptr<MonoLookup>>(mType, allowRemovals, params);
     }
 
   private:
+    struct Params {
+      const Monoid& monoid;
+      int type;
+      bool preferSparseReducers;
+    };
+
+    template<bool UseKDTree, bool AllowRemovals, bool UseDivMask>
+    struct Create {
+      static std::unique_ptr<MonoLookup> create(const Params& params) {
+        auto p = new ConcreteMonoLookup<UseKDTree, AllowRemovals, UseDivMask>
+          (params.monoid, params.type, params.preferSparseReducers);
+        return std::unique_ptr<MonoLookup>(p);
+      }
+    };
+
     const Monoid& mMonoid;
     const int mType;
   };

@@ -4,8 +4,6 @@
 #include "mathicgb/Poly.hpp"
 
 #include "mathicgb/Basis.hpp"
-#include "mathicgb/MonTableKDTree.hpp"
-#include "mathicgb/MonTableDivList.hpp"
 #include "mathicgb/MTArray.hpp"
 #include "mathicgb/io-util.hpp"
 #include "mathicgb/MonomialHashTable.hpp"

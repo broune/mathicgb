@@ -24,7 +24,6 @@ libmathicgb_la_SOURCES = src/mathicgb/BjarkeGeobucket2.cpp		\
   src/mathicgb/Basis.cpp src/mathicgb/Basis.hpp				\
   src/mathicgb/io-util.cpp src/mathicgb/io-util.hpp			\
   src/mathicgb/KoszulQueue.hpp src/mathicgb/MonomialHashTable.hpp	\
-  src/mathicgb/MonTableDivList.hpp src/mathicgb/MonTableKDTree.hpp	\
   src/mathicgb/MTArray.cpp src/mathicgb/MTArray.hpp			\
   src/mathicgb/PairTriangle.cpp src/mathicgb/PairTriangle.hpp		\
   src/mathicgb/Poly.cpp src/mathicgb/Poly.hpp				\

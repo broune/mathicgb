@@ -17,8 +17,11 @@ MATHICGB_NAMESPACE_BEGIN
 /// Data structure for performing queries on a set of monomials.
 /// This is static in the sense that the interface is not virtual.
 template<
-  /// Should be mathic::DivList or mathic::KDTree
-  template<class> class BaseLookupTemplate,
+  /// Will use mathic::DivList or mathic::KDTree depending on this value.
+  bool UseKDTree,
+
+  /// Thing to store along with each monomial in the data structure.
+  class Data,
 
   /// Indicate whether elements should be allowed to be removed from the
   /// data structure. There can be a slight performance benefit from
@@ -31,7 +34,7 @@ template<
 >
 class StaticMonoLookup;
 
-template<template<class> class BaseLookupTemplate, bool AR, bool DM>
+template<bool UseKDTree, class Data, bool AR, bool DM>
 class StaticMonoLookup {
 private:
   typedef PolyRing::Monoid Monoid;
@@ -47,13 +50,24 @@ private:
 
     typedef int Exponent;
     typedef ConstMonoRef Monomial;
-    struct Entry {
-      Entry(): monom(), index(static_cast<size_t>(-1)) {}
-      Entry(ConstMonoRef monom0, size_t index0):
-        monom(monom0.ptr()), index(index0) {}
 
-      ConstMonoPtr monom;
-      size_t index;
+    class Entry {
+    public:
+      Entry(): mEntry() {}
+
+      template<class D>
+      Entry(ConstMonoRef mono, D&& data):
+        mEntry(mono.ptr(), std::forward<D>(data)) {}
+
+      ConstMonoRef mono() const {return *mEntry.first;}
+      const Data& data() const {return mEntry.second;}
+      Data& data() {return mEntry.second;}
+
+    private:
+      // Store in a std::pair so that if Data has no members then no space
+      // will be used on it. Here we are depending on std::pair to be using
+      // the empty base class optimization.
+      std::pair<ConstMonoPtr, Data> mEntry;
     };
 
     Exponent getExponent(const Monomial& m, size_t var) const {
@@ -61,7 +75,7 @@ private:
     }
 
     Exponent getExponent(const Entry& e, size_t var) const {
-      return monoid().exponent(*e.monom, var);
+      return monoid().exponent(e.mono(), var);
     }
 
     bool divides(const Monomial& a, const Monomial& b) const {
@@ -69,15 +83,15 @@ private:
     }
 
     bool divides(const Entry& a, const Monomial& b) const {
-      return monoid().divides(*a.monom, b);
+      return monoid().divides(a.mono(), b);
     }
 
     bool divides(const Monomial& a, const Entry& b) const {
-      return monoid().divides(a, *b.monom);
+      return monoid().divides(a, b.mono());
     }
 
     bool divides(const Entry& a, const Entry& b) const {
-      return monoid().divides(*a.monom, *b.monom);
+      return monoid().divides(a.mono(), b.mono());
     }
 
     bool getSortOnInsert() const {return false;}
@@ -108,7 +122,11 @@ private:
   };
 
 public:
-  typedef BaseLookupTemplate<Configuration> BaseLookup;
+  typedef typename std::conditional<
+    UseKDTree,
+    mathic::KDTree<Configuration>,
+    mathic::DivList<Configuration>
+  >::type BaseLookup;
   typedef typename BaseLookup::Entry Entry;
 
   static_assert
@@ -132,6 +150,16 @@ public:
     return LambdaWrap<Lambda>(lambda);
   }
 
+  template<class Lambda>
+  void forAll(Lambda&& lambda) const {
+    const auto wrap = [&](const Entry& entry){
+      lambda(entry);
+      return true;
+    };
+    auto outerWrap = lambdaWrap(wrap);
+    mLookup.forAll(outerWrap);
+  }
+
   // *** Signature specific functionality
 
   size_t regularReducer(
@@ -146,24 +174,24 @@ public:
 
     auto reducer = size_t(-1);
     auto proceed = [&, this](const Entry& e) {
-      if (ratioCmp.compare(e.index) != GT)
+      if (ratioCmp.compare(e.data()) != GT)
         return true;
 
       if (reducer != size_t(-1)) {
         if (preferSparseReducers) {
-          const auto newTermCount = basis.poly(e.index).nTerms();
+          const auto newTermCount = basis.poly(e.data()).nTerms();
           const auto oldTermCount = basis.poly(reducer).nTerms();
           if (newTermCount > oldTermCount)
             return true; // what we already have is sparser
           // resolve ties by picking oldest
-          if (newTermCount == oldTermCount && e.index > reducer)
+          if (newTermCount == oldTermCount && e.data() > reducer)
             return true;
         } else { // pick oldest
-          if (e.index > reducer)
+          if (e.data() > reducer)
             return true; // what we already have is older
         }
       }
-      reducer = e.index;
+      reducer = e.data();
       return true;
     };
     auto wrap = lambdaWrap(proceed);
@@ -179,18 +207,18 @@ public:
   ) const {
     MATHICGB_ASSERT(newGenerator < basis.size());
     auto proceed = [&](const Entry& entry) {
-      if (entry.index >= newGenerator)
+      if (entry.data() >= newGenerator)
         return true;
       for (size_t j = 0; j <= divisors.size(); ++j) {
         if (j == divisors.size()) {
-          divisors.push_back(entry.index);
+          divisors.push_back(entry.data());
           break;
         }
-        int cmp = basis.ratioCompare(entry.index, divisors[j]);
-        if (cmp == EQ && (entry.index < divisors[j]))
+        int cmp = basis.ratioCompare(entry.data(), divisors[j]);
+        if (cmp == EQ && (entry.data() < divisors[j]))
           cmp = GT; // prefer minimum index to ensure deterministic behavior
         if (cmp == GT) {
-          divisors.insert(divisors.begin() + j, entry.index);
+          divisors.insert(divisors.begin() + j, entry.data());
           break;
         }
       }
@@ -212,16 +240,16 @@ public:
     MATHICGB_ASSERT(newGenerator < basis.size());
     auto highDivisor = size_t(-1);
     auto proceed = [&](const Entry& entry) {
-      if (entry.index >= newGenerator)
+      if (entry.data() >= newGenerator)
         return true;
       if (highDivisor != size_t(-1)) {
-        int cmp = basis.ratioCompare(highDivisor, entry.index);
+        int cmp = basis.ratioCompare(highDivisor, entry.data());
         if (cmp == LT)
           return true;
-        if (cmp == EQ && (entry.index > highDivisor))
+        if (cmp == EQ && (entry.data() > highDivisor))
           return true; // prefer minimum index to ensure deterministic behavior
       }
-      highDivisor = entry.index;
+      highDivisor = entry.data();
       return true;
     };
     auto wrap = lambdaWrap(proceed);
@@ -247,14 +275,14 @@ public:
     auto minLeadGen = size_t(-1);
     auto proceed = [&](const Entry& entry) {
       if (minLeadGen != size_t(-1)) {
-        const int ratioCmp = basis.ratioCompare(entry.index, minLeadGen);
+        const int ratioCmp = basis.ratioCompare(entry.data(), minLeadGen);
         if (ratioCmp == LT)
           return true;
         if (ratioCmp == EQ) {
           // If same lead monomial in signature, pick the one with fewer terms
           // as that one might be less effort to reduce.
           const size_t minTerms = basis.poly(minLeadGen).nTerms();
-          const size_t terms = basis.poly(entry.index).nTerms();
+          const size_t terms = basis.poly(entry.data()).nTerms();
           if (minTerms > terms)
             return true;
           if (minTerms == terms) {
@@ -264,14 +292,14 @@ public:
             // is less. Also, as no two generators have same signature, this
             // ensures deterministic behavior.
             const auto minSig = basis.getSignature(minLeadGen);
-            const auto genSig = basis.getSignature(entry.index);
+            const auto genSig = basis.getSignature(entry.data());
             const auto sigCmp = basis.monoid().compare(minSig, genSig);
             if (basis.monoid().lessThan(genSig, minSig))
               return true;
           }
         }
       }
-      minLeadGen = entry.index;
+      minLeadGen = entry.data();
       return true;
     };
     auto wrap = lambdaWrap(proceed);
@@ -289,22 +317,22 @@ public:
     auto reducer = size_t(-1);
     auto proceed = [&](const Entry& entry) {
       if (reducer == size_t(-1)) {
-        reducer = entry.index;
+        reducer = entry.data();
         return true;
       }
       if (preferSparseReducers) {
         const auto oldTermCount = basis.poly(reducer).nTerms();
-        const auto newTermCount = basis.poly(entry.index).nTerms();
+        const auto newTermCount = basis.poly(entry.data()).nTerms();
         if (oldTermCount > newTermCount) {
-          reducer = entry.index; // prefer sparser
+          reducer = entry.data(); // prefer sparser
           return true;
         }
         if (oldTermCount < newTermCount)
           return true;
       } // break ties by age
 
-      if (reducer > entry.index)
-        reducer = entry.index; // prefer older
+      if (reducer > entry.data())
+        reducer = entry.data(); // prefer older
       return true;
     };
     auto wrap = lambdaWrap(proceed);
@@ -314,19 +342,18 @@ public:
 
   // *** General functionality
 
-  size_t divisor(ConstMonoRef mono) const {
-    const Entry* entry = mLookup.findDivisor(mono);
-    return entry == 0 ? static_cast<size_t>(-1) : entry->index;
+  const Entry* divisor(ConstMonoRef mono) const {
+    return mLookup.findDivisor(mono);
   }
 
   void divisors(ConstMonoRef mono, EntryOutput& consumer) const {
-    auto proceed = [&](const Entry& e) {return consumer.proceed(e.index);};
+    auto proceed = [&](const Entry& e) {return consumer.proceed(e.data());};
     auto wrap = lambdaWrap(proceed);
     mLookup.findAllDivisors(mono, wrap);
   }
 
   void multiples(ConstMonoRef mono, EntryOutput& consumer) const {
-    auto proceed = [&](const Entry& e) {return consumer.proceed(e.index);};
+    auto proceed = [&](const Entry& e) {return consumer.proceed(e.data());};
     auto wrap = lambdaWrap(proceed);
     mLookup.findAllMultiples(mono, wrap);
   }
@@ -344,13 +371,67 @@ public:
 
   size_t getMemoryUse() const {return mLookup.getMemoryUse();}
 
-  void insert(ConstMonoRef mono, size_t value) {
-    mLookup.insert(Entry(mono, value));
+  template<class D>
+  void insert(ConstMonoRef mono, D&& data) {
+    mLookup.insert(Entry(mono, std::forward<D>(data)));
   }
 
 private:
   BaseLookup mLookup;
 };
+
+/// Function for creating statically compiled classes that use
+/// StaticMonoLookup based on run-time values.
+///
+/// The type Functor must have an interface that is compatible with the
+/// following example.
+///
+/// template<bool UseKDTree, bool AllowRemovals, bool UseDivMask>
+/// struct Functor {
+///   static ReturnType create(const Params& params) {
+///     // do your thing
+///   }
+/// };
+template<
+  template<bool, bool, bool> class Functor,
+  class ReturnType,
+  class Params
+>
+ReturnType staticMonoLookupCreate(
+  int type,
+  bool allowRemovals,
+  Params&& params
+) {
+  switch (type) {
+  case 1:
+    if (allowRemovals)
+      return Functor<0, 1, 1>::create(std::forward<Params>(params));
+    else
+      return Functor<0, 0, 1>::create(std::forward<Params>(params));
+    
+  case 2:
+    if (allowRemovals)
+      return Functor<1, 1, 1>::create(std::forward<Params>(params));
+    else
+      return Functor<1, 0, 1>::create(std::forward<Params>(params));
+
+  case 3:
+    if (allowRemovals)
+      return Functor<0, 1, 0>::create(std::forward<Params>(params));
+    else
+      return Functor<0, 0, 0>::create(std::forward<Params>(params));
+
+  case 4:
+    if (allowRemovals)
+      return Functor<1, 1, 0>::create(std::forward<Params>(params));
+    else
+      return Functor<1, 0, 0>::create(std::forward<Params>(params));
+
+  default:
+    MATHICGB_ASSERT_NO_ASSUME(false);
+    throw std::runtime_error("Unknown code for monomial data structure");
+  }  
+}
 
 MATHICGB_NAMESPACE_END
 #endif

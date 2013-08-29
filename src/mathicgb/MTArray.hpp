@@ -18,6 +18,8 @@ public:
   // returns true if the monomial actually needs to be inserted.
   // If the monomial is inserted, the caller agrees to keep that monomial
   // active until it is removed from the table.
+  // Only inserts if minimal, in this case "true" is returned.
+  // and the object takes ownership of 'm'.
   virtual bool insert(const_monomial m) = 0;
 
   virtual bool member(const_monomial m) = 0;
