@@ -20,6 +20,8 @@ public:
   typedef Monoid::ConstMonoRef ConstMonoRef;
   typedef Monoid::ConstMonoPtr ConstMonoPtr;
 
+  virtual ~MonoLookup();
+
   // Call after construction. Can be called multiple times, but only if the
   // parameter object is the same each time.
   virtual void setBasis(const PolyBasis& basis) = 0;
@@ -27,8 +29,6 @@ public:
   // Call after construction. Can be called multiple times, but only if the
   // parameter object is the same each time.
   virtual void setSigBasis(const SigPolyBasis& sigBasis) = 0;
-
-  virtual ~MonoLookup() {}
 
   virtual void insert(ConstMonoRef mono, size_t index) = 0;
 
@@ -57,15 +57,17 @@ public:
 
   virtual int type() const = 0;
 
-  static void displayMonoLookupTypes(std::ostream& out);
+  /// Prints a human-readable description of the type codes for the
+  /// implementations of this interface.
+  static void displayCodes(std::ostream& out);
 
   class Factory {
   public:
-    virtual std::unique_ptr<MonoLookup> create
+    virtual std::unique_ptr<MonoLookup> make
       (bool preferSparseReducers, bool allowRemovals) const = 0;
   };
   static std::unique_ptr<Factory> makeFactory
-    (const PolyRing& ring, int type);
+    (const Monoid& monoid, int type);
 
   class EntryOutput {
   public:

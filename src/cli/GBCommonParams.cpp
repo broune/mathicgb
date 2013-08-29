@@ -64,14 +64,16 @@ GBCommonParams::GBCommonParams():
     mReducer.appendToDescription(reducerOut.str());
   }
   {
-    std::ostringstream monoLookupOut;
-    MonoLookup::displayMonoLookupTypes(monoLookupOut);
-    mMonoLookup.appendToDescription(monoLookupOut.str());
+    std::ostringstream out;
+    out << "Monomial map data structures codes:\n";
+    MonoLookup::displayCodes(out);
+    mMonoLookup.appendToDescription(out.str());
   }
   {
-    std::ostringstream monomialTableOut;
-    ModuleMonoSet::displayMTTypes(monomialTableOut);
-    mMonomialTable.appendToDescription(monomialTableOut.str());
+    std::ostringstream out;
+    out << "Module monomial set data structures codes:\n";
+    ModuleMonoSet::displayCodes(out);
+    mMonomialTable.appendToDescription(out.str());
   }
 }
 

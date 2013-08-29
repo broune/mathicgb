@@ -25,8 +25,11 @@ namespace {
     BuilderMaker():
       mRing(ringFromString("101 6 1\n1 1 1 1 1 1")),
       mIdeal(*mRing),
-      mBasis(*mRing, MonoLookup::makeFactory(*mRing, 1)->create(true, true)) {
-    }
+      mBasis(
+        *mRing,
+        MonoLookup::makeFactory(mRing->monoid(), 1)->make(true, true)
+      )
+    {}
 
     const Poly& addBasisElement(const std::string& str) {
       std::unique_ptr<Poly> p(new Poly(*mRing));

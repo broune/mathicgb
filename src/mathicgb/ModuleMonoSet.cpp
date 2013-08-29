@@ -36,7 +36,7 @@ public:
     delete[] reinterpret_cast<char*>(mLookups);
   }
 
-  virtual bool insert(const_monomial m) {
+  virtual bool insert(ConstMonoRef m) {
     const auto c = monoid().component(m);
     MATHICGB_ASSERT(c < componentCount());
     if (member(m))
@@ -47,7 +47,7 @@ public:
     return true;
   }
 
-  virtual bool member(const_monomial m) {
+  virtual bool member(ConstMonoRef m) {
     const auto c = monoid().component(m);
     MATHICGB_ASSERT(c < componentCount());
     return mLookups[c].divisor(m) != 0;
@@ -58,7 +58,7 @@ public:
   }
 
   virtual void display(std::ostream& out) const {
-    std::vector<const_monomial> monomials;
+    std::vector<ConstMonoPtr> monomials;
     for (size_t c = 0; c < componentCount(); ++c) {
       const Lookup& lookup = mLookups[c];
       if (lookup.size() == 0)
@@ -66,32 +66,43 @@ public:
       out << "  " << c << ": ";
       monomials.clear();
       lookup.forAll([&](const Entry& entry) {
-        monomials.emplace_back(Monoid::toOld(entry.mono()));
+        monomials.emplace_back(entry.mono().ptr());
       });
       const auto& monoid = this->monoid(); // workaround for gcc 4.5.3 issue
-      const auto cmp = [&](const_monomial a, const_monomial b) {
-        return monoid.lessThan(a, b);
+      const auto cmp = [&](ConstMonoPtr a, ConstMonoPtr b) {
+        return monoid.lessThan(*a, *b);
       };
       std::sort(monomials.begin(), monomials.end(), cmp);
       for (auto mono = monomials.cbegin(); mono != monomials.cend(); ++mono) {
-        MathicIO<>().writeMonomial(monoid, false, *mono, out);
+        MathicIO<>().writeMonomial(monoid, false, **mono, out);
         out << "  ";
       }
       out << '\n';
     }
   }
 
-  virtual void getMonomials(std::vector<const_monomial>& monomials) const {
+  virtual void getMonomials(std::vector<ConstMonoPtr>& monomials) const {
     for (size_t c = 0; c < componentCount(); ++c) {
       mLookups[c].forAll(
         [&](const Entry& entry) {
-          monomials.push_back(Monoid::toOld(entry.mono()));
+          monomials.push_back(entry.mono().ptr());
         }
       );
     }
   }
+
+  virtual void forAllVirtual(EntryOutput& consumer) {
+    for (size_t c = 0; c < componentCount(); ++c) {
+      mLookups[c].forAll(
+        [&](const Entry& entry) {
+          consumer.proceed(entry.mono());
+        }
+      );
+    }
+  }
+
   
-  virtual size_t n_elems() const {
+  virtual size_t elementCount() const {
     size_t count = 0;
     for (size_t c = 0; c < componentCount(); ++c)
       count += mLookups[c].size();
@@ -116,15 +127,14 @@ private:
   Lookup* const mLookups;
 };
 
-int ModuleMonoSet::displayMTTypes(std::ostream &o)
- // returns n s.t. 0..n-1 are valid types
-{
-  o << "Monomial table types:" << std::endl;
-  o << "  1   divlist+divmask" << std::endl;
-  o << "  2   kdtree+divmask" << std::endl;
-  o << "  3   divlist" << std::endl;
-  o << "  4   kdtree" << std::endl;
-  return 5;
+ModuleMonoSet::~ModuleMonoSet() {}
+
+void ModuleMonoSet::displayCodes(std::ostream& out) {
+  out <<
+   "  1   list, using divmasks\n"
+   "  2   KD-tree, using divmasks\n"
+   "  3   list\n"
+   "  4   KD-tree\n";
 }
 
 namespace {
@@ -132,15 +142,15 @@ namespace {
   public:
     typedef PolyRing::Monoid Monoid;
 
-    std::unique_ptr<ModuleMonoSet> create(
+    std::unique_ptr<ModuleMonoSet> make(
       const Monoid& monoid,
       int type,
       size_t componentCount,
       bool allowRemovals
     ) {
       const Params params = {monoid, type, componentCount};
-      return staticMonoLookupCreate
-        <Create, std::unique_ptr<ModuleMonoSet>>
+      return staticMonoLookupMake
+        <Make, std::unique_ptr<ModuleMonoSet>>
         (type, allowRemovals, params);
     }
 
@@ -152,8 +162,8 @@ namespace {
     };
 
     template<bool UseKDTree, bool AllowRemovals, bool UseDivMask>
-    struct Create {
-      static std::unique_ptr<ModuleMonoSet> create(const Params& params) {
+    struct Make {
+      static std::unique_ptr<ModuleMonoSet> make(const Params& params) {
         return make_unique
           <ConcreteModuleMonoSet<UseKDTree, AllowRemovals, UseDivMask>>
           (params.monoid, params.componentCount);
@@ -162,10 +172,13 @@ namespace {
   };
 }
 
-std::unique_ptr<ModuleMonoSet> ModuleMonoSet::make
-  (const PolyRing *R, int typ, size_t components, bool allowRemovals)
-{
-  return ModuleMonoSetFactory().create(R->monoid(), typ, components, allowRemovals);
+std::unique_ptr<ModuleMonoSet> ModuleMonoSet::make(
+  const Monoid& monoid,
+  const int type,
+  const size_t components,
+  const bool allowRemovals
+) {
+  return ModuleMonoSetFactory().make(monoid, type, components, allowRemovals);
 }
 
 MATHICGB_NAMESPACE_END

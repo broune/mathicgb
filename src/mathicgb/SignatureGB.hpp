@@ -20,6 +20,8 @@ class SigSPairs;
 class SignatureGB {
 public:
   typedef PolyRing::Monoid Monoid;
+  typedef Monoid::ConstMonoRef ConstMonoRef;
+  typedef Monoid::ConstMonoPtr ConstMonoPtr;
   typedef Monoid::MonoVector MonoVector;
   typedef MonoProcessor<Monoid> Processor;
   typedef Monoid::Component Component;

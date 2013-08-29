@@ -388,7 +388,7 @@ private:
 ///
 /// template<bool UseKDTree, bool AllowRemovals, bool UseDivMask>
 /// struct Functor {
-///   static ReturnType create(const Params& params) {
+///   static ReturnType make(const Params& params) {
 ///     // do your thing
 ///   }
 /// };
@@ -397,7 +397,7 @@ template<
   class ReturnType,
   class Params
 >
-ReturnType staticMonoLookupCreate(
+ReturnType staticMonoLookupMake(
   int type,
   bool allowRemovals,
   Params&& params
@@ -405,27 +405,27 @@ ReturnType staticMonoLookupCreate(
   switch (type) {
   case 1:
     if (allowRemovals)
-      return Functor<0, 1, 1>::create(std::forward<Params>(params));
+      return Functor<0, 1, 1>::make(std::forward<Params>(params));
     else
-      return Functor<0, 0, 1>::create(std::forward<Params>(params));
+      return Functor<0, 0, 1>::make(std::forward<Params>(params));
     
   case 2:
     if (allowRemovals)
-      return Functor<1, 1, 1>::create(std::forward<Params>(params));
+      return Functor<1, 1, 1>::make(std::forward<Params>(params));
     else
-      return Functor<1, 0, 1>::create(std::forward<Params>(params));
+      return Functor<1, 0, 1>::make(std::forward<Params>(params));
 
   case 3:
     if (allowRemovals)
-      return Functor<0, 1, 0>::create(std::forward<Params>(params));
+      return Functor<0, 1, 0>::make(std::forward<Params>(params));
     else
-      return Functor<0, 0, 0>::create(std::forward<Params>(params));
+      return Functor<0, 0, 0>::make(std::forward<Params>(params));
 
   case 4:
     if (allowRemovals)
-      return Functor<1, 1, 0>::create(std::forward<Params>(params));
+      return Functor<1, 1, 0>::make(std::forward<Params>(params));
     else
-      return Functor<1, 0, 0>::create(std::forward<Params>(params));
+      return Functor<1, 0, 0>::make(std::forward<Params>(params));
 
   default:
     MATHICGB_ASSERT_NO_ASSUME(false);

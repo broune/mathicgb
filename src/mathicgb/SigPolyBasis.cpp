@@ -16,10 +16,10 @@ SigPolyBasis::SigPolyBasis(
   int monTableType,
   bool preferSparseReducers):
   mMonoLookupFactory
-    (MonoLookup::makeFactory(*R0, monoLookupType)),
+    (MonoLookup::makeFactory(R0->monoid(), monoLookupType)),
   mRatioSorted(RatioOrder(sigLeadRatio, R0->monoid())),
-  mMinimalMonoLookup(mMonoLookupFactory->create(preferSparseReducers, true)),
-  mBasis(*R0, mMonoLookupFactory->create(preferSparseReducers, true)),
+  mMinimalMonoLookup(mMonoLookupFactory->make(preferSparseReducers, true)),
+  mBasis(*R0, mMonoLookupFactory->make(preferSparseReducers, true)),
   mPreferSparseReducers(preferSparseReducers)
 {
   mTmp = mBasis.ring().allocMonomial();
@@ -45,7 +45,7 @@ SigPolyBasis::~SigPolyBasis()
 
 void SigPolyBasis::addComponent() {
   std::unique_ptr<MonoLookup> lookup =
-    mMonoLookupFactory->create(mPreferSparseReducers, true);
+    mMonoLookupFactory->make(mPreferSparseReducers, true);
   lookup->setSigBasis(*this);
   mSignatureLookup.push_back(0);
   mSignatureLookup.back() = lookup.release(); // only release after alloc

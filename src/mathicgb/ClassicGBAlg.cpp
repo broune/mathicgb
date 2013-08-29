@@ -30,9 +30,11 @@ ClassicGBAlg::ClassicGBAlg(
   mUseAutoTailReduction(false),
   mRing(*basis.getPolyRing()),
   mReducer(reducer),
-  mBasis(mRing, MonoLookup::makeFactory(
-    *basis.getPolyRing(),
-    monoLookupType)->create(preferSparseReducers, true)
+  mBasis(mRing,
+    MonoLookup::makeFactory(
+      basis.getPolyRing()->monoid(),
+      monoLookupType
+    )->make(preferSparseReducers, true)
   ),
   mSPairs(mBasis, preferSparseReducers),
   mSPolyReductionCount(0)

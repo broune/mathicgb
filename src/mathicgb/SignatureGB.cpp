@@ -41,8 +41,8 @@ SignatureGB::SignatureGB(
   stats_nsecs(0.0),
   GB(make_unique<SigPolyBasis>(R, divlookup_type, montable_type, preferSparseReducers)),
   mKoszuls(R->monoid()),
-  Hsyz(ModuleMonoSet::make(R, montable_type, basis.size(), !mPostponeKoszul)),
-  Hsyz2(ModuleMonoSet::make(R, montable_type, basis.size(), !mPostponeKoszul)),
+  Hsyz(ModuleMonoSet::make(R->monoid(), montable_type, basis.size(), !mPostponeKoszul)),
+  Hsyz2(ModuleMonoSet::make(R->monoid(), montable_type, basis.size(), !mPostponeKoszul)),
   reducer(Reducer::makeReducer(reductiontyp, *R)),
   SP(make_unique<SigSPairs>(R, GB.get(), Hsyz.get(), reducer.get(), mPostponeKoszul, mUseBaseDivisors, useSingularCriterionEarly, queueType))
 {
@@ -126,14 +126,12 @@ void SignatureGB::computeGrobnerBasis()
 
   if (mProcessor->processingNeeded()) {
     GB->postprocess(*mProcessor);
-    std::vector<const_monomial> v;
-    Hsyz->getMonomials(v);
-    for (size_t i = 0; i < v.size(); ++i) {
+    Hsyz->forAll([&](ConstMonoRef mono) {
       auto sig = R->allocMonomial();
-      R->monomialCopy(v[i], sig);
+      R->monoid().copy(mono, sig);
       mProcessor->postprocess(sig);
       Hsyz2->insert(sig);
-    }
+    });
   }
 }
 
@@ -494,7 +492,7 @@ void SignatureGB::displaySomeStats(std::ostream& out) const {
   extra << mic::ColumnPrinter::percentInteger(timeSinceLastMinLead, basisSize)
     << " of basis added since then\n";
 
-  const size_t minSyz = Hsyz->n_elems();
+  const size_t minSyz = Hsyz->elementCount();
   const double syzBasisRatio =
     static_cast<double>(minSyz) / basisSize;
   name << "Minimal syzygies:\n";

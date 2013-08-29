@@ -135,13 +135,13 @@ namespace {
       mType(type)
     {}
 
-    virtual std::unique_ptr<MonoLookup> create(
+    virtual std::unique_ptr<MonoLookup> make(
       bool preferSparseReducers,
       bool allowRemovals
     ) const {
       Params params = {mMonoid, mType, preferSparseReducers};
-      return staticMonoLookupCreate
-        <Create, std::unique_ptr<MonoLookup>>(mType, allowRemovals, params);
+      return staticMonoLookupMake
+        <Make, std::unique_ptr<MonoLookup>>(mType, allowRemovals, params);
     }
 
   private:
@@ -152,8 +152,8 @@ namespace {
     };
 
     template<bool UseKDTree, bool AllowRemovals, bool UseDivMask>
-    struct Create {
-      static std::unique_ptr<MonoLookup> create(const Params& params) {
+    struct Make {
+      static std::unique_ptr<MonoLookup> make(const Params& params) {
         auto p = new ConcreteMonoLookup<UseKDTree, AllowRemovals, UseDivMask>
           (params.monoid, params.type, params.preferSparseReducers);
         return std::unique_ptr<MonoLookup>(p);
@@ -165,19 +165,21 @@ namespace {
   };
 }
 
+MonoLookup::~MonoLookup() {}
+
 std::unique_ptr<MonoLookup::Factory> MonoLookup::makeFactory(
-  const PolyRing& ring,
-  int type
+  const Monoid& monoid,
+  const int type
 ) {
-  return std::unique_ptr<Factory>(new ConcreteFactory(ring.monoid(), type));
+  return std::unique_ptr<Factory>(new ConcreteFactory(monoid, type));
 }
 
-void MonoLookup::displayMonoLookupTypes(std::ostream& out) {
-  out << "Mono Lookup Types:" << std::endl;
-  out << "  1   divlist+divmask" << std::endl;
-  out << "  2   kdtree+divmask" << std::endl;
-  out << "  3   divlist" << std::endl;
-  out << "  4   kdtree" << std::endl;
+void MonoLookup::displayCodes(std::ostream& out) {
+  out <<
+   "  1   list, using divmasks\n"
+   "  2   KD-tree, using divmasks\n"
+   "  3   list\n"
+   "  4   KD-tree\n";
 }
 
 MATHICGB_NAMESPACE_END
