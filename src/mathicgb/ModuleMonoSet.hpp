@@ -1,7 +1,7 @@
 // MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
 // NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
-#ifndef MATHICGB_M_T_ARRAY_GUARD
-#define MATHICGB_M_T_ARRAY_GUARD
+#ifndef MATHICGB_MODULE_MONO_SET_GUARD
+#define MATHICGB_MODULE_MONO_SET_GUARD
 
 #include "PolyRing.hpp"
 #include <vector>
@@ -10,10 +10,10 @@
 
 MATHICGB_NAMESPACE_BEGIN
 
-class MonomialTableArray
+class ModuleMonoSet
 {
 public:
-  virtual ~MonomialTableArray() {};
+  virtual ~ModuleMonoSet() {};
 
   // returns true if the monomial actually needs to be inserted.
   // If the monomial is inserted, the caller agrees to keep that monomial
@@ -36,7 +36,7 @@ public:
 
   // Choosing one
   static int displayMTTypes(std::ostream &o); // returns n s.t. 0..n-1 are valid types
-  static std::unique_ptr<MonomialTableArray>
+  static std::unique_ptr<ModuleMonoSet>
     make(const PolyRing *R, int typ, size_t components, bool allowRemovals);
 };
 

@@ -35,9 +35,6 @@
     <ClCompile Include="..\..\..\src\mathicgb\io-util.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\src\mathicgb\MTArray.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\src\mathicgb\PairTriangle.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -131,6 +128,9 @@
     <ClCompile Include="..\..\..\src\mathicgb\MonoLookup.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\src\mathicgb\ModuleMonoSet.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\src\mathicgb\BjarkeGeobucket.hpp">
@@ -161,9 +161,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\src\mathicgb\MonomialHashTable.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\mathicgb\MTArray.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\src\mathicgb\PairTriangle.hpp">
@@ -319,10 +316,13 @@
     <ClInclude Include="..\..\..\src\mathicgb\Unchar.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\src\mathicgb\StaticMonoLookup.hpp">
+    <ClInclude Include="..\..\..\src\mathicgb\MonoLookup.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\src\mathicgb\MonoLookup.hpp">
+    <ClInclude Include="..\..\..\src\mathicgb\StaticMonoMap.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\mathicgb\ModuleMonoSet.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

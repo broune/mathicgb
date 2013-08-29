@@ -4,7 +4,7 @@
 #include "MonoLookup.hpp"
 
 #include "SigPolyBasis.hpp"
-#include "StaticMonoLookup.hpp"
+#include "StaticMonoMap.hpp"
 #include <mathic.h>
 
 MATHICGB_NAMESPACE_BEGIN

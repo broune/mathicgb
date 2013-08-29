@@ -1,9 +1,9 @@
 // MathicGB copyright 2012 all rights reserved. MathicGB comes with ABSOLUTELY
 // NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
 #include "stdinc.h"
-#include "MTArray.hpp"
+#include "ModuleMonoSet.hpp"
 
-#include "StaticMonoLookup.hpp"
+#include "StaticMonoMap.hpp"
 #include "MathicIO.hpp"
 
 MATHICGB_NAMESPACE_BEGIN
@@ -13,7 +13,7 @@ template<
   bool AllowRemovals,
   bool UseDivMask
 >
-class ConcreteModuleMonoSet : public MonomialTableArray {
+class ConcreteModuleMonoSet : public ModuleMonoSet {
 public:
   typedef PolyRing::Monoid Monoid;
   struct NoData {};
@@ -116,7 +116,7 @@ private:
   Lookup* const mLookups;
 };
 
-int MonomialTableArray::displayMTTypes(std::ostream &o)
+int ModuleMonoSet::displayMTTypes(std::ostream &o)
  // returns n s.t. 0..n-1 are valid types
 {
   o << "Monomial table types:" << std::endl;
@@ -132,7 +132,7 @@ namespace {
   public:
     typedef PolyRing::Monoid Monoid;
 
-    std::unique_ptr<MonomialTableArray> create(
+    std::unique_ptr<ModuleMonoSet> create(
       const Monoid& monoid,
       int type,
       size_t componentCount,
@@ -140,7 +140,7 @@ namespace {
     ) {
       const Params params = {monoid, type, componentCount};
       return staticMonoLookupCreate
-        <Create, std::unique_ptr<MonomialTableArray>>
+        <Create, std::unique_ptr<ModuleMonoSet>>
         (type, allowRemovals, params);
     }
 
@@ -153,7 +153,7 @@ namespace {
 
     template<bool UseKDTree, bool AllowRemovals, bool UseDivMask>
     struct Create {
-      static std::unique_ptr<MonomialTableArray> create(const Params& params) {
+      static std::unique_ptr<ModuleMonoSet> create(const Params& params) {
         return make_unique
           <ConcreteModuleMonoSet<UseKDTree, AllowRemovals, UseDivMask>>
           (params.monoid, params.componentCount);
@@ -162,7 +162,7 @@ namespace {
   };
 }
 
-std::unique_ptr<MonomialTableArray> MonomialTableArray::make
+std::unique_ptr<ModuleMonoSet> ModuleMonoSet::make
   (const PolyRing *R, int typ, size_t components, bool allowRemovals)
 {
   return ModuleMonoSetFactory().create(R->monoid(), typ, components, allowRemovals);

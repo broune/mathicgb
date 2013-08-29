@@ -4,7 +4,7 @@
 #define MATHICGB_SIGNATURE_G_B_GUARD
 
 #include "PolyRing.hpp"
-#include "MTArray.hpp"
+#include "ModuleMonoSet.hpp"
 #include "SigPolyBasis.hpp"
 #include "SigSPairs.hpp"
 #include "Reducer.hpp"
@@ -45,7 +45,7 @@ public:
   unsigned long long getSingularReductionCount() const;
 
   SigPolyBasis* getGB() { return GB.get(); }
-  MonomialTableArray* getSyzTable() { return mProcessor->processingNeeded() ? Hsyz2.get() : Hsyz.get(); }
+  ModuleMonoSet* getSyzTable() { return mProcessor->processingNeeded() ? Hsyz2.get() : Hsyz.get(); }
   SigSPairs* getSigSPairs() { return SP.get(); }
 
   size_t getMemoryUse() const;
@@ -99,8 +99,8 @@ private:
 
   std::unique_ptr<SigPolyBasis> GB;
   KoszulQueue mKoszuls;
-  std::unique_ptr<MonomialTableArray> Hsyz;
-  std::unique_ptr<MonomialTableArray> Hsyz2;
+  std::unique_ptr<ModuleMonoSet> Hsyz;
+  std::unique_ptr<ModuleMonoSet> Hsyz2;
   std::unique_ptr<Reducer> reducer;
   std::unique_ptr<SigSPairs> SP;
   std::unique_ptr<MonoProcessor<Monoid>> mProcessor;

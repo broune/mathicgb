@@ -9,7 +9,7 @@ MATHICGB_NAMESPACE_BEGIN
 
 class Poly;
 class SigPolyBasis;
-class MonomialTableArray;
+class ModuleMonoSet;
 class PolyBasis;
 class Basis;
 
@@ -23,7 +23,7 @@ Monomial stringToMonomial(const PolyRing *R, std::string mon);
 std::string monomialToString(const PolyRing *R, const Monomial& mon);
 
 std::string toString(SigPolyBasis *);
-std::string toString(MonomialTableArray *);
+std::string toString(ModuleMonoSet *);
 std::string toString(SigPolyBasis *, int unused); // also displays signature
 std::string toString(Basis *);
 std::string toString(const Poly *);

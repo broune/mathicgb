@@ -7,7 +7,7 @@
 #include "MonoLookup.hpp"
 #include "SigSPairs.hpp"
 #include "PolyHeap.hpp"
-#include "MTArray.hpp"
+#include "ModuleMonoSet.hpp"
 #include <mathic.h>
 #include <limits>
 
@@ -41,8 +41,8 @@ SignatureGB::SignatureGB(
   stats_nsecs(0.0),
   GB(make_unique<SigPolyBasis>(R, divlookup_type, montable_type, preferSparseReducers)),
   mKoszuls(R->monoid()),
-  Hsyz(MonomialTableArray::make(R, montable_type, basis.size(), !mPostponeKoszul)),
-  Hsyz2(MonomialTableArray::make(R, montable_type, basis.size(), !mPostponeKoszul)),
+  Hsyz(ModuleMonoSet::make(R, montable_type, basis.size(), !mPostponeKoszul)),
+  Hsyz2(ModuleMonoSet::make(R, montable_type, basis.size(), !mPostponeKoszul)),
   reducer(Reducer::makeReducer(reductiontyp, *R)),
   SP(make_unique<SigSPairs>(R, GB.get(), Hsyz.get(), reducer.get(), mPostponeKoszul, mUseBaseDivisors, useSingularCriterionEarly, queueType))
 {

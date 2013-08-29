@@ -4,7 +4,7 @@
 
 #include "mathicgb/Poly.hpp"
 #include "mathicgb/Basis.hpp"
-#include "mathicgb/MTArray.hpp"
+#include "mathicgb/ModuleMonoSet.hpp"
 #include "mathicgb/io-util.hpp"
 #include "mathicgb/PolyHeap.hpp"
 #include "mathicgb/SigPolyBasis.hpp"

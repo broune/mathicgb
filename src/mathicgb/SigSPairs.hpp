@@ -13,7 +13,7 @@
 MATHICGB_NAMESPACE_BEGIN
 
 class Poly;
-class MonomialTableArray;
+class ModuleMonoSet;
 class SigPolyBasis;
 class Reducer;
 
@@ -25,7 +25,7 @@ public:
   SigSPairs(
     const PolyRing *R0,
     const SigPolyBasis *GB0,
-    MonomialTableArray *Hsyz0,
+    ModuleMonoSet *Hsyz0,
     Reducer* reducer,
     bool postponeKoszuls,
     bool useBaseDivisors,
@@ -117,7 +117,7 @@ private:
   mathic::BitTriangle mKnownSyzygyTri;
 
   // From elsewhere
-  MonomialTableArray *Hsyz; // we often modify this
+  ModuleMonoSet *Hsyz; // we often modify this
   const SigPolyBasis *GB;
   Reducer* mReducer;
   const bool mPostponeKoszuls;

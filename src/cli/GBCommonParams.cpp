@@ -3,7 +3,7 @@
 #include "mathicgb/stdinc.h"
 #include "GBCommonParams.hpp"
 
-#include "mathicgb/MTArray.hpp"
+#include "mathicgb/ModuleMonoSet.hpp"
 #include "mathicgb/PolyReducer.hpp"
 #include "mathicgb/MonoLookup.hpp"
 
@@ -70,7 +70,7 @@ GBCommonParams::GBCommonParams():
   }
   {
     std::ostringstream monomialTableOut;
-    MonomialTableArray::displayMTTypes(monomialTableOut);
+    ModuleMonoSet::displayMTTypes(monomialTableOut);
     mMonomialTable.appendToDescription(monomialTableOut.str());
   }
 }

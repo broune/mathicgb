@@ -4,7 +4,7 @@
 #include "mathicgb/Poly.hpp"
 
 #include "mathicgb/Basis.hpp"
-#include "mathicgb/MTArray.hpp"
+#include "mathicgb/ModuleMonoSet.hpp"
 #include "mathicgb/io-util.hpp"
 #include "mathicgb/MonomialHashTable.hpp"
 #include "mathicgb/PolyHashTable.hpp"
@@ -504,7 +504,7 @@ TEST(Coeff, addone) {
 TEST(MTArray,DivList1) {
   // We create a table here
   std::unique_ptr<PolyRing> R(ringFromString("32003 6 1\n1 1 1 1 1 1"));
-  auto M = MonomialTableArray::make(R.get(), 1, 6, false);
+  auto M = ModuleMonoSet::make(R.get(), 1, 6, false);
   std::string mons[2] = {
     "abc<1>",
     "a2d<1>"
@@ -528,7 +528,7 @@ TEST(MTArray,DivList1) {
 TEST(MTArray,KDTree1) {
   // We create a table here
   std::unique_ptr<PolyRing> R(ringFromString("32003 6 1\n1 1 1 1 1 1"));
-  std::unique_ptr<MonomialTableArray> M(MonomialTableArray::make(R.get(), 2, 6, false));
+  std::unique_ptr<ModuleMonoSet> M(ModuleMonoSet::make(R.get(), 2, 6, false));
   std::string mons[2] = {
     "abc<1>",
     "a2d<1>"

@@ -4,7 +4,7 @@
 #include "SigSPairs.hpp"
 
 #include "SigPolyBasis.hpp"
-#include "MTArray.hpp"
+#include "ModuleMonoSet.hpp"
 #include "Reducer.hpp"
 #include <limits>
 #include <stdexcept>
@@ -15,7 +15,7 @@ MATHICGB_NAMESPACE_BEGIN
 SigSPairs::SigSPairs(
   const PolyRing *R0,
   const SigPolyBasis *GB0,
-  MonomialTableArray *Hsyz0,
+  ModuleMonoSet *Hsyz0,
   Reducer* reducer,
   bool postponeKoszuls,
   bool useBaseDivisors,

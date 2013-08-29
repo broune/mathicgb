@@ -4,7 +4,7 @@
 #include "io-util.hpp"
 
 #include "Poly.hpp"
-#include "MTArray.hpp"
+#include "ModuleMonoSet.hpp"
 #include "io-util.hpp"
 #include "Scanner.hpp"
 #include "MathicIO.hpp"
@@ -12,7 +12,6 @@
 #include "PolyGeoBucket.hpp"
 #include "SigPolyBasis.hpp"
 #include "SignatureGB.hpp"
-#include "MTArray.hpp"
 #include "Basis.hpp"
 #include "PolyBasis.hpp"
 #include <cstdio>
@@ -104,7 +103,7 @@ std::string toString(SigPolyBasis *I, int)
   return o.str();
 }
 
-std::string toString(MonomialTableArray* H)
+std::string toString(ModuleMonoSet* H)
 {
   std::ostringstream o;
   H->display(o);
