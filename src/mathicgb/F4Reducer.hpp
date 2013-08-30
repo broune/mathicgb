@@ -49,7 +49,7 @@ public:
     std::vector<std::unique_ptr<Poly> >& reducedOut
   );
 
-  virtual Poly* regularReduce(
+  virtual std::unique_ptr<Poly> regularReduce(
     const_monomial sig,
     const_monomial multiple,
     size_t basisElement,

@@ -236,7 +236,7 @@ void F4Reducer::classicReducePolySet
     mRing.freeMonomial(*it);
 }
 
-Poly* F4Reducer::regularReduce(
+std::unique_ptr<Poly> F4Reducer::regularReduce(
   const_monomial sig,
   const_monomial multiple,
   size_t basisElement,
@@ -248,7 +248,7 @@ Poly* F4Reducer::regularReduce(
   auto p = mFallback->regularReduce(sig, multiple, basisElement, basis);
   mSigStats = mFallback->sigStats();
   mClassicStats = mFallback->classicStats();
-  return std::move(p);
+  return p;
 }
 
 void F4Reducer::setMemoryQuantum(size_t quantum) {

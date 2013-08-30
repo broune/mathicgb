@@ -249,7 +249,7 @@ auto MathicIO<M, BF>::readOrder(
   const bool withComponent,
   Scanner& in
 ) -> Order {
-  const bool schreyering = in.match("schreyer");
+  const bool schreyering = in.match("schreyer") || !in.match("noschreyer");
   bool lexBaseOrder = !in.match("revlex") && in.match("lex");
 
   auto gradingCount = in.readInteger<VarIndex>();

@@ -25,30 +25,33 @@ class TypicalReducer : public Reducer {
 public:
   virtual unsigned int preferredSetSize() const;
 
-  virtual Poly* regularReduce(
+  virtual std::unique_ptr<Poly> regularReduce(
     const_monomial sig,
     const_monomial multiple,
     size_t basisElement,
-    const SigPolyBasis& basis);
+    const SigPolyBasis& basis
+  );
 
   virtual std::unique_ptr<Poly> classicReduce
-  (const Poly& poly, const PolyBasis& basis);
+    (const Poly& poly, const PolyBasis& basis);
 
   virtual std::unique_ptr<Poly> classicTailReduce
-  (const Poly& poly, const PolyBasis& basis);
+    (const Poly& poly, const PolyBasis& basis);
 
   virtual std::unique_ptr<Poly> classicReduceSPoly
     (const Poly& a, const Poly& b, const PolyBasis& basis);
 
-  virtual void classicReduceSPolySet
-  (std::vector<std::pair<size_t, size_t> >& spairs,
-   const PolyBasis& basis,
-   std::vector<std::unique_ptr<Poly> >& reducedOut);
+  virtual void classicReduceSPolySet(
+    std::vector<std::pair<size_t, size_t> >& spairs,
+    const PolyBasis& basis,
+    std::vector<std::unique_ptr<Poly> >& reducedOut
+  );
 
-  virtual void classicReducePolySet
-  (const std::vector<std::unique_ptr<Poly> >& polys,
-   const PolyBasis& basis,
-   std::vector<std::unique_ptr<Poly> >& reducedOut);
+  virtual void classicReducePolySet(
+    const std::vector<std::unique_ptr<Poly> >& polys,
+    const PolyBasis& basis,
+    std::vector<std::unique_ptr<Poly> >& reducedOut
+  );
 
   virtual void setMemoryQuantum(size_t quantum);
 

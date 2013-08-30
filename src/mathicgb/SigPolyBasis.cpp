@@ -4,6 +4,7 @@
 #include "SigPolyBasis.hpp"
 
 #include "Poly.hpp"
+#include <mathic.h>
 #include <limits>
 #include <iostream>
 #include <iomanip>
@@ -373,41 +374,46 @@ bool SigPolyBasis::isSingularTopReducibleSlow
   return false;
 }
 
-void SigPolyBasis::display(std::ostream &o) const
-{
-  for (size_t i = 0; i<mBasis.size(); i++)
-    {
-      o << i << " ";
-      if (! mSignatures[i].isNull())
-        ring().monomialDisplay(o, mSignatures[i]);
-      if (!mBasis.retired(i)) {
-        o << "  ";
-        mBasis.poly(i).display(o, false); // don't display component
-      }
-      o << std::endl;
-    }
-}
-
-void SigPolyBasis::displayBrief(std::ostream &o) const
-{
-  for (size_t i = 0; i<mBasis.size(); i++)
-    {
-      o << std::setw(4) << i << " ";
-      o << std::setw(4) << mBasis.usedAsStartCount(i) << " ";
-      o << std::setw(6) << mBasis.usedAsReducerCount(i) << " ";
-      o << std::setw(6) << mBasis.wasPossibleReducerCount(i) << " ";
-      o << std::setw(6) << mBasis.wasNonSignatureReducerCount(i) << " ";
-      o << std::setw(6) << mBasis.poly(i).nTerms() << "     ";
+void SigPolyBasis::display(std::ostream& o) const {
+  for (size_t i = 0; i < mBasis.size(); i++) {
+    o << i << " ";
+    if (!mSignatures[i].isNull())
       ring().monomialDisplay(o, mSignatures[i]);
+    if (!mBasis.retired(i)) {
       o << "  ";
-      ring().monomialDisplay(o, mBasis.leadMonomial(i));
-      o << std::endl;
+      mBasis.poly(i).display(o, false); // don't display component
     }
+    o << std::endl;
+  }
 }
 
-void SigPolyBasis::dump() const
+void SigPolyBasis::displayFancy
+  (std::ostream& out, const Processor& processor) const
 {
-  display(std::cerr);
+  mathic::ColumnPrinter pr;
+  auto& indexOut = pr.addColumn(false) << "Index\n";
+  auto& sigOut = pr.addColumn(false) << "sig\n";
+  auto& polyOut = pr.addColumn() << "poly\n";
+  pr.repeatToEndOfLine('-');
+
+  auto sig = monoid().alloc();
+  for (size_t i = 0; i < mBasis.size(); i++) {
+    indexOut << i << '\n';
+
+    if (!mSignatures[i].isNull()) {
+      monoid().copy(mSignatures[i], sig);
+      processor.postprocess(sig);
+      ring().monomialDisplay(sigOut, Monoid::toOld(*sig.ptr()));
+    }
+    sigOut << '\n';
+
+    if (mBasis.retired(i))
+      polyOut << "retired";
+    else
+      mBasis.poly(i).display(polyOut, false);
+    polyOut << '\n';
+  }
+  out << pr;
 }
 
 void SigPolyBasis::postprocess(const MonoProcessor<PolyRing::Monoid>& processor) {

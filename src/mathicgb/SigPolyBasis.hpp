@@ -20,6 +20,7 @@ MATHICGB_NAMESPACE_BEGIN
 class SigPolyBasis {
 public:
   typedef PolyRing::Monoid Monoid;
+  typedef MonoProcessor<Monoid> Processor;
 
   SigPolyBasis(
     const PolyRing* R,
@@ -96,9 +97,8 @@ public:
   // that changes.
   bool isSingularTopReducibleSlow(const Poly& poly, const_monomial sig) const;
 
-  void display(std::ostream &o) const;
-  void displayBrief(std::ostream &o) const;
-  void dump() const;
+  void display(std::ostream& out) const;
+  void displayFancy(std::ostream& out, const Processor& processor) const;
   size_t getMemoryUse() const;
 
   // Compares the signature/lead ratio of basis element a to basis element b
@@ -107,7 +107,7 @@ public:
 
   /// Post processes all signatures. This currently breaks all sorts
   /// of internal invariants - it's supposed to be a temporary hack.
-  void postprocess(const MonoProcessor<PolyRing::Monoid>& processor);
+  void postprocess(const Processor& processor);
 
   class StoredRatioCmp {
   public:

@@ -23,7 +23,7 @@ size_t TypicalReducer::getMemoryUse() const {
   return mArena.getMemoryUse();
 }
 
-Poly* TypicalReducer::regularReduce(
+std::unique_ptr<Poly> TypicalReducer::regularReduce(
   const_monomial sig,
   const_monomial multiple,
   size_t basisElement,
@@ -40,7 +40,7 @@ Poly* TypicalReducer::regularReduce(
   if (reducer == static_cast<size_t>(-1)) {
     ++mSigStats.singularReductions;
     mArena.freeAllAllocs();
-    return 0; // singular reduction: no regular top reduction possible
+    return nullptr; // singular reduction: no regular top reduction possible
   }
 
   ring.monomialDivide(tproduct, basis.getLeadMonomial(reducer), u);
@@ -54,7 +54,7 @@ Poly* TypicalReducer::regularReduce(
   insertTail(const_term(coef, u), &basis.poly(reducer));
   basis.basis().usedAsReducer(reducer);
 
-  Poly* result = new Poly(ring);
+  auto result = make_unique<Poly>(ring);
 
   unsigned long long steps = 2; // number of steps in this reduction
   for (const_term v; leadTerm(v);) {

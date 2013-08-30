@@ -8,8 +8,19 @@
 #include "SigSPairs.hpp"
 #include "PolyHeap.hpp"
 #include "ModuleMonoSet.hpp"
+#include "LogDomain.hpp"
 #include <mathic.h>
 #include <limits>
+
+MATHICGB_DEFINE_LOG_DOMAIN(
+  SigBasisChanged,
+  "Show the signature basis after each change."
+);
+
+MATHICGB_DEFINE_LOG_DOMAIN(
+  SigSPairFinal,
+  "Show the outcome of final processing for S-pairs."
+);
 
 MATHICGB_NAMESPACE_BEGIN
 
@@ -148,48 +159,37 @@ bool SignatureGB::processSPair
   GB->basis().usedAsStart(gen);
 
   // reduce multiple * GB->getSignature(gen)
-  Poly* f = reducer->regularReduce(sig, multiple, gen, *GB);
+  auto f = reducer->regularReduce(sig, multiple, gen, *GB);
 
   R->freeMonomial(multiple);
 
-  if (f == 0) { // singular reduction
-    MATHICGB_ASSERT(f == 0);
-    if (tracingLevel >= 7)
-      std::cerr << "singular reduction" << std::endl;
+  if (f == nullptr) { // singular reduction
     R->freeMonomial(sig);
+    MATHICGB_LOG(SigSPairFinal) << "   eliminated by singular criterion.\n";
     return true;
   }
-  MATHICGB_ASSERT(f != 0);
 
   if (f->isZero()) { // reduction to zero
-    if (tracingLevel >= 7)
-      std::cerr << "zero reduction" << std::endl;
     Hsyz->insert(sig);
     SP->newSyzygy(sig);
     SP->setKnownSyzygies(mSpairTmp);
-    delete f;
+    MATHICGB_LOG(SigSPairFinal) << "   s-reduced to zero.\n";
     return false;
   }
 
   // new basis element
   MATHICGB_ASSERT(!GB->isSingularTopReducibleSlow(*f, sig));
-  {
-    std::unique_ptr<Poly> uniqueF(f);
-    GB->insert(sig, std::move(uniqueF));
-  }
+  GB->insert(sig, std::move(f));
+
+  MATHICGB_LOG(SigSPairFinal) << "   s-reduced to new basis element.\n";
+
+  MATHICGB_IF_STREAM_LOG(SigBasisChanged) {
+    stream << "New signature basis element. The basis is now:\n";
+    GB->displayFancy(stream, *mProcessor);
+  };
+
   SP->newPairs(GB->size()-1);
 
-  if (tracingLevel >= 1) {
-    std::cerr << "New GB element." << std::endl;
-    size_t r = GB->size()-1;
-    std::cerr << "gb" << r << ": ";
-    R->monomialDisplay(std::cerr, GB->getSignature(r));
-    std::cerr << "  ";
-    R->monomialDisplay(std::cerr, GB->poly(r).getLeadMonomial());
-    std::cerr << std::endl;
-    if (tracingLevel >= 7)
-      GB->dump();
-  }
   return true;
 }
 
@@ -201,58 +201,51 @@ bool SignatureGB::step()
   ++stats_sPairSignaturesDone;
   stats_sPairsDone += mSpairTmp.size();
 
-  if (tracingLevel >= 3) {
-    std::cerr << "doing signature ";
-    R->monomialDisplay(std::cerr, sig);
-    std::cerr << std::endl;
-  }
+  MATHICGB_IF_STREAM_LOG(SigSPairFinal) {
+    stream << "Final processing of signature ";
+    R->monomialDisplay(stream, sig);
+    stream << '\n';
+  };
 
   if (Hsyz->member(sig)) {
     ++stats_SignatureCriterionLate;
     SP->setKnownSyzygies(mSpairTmp);
-    if (tracingLevel >= 3)
-      std::cerr << "eliminated as in syzygy module" << std::endl;
     R->freeMonomial(sig);
+    MATHICGB_LOG(SigSPairFinal) << "   eliminated by signature criterion.\n";
     return true;
   }
 
-  // Not a known syzygy
-
   while (!mKoszuls.empty() && R->monoid().lessThan(mKoszuls.top(), sig))
-    {
-      mKoszuls.pop();
-    }
+    mKoszuls.pop();
+  
+  if (!mKoszuls.empty() && R->monoid().equal(mKoszuls.top(), sig)) {
+    ++stats_koszulEliminated;
+    // This signature is of a syzygy that is not in Hsyz, so add it
+    Hsyz->insert(sig);
+    SP->newSyzygy(sig);
+    SP->setKnownSyzygies(mSpairTmp);
+    MATHICGB_LOG(SigSPairFinal) << "   eliminated by Koszul criterion.\n";
+    return true;
+  }
 
-  if (!mKoszuls.empty() && R->monoid().equal(mKoszuls.top(), sig))
-    {
-      ++stats_koszulEliminated;
-      // This signature is of a syzygy that is not in Hsyz, so add it
-      Hsyz->insert(sig);
-      SP->newSyzygy(sig);
-      SP->setKnownSyzygies(mSpairTmp);
-      return true;
+  if (mPostponeKoszul) {
+    // Relatively prime check
+    for (auto it = mSpairTmp.begin(); it != mSpairTmp.end(); ++it) {
+      const_monomial a = GB->getLeadMonomial(it->first);
+      const_monomial b = GB->getLeadMonomial(it->second);
+      if (R->monomialRelativelyPrime(a, b)) {
+        ++stats_relativelyPrimeEliminated;
+        Hsyz->insert(sig);
+        SP->newSyzygy(sig);
+        SP->setKnownSyzygies(mSpairTmp);
+        MATHICGB_LOG(SigSPairFinal) <<
+          "   eliminated by relatively prime criterion.\n";
+        return true;
+      }
     }
-
-  typedef std::vector<std::pair<size_t, size_t> >::const_iterator iter;
-  if (mPostponeKoszul)
-    {
-      // Relatively prime check
-      for (iter it = mSpairTmp.begin(); it != mSpairTmp.end(); ++it)
-        {
-          const_monomial a = GB->getLeadMonomial(it->first);
-          const_monomial b = GB->getLeadMonomial(it->second);
-          if (R->monomialRelativelyPrime(a, b))
-            {
-              ++stats_relativelyPrimeEliminated;
-              Hsyz->insert(sig);
-              SP->newSyzygy(sig);
-              SP->setKnownSyzygies(mSpairTmp);
-              return true;
-            }
-        }
-    }
+  }
 #ifdef DEBUG
-  for (iter it = mSpairTmp.begin(); it != mSpairTmp.end(); ++it) {
+  for (auto it = mSpairTmp.begin(); it != mSpairTmp.end(); ++it) {
     const_monomial a = GB->getLeadMonomial(it->first);
     const_monomial b = GB->getLeadMonomial(it->second);
     MATHICGB_ASSERT(!R->monomialRelativelyPrime(a, b));
@@ -263,7 +256,7 @@ bool SignatureGB::step()
   ++stats_pairsReduced;
   if (!processSPair(sig, mSpairTmp) || !mPostponeKoszul)
     return true;
-  for (iter it = mSpairTmp.begin(); it != mSpairTmp.end(); ++it) {
+  for (auto it = mSpairTmp.begin(); it != mSpairTmp.end(); ++it) {
     std::pair<size_t, size_t> p = *it;
     if (GB->ratioCompare(p.first, p.second) == LT)
       std::swap(p.first, p.second);

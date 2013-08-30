@@ -65,7 +65,7 @@ public:
     basis elements in basis. Returns null (0) if multiple*basisElement
     is not regular top reducible -- this indicates a singular
     reduction. */
-  virtual Poly* regularReduce(
+  virtual std::unique_ptr<Poly> regularReduce(
     const_monomial sig,
     const_monomial multiple,
     size_t basisElement,
