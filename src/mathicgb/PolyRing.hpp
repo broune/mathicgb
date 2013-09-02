@@ -97,6 +97,8 @@ typedef PrimeField<unsigned long> Field;
 typedef exponent* vecmonomial; // includes a component
 typedef coefficient const_coefficient;
 
+#define OLDMON
+#ifdef OLDMON
 class Monomial;
 
 class ConstMonomial
@@ -186,28 +188,39 @@ inline const Monomial& ConstMonomial::castAwayConst() const
 
 typedef Monomial monomial;
 typedef ConstMonomial const_monomial;
+#else
+typedef MonoMonoid<exponent>::MonoPtr monomial;
+typedef MonoMonoid<exponent>::MonoPtr Monomial;
+typedef MonoMonoid<exponent>::ConstMonoPtr const_monomial;
+typedef MonoMonoid<exponent>::ConstMonoPtr ConstMonomial;
+#endif
 
 struct const_term {
-  const_coefficient coeff;
-  const_monomial monom; // includes component
-
   const_term() {}
   const_term(const_coefficient c, const_monomial m) : coeff(c), monom(m) {}
+
+  const_coefficient coeff;
+  const_monomial monom;
 };
 
 struct term {
-  coefficient coeff;
-  monomial monom; // includes component
-  operator const_term() const {return const_term(coeff, monom);}
-
   term() {}
   term(coefficient c, monomial m) : coeff(c), monom(m) {}
+
+  coefficient coeff;
+  monomial monom;
+
+  operator const_term() const {return const_term(coeff, monom);}
 };
 
 class PolyRing {
 public:
   typedef MonoMonoid<exponent> Monoid;
   typedef PrimeField<unsigned long> Field;
+
+  /// @todo: make this dependent on the monoid and field once all code
+  /// has been migrated from ::term to PolyRing::Term.
+  typedef mgb::term Term;
 
   PolyRing(
     coefficient charac,

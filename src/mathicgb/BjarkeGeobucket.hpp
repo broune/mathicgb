@@ -20,9 +20,10 @@ template<
 class GeoConfiguration {
 public:
   GeoConfiguration(
-                   const PolyRing *R0,
-                   size_t geoBase,
-                   size_t minBucketSize):
+    const PolyRing *R0,
+    size_t geoBase,
+    size_t minBucketSize
+  ):
     R(R0), geoBase(geoBase), minBucketSize(minBucketSize), _comparisons(0) {}
 
   const PolyRing *R;
