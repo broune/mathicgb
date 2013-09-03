@@ -209,9 +209,9 @@ public:
     auto it = g1->begin();
     const auto end = g1->end();
     for (++it; it != end; ++it) {
-      auto p = mMap.insertProduct(it.getMonomial(), multiplier.monom);
       coefficient prod;
       mRing.coefficientMult(it.getCoefficient(), multiplier.coeff, prod);
+      auto p = mMap.insertProduct(it.getMonomial(), multiplier.monom);
       mRing.coefficientAddTo(p.first->value(), prod);
       if (p.second)
         mNodesTmp.emplace_back(p.first);
