@@ -3,13 +3,7 @@
 #include "stdinc.h"
 #include "Reducer.hpp"
 
-#include "PolyHeap.hpp"
-#include "PolyGeoBucket.hpp"
-#include "PolyReducer.hpp"
-#include "PolyHashReducer.hpp"
 #include "BjarkeGeobucket2.hpp"
-#include "TournamentReducer.hpp"
-#include "HashTourReducer.hpp"
 #include "ReducerPack.hpp"
 #include "ReducerPackDedup.hpp"
 #include "ReducerNoDedup.hpp"
@@ -51,20 +45,8 @@ std::unique_ptr<Reducer> Reducer::makeReducerNullOnUnknown(
   PolyRing const& ring
 ) {
   switch (type) {
-  case Reducer_PolyHeap:
-    return std::unique_ptr<Reducer>(new PolyHeap(&ring));
-  case Reducer_PolyGeoBucket:
-    return std::unique_ptr<Reducer>(new PolyGeoBucket(&ring));
-  case Reducer_Poly:
-    return std::unique_ptr<Reducer>(new PolyReducer(&ring));
-  case Reducer_PolyHash:
-    return std::unique_ptr<Reducer>(new PolyHashReducer(&ring));
   case Reducer_BjarkeGeo:
     return makeBjarkeGeobucket2(ring);
-  case Reducer_TournamentTree:
-    return std::unique_ptr<Reducer>(new TournamentReducer(ring));
-  case Reducer_HashTourTree:
-    return std::unique_ptr<Reducer>(new HashTourReducer(ring));
 
   case Reducer_TourTree_NoDedup:
     return std::unique_ptr<Reducer>(new ReducerNoDedup<mic::TourTree>(ring));
@@ -119,13 +101,7 @@ std::unique_ptr<Reducer> Reducer::makeReducerNullOnUnknown(
 Reducer::ReducerType Reducer::reducerType(int typ)
 {
   switch (typ) {
-  case 0: return Reducer_PolyHeap;
-  case 1: return Reducer_PolyGeoBucket;
-  case 2: return Reducer_Poly;
-  case 3: return Reducer_PolyHash;
   case 4: return Reducer_BjarkeGeo;
-  case 5: return Reducer_TournamentTree;
-  case 6: return Reducer_HashTourTree;
 
   case 7: return Reducer_TourTree_NoDedup;
   case 8: return Reducer_TourTree_Dedup;
@@ -151,7 +127,7 @@ Reducer::ReducerType Reducer::reducerType(int typ)
   case 25: return Reducer_F4_Old;
   case 26: return Reducer_F4_New;
 
-  default: return Reducer_PolyHeap;
+  default: return Reducer_BjarkeGeo;
   }
 }
 

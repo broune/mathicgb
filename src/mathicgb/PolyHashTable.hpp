@@ -22,11 +22,33 @@ MATHICGB_NAMESPACE_BEGIN
 // Does not take ownership of any of the monomials.
 class PolyHashTable {
 public:
-  struct node {
-    node *next;
+  typedef PolyRing::Monoid Monoid;
+  typedef Monoid::MonoRef MonoRef;
+  typedef Monoid::ConstMonoRef ConstMonoRef;
+  typedef Monoid::MonoPtr MonoPtr;
+  typedef Monoid::ConstMonoPtr ConstMonoPtr;
+  typedef coefficient Value;
+
+  class Node {
+  public:
+
+    const_monomial& mono() {return monom;}
+    const const_monomial& mono() const {return monom;}
+
+    Value& value() {return coeff;}
+    const Value& value() const {return coeff;}
+
+  private:
+    friend class PolyHashTable;
+
+    Node*& next() {return mNext;}
+    Node* next() const {return mNext;}
+
+    Node* mNext;
     coefficient coeff;
     const_monomial monom;
   };
+  typedef Node node; // todo: remove
 
   typedef std::vector<node*> MonomialArray;
 

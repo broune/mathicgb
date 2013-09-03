@@ -8,8 +8,6 @@
 #include "io-util.hpp"
 #include "Scanner.hpp"
 #include "MathicIO.hpp"
-#include "PolyHeap.hpp"
-#include "PolyGeoBucket.hpp"
 #include "SigPolyBasis.hpp"
 #include "SignatureGB.hpp"
 #include "Basis.hpp"

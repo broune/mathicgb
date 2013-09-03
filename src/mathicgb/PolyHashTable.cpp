@@ -70,8 +70,8 @@ void PolyHashTable::resize(size_t new_nbits)
       while (p != 0)
         {
           node *q = p;
-          p = p->next;
-          q->next = 0;
+          p = p->next();
+          q->next() = 0;
           // Reinsert node.  We know that it is unique
           const_monomial m = q->monom;
           size_t hashval = mRing.monomialHashValue(m) & mHashMask;
@@ -79,14 +79,14 @@ void PolyHashTable::resize(size_t new_nbits)
           if (r == 0) 
             {
               mBinCount++;
-              q->next = r;
+              q->next() = r;
               mHashTable[hashval] = q;
             }
           else
             {
               // put it at the end
-              for ( ; r->next != 0; r = r->next) { }
-              r->next = q;
+              for ( ; r->next() != 0; r = r->next()) { }
+              r->next() = q;
             }
         }
     }
@@ -101,7 +101,7 @@ PolyHashTable::node * PolyHashTable::makeNode(coefficient coeff, const_monomial 
 {
   mNodeCount++;
   node *q = static_cast<node *>(mArena.allocObjectNoCon<node>());
-  q->next = 0;
+  q->next() = 0;
   q->monom = monom; 
   mRing.coefficientSet(q->coeff, coeff);
   return q;
@@ -125,12 +125,12 @@ bool PolyHashTable::lookup_and_insert(const_monomial m, coefficient val, node *&
         result = tmpNode;
         return true;
       }
-      if (tmpNode->next == 0) {
+      if (tmpNode->next() == 0) {
         result = makeNode(val, m);
-        tmpNode->next = result;
+        tmpNode->next() = result;
         break;
       }
-      tmpNode = tmpNode->next;
+      tmpNode = tmpNode->next();
     }
   }
 
@@ -211,11 +211,11 @@ void PolyHashTable::unlink(node* p)
 
   node head;
   node* tmpNode = mHashTable[hashval];
-  head.next = tmpNode;
-  for (node* q = &head; q->next != 0; q = q->next) {
-    if (q->next == p) {
-      q->next = p->next;
-      mHashTable[hashval] = head.next;
+  head.next() = tmpNode;
+  for (node* q = &head; q->next() != 0; q = q->next()) {
+    if (q->next() == p) {
+      q->next() = p->next();
+      mHashTable[hashval] = head.next();
       return;
     }
   }

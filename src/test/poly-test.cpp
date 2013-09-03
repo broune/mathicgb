@@ -7,9 +7,6 @@
 #include "mathicgb/ModuleMonoSet.hpp"
 #include "mathicgb/io-util.hpp"
 #include "mathicgb/MonomialHashTable.hpp"
-#include "mathicgb/PolyHashTable.hpp"
-#include "mathicgb/PolyHeap.hpp"
-#include "mathicgb/PolyGeoBucket.hpp"
 #include "mathicgb/SigPolyBasis.hpp"
 #include "mathicgb/SignatureGB.hpp"
 #include <gtest/gtest.h>

@@ -193,8 +193,8 @@ bool ReducerHashPack<Q>::leadTerm(const_term& result)
 
     // extract information into mLeadTerm
     mLeadTerm.monom.swap(entry->current);
-    entry->node->monom = entry->current;
-    mLeadTerm.coeff = entry->node->coeff;
+    entry->node->mono() = entry->current;
+    mLeadTerm.coeff = entry->node->value();
 
     // remove old monomial from hash table and insert next
     MATHICGB_ASSERT(entry->pos != entry->end);

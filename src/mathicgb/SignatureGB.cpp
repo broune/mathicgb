@@ -6,7 +6,6 @@
 #include "Basis.hpp"
 #include "MonoLookup.hpp"
 #include "SigSPairs.hpp"
-#include "PolyHeap.hpp"
 #include "ModuleMonoSet.hpp"
 #include "LogDomain.hpp"
 #include <mathic.h>

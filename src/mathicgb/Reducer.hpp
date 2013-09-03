@@ -78,15 +78,9 @@ public:
   // ***** Kinds of reducers and creating a Reducer 
 
   enum ReducerType {
-    Reducer_PolyHeap,
-    Reducer_PolyGeoBucket,
-    Reducer_Poly,
-    Reducer_PolyHash,
-    Reducer_BjarkeGeo, // uses hash table on front to remove duplicates
-    Reducer_TournamentTree,
-    Reducer_HashTourTree,
+    Reducer_BjarkeGeo = 4, // uses hash table on front to remove duplicates
 
-    Reducer_TourTree_NoDedup,
+    Reducer_TourTree_NoDedup = 7,
     Reducer_TourTree_Dedup,
     Reducer_TourTree_Hashed,
     Reducer_TourTree_NoDedup_Packed,

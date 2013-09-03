@@ -452,7 +452,6 @@
     <ClCompile Include="..\..\..\src\mathicgb\F4MatrixReducer.cpp" />
     <ClCompile Include="..\..\..\src\mathicgb\F4ProtoMatrix.cpp" />
     <ClCompile Include="..\..\..\src\mathicgb\F4Reducer.cpp" />
-    <ClCompile Include="..\..\..\src\mathicgb\HashTourReducer.cpp" />
     <ClCompile Include="..\..\..\src\mathicgb\io-util.cpp" />
     <ClCompile Include="..\..\..\src\mathicgb\LogDomain.cpp" />
     <ClCompile Include="..\..\..\src\mathicgb\LogDomainSet.cpp" />
@@ -461,11 +460,7 @@
     <ClCompile Include="..\..\..\src\mathicgb\PairTriangle.cpp" />
     <ClCompile Include="..\..\..\src\mathicgb\Poly.cpp" />
     <ClCompile Include="..\..\..\src\mathicgb\PolyBasis.cpp" />
-    <ClCompile Include="..\..\..\src\mathicgb\PolyGeoBucket.cpp" />
-    <ClCompile Include="..\..\..\src\mathicgb\PolyHashReducer.cpp" />
     <ClCompile Include="..\..\..\src\mathicgb\PolyHashTable.cpp" />
-    <ClCompile Include="..\..\..\src\mathicgb\PolyHeap.cpp" />
-    <ClCompile Include="..\..\..\src\mathicgb\PolyReducer.cpp" />
     <ClCompile Include="..\..\..\src\mathicgb\PolyRing.cpp" />
     <ClCompile Include="..\..\..\src\mathicgb\QuadMatrix.cpp" />
     <ClCompile Include="..\..\..\src\mathicgb\QuadMatrixBuilder.cpp" />
@@ -477,7 +472,6 @@
     <ClCompile Include="..\..\..\src\mathicgb\SigSPairs.cpp" />
     <ClCompile Include="..\..\..\src\mathicgb\SPairs.cpp" />
     <ClCompile Include="..\..\..\src\mathicgb\SparseMatrix.cpp" />
-    <ClCompile Include="..\..\..\src\mathicgb\TournamentReducer.cpp" />
     <ClCompile Include="..\..\..\src\mathicgb\TypicalReducer.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -496,7 +490,6 @@
     <ClInclude Include="..\..\..\src\mathicgb\F4ProtoMatrix.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\F4Reducer.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\FixedSizeMonomialMap.h" />
-    <ClInclude Include="..\..\..\src\mathicgb\HashTourReducer.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\io-util.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\KoszulQueue.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\LogDomain.hpp" />
@@ -514,11 +507,7 @@
     <ClInclude Include="..\..\..\src\mathicgb\PairTriangle.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\Poly.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\PolyBasis.hpp" />
-    <ClInclude Include="..\..\..\src\mathicgb\PolyGeoBucket.hpp" />
-    <ClInclude Include="..\..\..\src\mathicgb\PolyHashReducer.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\PolyHashTable.hpp" />
-    <ClInclude Include="..\..\..\src\mathicgb\PolyHeap.hpp" />
-    <ClInclude Include="..\..\..\src\mathicgb\PolyReducer.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\PolyRing.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\PrimeField.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\QuadMatrix.hpp" />
@@ -542,7 +531,6 @@
     <ClInclude Include="..\..\..\src\mathicgb\SparseMatrix.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\StaticMonoMap.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\stdinc.h" />
-    <ClInclude Include="..\..\..\src\mathicgb\TournamentReducer.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\TypicalReducer.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\Unchar.hpp" />
   </ItemGroup>

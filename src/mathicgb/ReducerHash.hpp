@@ -41,7 +41,7 @@ public:
     Configuration(const PolyRing& ring): PlainConfiguration(ring) {}
 
     CompareResult compare(const Entry& a, const Entry& b) const {
-      return ring().monomialLT(a->monom, b->monom);
+      return ring().monomialLT(a->mono(), b->mono());
     }
   };
   

@@ -4,8 +4,8 @@
 #include "GBCommonParams.hpp"
 
 #include "mathicgb/ModuleMonoSet.hpp"
-#include "mathicgb/PolyReducer.hpp"
 #include "mathicgb/MonoLookup.hpp"
+#include "mathicgb/Reducer.hpp"
 
 MATHICGB_NAMESPACE_BEGIN
 

@@ -289,7 +289,7 @@ private:
 
     typedef bool CompareResult;
     CompareResult compare(const Entry& a, const Entry& b) const {
-      return mMonoid.lessThan(a->monom, b->monom);
+      return mMonoid.lessThan(a->mono(), b->mono());
     }
     bool cmpLessThan(CompareResult r) const {return r;}
 
