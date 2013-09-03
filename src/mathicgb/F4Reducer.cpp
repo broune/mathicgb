@@ -72,8 +72,6 @@ std::unique_ptr<Poly> F4Reducer::classicReduce
       "F4Reducer: Using fall-back reducer for single classic reduction\n";
 
   auto p = mFallback->classicReduce(poly, basis);
-  mSigStats = mFallback->sigStats();
-  mClassicStats = mFallback->classicStats();
   return std::move(p);
 }
 
@@ -84,8 +82,6 @@ std::unique_ptr<Poly> F4Reducer::classicTailReduce
       "F4Reducer: Using fall-back reducer for single classic tail reduction\n";
 
   auto p = mFallback->classicTailReduce(poly, basis);
-  mSigStats = mFallback->sigStats();
-  mClassicStats = mFallback->classicStats();
   return std::move(p);
 }
 
@@ -98,8 +94,6 @@ std::unique_ptr<Poly> F4Reducer::classicReduceSPoly(
     std::cerr << "F4Reducer: "
       "Using fall-back reducer for single classic S-pair reduction\n";
   auto p = mFallback->classicReduceSPoly(a, b, basis);
-  mSigStats = mFallback->sigStats();
-  mClassicStats = mFallback->classicStats();
   return std::move(p);
 }
 
@@ -113,8 +107,6 @@ void F4Reducer::classicReduceSPolySet(
       std::cerr << "F4Reducer: Using fall-back reducer for "
         << spairs.size() << " S-pairs.\n";
     mFallback->classicReduceSPolySet(spairs, basis, reducedOut);
-    mSigStats = mFallback->sigStats();
-    mClassicStats = mFallback->classicStats();
     return;
   }
   reducedOut.clear();
@@ -181,8 +173,6 @@ void F4Reducer::classicReducePolySet
       std::cerr << "F4Reducer: Using fall-back reducer for "
                 << polys.size() << " polynomials.\n";
     mFallback->classicReducePolySet(polys, basis, reducedOut);
-    mSigStats = mFallback->sigStats();
-    mClassicStats = mFallback->classicStats();
     return;
   }
 
@@ -246,8 +236,6 @@ std::unique_ptr<Poly> F4Reducer::regularReduce(
     std::cerr <<
       "F4Reducer: Using fall-back reducer for single regular reduction\n";
   auto p = mFallback->regularReduce(sig, multiple, basisElement, basis);
-  mSigStats = mFallback->sigStats();
-  mClassicStats = mFallback->classicStats();
   return p;
 }
 

@@ -16,14 +16,7 @@
 
 MATHICGB_NAMESPACE_BEGIN
 
-Reducer::Reducer():
-  stats_maxsize(0),
-  stats_maxsize_live(0),
-  stats_n_inserts(0),
-  stats_n_compares(0) {}
-
-Reducer::~Reducer() {
-}
+Reducer::~Reducer() {}
 
 std::unique_ptr<Reducer> Reducer::makeReducer(
   ReducerType type,
@@ -151,17 +144,6 @@ void Reducer::displayReducerTypes(std::ostream &o)
 
   o << "  25   F4 reducer, old" << std::endl;
   o << "  26   F4 reducer, new" << std::endl;
-}
-
-// Todo: can't this be machine generated?
-Reducer::Stats::Stats():
-  reductions(0),
-  singularReductions(0),
-  zeroReductions(0),
-  steps(0),
-  maxSteps(0) {}
-
-void Reducer::dump() const {
 }
 
 MATHICGB_NAMESPACE_END

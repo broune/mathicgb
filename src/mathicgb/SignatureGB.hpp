@@ -40,12 +40,6 @@ public:
 
   void computeGrobnerBasis();
 
-  // How many S-pairs were not eliminated before reduction.
-  unsigned long long getSigReductionCount() const;
-
-  // How many reductions were singular
-  unsigned long long getSingularReductionCount() const;
-
   SigPolyBasis* getGB() { return GB.get(); }
   ModuleMonoSet* getSyzTable() { return mProcessor->processingNeeded() ? Hsyz2.get() : Hsyz.get(); }
   SigSPairs* getSigSPairs() { return SP.get(); }

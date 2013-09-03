@@ -397,7 +397,7 @@ void ClassicGBAlg::printStats(std::ostream& out) const {
   value << mic::ColumnPrinter::commafy(reductions) << '\n';
   extra << '\n';
 
-  Reducer::Stats reducerStats = mReducer.sigStats();
+  //Reducer::Stats reducerStats = mReducer.sigStats();
   SPairs::Stats sPairStats = mSPairs.stats();
 
   unsigned long long const primeElim = sPairStats.relativelyPrimeHits;
@@ -406,55 +406,55 @@ void ClassicGBAlg::printStats(std::ostream& out) const {
   extra << mic::ColumnPrinter::percentInteger(primeElim, reductions)
         << " of late eliminations\n";
 
-  const unsigned long long singularReductions =
+  /*const unsigned long long singularReductions =
     reducerStats.singularReductions;
   name << "Singular reductions:\n";
   value << mic::ColumnPrinter::commafy(singularReductions) << '\n';
   extra << mic::ColumnPrinter::percentInteger(singularReductions, reductions)
-        << " of reductions\n";
+        << " of reductions\n";*/
 
-  const unsigned long long zeroReductions = reducerStats.zeroReductions;
+  /*const unsigned long long zeroReductions = reducerStats.zeroReductions;
   name << "Reductions to zero:\n";
   value << mic::ColumnPrinter::commafy(zeroReductions) << '\n';
   extra << mic::ColumnPrinter::percentInteger(zeroReductions, reductions)
-        << " of reductions\n";
+        << " of reductions\n";*/
 
-  const unsigned long long newReductions =
+  /*const unsigned long long newReductions =
     reductions - singularReductions - zeroReductions;
   name << "Reductions to new ele:\n";
   value << mic::ColumnPrinter::commafy(newReductions) << '\n';
   extra << mic::ColumnPrinter::percentInteger(newReductions, reductions)
-        << " of reductions\n";
+        << " of reductions\n";*/
 
-  const unsigned long long redSteps = reducerStats.steps;
+  /*const unsigned long long redSteps = reducerStats.steps;
   name << "Sig reduction steps:\n";
   value << mic::ColumnPrinter::commafy(redSteps) << '\n';
   extra << mic::ColumnPrinter::ratioInteger
     (redSteps, reductions - singularReductions)
-        << " steps per non-sing reduction\n";
+        << " steps per non-sing reduction\n";*/
 
-  const unsigned long long longestReduction = reducerStats.maxSteps;
+  /*const unsigned long long longestReduction = reducerStats.maxSteps;
   name << "Longest sig reduction:\n";
   value << mic::ColumnPrinter::commafy(longestReduction) << '\n';
-  extra << '\n';
+  extra << '\n';*/
 
-  Reducer::Stats classicRedStats = mReducer.classicStats();
+  /*Reducer::Stats classicRedStats = mReducer.classicStats();
   const unsigned long long clReductions = classicRedStats.reductions;
   name << "Classic reductions:\n";
   value << mic::ColumnPrinter::commafy(clReductions) << '\n';
-  extra << '\n';
+  extra << '\n';*/
 
-  const unsigned long long clRedSteps =  classicRedStats.steps;
+  /*const unsigned long long clRedSteps =  classicRedStats.steps;
   const double clStepsRatio = static_cast<double>(clRedSteps) / clReductions;
   name << "Classic reduction steps:\n";
   value << mic::ColumnPrinter::commafy(clRedSteps) << '\n';
   extra << mic::ColumnPrinter::ratioInteger(clRedSteps, clReductions)
-        << " steps per reduction\n";
+        << " steps per reduction\n";*/
 
-  const unsigned long long clLongestReduction = classicRedStats.maxSteps;
+  /*const unsigned long long clLongestReduction = classicRedStats.maxSteps;
   name << "Longest classic red:\n";
   value << mic::ColumnPrinter::commafy(clLongestReduction) << '\n';
-  extra << '\n';
+  extra << '\n';*/
 
   //SPairs::Stats sPairStats = mSPairs.stats();  
   unsigned long long marginal = sPairStats.sPairsConsidered;

@@ -302,7 +302,7 @@ void SignatureGB::displayStats(std::ostream &o) const
 
 void SignatureGB::displayPaperStats(std::ostream& out) const {
   SigSPairs::Stats stats = SP->getStats();
-  Reducer::Stats reducerStats = reducer->sigStats();
+  //Reducer::Stats reducerStats = reducer->sigStats();
   mic::ColumnPrinter pr;
   pr.addColumn(true, " ");
   pr.addColumn(false, " ");
@@ -369,20 +369,21 @@ void SignatureGB::displayPaperStats(std::ostream& out) const {
   value << mic::ColumnPrinter::commafy(stats_relativelyPrimeEliminated) << '\n';
   extra << '\n';
 
-  name << "Removed (singular reduction):\n";
+  /*name << "Removed (singular reduction):\n";
   value << mic::ColumnPrinter::commafy(reducerStats.singularReductions) << '\n';
-  extra << '\n';
+  extra << '\n';*/
 
-  unsigned long long nonzeroReductions = stats_pairsReduced - reducerStats.singularReductions - reducerStats.zeroReductions;
+  //unsigned long long nonzeroReductions = stats_pairsReduced - reducerStats.singularReductions - reducerStats.zeroReductions;
 
-  name << "Number of pairs reduced to signature GB elems:\n";
+  /*name << "Number of pairs reduced to signature GB elems:\n";
   value << mic::ColumnPrinter::commafy(nonzeroReductions) << '\n';
-  extra << '\n';
+  extra << '\n';*/
 
-  name << "Number of pairs reduced to new syzygy signatures:\n";
+  /*name << "Number of pairs reduced to new syzygy signatures:\n";
   value << mic::ColumnPrinter::commafy(reducerStats.zeroReductions) << '\n';
-  extra << '\n';
+  extra << '\n';*/
 
+  /*
   unsigned long long nleft = considered 
     - stats.nonregularSPairs 
     - stats.lowBaseDivisorHits 
@@ -405,7 +406,7 @@ void SignatureGB::displayPaperStats(std::ostream& out) const {
   
   name << "Number of spairs unaccounted for:\n";
   value << mic::ColumnPrinter::commafy(nleft) << '\n';
-  extra << '\n';
+  extra << '\n';*/
 
 #ifdef MATHIC_TRACK_DIV_MASK_HIT_RATIO
   name << "Divisor Mask Stats" << '\n';
@@ -561,76 +562,76 @@ void SignatureGB::displaySomeStats(std::ostream& out) const {
   extra << mic::ColumnPrinter::oneDecimal(perSig)
     << " spairs per signature\n";
 
-  Reducer::Stats reducerStats = reducer->sigStats();
+  //Reducer::Stats reducerStats = reducer->sigStats();
 
-  const unsigned long long reductions = reducerStats.reductions;
+  /*const unsigned long long reductions = reducerStats.reductions;
   const size_t koszulElim = stats_koszulEliminated;
   name << "Koszul sp eliminated:\n";
   value << mic::ColumnPrinter::commafy(koszulElim) << '\n';
   extra << mic::ColumnPrinter::percentInteger(koszulElim, sigsDone - reductions)
-    << " of late eliminations\n";
+    << " of late eliminations\n";*/
 
-  const size_t primeElim = stats_relativelyPrimeEliminated;
+  /*const size_t primeElim = stats_relativelyPrimeEliminated;
   name << "Rel.prime sp eliminated:\n";
   value << mic::ColumnPrinter::commafy(primeElim) << '\n';
   extra << mic::ColumnPrinter::percentInteger(primeElim, sigsDone - reductions)
-    << " of late eliminations\n";
+    << " of late eliminations\n";*/
 
-  name << "Signature reductions:\n";
+  /*name << "Signature reductions:\n";
   value << mic::ColumnPrinter::commafy(reductions) << '\n';
   extra << mic::ColumnPrinter::percentInteger(reductions, sigsDone)
-    << " of S-pairs are reduced\n";
+    << " of S-pairs are reduced\n";*/
 
-  const unsigned long long singularReductions =
+  /*const unsigned long long singularReductions =
     reducerStats.singularReductions;
   name << "Singular reductions:\n";
   value << mic::ColumnPrinter::commafy(singularReductions) << '\n';
   extra << mic::ColumnPrinter::percentInteger(singularReductions, reductions)
-    << " of reductions\n";
+    << " of reductions\n";*/
 
-  const unsigned long long zeroReductions = reducerStats.zeroReductions;
+  /*const unsigned long long zeroReductions = reducerStats.zeroReductions;
   name << "Reductions to zero:\n";
   value << mic::ColumnPrinter::commafy(zeroReductions) << '\n';
   extra << mic::ColumnPrinter::percentInteger(zeroReductions, reductions)
-    << " of reductions\n";
+    << " of reductions\n";*/
 
-  const unsigned long long newReductions =
+  /*const unsigned long long newReductions =
     reductions - singularReductions - zeroReductions;
   name << "Reductions to new ele:\n";
   value << mic::ColumnPrinter::commafy(newReductions) << '\n';
   extra << mic::ColumnPrinter::percentInteger(newReductions, reductions)
-    << " of reductions\n";
+    << " of reductions\n";*/
 
-  const unsigned long long redSteps = reducerStats.steps;
+  /*const unsigned long long redSteps = reducerStats.steps;
   const double stepsRatio =
     static_cast<double>(redSteps) / (reductions - singularReductions);
   name << "Sig reduction steps:\n";
   value << mic::ColumnPrinter::commafy(redSteps) << '\n';
   extra << mic::ColumnPrinter::oneDecimal(stepsRatio)
-    << " steps per non-sing reduction\n";
+    << " steps per non-sing reduction\n";*/
 
-  const unsigned long long longestReduction = reducerStats.maxSteps;
+  /*const unsigned long long longestReduction = reducerStats.maxSteps;
   name << "Longest sig reduction:\n";
   value << mic::ColumnPrinter::commafy(longestReduction) << '\n';
-  extra << '\n';
+  extra << '\n';*/
 
-  Reducer::Stats classicRedStats = reducer->classicStats();
+  /*Reducer::Stats classicRedStats = reducer->classicStats();
   const unsigned long long clReductions = classicRedStats.reductions;
   name << "Classic reductions:\n";
   value << mic::ColumnPrinter::commafy(clReductions) << '\n';
-  extra << '\n';
+  extra << '\n';*/
 
-  const unsigned long long clRedSteps =  classicRedStats.steps;
+  /*const unsigned long long clRedSteps =  classicRedStats.steps;
   const double clStepsRatio = static_cast<double>(clRedSteps) / clReductions;
   name << "Classic reduction steps:\n";
   value << mic::ColumnPrinter::commafy(clRedSteps) << '\n';
   extra << mic::ColumnPrinter::oneDecimal(clStepsRatio)
-    << " steps per reduction\n";
+    << " steps per reduction\n";*/
 
-  const unsigned long long clLongestReduction = classicRedStats.maxSteps;
+  /*const unsigned long long clLongestReduction = classicRedStats.maxSteps;
   name << "Longest classic red:\n";
   value << mic::ColumnPrinter::commafy(clLongestReduction) << '\n';
-  extra << '\n';
+  extra << '\n';*/
 
   out << "*** Some of the statistics ***\n" << pr << std::flush;
 }
@@ -699,14 +700,6 @@ void SignatureGB::displayMemoryUse(std::ostream& out) const
   extra << "\n";
 
   out << "*** Summary of memory use ***\n" << pr << std::flush;
-}
-
-unsigned long long SignatureGB::getSigReductionCount() const {
-  return reducer->sigStats().reductions;
-}
-
-unsigned long long SignatureGB::getSingularReductionCount() const {
-  return reducer->sigStats().singularReductions;
 }
 
 MATHICGB_NAMESPACE_END
