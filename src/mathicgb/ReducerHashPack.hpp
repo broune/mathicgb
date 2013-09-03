@@ -65,8 +65,6 @@ private:
   void insertEntry(MultipleWithPos* entry);
 
   const PolyRing& mRing;
-  term mLeadTerm;
-  bool mLeadTermKnown;
   Queue<Configuration> mQueue;
   PolyHashTable mHashTable;
   memt::BufferPool mPool;
@@ -75,8 +73,6 @@ private:
 template<template<typename> class Q>
 ReducerHashPack<Q>::ReducerHashPack(const PolyRing& ring):
   mRing(ring),
-  mLeadTerm(0, mRing.allocMonomial()),
-  mLeadTermKnown(false),
   mQueue(Configuration(ring)),
   mHashTable(&ring, 10),
   mPool(sizeof(MultipleWithPos))
@@ -101,7 +97,6 @@ template<template<typename> class Q>
 ReducerHashPack<Q>::~ReducerHashPack()
 {
   resetReducer();
-  mRing.freeMonomial(mLeadTerm.monom);
 }
 
 ///////////////////////////////////////
@@ -173,66 +168,54 @@ void ReducerHashPack<Q>::MultipleWithPos::destroy(const PolyRing& ring) {
 }
 
 template<template<typename> class Q>
-bool ReducerHashPack<Q>::leadTerm(const_term& result)
-{
-  if (mLeadTermKnown) {
-    result = mLeadTerm;
-    return true;
-  }
-
-  do {
-    if (mQueue.empty())
-      return false;
+bool ReducerHashPack<Q>::leadTerm(const_term& result) {
+  while (!mQueue.empty()) {
     MultipleWithPos* entry = mQueue.top();
     MATHICGB_ASSERT(entry != 0);
 
-    // remove node from hash table first since we are going to be changing
-    // the monomial after this, and if we do that before the hash value will
-    // change.
-    mHashTable.remove(entry->node);
-
-    // extract information into mLeadTerm
-    mLeadTerm.monom.swap(entry->current);
-    entry->node->mono() = entry->current;
-    mLeadTerm.coeff = entry->node->value();
-
-    // remove old monomial from hash table and insert next
-    MATHICGB_ASSERT(entry->pos != entry->end);
-    while (true) {
-      ++entry->pos;
-      if (entry->pos == entry->end) {
-        mQueue.pop();
-        entry->destroy(mRing);
-        mPool.free(entry);
-        break;
-      }
-      term t;
-      t.monom = entry->current;
-      entry->computeCurrent(mRing, t.monom);
-      entry->currentCoefficient(mRing, t.coeff);
-
-      std::pair<bool, PolyHashTable::node*> p = mHashTable.insert(t);
-      if (p.first) {
-        entry->node = p.second;
-        mQueue.decreaseTop(entry);
-        break;
-      }
+    if (!mRing.coefficientIsZero(entry->node->value())) {
+      result.coeff = entry->node->value();
+      result.monom = entry->node->mono();
+      return true;
     }
-  } while (mRing.coefficientIsZero(mLeadTerm.coeff));
-
-  result = mLeadTerm;
-  mLeadTermKnown = true;
-  return true;
+    removeLeadTerm();
+  }
+  return false;
 }
 
 template<template<typename> class Q>
-void ReducerHashPack<Q>::removeLeadTerm()
-{
-  if (!mLeadTermKnown) {
-    const_term dummy;
-    leadTerm(dummy);
+void ReducerHashPack<Q>::removeLeadTerm() {
+  MATHICGB_ASSERT(!mQueue.empty());
+
+  MultipleWithPos* entry = mQueue.top();
+  MATHICGB_ASSERT(entry != 0);
+
+  // remove node from hash table first since we are going to be changing
+  // the monomial after this, and if we do that before the hash value will
+  // change.
+  mHashTable.remove(entry->node);
+
+  MATHICGB_ASSERT(entry->pos != entry->end);
+  while (true) {
+    ++entry->pos;
+    if (entry->pos == entry->end) {
+      mQueue.pop();
+      entry->destroy(mRing);
+      mPool.free(entry);
+      break;
+    }
+    term t;
+    t.monom = entry->current;
+    entry->computeCurrent(mRing, t.monom);
+    entry->currentCoefficient(mRing, t.coeff);
+
+    std::pair<bool, PolyHashTable::node*> p = mHashTable.insert(t);
+    if (p.first) {
+      entry->node = p.second;
+      mQueue.decreaseTop(entry);
+      break;
+    }
   }
-  mLeadTermKnown = false;
 }
 
 template<template<typename> class Q>
@@ -246,7 +229,6 @@ void ReducerHashPack<Q>::insertEntry(MultipleWithPos* entry) {
 
     std::pair<bool, PolyHashTable::node*> p = mHashTable.insert(t);
     if (p.first) {
-      mLeadTermKnown = false;
       entry->node = p.second;
       mQueue.push(entry);
       return;
@@ -259,13 +241,9 @@ void ReducerHashPack<Q>::insertEntry(MultipleWithPos* entry) {
 template<template<typename> class Q>
 void ReducerHashPack<Q>::resetReducer()
 {
-  mLeadTermKnown = false;
   MonomialFree freeer(mRing);
-#if 0
-  //TODO: reinstate these lines, once Geobucket, TourTree and Heap can all handle them
   mQueue.forAll(freeer);
   mQueue.clear();
-#endif
   mHashTable.reset();
 }
 
