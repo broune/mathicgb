@@ -161,9 +161,4 @@ void PolyHashReducer::resetReducer()
   H_.reset();
 }
 
-void PolyHashReducer::dump() const
-{
-  H_.dump(0);
-}
-
 MATHICGB_NAMESPACE_END

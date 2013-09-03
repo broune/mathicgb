@@ -1561,6 +1561,8 @@ private:
   friend class MonoVector;
   friend class MonoPool;
 
+  friend class MonoMap;
+
   typedef typename Base::Gradings Gradings;
 
   bool debugAssertValid() const {
@@ -1633,6 +1635,11 @@ private:
   );
 
     return true;
+  }
+
+  static MonoPtr toMonoPtr(Exponent* raw) {return MonoPtr(raw);}
+  static ConstMonoPtr toMonoPtr(const Exponent* raw) {
+    return ConstMonoPtr(raw);
   }
 
   // *** Accessing fields of a monomial

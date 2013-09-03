@@ -23,7 +23,6 @@ public:
   virtual void removeLeadTerm();
 
   void value(Poly &result); // keep extracting lead term until done
-  void dump() const;
 
   virtual size_t getMemoryUse() const;
 

@@ -25,7 +25,6 @@ void BjarkeGeobucket::insertTail(const_term multiplier, const Poly *g1)
 {
   if (g1->nTerms() <= 1) return;
 
-  MATHICGB_ASSERT(mNodeCount == H_.getNodeCount());
   HashPoly M;
   H_.insert(multiplier, ++(g1->begin()), g1->end(), M);
 
@@ -38,15 +37,11 @@ void BjarkeGeobucket::insertTail(const_term multiplier, const Poly *g1)
   stats_n_inserts++;
   stats_n_compares += G_.getConfiguration().getComparisons();
   G_.getConfiguration().resetComparisons();
-
-  MATHICGB_ASSERT(mNodeCount == H_.getNodeCount());
 }
 
 void BjarkeGeobucket::insert(monomial multiplier, const Poly *g1)
 {
   HashPoly M;
-
-  MATHICGB_ASSERT(mNodeCount == H_.getNodeCount());
 
   H_.insert(multiplier, g1->begin(), g1->end(), M);
 
@@ -59,13 +54,10 @@ void BjarkeGeobucket::insert(monomial multiplier, const Poly *g1)
   stats_n_inserts++;
   stats_n_compares += G_.getConfiguration().getComparisons();
   G_.getConfiguration().resetComparisons();
-
-  MATHICGB_ASSERT(mNodeCount == H_.getNodeCount());
 }
 
 bool BjarkeGeobucket::findLeadTerm(const_term &result)
 {
-  MATHICGB_ASSERT(mNodeCount == H_.getNodeCount());
   while (!G_.empty())
     {
       if (H_.popTerm(G_.top(), result.coeff, result.monom))
@@ -82,8 +74,6 @@ void BjarkeGeobucket::removeLeadTerm()
 {
   G_.pop();
   mNodeCount--;
-
-  MATHICGB_ASSERT(mNodeCount == H_.getNodeCount());
 }
 
 void BjarkeGeobucket::value(Poly &result)
@@ -96,23 +86,18 @@ void BjarkeGeobucket::value(Poly &result)
       G_.pop();
       mNodeCount--;
     }
-
-  MATHICGB_ASSERT(mNodeCount == H_.getNodeCount());
   resetReducer();
 }
 
 void BjarkeGeobucket::resetReducer()
 {
-  MATHICGB_ASSERT(mNodeCount == H_.getNodeCount());
   const_term t;
   while (findLeadTerm(t))
     {
       G_.pop();
       mNodeCount--;
     }
-  MATHICGB_ASSERT(mNodeCount == H_.getNodeCount());
   H_.reset();
-  MATHICGB_ASSERT(mNodeCount == H_.getNodeCount());
   // how to reset G_ ?
 }
 
@@ -122,11 +107,6 @@ size_t BjarkeGeobucket::getMemoryUse() const
   result += G_.getMemoryUse();
   //  std::cerr << "[reducer: " << H_.getMemoryUse() << " " << G_.getMemoryUse() << "]" << std::endl;
   return result;
-}
-
-void BjarkeGeobucket::dump() const
-{
-  H_.dump(0);
 }
 
 MATHICGB_NAMESPACE_END

@@ -60,7 +60,7 @@ std::unique_ptr<Reducer> Reducer::makeReducerNullOnUnknown(
   case Reducer_PolyHash:
     return std::unique_ptr<Reducer>(new PolyHashReducer(&ring));
   case Reducer_BjarkeGeo:
-    return std::unique_ptr<Reducer>(new BjarkeGeobucket2(&ring));
+    return makeBjarkeGeobucket2(ring);
   case Reducer_TournamentTree:
     return std::unique_ptr<Reducer>(new TournamentReducer(ring));
   case Reducer_HashTourTree:

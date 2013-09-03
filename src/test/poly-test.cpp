@@ -735,43 +735,6 @@ std::string somePolys =
   d2e3f4+de4f4+bc2df5+abd2f5+bcd2f5+c2d2f5+bc2ef5+abdef5+bd2ef5+d3ef5+b2e2f5+ace2f5+bce2f5+cde2f5+ae3f5+de3f5\n\
 ";
 
-TEST(PolyHashTable,test1) {
-  std::unique_ptr<PolyRing> R = ringFromString("32003 6 1\n1 1 1 1 1 1");
-  PolyHashTable H(R.get(),3);
-  std::unique_ptr<Poly> f1 = polyParseFromString(R.get(), "3bd2+7cd2+5c2f+2adf+bdf+10cef");
-  PolyHashTable::MonomialArray M1, M2;
-  H.fromPoly(*f1, M1);
-  H.fromPoly(*f1, M2);
-  EXPECT_TRUE(M2.empty());
-  Poly g(*R);
-  H.toPoly(M1,g);
-  //  f1->display(std::cout);
-  //  std::cout << std::endl;
-  //  g.display(std::cout);
-  //  std::cout << std::endl;
-  f1->multByCoefficient(2);
-  EXPECT_TRUE(g == *f1);
-  //  H.dump();
-  H.resize(6);
-  //  H.dump();
-  M1.clear();
-  H.fromPoly(*f1, M1);
-  Poly g2(*R);
-  H.toPoly(M1,g2);
-  EXPECT_TRUE(g == g2);
-}
-
-TEST(PolyHashTable,test2) {
-  std::unique_ptr<PolyRing> R(ringFromString("32003 6 1\n1 1 1 1 1 1"));
-  PolyHashTable H(R.get(), 3);
-  std::unique_ptr<Poly> f1(polyParseFromString(R.get(), "3bd2+7cd2+5c2f+2adf+bdf+10cef"));
-  std::unique_ptr<Poly> f2(polyParseFromString(R.get(), "-3bd2+4c2f+cef+f3"));
-  PolyHashTable::MonomialArray M1, M2;
-  H.fromPoly(*f1, M1);
-  H.fromPoly(*f2, M2);
-  //  H.dump(1);
-}
-
 TEST(MonomialHashTable,test1) {
   std::unique_ptr<PolyRing> R = ringFromString("32003 6 1\n1 1 1 1 1 1");
   MonomialHashTable H(R.get(), 3);

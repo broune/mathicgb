@@ -9,9 +9,6 @@
 
 MATHICGB_NAMESPACE_BEGIN
 
-const double PolyHashTable::threshold = 0.1;
-const bool AlwaysInsertAtEnd = true;
-
 PolyHashTable::PolyHashTable(const PolyRing *R, int nbits)
   : mRing(*R),
     mHashMask((static_cast<size_t>(1) << nbits)-1),
@@ -26,17 +23,6 @@ PolyHashTable::PolyHashTable(const PolyRing *R, int nbits)
   mMonomialSize = R->maxMonomialSize() * sizeof(exponent);
   // set each entry of mHashTable to null
 
-  mStats.max_table_size = 0;
-  mStats.max_chain_len_ever = 0;
-  mStats.n_resets = 0;
-  mStats.max_n_nonempty_bins = 0;
-  mStats.n_inserts = 0;
-  mStats.n_moneq_true = 0;
-  mStats.n_moneq_false = 0;
-  mStats.n_easy_inserts = 0;
-
-  mStats.n_nodes = 0;
-  mStats.n_nonempty_bins = 0;
   reset();
 }
 
@@ -45,8 +31,6 @@ void PolyHashTable::reset()
   // The following no longer needs to be done
 
   // Clear the table, and memory areas.
-
-  mStats.n_resets++;
 
 #if 0
   MATHICGB_ASSERT(mNodeCount != 0);
@@ -61,20 +45,8 @@ void PolyHashTable::reset()
 
   mBinCount = 0;
   mNodeCount = 0;
-  
-  resetStats();
-  MATHICGB_SLOW_ASSERT(computeNodeCount() == 0);
 }
 
-size_t PolyHashTable::computeNodeCount() const
-{
-  size_t result = 0;
-  for (size_t i=0; i<mTableSize; i++)
-    {
-      for (node *p=mHashTable[i]; p != 0; p=p->next) result++;
-    }
-  return result;
-}
 void PolyHashTable::resize(size_t new_nbits)
 // Don't change the nodes, table, but do recreate mHashTable
 {
@@ -83,7 +55,6 @@ void PolyHashTable::resize(size_t new_nbits)
   // Loop through each one, reinserting the node into the proper bin.
 
   //  std::cout << "resizing PolyHashTable to " << new_nbits << " bits" << " count=" << mNodeCount << std::endl;
-  MATHICGB_ASSERT(computeNodeCount() == mNodeCount);
   size_t const old_table_size = mTableSize;
   mTableSize = static_cast<size_t>(1) << new_nbits;
   mLogTableSize = new_nbits;
@@ -105,7 +76,7 @@ void PolyHashTable::resize(size_t new_nbits)
           const_monomial m = q->monom;
           size_t hashval = mRing.monomialHashValue(m) & mHashMask;
           node *r = mHashTable[hashval];
-          if (r == 0 || !AlwaysInsertAtEnd) 
+          if (r == 0) 
             {
               mBinCount++;
               q->next = r;
@@ -120,22 +91,15 @@ void PolyHashTable::resize(size_t new_nbits)
         }
     }
 
-  mStats.max_table_size = mTableSize;
-
   // todo: consider if this can overflow or something else nasty might happen
+  const double threshold = 0.1;
   mMaxCountBeforeRebuild =
     static_cast<size_t>(std::floor(mTableSize * threshold));
-
-  MATHICGB_ASSERT(computeNodeCount() == mNodeCount);
 }
 
 PolyHashTable::node * PolyHashTable::makeNode(coefficient coeff, const_monomial monom)
 {
   mNodeCount++;
-  if (mNodeCount > mStats.n_nodes)
-    mStats.n_nodes = mNodeCount;
-  if (mBinCount > mStats.n_nonempty_bins)
-    mStats.n_nonempty_bins = mBinCount;
   node *q = static_cast<node *>(mArena.allocObjectNoCon<node>());
   q->next = 0;
   q->monom = monom; 
@@ -146,134 +110,90 @@ PolyHashTable::node * PolyHashTable::makeNode(coefficient coeff, const_monomial 
 bool PolyHashTable::lookup_and_insert(const_monomial m, coefficient val, node *& result)
 // Returns true if m is in the table, else inserts m into the hash table (as is, without copying it)
 {
-  mStats.n_inserts++;
-
   size_t fullHashVal = mRing.monomialHashValue(m);
   size_t hashval = fullHashVal & mHashMask;
 
   MATHICGB_ASSERT(hashval < mHashTable.size());
   node *tmpNode = mHashTable[hashval];
-  if (tmpNode == 0)
-    {
-      mStats.n_easy_inserts++;
-      result = makeNode(val, m);
-      mHashTable[hashval] = result;
+  if (tmpNode == 0) {
+    result = makeNode(val, m);
+    mHashTable[hashval] = result;
+  } else {
+    while (true) {
+      if (mRing.monomialHashValue(tmpNode->monom) == fullHashVal && mRing.monomialEQ(m, tmpNode->monom)) {
+        mRing.coefficientAddTo(tmpNode->coeff, val);
+        result = tmpNode;
+        return true;
+      }
+      if (tmpNode->next == 0) {
+        result = makeNode(val, m);
+        tmpNode->next = result;
+        break;
+      }
+      tmpNode = tmpNode->next;
     }
-  else
-    {
-      // loop through to see if we have it
-      size_t chainLength = 0;
-      while (true)
-        {
-          if (mRing.monomialHashValue(tmpNode->monom) == fullHashVal && mRing.monomialEQ(m, tmpNode->monom))
-            {
-              mStats.n_moneq_true++;
-              mRing.coefficientAddTo(tmpNode->coeff, val);
-              result = tmpNode;
-              return true;
-            }
-          mStats.n_moneq_false++;
-          if (tmpNode->next == 0)
-            {
-              // time to insert the monomial
-              result = makeNode(val, m);
-              chainLength++;
-              if (AlwaysInsertAtEnd)
-                {
-                  tmpNode->next = result;
-                }
-              else
-                {
-                  result->next = mHashTable[hashval];
-                  mHashTable[hashval] = result;
-                }
-              break;
-            }
-          tmpNode = tmpNode->next;
-          chainLength++;
-        }
-      if (chainLength > mStats.max_chain_len_ever)
-        mStats.max_chain_len_ever = chainLength;
-    }
-
+  }
 
   if (mNodeCount > mMaxCountBeforeRebuild)
     resize(mLogTableSize + 2);  // increase by a factor of 4??
 
-  MATHICGB_SLOW_ASSERT(computeNodeCount() == mNodeCount);
-
   return false;
 }
 
-void PolyHashTable::insert(Poly::const_iterator first, 
-                           Poly::const_iterator last,
-                           MonomialArray &result)
-{
-  for (Poly::const_iterator i = first; i != last; ++i)
-    {
-      monomial monomspace = mRing.allocMonomial(mArena);
-      node *p;
-      mRing.monomialCopy(i.getMonomial(), monomspace);
-      bool found = lookup_and_insert(monomspace, i.getCoefficient(), p);
-      if (found)
-        {
-          // remove the monomial.  It should be at the top of the mArena arena.
-          mRing.freeTopMonomial(mArena,monomspace);
-        }
-      else
-        {
-          result.push_back(p);
-        }
-    }
+void PolyHashTable::insert(
+  Poly::const_iterator first, 
+  Poly::const_iterator last,
+  MonomialArray &result
+) {
+  for (auto i = first; i != last; ++i) {
+    monomial monomspace = mRing.allocMonomial(mArena);
+    node* p;
+    mRing.monomialCopy(i.getMonomial(), monomspace);
+    bool found = lookup_and_insert(monomspace, i.getCoefficient(), p);
+    if (found)
+      mRing.freeTopMonomial(mArena,monomspace);
+    else
+      result.push_back(p);
+  }
 }
 
-void PolyHashTable::insert(const_term multiplier, 
-                           Poly::const_iterator first, 
-                           Poly::const_iterator last,
-                           MonomialArray &result)
-{
-  for (Poly::const_iterator i = first; i != last; ++i)
-    {
-      monomial monomspace = mRing.allocMonomial(mArena);
-      coefficient c;
-      mRing.coefficientSet(c, multiplier.coeff);
-      node *p;
-      mRing.monomialMult(multiplier.monom, i.getMonomial(), monomspace);
-      mRing.coefficientMultTo(c, i.getCoefficient());
-      bool found = lookup_and_insert(monomspace, c, p);
-      if (found)
-        {
-          // remove the monomial.  It should be at the top of the mArena arena.
-          mRing.freeTopMonomial(mArena,monomspace);
-        }
-      else
-        {
-          result.push_back(p);
-        }
-    }
+void PolyHashTable::insert(
+  const_term multiplier, 
+  Poly::const_iterator first, 
+  Poly::const_iterator last,
+  MonomialArray &result
+) {
+  for (auto i = first; i != last; ++i) {
+    monomial monomspace = mRing.allocMonomial(mArena);
+    coefficient c;
+    mRing.coefficientSet(c, multiplier.coeff);
+    node* p;
+    mRing.monomialMult(multiplier.monom, i.getMonomial(), monomspace);
+    mRing.coefficientMultTo(c, i.getCoefficient());
+    bool found = lookup_and_insert(monomspace, c, p);
+    if (found)
+      mRing.freeTopMonomial(mArena,monomspace);
+    else
+      result.push_back(p);
+  }
 }
 
-void PolyHashTable::insert(const_monomial multiplier, 
-                           Poly::const_iterator first, 
-                           Poly::const_iterator last,
-                           MonomialArray &result)
-{
-  for (Poly::const_iterator i = first; i != last; ++i)
-    {
-      monomial monomspace = mRing.allocMonomial(mArena);
-      node *p;
-      mRing.monomialMult(multiplier, i.getMonomial(), monomspace);
-      bool found = lookup_and_insert(monomspace, i.getCoefficient(), p);
-      if (found)
-        {
-          // remove the monomial. It should be at the top of the mArena arena.
-          mRing.freeTopMonomial(mArena,monomspace);
-        }
-      else
-        {
-          result.push_back(p);
-        }
-    }
+void PolyHashTable::insert(
+  const_monomial multiplier, 
+  Poly::const_iterator first, 
+  Poly::const_iterator last,
+  MonomialArray& result
+) {
+  for (Poly::const_iterator i = first; i != last; ++i) {
+    monomial monomspace = mRing.allocMonomial(mArena);
+    node* p;
+    mRing.monomialMult(multiplier, i.getMonomial(), monomspace);
+    bool found = lookup_and_insert(monomspace, i.getCoefficient(), p);
+    if (found)
+      mRing.freeTopMonomial(mArena,monomspace);
+    else
+      result.push_back(p);
+  }
 }
 
 std::pair<bool, PolyHashTable::node*>
@@ -322,141 +242,11 @@ bool PolyHashTable::popTerm(node *p, coefficient &result_coeff, const_monomial &
   return false;
 }
 
-void PolyHashTable::toPoly(const MonomialArray::const_iterator &fbegin,
-                           const MonomialArray::const_iterator &fend,
-                           Poly &result)
-{
-  coefficient coeff;
-  const_monomial monom;
-  for (MonomialArray::const_iterator i = fbegin; i != fend; ++i)
-    if (popTerm(*i, coeff, monom))
-      result.appendTerm(coeff, monom);
-}
-
-void PolyHashTable::toPoly(const MonomialArray &f, Poly &result)
-{
-  // Here we take the monomials in f.    Find corresponding coeff, and append to result.
-  // ASSUMPTION: The monomials of f are in order, AND each appears in the hash table
-  toPoly(f.begin(), f.end(), result);
-}
-
-void PolyHashTable::fromPoly(const Poly &f, MonomialArray &result)
-{
-  insert(f.begin(), f.end(), result);
-}
-
 size_t PolyHashTable::getMemoryUse() const
 {
   size_t result = mHashTable.capacity() * sizeof(node *);
   result += mArena.getMemoryUse();
   return result;
-}
-
-void PolyHashTable::resetStats() const
-{
-  //  mStats.max_chain_len = 0;
-  mStats.n_nonempty_bins = 0;
-}
-
-void PolyHashTable::getStats(Stats &stats) const
-{
-  // First we set the values in mStats
-
-  //  mStats.max_chain_len = 0;
-
-#if 0
-  mStats.n_nonempty_bins = 0;
-  mStats.n_nodes = 0;
-  for (size_t i = 0; i<mTableSize; i++)
-    {
-      if (mHashTable[i] == 0) continue;
-      mStats.n_nonempty_bins++;
-      size_t chain_len = 0;
-      for (node *p = mHashTable[i]; p != 0; p = p->next)
-        chain_len++;
-      mStats.n_nodes += chain_len;
-      if (chain_len > mStats.max_chain_len)
-        mStats.max_chain_len = chain_len;
-    }
-
-  if (mStats.max_chain_len > mStats.max_chain_len_ever)
-    mStats.max_chain_len_ever = mStats.max_chain_len;
-#endif
-
-  if (&stats != &mStats)
-    stats = mStats;
-}
-
-void PolyHashTable::dump(int level) const
-{
-  mic::ColumnPrinter pr;
-  pr.addColumn();
-  pr.addColumn(false);
-  pr.addColumn(false);
-
-  std::ostream& name = pr[0];
-  std::ostream& value = pr[1];
-  std::ostream& extra = pr[2];
-
-  name << "PolyHashTable stats:" << '\n';
-  value << "\n";
-  extra << "\n";
-
-  name << "# resets:\n";
-  value << mic::ColumnPrinter::commafy(mStats.n_resets) << '\n';
-  extra << '\n';
-
-  name << "# bins:\n";
-  value << mic::ColumnPrinter::commafy(mTableSize) << '\n';
-  extra << '\n';
-
-  name << "max # monomials in table:\n";
-  value << mic::ColumnPrinter::commafy(mStats.n_nodes) << '\n';
-  extra << '\n';
-
-  name << "max # nonempty bins:\n";
-  value << mic::ColumnPrinter::commafy(mStats.n_nonempty_bins) << '\n';
-  extra << mic::ColumnPrinter::
-    percentInteger(mStats.n_nonempty_bins, mTableSize) << " used\n";
-
-  name << "max chain length ever:\n";
-  value << mic::ColumnPrinter::commafy(mStats.max_chain_len_ever) << '\n';
-  extra << '\n';
-
-  //  name << "max chain length this computation:\n";
-  //  value << mic::ColumnPrinter::commafy(mStats.max_chain_len) << '\n';
-  //  extra << '\n';
-
-  name << "# calls to lookup_and_insert:\n";
-  value << mic::ColumnPrinter::commafy(mStats.n_inserts) << '\n';
-  extra << '\n';
-
-  name << "# easy inserts:\n";
-  value << mic::ColumnPrinter::commafy(mStats.n_easy_inserts) << '\n';
-  extra << '\n';
-
-  name << "# monomialEQ true calls:\n";
-  value << mic::ColumnPrinter::commafy(mStats.n_moneq_true) << '\n';
-  extra << '\n';
-
-  name << "# monomialEQ false calls:\n";
-  value << mic::ColumnPrinter::commafy(mStats.n_moneq_false) << '\n';
-  extra << "(Also number of monomials inserted in populated bins)\n";
-
-  std::cout << pr << std::flush;
-
-  if (level == 0) return;
-
-  for (size_t i = 0; i<mTableSize; i++)
-    {
-      if (mHashTable[i] == 0) continue;
-      std::cout << "bin " << i << ": ";
-      Poly f(mRing);
-      for (node *p = mHashTable[i]; p != 0; p = p->next)
-        f.appendTerm(p->coeff, p->monom);
-      f.display(std::cout);
-      std::cout << std::endl;
-    }
 }
 
 MATHICGB_NAMESPACE_END
