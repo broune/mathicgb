@@ -47,7 +47,7 @@ MATHICGB_NAMESPACE_BEGIN
 
 F4Reducer::F4Reducer(const PolyRing& ring, Type type):
   mType(type),
-  mFallback(Reducer::makeReducer(Reducer::Reducer_BjarkeGeo, ring)),
+  mFallback(Reducer::makeReducer(Reducer::Reducer_Geobucket_Hashed, ring)),
   mRing(ring),
   mMemoryQuantum(0),
   mStoreToFile(""),

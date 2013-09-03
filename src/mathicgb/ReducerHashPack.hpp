@@ -43,11 +43,8 @@ private:
     Poly::const_iterator pos;
     Poly::const_iterator const end;
     const_term const multiple;
-    monomial current; // multiple.monom * pos.getMonomial()
-    PolyHashTable::node* node;
+    PolyHashTable::Node* node;
 
-    void computeCurrent(const PolyRing& ring, monomial current);
-    void currentCoefficient(const PolyRing& ring, coefficient& coeff);
     void destroy(const PolyRing& ring);
   };
 
@@ -56,7 +53,7 @@ private:
     typedef MultipleWithPos* Entry;
     Configuration(const PolyRing& ring) : PlainConfiguration(ring) {}
     CompareResult compare(const Entry& a, const Entry& b) const {
-      return ring().monomialLT(a->current, b->current);
+      return ring().monoid().lessThan(a->node->mono(), b->node->mono());
     }
   };
 
@@ -74,10 +71,9 @@ template<template<typename> class Q>
 ReducerHashPack<Q>::ReducerHashPack(const PolyRing& ring):
   mRing(ring),
   mQueue(Configuration(ring)),
-  mHashTable(&ring, 10),
+  mHashTable(ring),
   mPool(sizeof(MultipleWithPos))
-{
-}
+{}
 
 template<template<typename> class Q>
 class ReducerHashPack<Q>::MonomialFree
@@ -140,24 +136,10 @@ ReducerHashPack<Q>::MultipleWithPos::MultipleWithPos
   pos(poly.begin()),
   end(poly.end()),
   multiple(allocTerm(poly.ring(), multiple)),
-  current(poly.ring().allocMonomial()),
   node(0) {}
 
 template<template<typename> class Q>
-void ReducerHashPack<Q>::MultipleWithPos::
-computeCurrent(const PolyRing& ring, monomial current) {
-  ring.monomialMult(multiple.monom, pos.getMonomial(), current);  
-}
-
-template<template<typename> class Q>
-void ReducerHashPack<Q>::MultipleWithPos::currentCoefficient
-(const PolyRing& ring, coefficient& coeff) {
-  ring.coefficientMult(multiple.coeff, pos.getCoefficient(), coeff);
-}
-
-template<template<typename> class Q>
 void ReducerHashPack<Q>::MultipleWithPos::destroy(const PolyRing& ring) {
-  ring.freeMonomial(current);
   ring.freeMonomial(const_cast<ConstMonomial&>(multiple.monom).castAwayConst());
 
   // Call the destructor to destruct the iterators into std::vector.
@@ -175,7 +157,7 @@ bool ReducerHashPack<Q>::leadTerm(const_term& result) {
 
     if (!mRing.coefficientIsZero(entry->node->value())) {
       result.coeff = entry->node->value();
-      result.monom = entry->node->mono();
+      result.monom = Monoid::toOld(entry->node->mono());
       return true;
     }
     removeLeadTerm();
@@ -204,14 +186,11 @@ void ReducerHashPack<Q>::removeLeadTerm() {
       mPool.free(entry);
       break;
     }
-    term t;
-    t.monom = entry->current;
-    entry->computeCurrent(mRing, t.monom);
-    entry->currentCoefficient(mRing, t.coeff);
-
-    std::pair<bool, PolyHashTable::node*> p = mHashTable.insert(t);
-    if (p.first) {
-      entry->node = p.second;
+   
+    const auto p = mHashTable.insertProduct
+      (entry->multiple, entry->pos.term());
+    if (p.second) {
+      entry->node = p.first;
       mQueue.decreaseTop(entry);
       break;
     }
@@ -222,14 +201,10 @@ template<template<typename> class Q>
 void ReducerHashPack<Q>::insertEntry(MultipleWithPos* entry) {
   MATHICGB_ASSERT(entry != 0);
   for (; entry->pos != entry->end; ++entry->pos) {
-    term t;
-    t.monom = entry->current;
-    entry->computeCurrent(mRing, t.monom);
-    entry->currentCoefficient(mRing, t.coeff);
-
-    std::pair<bool, PolyHashTable::node*> p = mHashTable.insert(t);
-    if (p.first) {
-      entry->node = p.second;
+    const auto p = mHashTable.insertProduct
+      (entry->multiple, entry->pos.term());
+    if (p.second) {
+      entry->node = p.first;
       mQueue.push(entry);
       return;
     }
@@ -244,7 +219,7 @@ void ReducerHashPack<Q>::resetReducer()
   MonomialFree freeer(mRing);
   mQueue.forAll(freeer);
   mQueue.clear();
-  mHashTable.reset();
+  mHashTable.clear();
 }
 
 template<template<typename> class Q>

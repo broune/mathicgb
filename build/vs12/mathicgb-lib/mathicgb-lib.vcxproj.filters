@@ -11,9 +11,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\src\mathicgb\BjarkeGeobucket2.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\src\mathicgb\ChainedHashTable.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -112,9 +109,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\src\mathicgb\BjarkeGeobucket2.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\src\mathicgb\ChainedHashTable.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>

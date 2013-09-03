@@ -3,7 +3,6 @@
 #include "stdinc.h"
 #include "Reducer.hpp"
 
-#include "BjarkeGeobucket2.hpp"
 #include "ReducerPack.hpp"
 #include "ReducerPackDedup.hpp"
 #include "ReducerNoDedup.hpp"
@@ -45,9 +44,6 @@ std::unique_ptr<Reducer> Reducer::makeReducerNullOnUnknown(
   PolyRing const& ring
 ) {
   switch (type) {
-  case Reducer_BjarkeGeo:
-    return makeBjarkeGeobucket2(ring);
-
   case Reducer_TourTree_NoDedup:
     return std::unique_ptr<Reducer>(new ReducerNoDedup<mic::TourTree>(ring));
   case Reducer_TourTree_Dedup:
@@ -101,8 +97,6 @@ std::unique_ptr<Reducer> Reducer::makeReducerNullOnUnknown(
 Reducer::ReducerType Reducer::reducerType(int typ)
 {
   switch (typ) {
-  case 4: return Reducer_BjarkeGeo;
-
   case 7: return Reducer_TourTree_NoDedup;
   case 8: return Reducer_TourTree_Dedup;
   case 9: return Reducer_TourTree_Hashed;
@@ -127,21 +121,13 @@ Reducer::ReducerType Reducer::reducerType(int typ)
   case 25: return Reducer_F4_Old;
   case 26: return Reducer_F4_New;
 
-  default: return Reducer_BjarkeGeo;
+  default: return Reducer_Geobucket_Hashed;
   }
 }
 
 void Reducer::displayReducerTypes(std::ostream &o)
 {
   o << "Reducer types:" << std::endl;
-  o << "   0   PolyHeap" << std::endl;
-  o << "   1   PolyGeoBucket" << std::endl;
-  o << "   2   Poly" << std::endl;
-  o << "   3   PolyHash" << std::endl;
-  o << "   4   BjarkeGeo2" << std::endl;
-  o << "   5   Tournament tree" << std::endl;
-  o << "   6   Hashed Tournament tree" << std::endl;
-
   o << "   7   TournamentTree.NoDedup" << std::endl;
   o << "   8   TournamentTree.Dedup" << std::endl;
   o << "   9   TournamentTree.Hashed" << std::endl;

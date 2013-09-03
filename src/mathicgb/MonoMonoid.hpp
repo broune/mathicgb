@@ -1561,7 +1561,7 @@ private:
   friend class MonoVector;
   friend class MonoPool;
 
-  friend class MonoMap;
+  friend class PolyHashTable;
 
   typedef typename Base::Gradings Gradings;
 

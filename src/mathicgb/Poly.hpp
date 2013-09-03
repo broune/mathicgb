@@ -48,6 +48,12 @@ public:
     reference operator*() const {
       return std::pair<coefficient&, monomial>(getCoefficient(), getMonomial());
     }
+    const_term term() const {
+      const_term t;
+      t.monom = getMonomial();
+      t.coeff = getCoefficient();
+      return t;
+    }
   };
 
   class const_iterator {
@@ -76,6 +82,12 @@ public:
     const value_type operator*() const {
       return std::pair<coefficient, const_monomial>
         (getCoefficient(), getMonomial());
+    }
+    const_term term() const {
+      const_term t;
+      t.monom = getMonomial();
+      t.coeff = getCoefficient();
+      return t;
     }
   };
 

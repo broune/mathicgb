@@ -13,8 +13,7 @@ libmathicgb_la_LIBADD= $(DEPS_LIBS)
 
 # the sources that are built to make libmathicgb. Listing the headers in
 # sources ensure that those files are included in distributions.
-libmathicgb_la_SOURCES = src/mathicgb/BjarkeGeobucket2.cpp			  \
-  src/mathicgb/BjarkeGeobucket2.hpp src/mathicgb/ClassicGBAlg.cpp	  \
+libmathicgb_la_SOURCES = src/mathicgb/ClassicGBAlg.cpp				  \
   src/mathicgb/ClassicGBAlg.hpp src/mathicgb/ChainedHashTable.cpp	  \
   src/mathicgb/ChainedHashTable.hpp src/mathicgb/MonoLookup.hpp		  \
   src/mathicgb/MonoLookup.cpp src/mathicgb/StaticMonoMap.hpp		  \

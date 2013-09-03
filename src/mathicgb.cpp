@@ -884,7 +884,7 @@ namespace mgbi {
     Reducer::ReducerType reducerType;
     switch (conf.reducer()) {
     case GConf::ClassicReducer:
-      reducerType = Reducer::Reducer_BjarkeGeo;
+      reducerType = Reducer::Reducer_Geobucket_Hashed;
       break;
 
     default:

@@ -78,8 +78,6 @@ public:
   // ***** Kinds of reducers and creating a Reducer 
 
   enum ReducerType {
-    Reducer_BjarkeGeo = 4, // uses hash table on front to remove duplicates
-
     Reducer_TourTree_NoDedup = 7,
     Reducer_TourTree_Dedup,
     Reducer_TourTree_Hashed,

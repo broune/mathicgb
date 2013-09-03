@@ -441,7 +441,6 @@
   <ItemGroup>
     <ClCompile Include="..\..\..\src\mathicgb.cpp" />
     <ClCompile Include="..\..\..\src\mathicgb\Basis.cpp" />
-    <ClCompile Include="..\..\..\src\mathicgb\BjarkeGeobucket2.cpp" />
     <ClCompile Include="..\..\..\src\mathicgb\CFile.cpp" />
     <ClCompile Include="..\..\..\src\mathicgb\ChainedHashTable.cpp" />
     <ClCompile Include="..\..\..\src\mathicgb\ClassicGBAlg.cpp" />
@@ -477,7 +476,6 @@
     <ClInclude Include="..\..\..\src\mathicgb.h" />
     <ClInclude Include="..\..\..\src\mathicgb\Atomic.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\Basis.hpp" />
-    <ClInclude Include="..\..\..\src\mathicgb\BjarkeGeobucket2.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\CFile.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\ChainedHashTable.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\ClassicGBAlg.hpp" />

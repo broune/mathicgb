@@ -36,16 +36,17 @@ protected:
 public:
   class Configuration : public ReducerHelper::PlainConfiguration {
   public:
-    typedef PolyHashTable::node * Entry;
+    typedef PolyHashTable::Node* Entry;
 
     Configuration(const PolyRing& ring): PlainConfiguration(ring) {}
 
     CompareResult compare(const Entry& a, const Entry& b) const {
-      return ring().monomialLT(a->mono(), b->mono());
+      return ring().monoid().lessThan(a->mono(), b->mono());
     }
   };
   
 private:
+  mutable std::vector<PolyHashTable::Node*> mNodesTmp;
   const PolyRing &mRing;
   PolyHashTable mHashTable;
   Queue<Configuration> mQueue;
@@ -54,7 +55,7 @@ private:
 template<template<typename> class Q>
 ReducerHash<Q>::ReducerHash(const PolyRing &ring):
   mRing(ring),
-  mHashTable(&ring,10),
+  mHashTable(ring),
   mQueue(Configuration(ring))
 {}
 
@@ -67,33 +68,46 @@ void ReducerHash<Q>::insertTail(const_term multiplier, const Poly *g1)
 {
   if (g1->nTerms() <= 1) return;
 
-  PolyHashTable::MonomialArray M;
-  mHashTable.insert(multiplier, ++(g1->begin()), g1->end(), M);
-  if (!M.empty())
-    mQueue.push(M.begin(),M.end());
+  mNodesTmp.clear();
+  auto it = g1->begin();
+  const auto end = g1->end();
+  for (++it; it != end; ++it) {
+    auto p = mHashTable.insertProduct(it.term(), multiplier);
+    if (p.second)
+      mNodesTmp.emplace_back(p.first);
+  }
+  if (!mNodesTmp.empty())
+    mQueue.push(mNodesTmp.begin(), mNodesTmp.end());
 }
 
 template<template<typename> class Q>
 void ReducerHash<Q>::insert(monomial multiplier, const Poly *g1)
 {
-  PolyHashTable::MonomialArray M;
-
-  mHashTable.insert(multiplier, g1->begin(), g1->end(), M);
-
-  if (!M.empty())
-    mQueue.push(M.begin(),M.end());
+  mNodesTmp.clear();
+  const auto end = g1->end();
+  for (auto it = g1->begin(); it != end; ++it) {
+    auto p = mHashTable.insertProduct
+      (it.getMonomial(), multiplier, it.getCoefficient());
+    if (p.second)
+      mNodesTmp.emplace_back(p.first);
+  }
+  if (!mNodesTmp.empty())
+    mQueue.push(mNodesTmp.begin(), mNodesTmp.end());
 }
 
 template<template<typename> class Q>
-bool ReducerHash<Q>::leadTerm(const_term &result)
+bool ReducerHash<Q>::leadTerm(const_term& result)
 {
-  while (!mQueue.empty())
-    {
-      if (mHashTable.popTerm(mQueue.top(), result.coeff, result.monom))
-        // returns true if mQueue.top() is not the zero element
-        return true;
-      mQueue.pop();
+  while (!mQueue.empty()) {
+    const auto top = mQueue.top();
+    if (!mRing.coefficientIsZero(top->value())) {
+      result.coeff = top->value();
+      result.monom = Monoid::toOld(top->mono());
+      return true;
     }
+    mQueue.pop();
+    mHashTable.remove(top);
+  }
   return false;
 }
 
@@ -101,19 +115,20 @@ template<template<typename> class Q>
 void ReducerHash<Q>::removeLeadTerm()
 // returns true if there is a term to extract
 {
+  const auto top = mQueue.top();
   mQueue.pop();
+  mHashTable.remove(top);
 }
 
 template<template<typename> class Q>
 void ReducerHash<Q>::resetReducer()
 {
-  const_term t;
-  while (leadTerm(t))
-    {
-      mQueue.pop();
-    }
-  mHashTable.reset();
-  // how to reset mQueue ?
+  while (!mQueue.empty()) {
+    const auto top = mQueue.top();
+    mQueue.pop();
+    mHashTable.remove(top);
+  }
+  mHashTable.clear();
 }
 
 template<template<typename> class Q>
