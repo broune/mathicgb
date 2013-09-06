@@ -43,7 +43,77 @@ MATHICGB_DEFINE_LOG_ALIAS(
   "F4MatReduceTop,F4RedBottomRight"
 );
 
+#include "Reducer.hpp"
+#include "PolyRing.hpp"
+#include <string>
+
 MATHICGB_NAMESPACE_BEGIN
+
+void f4ReducerDependency() {}
+
+class QuadMatrix;
+
+class F4Reducer : public Reducer {
+public:
+  enum Type {
+    OldType,
+    NewType
+  };
+
+  F4Reducer(const PolyRing& ring, Type type);
+
+  virtual unsigned int preferredSetSize() const;
+
+  /// Store all future matrices to file-1.mat, file-2.mat and so on.
+  /// Matrices with less than minEntries non-zero entries are not stored.
+  /// If file is an empty string then no matrices are stored. If this method
+  /// is never called then no matrices are stored.
+  void writeMatricesTo(std::string file, size_t minEntries);
+
+  virtual std::unique_ptr<Poly> classicReduce
+    (const Poly& poly, const PolyBasis& basis);
+
+  virtual std::unique_ptr<Poly> classicTailReduce
+    (const Poly& poly, const PolyBasis& basis);
+
+  virtual std::unique_ptr<Poly> classicReduceSPoly
+    (const Poly& a, const Poly& b, const PolyBasis& basis);
+
+  virtual void classicReduceSPolySet(
+    std::vector<std::pair<size_t, size_t> >& spairs,
+    const PolyBasis& basis,
+    std::vector<std::unique_ptr<Poly> >& reducedOut
+  );
+
+  virtual void classicReducePolySet(
+    const std::vector<std::unique_ptr<Poly> >& polys,
+    const PolyBasis& basis,
+    std::vector<std::unique_ptr<Poly> >& reducedOut
+  );
+
+  virtual std::unique_ptr<Poly> regularReduce(
+    const_monomial sig,
+    const_monomial multiple,
+    size_t basisElement,
+    const SigPolyBasis& basis
+  );
+
+  virtual void setMemoryQuantum(size_t quantum);
+
+  virtual std::string description() const;
+  virtual size_t getMemoryUse() const;
+
+private:
+  void saveMatrix(const QuadMatrix& matrix);
+
+  Type mType;
+  std::unique_ptr<Reducer> mFallback;
+  const PolyRing& mRing;
+  size_t mMemoryQuantum;
+  std::string mStoreToFile; /// stem of file names to save matrices to
+  size_t mMinEntryCountForStore; /// don't save matrices with fewer entries
+  size_t mMatrixSaveCount; // how many matrices have been saved
+};
 
 F4Reducer::F4Reducer(const PolyRing& ring, Type type):
   mType(type),
@@ -267,5 +337,32 @@ void F4Reducer::saveMatrix(const QuadMatrix& matrix) {
   matrix.write(static_cast<SparseMatrix::Scalar>(mRing.charac()), file);
   fclose(file);
 }
+
+std::unique_ptr<Reducer> makeF4Reducer(
+ const PolyRing& ring,
+ bool oldType,
+ std::string file,
+ size_t minEntries
+) {
+  auto reducer = oldType ?
+    make_unique<F4Reducer>(ring, F4Reducer::OldType) :
+    make_unique<F4Reducer>(ring, F4Reducer::NewType);
+  reducer->writeMatricesTo(file, minEntries);
+  return std::move(reducer);
+}
+
+Reducer::Registration r19(
+  "F4Old",
+  Reducer::Reducer_F4_Old,
+  [](const PolyRing& ring) -> std::unique_ptr<Reducer> {
+    return make_unique<F4Reducer>(ring, F4Reducer::OldType);
+  }
+);
+
+MATHICGB_REGISTER_REDUCER(
+  "F4New",
+  Reducer_F4_New,
+  (make_unique<F4Reducer>(ring, F4Reducer::NewType))
+);
 
 MATHICGB_NAMESPACE_END

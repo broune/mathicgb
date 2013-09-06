@@ -4,8 +4,8 @@
 #include "Reducer.hpp"
 
 #include "ReducerPack.hpp"
-#include "ReducerPackDedup.hpp"
 #include "ReducerNoDedup.hpp"
+#include "ReducerPackDedup.hpp"
 #include "ReducerDedup.hpp"
 #include "ReducerHash.hpp"
 #include "ReducerHashPack.hpp"
@@ -25,6 +25,12 @@ MATHICGB_NAMESPACE_BEGIN
 // and then not include it in the library. This was wonderful to diagnose.
 void dummyLinkerFix() {
   reducerPackDependency();
+  reducerNoDedupDependency();
+  reducerPackDedupDependency();
+  reducerDedupDependency();
+  reducerHashDependency();
+  reducerHashPackDependency();
+  f4ReducerDependency();
 }
 
 Reducer::~Reducer() {
@@ -51,131 +57,6 @@ Reducer::Registration::Registration(
 {
   reducerTypes().push_back(this);
 }
-
-Reducer::Registration r1(
-  "TourNoDedup",
-  Reducer::Reducer_TourTree_NoDedup,
-  [](const PolyRing& ring) -> std::unique_ptr<Reducer> {
-    return make_unique<ReducerNoDedup<mic::TourTree>>(ring);
-  }
-);
-
-Reducer::Registration r2(
-  "TourDedup",
-  Reducer::Reducer_TourTree_Dedup,
-  [](const PolyRing& ring) -> std::unique_ptr<Reducer> {
-    return make_unique<ReducerDedup<mic::TourTree>>(ring);
-  }
-);
-Reducer::Registration r3(
-  "TourHash",
-  Reducer::Reducer_TourTree_Hashed,
-  [](const PolyRing& ring) -> std::unique_ptr<Reducer> {
-    return make_unique<ReducerHash<mic::TourTree>>(ring);
-  }
-);
- 
- 
-Reducer::Registration r5(
-  "TourDedupPack",
-  Reducer::Reducer_TourTree_Dedup_Packed,
-  [](const PolyRing& ring) -> std::unique_ptr<Reducer> {
-    return make_unique<ReducerPackDedup<mic::TourTree>>(ring);
-  }
-);
-  
-Reducer::Registration r6(
-  "TourHashPack",
-  Reducer::Reducer_TourTree_Hashed_Packed,
-  [](const PolyRing& ring) -> std::unique_ptr<Reducer> {
-    return make_unique<ReducerHashPack<mic::TourTree>>(ring);
-  }
-);
-
-Reducer::Registration r7(
-  "HeapNoDedup",
-  Reducer::Reducer_Heap_NoDedup,
-  [](const PolyRing& ring) -> std::unique_ptr<Reducer> {
-    return make_unique<ReducerNoDedup<mic::Heap>>(ring);
-  }
-);
-Reducer::Registration r8(
-  "HeapDedup",
-  Reducer::Reducer_Heap_Dedup,
-  [](const PolyRing& ring) -> std::unique_ptr<Reducer> {
-    return make_unique<ReducerDedup<mic::Heap>>(ring);
-  }
-);
- 
-Reducer::Registration r9(
-  "HeapHash",
-  Reducer::Reducer_Heap_Hashed,
-  [](const PolyRing& ring) -> std::unique_ptr<Reducer> {
-    return make_unique<ReducerHash<mic::Heap>>(ring);
-  }
-);
-Reducer::Registration r11(
-  "HeapDedupPack",
-  Reducer::Reducer_Heap_Dedup_Packed,
-  [](const PolyRing& ring) -> std::unique_ptr<Reducer> {
-    return make_unique<ReducerPackDedup<mic::Heap>>(ring);
-  }
-);
-Reducer::Registration r12(
-  "HeapHashPack",
-  Reducer::Reducer_Heap_Hashed_Packed,
-  [](const PolyRing& ring) -> std::unique_ptr<Reducer> {
-    return make_unique<ReducerHashPack<mic::Heap>>(ring);
-  }
-);
-Reducer::Registration r13(
-  "GeoNoDedup",
-  Reducer::Reducer_Geobucket_NoDedup,
-  [](const PolyRing& ring) -> std::unique_ptr<Reducer> {
-    return make_unique<ReducerNoDedup<mic::Geobucket>>(ring);
-  }
-);
-Reducer::Registration r14(
-  "GeoDedup",
-  Reducer::Reducer_Geobucket_Dedup,
-  [](const PolyRing& ring) -> std::unique_ptr<Reducer> {
-    return make_unique<ReducerDedup<mic::Geobucket>>(ring);
-  }
-);
-Reducer::Registration r15(
-  "GeoHash",
-  Reducer::Reducer_Geobucket_Hashed,
-  [](const PolyRing& ring) -> std::unique_ptr<Reducer> {
-    return make_unique<ReducerHash<mic::Geobucket>>(ring);
-  }
-);
-Reducer::Registration r17(
-  "GeoDedupPack",
-  Reducer::Reducer_Geobucket_Dedup_Packed,
-  [](const PolyRing& ring) -> std::unique_ptr<Reducer> {
-    return make_unique<ReducerPackDedup<mic::Geobucket>>(ring);
-  }
-);
-Reducer::Registration r18(
-  "GeoHashPack",
-  Reducer::Reducer_Geobucket_Hashed_Packed,
-  [](const PolyRing& ring) -> std::unique_ptr<Reducer> {
-    return make_unique<ReducerHashPack<mic::Geobucket>>(ring);
-  }
-);
-Reducer::Registration r19(
-  "F4Old",
-  Reducer::Reducer_F4_Old,
-  [](const PolyRing& ring) -> std::unique_ptr<Reducer> {
-    return make_unique<F4Reducer>(ring, F4Reducer::OldType);
-  }
-);
-
-MATHICGB_REGISTER_REDUCER(
-  "F4New",
-  Reducer_F4_New,
-  (make_unique<F4Reducer>(ring, F4Reducer::NewType))
-);
 
 std::unique_ptr<Reducer> Reducer::makeReducer(
   ReducerType type,
