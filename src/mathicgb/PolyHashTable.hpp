@@ -87,11 +87,11 @@ public:
   }
 
   MATHICGB_INLINE
-  std::pair<Node*, bool> insertProduct(const_term a, const_term b)
+  std::pair<Node*, bool> insertProduct(NewConstTerm a, NewConstTerm b)
   {
     Value prod;
-    mRing.coefficientMult(a.coeff, b.coeff, prod);
-    return insertProduct(a.monom, b.monom, prod);
+    mRing.coefficientMult(a.coef, b.coef, prod);
+    return insertProduct(*a.mono, *b.mono, prod);
   }
 
   MATHICGB_INLINE

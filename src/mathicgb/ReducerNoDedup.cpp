@@ -12,6 +12,11 @@ MATHICGB_NAMESPACE_BEGIN
 
 void reducerNoDedupDependency() {}
 
+/// The most straight forward of the reducers. Simply keep a priority queue
+/// with all the pending terms. If two like monomials are compared in the
+/// queue, they are not combined - both stay in the queue. The sum of like
+/// terms is only taken at the end, when the leading term and its
+/// coefficient is determined.
 template<template<typename> class Queue>
 class ReducerNoDedup : public TypicalReducer {
 public:
@@ -22,34 +27,30 @@ public:
     return mQueue.getName() + "-nodedup"; 
   }
 
-  virtual void insertTail(const_term multiplier, const Poly *f);
-  virtual void insert(monomial multiplier, const Poly *f);
+  virtual void insertTail(NewConstTerm multiplier, const Poly& f);
+  virtual void insert(ConstMonoRef multiplier, const Poly& f);
 
-  virtual bool leadTerm(const_term &result);
+  virtual bool leadTerm(NewConstTerm& result);
   virtual void removeLeadTerm();
 
   virtual size_t getMemoryUse() const;
 
-protected:
   virtual void resetReducer();
 
-public:
+private:
   // This Configuration is designed to work with
   // mathic::TourTree, mathic::Heap, and mathic::Geobucket
   class Configuration : public ReducerHelper::PlainConfiguration {
   public:
-    typedef term Entry;
+    typedef NewTerm Entry;
     Configuration(const PolyRing& ring): PlainConfiguration(ring) {}
     CompareResult compare(const Entry& a, const Entry& b) const {
-      return ring().monomialLT(a.monom, b.monom);
+      return ring().monoid().lessThan(*a.mono, *b.mono);
     }
   };
 
-private:
-  class MonomialFree;
-  
   const PolyRing& mRing;
-  term mLeadTerm;
+  NewTerm mLeadTerm;
   bool mLeadTermKnown;
   Queue<Configuration> mQueue;
 };
@@ -57,96 +58,81 @@ private:
 template<template<typename> class Q>
 ReducerNoDedup<Q>::ReducerNoDedup(const PolyRing& ring):
   mRing(ring),
-  mLeadTerm(0, mRing.allocMonomial()),
   mLeadTermKnown(false),
-  mQueue(Configuration(ring)) {
+  mQueue(Configuration(ring))
+{
+  mLeadTerm.mono = mRing.monoid().alloc().release();
 }
-
-template<template<typename> class Q>
-class ReducerNoDedup<Q>::MonomialFree {
-public:
-  MonomialFree(const PolyRing& ring): mRing(ring) {}
-
-  bool proceed(term entry)
-  {
-    mRing.freeMonomial(entry.monom);
-    return true;
-  }
-private:
-  const PolyRing& mRing;
-};
 
 template<template<typename> class Q>
 ReducerNoDedup<Q>::~ReducerNoDedup() {
   resetReducer();
-  mRing.freeMonomial(mLeadTerm.monom);
+  mRing.monoid().freeRaw(*mLeadTerm.mono);
 }
 
 template<template<typename> class Q>
-void ReducerNoDedup<Q>::insertTail(const_term multiple, const Poly* poly) {
-  if (poly->nTerms() <= 1)
+void ReducerNoDedup<Q>::insertTail(NewConstTerm multiple, const Poly& poly) {
+  if (poly.nTerms() <= 1)
     return;
   mLeadTermKnown = false;
 
-  Poly::const_iterator i = poly->begin();
-  for (++i; i != poly->end(); ++i)
-    {
-      term t;
-      t.monom = mRing.allocMonomial();
-      mRing.monomialMult(multiple.monom, i.getMonomial(), t.monom);
-      mRing.coefficientMult(multiple.coeff, i.getCoefficient(), t.coeff);
-      mQueue.push(t);
-    }
-}
-
-template<template<typename> class Q>
-void ReducerNoDedup<Q>::insert(monomial multiple, const Poly* poly) {
-  if (poly->isZero())
-    return;
-  mLeadTermKnown = false;
-
-  for (Poly::const_iterator i = poly->begin(); i != poly->end(); ++i) {
-    term t(i.getCoefficient(), mRing.allocMonomial());
-    mRing.monomialMult(multiple, i.getMonomial(), t.monom);
+  auto it = poly.begin();
+  const auto end = poly.end();
+  for (++it; it != end; ++it) {
+    NewTerm t;
+    t.mono = mRing.allocMonomial();
+    mRing.monoid().multiply(*multiple.mono, it.getMonomial(), *t.mono);
+    mRing.coefficientMult(multiple.coef, it.getCoefficient(), t.coef);
     mQueue.push(t);
   }
 }
 
 template<template<typename> class Q>
-bool ReducerNoDedup<Q>::leadTerm(const_term& result) {
-  if (mLeadTermKnown) {
-    result = mLeadTerm;
-    return true;
+void ReducerNoDedup<Q>::insert(ConstMonoRef multiple, const Poly& poly) {
+  if (poly.isZero())
+    return;
+  mLeadTermKnown = false;
+
+  const auto end = poly.end();
+  for (auto it = poly.begin(); it != end; ++it) {
+    NewTerm t = {mRing.monoid().alloc().release(), it.getCoefficient()};
+    mRing.monoid().multiply(multiple, it.getMonomial(), *t.mono);
+    mQueue.push(t);
+  }
+}
+
+template<template<typename> class Q>
+bool ReducerNoDedup<Q>::leadTerm(NewConstTerm& result) {
+  if (!mLeadTermKnown) {
+    do {
+      if (mQueue.empty())
+        return false;
+      mLeadTerm = mQueue.top();
+      mQueue.pop();
+    
+      while (true) {
+        if (mQueue.empty())
+          break;
+      
+        auto entry = mQueue.top();
+        if (!mRing.monoid().equal(*entry.mono, *mLeadTerm.mono))
+          break;
+        mRing.coefficientAddTo(mLeadTerm.coef, entry.coef);
+        mRing.monoid().freeRaw(*entry.mono);
+        mQueue.pop();
+      }
+    } while (mRing.coefficientIsZero(mLeadTerm.coef));
+    mLeadTermKnown = true;
   }
 
-  do {
-    if (mQueue.empty())
-      return false;
-    mLeadTerm = mQueue.top();
-    mQueue.pop();
-    
-    while (true) {
-      if (mQueue.empty())
-        break;
-      
-      term entry = mQueue.top();
-      if (!mRing.monomialEQ(entry.monom, mLeadTerm.monom))
-        break;
-      mRing.coefficientAddTo(mLeadTerm.coeff, entry.coeff);
-      mRing.freeMonomial(entry.monom);
-      mQueue.pop();
-    }
-  } while (mRing.coefficientIsZero(mLeadTerm.coeff));
-
   result = mLeadTerm;
-  mLeadTermKnown = true;
   return true;
 }
 
 template<template<typename> class Q>
 void ReducerNoDedup<Q>::removeLeadTerm() {
   if (!mLeadTermKnown) {
-    const_term dummy;
+    NewConstTerm dummy;
     leadTerm(dummy);
   }
   mLeadTermKnown = false;
@@ -154,9 +140,22 @@ void ReducerNoDedup<Q>::removeLeadTerm() {
 
 template<template<typename> class Q>
 void ReducerNoDedup<Q>::resetReducer() {
+  class MonomialFree {
+  public:
+    MonomialFree(const PolyRing& ring): mRing(ring) {}
+
+    bool proceed(NewTerm entry) {
+      mRing.monoid().freeRaw(*entry.mono);
+      return true;
+    }
+
+  private:
+    const PolyRing& mRing;
+  };
+
   MonomialFree freeer(mRing);
-  //mQueue.forAll(freeer);
-  //  mQueue.clear();
+  mQueue.forAll(freeer);
+  mQueue.clear();
 }
 
 template<template<typename> class Q>

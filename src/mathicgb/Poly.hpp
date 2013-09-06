@@ -83,10 +83,10 @@ public:
       return std::pair<coefficient, const_monomial>
         (getCoefficient(), getMonomial());
     }
-    const_term term() const {
-      const_term t;
-      t.monom = getMonomial();
-      t.coeff = getCoefficient();
+    NewConstTerm term() const {
+      NewConstTerm t;
+      t.mono = getMonomial();
+      t.coef = getCoefficient();
       return t;
     }
   };

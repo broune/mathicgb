@@ -12,6 +12,18 @@ MATHICGB_NAMESPACE_BEGIN
 
 void reducerPackDedupDependency() {}
 
+/// As ReducerPack, with an extra feature: if two items with the same current
+/// monomial in the queue are compared by the queue, then combine the first
+/// into the second. That way, the second can be removed from the queue.
+/// This requires keeping a linked list with each entry of the other entries
+/// that have been combined into it, since we need to move on to the next term
+/// of all of those entries. This technique further reduces the number of
+/// entries in the queue.
+///
+/// Note that the linked lists are circular to make it fast to append two
+/// linked lists. The trick is that you can combine two distinct circular
+/// lists by swapping the next pointers of any one node in the first list and
+/// of any one node in the second list.
 template<template<typename> class Queue>
 class ReducerPackDedup : public TypicalReducer {
 public:
@@ -22,37 +34,35 @@ public:
     return mQueue.getName() + "-packed";
   }
 
-  virtual void insertTail(const_term multiplier, const Poly* f);
-  virtual void insert(monomial multiplier, const Poly* f);
+  virtual void insertTail(NewConstTerm multiplier, const Poly& f);
+  virtual void insert(ConstMonoRef multiplier, const Poly& f);
 
-  virtual bool leadTerm(const_term& result);
+  virtual bool leadTerm(NewConstTerm& result);
   virtual void removeLeadTerm();
 
   virtual size_t getMemoryUse() const;
 
-protected:
   virtual void resetReducer();
 
 private:
   // Represents a term multiple of a polynomial, 
   // together with a current term of the multiple.
-public:
   struct MultipleWithPos {
-    MultipleWithPos(const Poly& poly, const_term multiple);
+    MultipleWithPos(const Poly& poly, NewConstTerm multiple);
 
     Poly::const_iterator pos;
     Poly::const_iterator const end;
-    const_term const multiple;
+    NewTerm multiple;
 
     // invariant: current is the monomial product of multiple.monom 
     // and pos.getMonomial().
-    monomial current;
+    MonoPtr current;
 
     // Ensures the invariant, so sets current to the product of
     // multiple.monom and pos.getMonomial().
     void computeCurrent(const PolyRing& ring);
-    void currentCoefficient(const PolyRing& ring, coefficient& coeff);
-    void addCurrentCoefficient(const PolyRing& ring, coefficient& coeff);
+    void currentCoefficient(const PolyRing& ring, Coefficient& coeff);
+    void addCurrentCoefficient(const PolyRing& ring, Coefficient& coeff);
     void destroy(const PolyRing& ring);
 
     // Points to a circular list of entries that have the same current
@@ -72,7 +82,7 @@ public:
     typedef MultipleWithPos* Entry;
     Configuration(const PolyRing& ring): DedupConfiguration(ring) {}
     CompareResult compare(const Entry& a, const Entry& b) const {
-      return ring().monomialCompare(a->current, b->current);
+      return ring().monoid().compare(*a->current, *b->current);
     }
     Entry deduplicate(Entry a, Entry b) const {
       a->mergeChains(*b);
@@ -83,7 +93,7 @@ private:
   class MonomialFree;
   
   const PolyRing& mRing;
-  term mLeadTerm;
+  NewTerm mLeadTerm;
   bool mLeadTermKnown;
   Queue<Configuration> mQueue;
   memt::BufferPool mPool;
@@ -92,94 +102,80 @@ private:
 template<template<typename> class Q>
 ReducerPackDedup<Q>::ReducerPackDedup(const PolyRing& ring):
   mRing(ring),
-  mLeadTerm(0, mRing.allocMonomial()),
   mLeadTermKnown(false),
   mQueue(Configuration(ring)),
-  mPool(sizeof(MultipleWithPos)) {
-}
-
-template<template<typename> class Q>
-class ReducerPackDedup<Q>::MonomialFree
+  mPool(sizeof(MultipleWithPos))
 {
-public:
-  MonomialFree(const PolyRing& ring): mRing(ring) {}
-
-  bool proceed(MultipleWithPos* entry)
-  {
-    entry->destroy(mRing);
-    return true;
-  }
-private:
-  const PolyRing& mRing;
-};
+  mLeadTerm.mono = mRing.monoid().alloc().release();
+}
 
 template<template<typename> class Q>
 ReducerPackDedup<Q>::~ReducerPackDedup() {
   resetReducer();
-  mRing.freeMonomial(mLeadTerm.monom);
+  mRing.monoid().freeRaw(*mLeadTerm.mono);
 }
 
 template<template<typename> class Q>
-void ReducerPackDedup<Q>::insertTail(const_term multiple, const Poly* poly) {
-  if (poly->nTerms() <= 1)
+void ReducerPackDedup<Q>::insertTail(NewConstTerm multiple, const Poly& poly) {
+  if (poly.nTerms() <= 1)
     return;
   mLeadTermKnown = false;
 
-  MultipleWithPos* entry =
-    new (mPool.alloc()) MultipleWithPos(*poly, multiple);
+  auto entry = new (mPool.alloc()) MultipleWithPos(poly, multiple);
   ++entry->pos;
-  entry->computeCurrent(poly->ring());
+  entry->computeCurrent(poly.ring());
   mQueue.push(entry);
 }
 
 template<template<typename> class Q>
-void ReducerPackDedup<Q>::insert(monomial multiple, const Poly* poly) {
-  if (poly->isZero())
+void ReducerPackDedup<Q>::insert(ConstMonoRef multiple, const Poly& poly) {
+  if (poly.isZero())
     return;
   mLeadTermKnown = false;
 
-  // todo: avoid multiplication by 1
-  term termMultiple(1, multiple);
-  MultipleWithPos* entry =
-    new (mPool.alloc()) MultipleWithPos(*poly, termMultiple);
-  entry->computeCurrent(poly->ring());
+  NewConstTerm termMultiple = {multiple.ptr(), 1};
+  auto entry = new (mPool.alloc()) MultipleWithPos(poly, termMultiple);
+  entry->computeCurrent(poly.ring());
   mQueue.push(entry);
 }
 
 template<template<typename> class Q>
 ReducerPackDedup<Q>::MultipleWithPos::MultipleWithPos(
   const Poly& poly,
-  const_term multipleParam
+  NewConstTerm multipleParam
 ):
   pos(poly.begin()),
   end(poly.end()),
-  multiple(ReducerHelper::allocTermCopy(poly.ring(), multipleParam)),
-  current(poly.ring().allocMonomial()),
+  current(poly.ring().monoid().alloc().release()),
   chain(this)
-{}
+{
+  multiple.mono = poly.ring().monoid().alloc().release();
+  poly.ring().monoid().copy(*multipleParam.mono, *multiple.mono);
+  multiple.coef = multipleParam.coef;
+}
 
 template<template<typename> class Q>
-void ReducerPackDedup<Q>::MultipleWithPos::computeCurrent
-  (const PolyRing& ring)
-{
-  ring.monomialMult(multiple.monom, pos.getMonomial(), current);  
+void ReducerPackDedup<Q>::MultipleWithPos::computeCurrent(
+  const PolyRing& ring
+) {
+  ring.monoid().multiply(*multiple.mono, pos.getMonomial(), *current);
 }
 
 template<template<typename> class Q>
 void ReducerPackDedup<Q>::MultipleWithPos::currentCoefficient(
   const PolyRing& ring,
-  coefficient& coeff
+  Coefficient& coef
 ) {
-  ring.coefficientMult(multiple.coeff, pos.getCoefficient(), coeff);
+  ring.coefficientMult(multiple.coef, pos.getCoefficient(), coef);
 }
 
 template<template<typename> class Q>
 void ReducerPackDedup<Q>::MultipleWithPos::addCurrentCoefficient(
   const PolyRing& ring,
-  coefficient& coeff
+  Coefficient& coeff
 ) {
-  coefficient tmp;
-  ring.coefficientMult(multiple.coeff, pos.getCoefficient(), tmp);
+  Coefficient tmp;
+  ring.coefficientMult(multiple.coef, pos.getCoefficient(), tmp);
   ring.coefficientAddTo(coeff, tmp);
 }
 
@@ -187,16 +183,15 @@ template<template<typename> class Q>
 void ReducerPackDedup<Q>::MultipleWithPos::destroy(const PolyRing& ring) {
   MultipleWithPos* entry = this;
   do {
-    ring.freeMonomial(entry->current);
-    ConstMonomial& monom = const_cast<ConstMonomial&>(entry->multiple.monom);
-    ring.freeMonomial(monom.castAwayConst());
+    ring.monoid().freeRaw(*entry->current);
+    ring.monoid().freeRaw(*entry->multiple.mono);
     MultipleWithPos* next = entry->chain;
     MATHICGB_ASSERT(next != 0);
 
     // Call the destructor to destruct the iterators into std::vector.
     // In debug mode MSVC puts those in a linked list and the destructor
-    // has to be called since it takes an iterator off the list. We had
-    // memory corruption problems before doing this.
+    // has to be called since it takes an iterator off the list. There were
+    // memory corruption problems in debug mode on MSVC before doing this.
     entry->~MultipleWithPos();
 
     entry = next;
@@ -204,81 +199,78 @@ void ReducerPackDedup<Q>::MultipleWithPos::destroy(const PolyRing& ring) {
 }
 
 template<template<typename> class Q>
-bool ReducerPackDedup<Q>::leadTerm(const_term& result) {
-  if (mLeadTermKnown) {
-    result = mLeadTerm;
-    return true;
-  }
+bool ReducerPackDedup<Q>::leadTerm(NewConstTerm& result) {
+  if (!mLeadTermKnown) {
+    do {
+      if (mQueue.empty())
+        return false;
+      auto entry = mQueue.top();
+      entry->currentCoefficient(mRing, mLeadTerm.coef);
+      while (true) {
+        // store the chained elements
+        const auto chainBegin = entry->chain;
+        const auto chainEnd = entry; // the list is circular
+        entry->chain = entry; // detach any chained elements
 
-  do {
-    if (mQueue.empty())
-      return false;
-    MultipleWithPos* entry = mQueue.top();
-    entry->currentCoefficient(mRing, mLeadTerm.coeff);
-    while (true) {
-      // store the chained elements
-      MultipleWithPos* const chainBegin = entry->chain;
-      MultipleWithPos* const chainEnd = entry; // the list is circular
-      entry->chain = entry; // detach any chained elements
-
-      // handle the entry itself
-      mLeadTerm.monom.swap(entry->current);
-      ++entry->pos;
-      if (entry->pos == entry->end) {
-        mQueue.pop();
-        entry->destroy(mRing);
-        mPool.free(entry);
-      } else {
-        entry->computeCurrent(mRing);
-        // Inserted spans must be in descending order
-        MATHICGB_ASSERT(mQueue.getConfiguration().ring().
-          monomialLT(entry->current, mLeadTerm.monom));
-        mQueue.decreaseTop(entry);
-      }
-
-      // handle any chained elements
-      MultipleWithPos* chain = chainBegin;
-      while (chain != chainEnd) {
-        MATHICGB_ASSERT(chain != 0);
-        MATHICGB_ASSERT(mRing.monomialEQ(chain->current, mLeadTerm.monom));
-
-        MultipleWithPos* const next = chain->chain;
-        chain->chain = chain; // detach from remaining chained elements
-
-        chain->addCurrentCoefficient(mRing, mLeadTerm.coeff);
-        ++chain->pos;
-        if (chain->pos == chain->end) {
-          chain->destroy(mRing);
-          mPool.free(chain);
+        // handle the entry itself
+        std::swap(mLeadTerm.mono, entry->current);
+        ++entry->pos;
+        if (entry->pos == entry->end) {
+          mQueue.pop();
+          entry->destroy(mRing);
+          mPool.free(entry);
         } else {
-          chain->computeCurrent(mRing);
+          entry->computeCurrent(mRing);
           // Inserted spans must be in descending order
           MATHICGB_ASSERT(mQueue.getConfiguration().ring().
-            monomialLT(chain->current, mLeadTerm.monom));
-          mQueue.push(chain);
+            monoid().lessThan(*entry->current, *mLeadTerm.mono));
+          mQueue.decreaseTop(entry);
         }
-        chain = next;
+
+        // handle any chained elements
+        auto chain = chainBegin;
+        while (chain != chainEnd) {
+          MATHICGB_ASSERT(chain != 0);
+          MATHICGB_ASSERT(mRing.monoid().equal(*chain->current, *mLeadTerm.mono));
+
+          const auto next = chain->chain;
+          chain->chain = chain; // detach from remaining chained elements
+
+          chain->addCurrentCoefficient(mRing, mLeadTerm.coef);
+          ++chain->pos;
+          if (chain->pos == chain->end) {
+            chain->destroy(mRing);
+            mPool.free(chain);
+          } else {
+            chain->computeCurrent(mRing);
+            // Inserted spans must be in descending order
+            MATHICGB_ASSERT(mQueue.getConfiguration().ring().
+              monoid().lessThan(*chain->current, *mLeadTerm.mono));
+            mQueue.push(chain);
+          }
+          chain = next;
+        }
+      
+        if (mQueue.empty())
+          break;
+      
+        entry = mQueue.top();
+        if (!mRing.monoid().equal(*entry->current, *mLeadTerm.mono))
+          break;
+        entry->addCurrentCoefficient(mRing, mLeadTerm.coef);
       }
-      
-      if (mQueue.empty())
-        break;
-      
-      entry = mQueue.top();
-      if (!mRing.monomialEQ(entry->current, mLeadTerm.monom))
-        break;
-      entry->addCurrentCoefficient(mRing, mLeadTerm.coeff);
-    }
-  } while (mRing.coefficientIsZero(mLeadTerm.coeff));
+    } while (mRing.coefficientIsZero(mLeadTerm.coef));
+    mLeadTermKnown = true;
+  }
 
   result = mLeadTerm;
-  mLeadTermKnown = true;
   return true;
 }
 
 template<template<typename> class Q>
 void ReducerPackDedup<Q>::removeLeadTerm() {
   if (!mLeadTermKnown) {
-    const_term dummy;
+    NewConstTerm dummy;
     leadTerm(dummy);
   }
   mLeadTermKnown = false;
@@ -286,6 +278,19 @@ void ReducerPackDedup<Q>::removeLeadTerm() {
 
 template<template<typename> class Q>
 void ReducerPackDedup<Q>::resetReducer() {
+  class MonomialFree {
+  public:
+    MonomialFree(const PolyRing& ring): mRing(ring) {}
+
+    bool proceed(MultipleWithPos* entry) {
+      entry->destroy(mRing);
+      return true;
+    }
+
+  private:
+    const PolyRing& mRing;
+  };
+
   MonomialFree freeer(mRing);
   mQueue.forAll(freeer);
   mQueue.clear();

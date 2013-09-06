@@ -4,12 +4,12 @@
 #define MATHICGB_REDUCER_GUARD
 
 #include "PolyRing.hpp"
-#include "Poly.hpp"
 #include <memtailor.h>
 #include <memory>
 
 MATHICGB_NAMESPACE_BEGIN
 
+class Poly;
 class SigPolyBasis;
 class PolyBasis;
 
@@ -18,6 +18,15 @@ class PolyBasis;
 /// @todo: consider changing name of findLeadTerm to leadTerm.
 class Reducer {
 public:
+  typedef PolyRing::Monoid Monoid;
+  typedef Monoid::Mono Mono;
+  typedef Monoid::MonoRef MonoRef;
+  typedef Monoid::ConstMonoRef ConstMonoRef;
+  typedef Monoid::MonoPtr MonoPtr;
+  typedef Monoid::ConstMonoPtr ConstMonoPtr;
+
+  typedef coefficient Coefficient;
+
   virtual ~Reducer();
 
   /// Returns the preferred number of reductions to do at a time. A classic
@@ -70,8 +79,8 @@ public:
   /// is not regular top reducible -- this indicates a singular
   /// reduction.
   virtual std::unique_ptr<Poly> regularReduce(
-    const_monomial sig,
-    const_monomial multiple,
+    ConstMonoRef sig,
+    ConstMonoRef multiple,
     size_t basisElement,
     const SigPolyBasis& basis
   ) = 0;
@@ -140,13 +149,15 @@ public:
 /// std::unique_ptr<Reducer>. CREATE may pick up a const PolyRing&
 /// by the name ring.
 #define MATHICGB_REGISTER_REDUCER(NAME, ID, CREATE) \
-  Reducer::Registration MATHICGB_UNIQUE(reducerRegistration) ( \
-    NAME, \
-    Reducer:: ID, \
-    [](const PolyRing& ring) -> std::unique_ptr<Reducer> { \
-      return CREATE; \
-    } \
-  )
+  namespace { \
+    Reducer::Registration MATHICGB_UNIQUE(reducerRegistration) ( \
+      NAME, \
+      Reducer:: ID, \
+      [](const PolyRing& ring) -> std::unique_ptr<Reducer> { \
+        return CREATE; \
+      } \
+    ); \
+  } 
 
 MATHICGB_NAMESPACE_END
 #endif

@@ -13,6 +13,10 @@ MATHICGB_NAMESPACE_BEGIN
 
 void reducerHashDependency() {}
 
+/// The simplest reducer using a hashtable. All terms are in the hash table
+/// and in the queue. There are no duplicates as new terms are looked up in
+/// the hash table before insertion into the queue. The coefficient is
+/// stored in the hash table.
 template<template<typename> class Queue>
 class ReducerHash : public TypicalReducer {
 public:
@@ -22,15 +26,14 @@ public:
     return mQueue.getName() + "-hashed";
   }
 
-  void insertTail(const_term multiplier, const Poly *f);
-  void insert(monomial multiplier, const Poly *f);
+  void insertTail(NewConstTerm multiplier, const Poly& f);
+  void insert(ConstMonoRef multiplier, const Poly& f);
 
-  virtual bool leadTerm(const_term& result);
+  virtual bool leadTerm(NewConstTerm& result);
   void removeLeadTerm();
 
   size_t getMemoryUse() const;
 
-protected:
   void resetReducer();
 
 public:
@@ -60,12 +63,13 @@ ReducerHash<Q>::ReducerHash(const PolyRing &ring):
 {}
 
 template<template<typename> class Q>
-void ReducerHash<Q>::insertTail(const_term multiplier, const Poly *g1) {
-  if (g1->nTerms() <= 1) return;
+void ReducerHash<Q>::insertTail(NewConstTerm multiplier, const Poly& f) {
+  if (f.nTerms() <= 1)
+    return;
 
   mNodesTmp.clear();
-  auto it = g1->begin();
-  const auto end = g1->end();
+  auto it = f.begin();
+  const auto end = f.end();
   for (++it; it != end; ++it) {
     auto p = mHashTable.insertProduct(it.term(), multiplier);
     if (p.second)
@@ -76,10 +80,10 @@ void ReducerHash<Q>::insertTail(const_term multiplier, const Poly *g1) {
 }
 
 template<template<typename> class Q>
-void ReducerHash<Q>::insert(monomial multiplier, const Poly *g1) {
+void ReducerHash<Q>::insert(ConstMonoRef multiplier, const Poly& f) {
   mNodesTmp.clear();
-  const auto end = g1->end();
-  for (auto it = g1->begin(); it != end; ++it) {
+  const auto end = f.end();
+  for (auto it = f.begin(); it != end; ++it) {
     auto p = mHashTable.insertProduct
       (it.getMonomial(), multiplier, it.getCoefficient());
     if (p.second)
@@ -90,12 +94,12 @@ void ReducerHash<Q>::insert(monomial multiplier, const Poly *g1) {
 }
 
 template<template<typename> class Q>
-bool ReducerHash<Q>::leadTerm(const_term& result) {
+bool ReducerHash<Q>::leadTerm(NewConstTerm& result) {
   while (!mQueue.empty()) {
     const auto top = mQueue.top();
     if (!mRing.coefficientIsZero(top->value())) {
-      result.coeff = top->value();
-      result.monom = Monoid::toOld(top->mono());
+      result.coef = top->value();
+      result.mono = top->mono().ptr();
       return true;
     }
     mQueue.pop();

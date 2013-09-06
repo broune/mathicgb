@@ -26,8 +26,8 @@ public:
   virtual unsigned int preferredSetSize() const;
 
   virtual std::unique_ptr<Poly> regularReduce(
-    const_monomial sig,
-    const_monomial multiple,
+    ConstMonoRef sig,
+    ConstMonoRef multiple,
     size_t basisElement,
     const SigPolyBasis& basis
   );
@@ -58,9 +58,32 @@ public:
 protected:
   // These are the methods that sub-classes define in order to carry
   // out sub-steps in the reduction.
-  virtual void insertTail(const_term multiplier, const Poly *f) = 0;
-  virtual void insert(monomial multiplier, const Poly *f) = 0;
-  virtual bool leadTerm(const_term& result) = 0;
+  virtual void insertTail(const_term multiplier, const Poly* f) {
+    MATHICGB_ASSERT(f != 0);
+    NewConstTerm t = {multiplier.monom, multiplier.coeff};
+    insertTail(t, *f);
+  }
+
+  virtual void insert(monomial multiplier, const Poly* f) {
+    MATHICGB_ASSERT(f != 0);
+    ConstMonoRef mono = multiplier;
+    insert(mono, *f);
+  }
+
+  virtual bool leadTerm(const_term& result) {
+    NewConstTerm t;
+    auto hasLead = leadTerm(t);
+    if (hasLead) {
+      result.monom = Monoid::toOld(*t.mono);
+      result.coeff = t.coef;
+    }
+    return hasLead;
+  }
+
+  virtual void insertTail(NewConstTerm multiplier, const Poly& f) {}
+  virtual void insert(ConstMonoRef multiplier, const Poly& f) {}
+  virtual bool leadTerm(NewConstTerm& lead) {return false;}
+
   virtual void removeLeadTerm() = 0;
   virtual void resetReducer() = 0;
 

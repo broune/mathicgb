@@ -90,8 +90,8 @@ public:
   );
 
   virtual std::unique_ptr<Poly> regularReduce(
-    const_monomial sig,
-    const_monomial multiple,
+    ConstMonoRef sig,
+    ConstMonoRef multiple,
     size_t basisElement,
     const SigPolyBasis& basis
   );
@@ -297,8 +297,8 @@ void F4Reducer::classicReducePolySet(
 }
 
 std::unique_ptr<Poly> F4Reducer::regularReduce(
-  const_monomial sig,
-  const_monomial multiple,
+  ConstMonoRef sig,
+  ConstMonoRef multiple,
   size_t basisElement,
   const SigPolyBasis& basis
 ) {

@@ -85,7 +85,6 @@ namespace ReducerHelper {
     ring.monomialCopy(term.monom, mono);
     return const_term(term.coeff, mono);
   }
-
 }
 
 MATHICGB_NAMESPACE_END

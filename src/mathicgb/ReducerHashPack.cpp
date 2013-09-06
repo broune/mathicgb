@@ -13,6 +13,21 @@ MATHICGB_NAMESPACE_BEGIN
 
 void reducerHashPackDependency() {}
 
+/// A combination of ReducerHash and ReducerPack. Each entry in the queue
+/// corresponds to a term (times a multiplier) of a polynomial. When such a
+/// term is taken off the queue, we advance it to the next term of the
+/// corresponding polynomial and push that back into the queue. Each entry
+/// in the queue is also associated to a hash table entry, where the
+/// data is stored - the entries in the queue are just pointers into
+/// hash table nodes. There are no like terms to add up in the queue, since
+/// the hash table identifies such before insertion into the queue.
+///
+/// There is no need for the complexity of chaining as in ReducerPackDedup,
+/// since we simply keep advancing through the terms in a polynomial until
+/// there are no more terms or we get a term that is unlike any other term
+/// in the queue. We could have stored a list of like terms for each
+/// entry in the queue as in ReducerPackDedup, which might reduce the size of
+/// the queue, but this is a good compromise that leads to simpler code.
 template<template<typename> class Queue>
 class ReducerHashPack : public TypicalReducer {
 public:
@@ -23,26 +38,25 @@ public:
     return mQueue.getName() + "-hashed-packed";
   }
 
-  virtual void insertTail(const_term multiplier, const Poly *f);
-  virtual void insert(monomial multiplier, const Poly *f);
+  virtual void insertTail(NewConstTerm multiplier, const Poly& f);
+  virtual void insert(ConstMonoRef multiplier, const Poly& f);
 
-  virtual bool leadTerm(const_term &result);
+  virtual bool leadTerm(NewConstTerm& result);
   virtual void removeLeadTerm();
 
   virtual size_t getMemoryUse() const;
 
-protected:
   virtual void resetReducer();
 
 private:
   // Represents a term multiple of a polynomial, 
   // together with a current term of the multiple.
   struct MultipleWithPos {
-    MultipleWithPos(const Poly& poly, const_term multiple);
+    MultipleWithPos(const Poly& poly, NewConstTerm multiple);
 
     Poly::const_iterator pos;
     Poly::const_iterator const end;
-    const_term const multiple;
+    NewTerm multiple;
     PolyHashTable::Node* node;
 
     void destroy(const PolyRing& ring);
@@ -56,8 +70,6 @@ private:
       return ring().monoid().lessThan(a->node->mono(), b->node->mono());
     }
   };
-
-  class MonomialFree;
 
   void insertEntry(MultipleWithPos* entry);
 
@@ -76,85 +88,63 @@ ReducerHashPack<Q>::ReducerHashPack(const PolyRing& ring):
 {}
 
 template<template<typename> class Q>
-class ReducerHashPack<Q>::MonomialFree {
-public:
-  MonomialFree(const PolyRing& ring): mRing(ring) {}
-
-  bool proceed(MultipleWithPos* entry) {
-    entry->destroy(mRing);
-    return true;
-  }
-private:
-  const PolyRing& mRing;
-};
-
-template<template<typename> class Q>
 ReducerHashPack<Q>::~ReducerHashPack() {
   resetReducer();
 }
 
 template<template<typename> class Q>
-void ReducerHashPack<Q>::insertTail(const_term multiple, const Poly* poly) {
-  MATHICGB_ASSERT(poly != 0);
-  MATHICGB_ASSERT(&poly->ring() == &mRing);
-  if (poly->nTerms() < 2)
+void ReducerHashPack<Q>::insertTail(NewConstTerm multiple, const Poly& poly) {
+  MATHICGB_ASSERT(&poly.ring() == &mRing);
+  if (poly.nTerms() <= 1)
     return;
-  MultipleWithPos* entry =
-    new (mPool.alloc()) MultipleWithPos(*poly, multiple);
+  auto entry = new (mPool.alloc()) MultipleWithPos(poly, multiple);
   ++entry->pos;
   insertEntry(entry);
 }
 
 template<template<typename> class Q>
-void ReducerHashPack<Q>::insert(monomial multiple, const Poly* poly) {
-  MATHICGB_ASSERT(poly != 0);
-  MATHICGB_ASSERT(&poly->ring() == &mRing);
-  if (poly->isZero())
+void ReducerHashPack<Q>::insert(ConstMonoRef multiple, const Poly& poly) {
+  MATHICGB_ASSERT(&poly.ring() == &mRing);
+  if (poly.isZero())
     return;
-  term termMultiple(1, multiple);
-  insertEntry(new (mPool.alloc()) MultipleWithPos(*poly, termMultiple));
-}
-
-namespace {
-  const_term allocTerm(const PolyRing& ring, const_term term) {
-    monomial mono = ring.allocMonomial();
-    ring.monomialCopy(term.monom, mono);
-    return const_term(term.coeff, mono);
-  }
+  NewConstTerm termMultiple = {multiple.ptr(), 1};
+  insertEntry(new (mPool.alloc()) MultipleWithPos(poly, termMultiple));
 }
 
 template<template<typename> class Q>
 ReducerHashPack<Q>::MultipleWithPos::MultipleWithPos(
   const Poly& poly,
-  const_term multiple
+  NewConstTerm multipleParam
 ):
   pos(poly.begin()),
   end(poly.end()),
-  multiple(allocTerm(poly.ring(), multiple)),
   node(0)
-{}  
+{
+  multiple.mono = poly.ring().monoid().alloc().release();
+  poly.ring().monoid().copy(*multipleParam.mono, *multiple.mono);
+  multiple.coef = multipleParam.coef;
+}
 
 template<template<typename> class Q>
 void ReducerHashPack<Q>::MultipleWithPos::destroy(const PolyRing& ring) {
-  ring.freeMonomial
-    (const_cast<ConstMonomial&>(multiple.monom).castAwayConst());
+  ring.monoid().freeRaw(*multiple.mono);
 
   // Call the destructor to destruct the iterators into std::vector.
   // In debug mode MSVC puts those in a linked list and the destructor
-  // has to be called since it takes an iterator off the list. We had
-  // memory corruption problems before doing this.
+  // has to be called since it takes an iterator off the list. There were
+  // memory corruption problems in debug mode on MSVC before doing this.
   this->~MultipleWithPos();
 }
 
 template<template<typename> class Q>
-bool ReducerHashPack<Q>::leadTerm(const_term& result) {
+bool ReducerHashPack<Q>::leadTerm(NewConstTerm& result) {
   while (!mQueue.empty()) {
-    MultipleWithPos* entry = mQueue.top();
-    MATHICGB_ASSERT(entry != 0);
+    auto entry = mQueue.top();
+    MATHICGB_ASSERT(entry != nullptr);
 
     if (!mRing.coefficientIsZero(entry->node->value())) {
-      result.coeff = entry->node->value();
-      result.monom = Monoid::toOld(entry->node->mono());
+      result.coef = entry->node->value();
+      result.mono = entry->node->mono().ptr();
       return true;
     }
     removeLeadTerm();
@@ -166,12 +156,12 @@ template<template<typename> class Q>
 void ReducerHashPack<Q>::removeLeadTerm() {
   MATHICGB_ASSERT(!mQueue.empty());
 
-  MultipleWithPos* entry = mQueue.top();
+  auto entry = mQueue.top();
   MATHICGB_ASSERT(entry != 0);
 
   // remove node from hash table first since we are going to be changing
   // the monomial after this, and if we do that before the hash value will
-  // change.
+  // change. That might prompt an assert inside the hash table.
   mHashTable.remove(entry->node);
 
   MATHICGB_ASSERT(entry->pos != entry->end);
@@ -183,7 +173,7 @@ void ReducerHashPack<Q>::removeLeadTerm() {
       mPool.free(entry);
       break;
     }
-   
+
     const auto p = mHashTable.insertProduct
       (entry->multiple, entry->pos.term());
     if (p.second) {
@@ -212,6 +202,18 @@ void ReducerHashPack<Q>::insertEntry(MultipleWithPos* entry) {
 
 template<template<typename> class Q>
 void ReducerHashPack<Q>::resetReducer() {
+  class MonomialFree {
+  public:
+    MonomialFree(const PolyRing& ring): mRing(ring) {}
+
+    bool proceed(MultipleWithPos* entry) {
+      entry->destroy(mRing);
+      return true;
+    }
+  private:
+    const PolyRing& mRing;
+  };
+
   MonomialFree freeer(mRing);
   mQueue.forAll(freeer);
   mQueue.clear();
@@ -224,6 +226,7 @@ size_t ReducerHashPack<Q>::getMemoryUse() const {
     mPool.getMemoryUse() +
     mHashTable.getMemoryUse();
 }
+
 
 MATHICGB_REGISTER_REDUCER(
   "TourHashPack",
