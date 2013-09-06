@@ -80,7 +80,7 @@ namespace ReducerHelper {
 
   // ************** Utility functions **********************
 
-  const_term allocTermCopy(const PolyRing& ring, const_term term) {
+  inline const_term allocTermCopy(const PolyRing& ring, const_term term) {
     monomial mono = ring.allocMonomial();
     ring.monomialCopy(term.monom, mono);
     return const_term(term.coeff, mono);

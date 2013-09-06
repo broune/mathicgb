@@ -160,6 +160,18 @@
 /// as that macro does.
 #define MATHICGB_CONCATENATE_AFTER_EXPANSION(A,B) MATHICGB_CONCATENATE(A,B)
 
+/// Returns an identifier that will be unique in the current file. If you need
+/// two different identifiers on the same line, you'll need to pass in two
+/// different ID paramters. Otherwise the ID parameter can be any identifier.
+/// On the same line, the identifier will be the same if the ID is the same.
+/// This can be useful in some macroes.
+#define MATHICGB_UNIQUE(ID) \
+  MATHICGB_CONCATENATE_AFTER_EXPANSION( \
+    MathicGB_unique_identifier_, \
+    MATHICGB_CONCATENATE_AFTER_EXPANSION(ID,__LINE__) \
+  )
+
+
 /// Opens the mgb namespace. The purpose of having this be a macro is
 /// that otherwise editors the world over would automatically indent ALL
 /// CODE in MathicGB by an extra level to no benefit. By hiding the

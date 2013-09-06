@@ -107,6 +107,9 @@
     <ClCompile Include="..\..\..\src\mathicgb\ModuleMonoSet.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\src\mathicgb\ReducerPack.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\src\mathicgb\ChainedHashTable.hpp">
@@ -167,9 +170,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\src\mathicgb\ReducerNoDedup.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\mathicgb\ReducerPack.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\src\mathicgb\ReducerPackDedup.hpp">
@@ -275,6 +275,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\src\mathicgb\ModuleMonoSet.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\mathicgb\ReducerPack.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

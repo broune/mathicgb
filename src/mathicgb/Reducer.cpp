@@ -16,7 +16,166 @@
 
 MATHICGB_NAMESPACE_BEGIN
 
-Reducer::~Reducer() {}
+// Calling these dummy methods from the various reducer file headers ensures
+// that those translation units are registered as necessary. Without this,
+// they will not be linked in, because apparently the linker does not consider
+// the presense of global object constructors as a reason to include a
+// translation unit into the library. It will simply note that no other
+// translation unit has a dependency on anything in that translation unit
+// and then not include it in the library. This was wonderful to diagnose.
+void dummyLinkerFix() {
+  reducerPackDependency();
+}
+
+Reducer::~Reducer() {
+  // Has to be called somewhere or GCC will eliminate it.
+  dummyLinkerFix();
+}
+
+/// Vector that stores the registered reducer typers. This has to be a
+/// function rather than just a naked object to ensure that the object
+/// gets initialized before it is used.
+std::vector<Reducer::Registration*>& reducerTypes() {
+  static std::vector<Reducer::Registration*> types;
+  return types;
+}
+
+Reducer::Registration::Registration(
+  const char* name, 
+  ReducerType id,
+  std::unique_ptr<Reducer> (*create)(const PolyRing&)
+):
+  mName(name),
+  mId(id),
+  mCreate(create)
+{
+  reducerTypes().push_back(this);
+}
+
+Reducer::Registration r1(
+  "TourNoDedup",
+  Reducer::Reducer_TourTree_NoDedup,
+  [](const PolyRing& ring) -> std::unique_ptr<Reducer> {
+    return make_unique<ReducerNoDedup<mic::TourTree>>(ring);
+  }
+);
+
+Reducer::Registration r2(
+  "TourDedup",
+  Reducer::Reducer_TourTree_Dedup,
+  [](const PolyRing& ring) -> std::unique_ptr<Reducer> {
+    return make_unique<ReducerDedup<mic::TourTree>>(ring);
+  }
+);
+Reducer::Registration r3(
+  "TourHash",
+  Reducer::Reducer_TourTree_Hashed,
+  [](const PolyRing& ring) -> std::unique_ptr<Reducer> {
+    return make_unique<ReducerHash<mic::TourTree>>(ring);
+  }
+);
+ 
+ 
+Reducer::Registration r5(
+  "TourDedupPack",
+  Reducer::Reducer_TourTree_Dedup_Packed,
+  [](const PolyRing& ring) -> std::unique_ptr<Reducer> {
+    return make_unique<ReducerPackDedup<mic::TourTree>>(ring);
+  }
+);
+  
+Reducer::Registration r6(
+  "TourHashPack",
+  Reducer::Reducer_TourTree_Hashed_Packed,
+  [](const PolyRing& ring) -> std::unique_ptr<Reducer> {
+    return make_unique<ReducerHashPack<mic::TourTree>>(ring);
+  }
+);
+
+Reducer::Registration r7(
+  "HeapNoDedup",
+  Reducer::Reducer_Heap_NoDedup,
+  [](const PolyRing& ring) -> std::unique_ptr<Reducer> {
+    return make_unique<ReducerNoDedup<mic::Heap>>(ring);
+  }
+);
+Reducer::Registration r8(
+  "HeapDedup",
+  Reducer::Reducer_Heap_Dedup,
+  [](const PolyRing& ring) -> std::unique_ptr<Reducer> {
+    return make_unique<ReducerDedup<mic::Heap>>(ring);
+  }
+);
+ 
+Reducer::Registration r9(
+  "HeapHash",
+  Reducer::Reducer_Heap_Hashed,
+  [](const PolyRing& ring) -> std::unique_ptr<Reducer> {
+    return make_unique<ReducerHash<mic::Heap>>(ring);
+  }
+);
+Reducer::Registration r11(
+  "HeapDedupPack",
+  Reducer::Reducer_Heap_Dedup_Packed,
+  [](const PolyRing& ring) -> std::unique_ptr<Reducer> {
+    return make_unique<ReducerPackDedup<mic::Heap>>(ring);
+  }
+);
+Reducer::Registration r12(
+  "HeapHashPack",
+  Reducer::Reducer_Heap_Hashed_Packed,
+  [](const PolyRing& ring) -> std::unique_ptr<Reducer> {
+    return make_unique<ReducerHashPack<mic::Heap>>(ring);
+  }
+);
+Reducer::Registration r13(
+  "GeoNoDedup",
+  Reducer::Reducer_Geobucket_NoDedup,
+  [](const PolyRing& ring) -> std::unique_ptr<Reducer> {
+    return make_unique<ReducerNoDedup<mic::Geobucket>>(ring);
+  }
+);
+Reducer::Registration r14(
+  "GeoDedup",
+  Reducer::Reducer_Geobucket_Dedup,
+  [](const PolyRing& ring) -> std::unique_ptr<Reducer> {
+    return make_unique<ReducerDedup<mic::Geobucket>>(ring);
+  }
+);
+Reducer::Registration r15(
+  "GeoHash",
+  Reducer::Reducer_Geobucket_Hashed,
+  [](const PolyRing& ring) -> std::unique_ptr<Reducer> {
+    return make_unique<ReducerHash<mic::Geobucket>>(ring);
+  }
+);
+Reducer::Registration r17(
+  "GeoDedupPack",
+  Reducer::Reducer_Geobucket_Dedup_Packed,
+  [](const PolyRing& ring) -> std::unique_ptr<Reducer> {
+    return make_unique<ReducerPackDedup<mic::Geobucket>>(ring);
+  }
+);
+Reducer::Registration r18(
+  "GeoHashPack",
+  Reducer::Reducer_Geobucket_Hashed_Packed,
+  [](const PolyRing& ring) -> std::unique_ptr<Reducer> {
+    return make_unique<ReducerHashPack<mic::Geobucket>>(ring);
+  }
+);
+Reducer::Registration r19(
+  "F4Old",
+  Reducer::Reducer_F4_Old,
+  [](const PolyRing& ring) -> std::unique_ptr<Reducer> {
+    return make_unique<F4Reducer>(ring, F4Reducer::OldType);
+  }
+);
+
+MATHICGB_REGISTER_REDUCER(
+  "F4New",
+  Reducer_F4_New,
+  (make_unique<F4Reducer>(ring, F4Reducer::NewType))
+);
 
 std::unique_ptr<Reducer> Reducer::makeReducer(
   ReducerType type,
@@ -36,60 +195,16 @@ std::unique_ptr<Reducer> Reducer::makeReducerNullOnUnknown(
   ReducerType type,
   PolyRing const& ring
 ) {
-  switch (type) {
-  case Reducer_TourTree_NoDedup:
-    return std::unique_ptr<Reducer>(new ReducerNoDedup<mic::TourTree>(ring));
-  case Reducer_TourTree_Dedup:
-    return std::unique_ptr<Reducer>(new ReducerDedup<mic::TourTree>(ring));
-  case Reducer_TourTree_Hashed:
-    return std::unique_ptr<Reducer>(new ReducerHash<mic::TourTree>(ring));
-  case Reducer_TourTree_NoDedup_Packed:
-    return std::unique_ptr<Reducer>(new ReducerPack<mic::TourTree>(ring));
-  case Reducer_TourTree_Dedup_Packed:
-    return std::unique_ptr<Reducer>(new ReducerPackDedup<mic::TourTree>(ring));
-  case Reducer_TourTree_Hashed_Packed:
-    return std::unique_ptr<Reducer>(new ReducerHashPack<mic::TourTree>(ring));
-
-  case Reducer_Heap_NoDedup:
-    return std::unique_ptr<Reducer>(new ReducerNoDedup<mic::Heap>(ring));
-  case Reducer_Heap_Dedup:
-    return std::unique_ptr<Reducer>(new ReducerDedup<mic::Heap>(ring));
-  case Reducer_Heap_Hashed:
-    return std::unique_ptr<Reducer>(new ReducerHash<mic::Heap>(ring));
-  case Reducer_Heap_NoDedup_Packed:
-    return std::unique_ptr<Reducer>(new ReducerPack<mic::Heap>(ring));
-  case Reducer_Heap_Dedup_Packed:
-    return std::unique_ptr<Reducer>(new ReducerPackDedup<mic::Heap>(ring));
-  case Reducer_Heap_Hashed_Packed:
-    return std::unique_ptr<Reducer>(new ReducerHashPack<mic::Heap>(ring));
-
-  case Reducer_Geobucket_NoDedup:
-    return std::unique_ptr<Reducer>(new ReducerNoDedup<mic::Geobucket>(ring));
-  case Reducer_Geobucket_Dedup:
-    return std::unique_ptr<Reducer>(new ReducerDedup<mic::Geobucket>(ring));
-  case Reducer_Geobucket_Hashed:
-    return std::unique_ptr<Reducer>(new ReducerHash<mic::Geobucket>(ring));
-  case Reducer_Geobucket_NoDedup_Packed:
-    return std::unique_ptr<Reducer>(new ReducerPack<mic::Geobucket>(ring));
-  case Reducer_Geobucket_Dedup_Packed:
-    return std::unique_ptr<Reducer>(new ReducerPackDedup<mic::Geobucket>(ring));
-  case Reducer_Geobucket_Hashed_Packed:
-    return std::unique_ptr<Reducer>(new ReducerHashPack<mic::Geobucket>(ring));
-
-  case Reducer_F4_Old:
-    return make_unique<F4Reducer>(ring, F4Reducer::OldType);
-  case Reducer_F4_New:
-    return make_unique<F4Reducer>(ring, F4Reducer::NewType);
-
-  default:
-    break;
-  };
-  return std::unique_ptr<Reducer>();
+  for (const auto& r : reducerTypes()) {
+    if (type == r->mId)
+      return r->mCreate(ring);
+  }
+  return nullptr;
 }
 
-Reducer::ReducerType Reducer::reducerType(int typ)
+Reducer::ReducerType Reducer::reducerType(int type)
 {
-  switch (typ) {
+  switch (type) {
   case 7: return Reducer_TourTree_NoDedup;
   case 8: return Reducer_TourTree_Dedup;
   case 9: return Reducer_TourTree_Hashed;
@@ -118,32 +233,16 @@ Reducer::ReducerType Reducer::reducerType(int typ)
   }
 }
 
-void Reducer::displayReducerTypes(std::ostream &o)
+void Reducer::displayReducerTypes(std::ostream& out)
 {
-  o << "Reducer types:" << std::endl;
-  o << "   7   TournamentTree.NoDedup" << std::endl;
-  o << "   8   TournamentTree.Dedup" << std::endl;
-  o << "   9   TournamentTree.Hashed" << std::endl;
-  o << "  10   TournamentTree.NoDedup.Packed" << std::endl;
-  o << "  11   TournamentTree.Dedup.Packed" << std::endl;
-  o << "  12   TournamentTree.Hashed.Packed" << std::endl;
-
-  o << "  13   Heap.NoDedup" << std::endl; 
-  o << "  14   Heap.Dedup" << std::endl;
-  o << "  15   Heap.Hashed" << std::endl;
-  o << "  16   Heap.NoDedup.Packed" << std::endl;
-  o << "  17   Heap.Dedup.Packed" << std::endl;
-  o << "  18   Heap.Hashed.Packed" << std::endl;
-
-  o << "  19   Geobucket.NoDedup" << std::endl;
-  o << "  20   Geobucket.Dedup" << std::endl;
-  o << "  21   Geobucket.Hashed" << std::endl;
-  o << "  22   Geobucket.NoDedup.Packed" << std::endl;
-  o << "  23   Geobucket.Dedup.Packed" << std::endl;
-  o << "  24   Geobucket.Hashed.Packed" << std::endl;
-
-  o << "  25   F4 reducer, old" << std::endl;
-  o << "  26   F4 reducer, new" << std::endl;
+  mathic::ColumnPrinter pr;
+  auto& id = pr.addColumn(false, "  ");
+  auto& desc = pr.addColumn(true, "   ");
+  for (const auto& r : reducerTypes()) {
+    id << r->mId << '\n';
+    desc << r->mName << '\n';
+  }
+  out << "Reducer types:\n" << pr;
 }
 
 MATHICGB_NAMESPACE_END

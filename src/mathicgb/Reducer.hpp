@@ -116,8 +116,37 @@ public:
     (ReducerType t, const PolyRing& ring);
 
   static ReducerType reducerType(int typ);
-  static void displayReducerTypes(std::ostream& o);
+  static void displayReducerTypes(std::ostream& out);
+
+  class Registration {
+  public:
+    Registration(
+      const char* name, 
+      ReducerType id,
+      std::unique_ptr<Reducer> (*create)(const PolyRing&)
+    );
+
+  private:
+    friend class Reducer;
+
+    const char* mName; 
+    ReducerType mId;
+    std::unique_ptr<Reducer> (*mCreate)(const PolyRing&);
+  };
 };
+
+/// Registers a reducer type with the given name and id. The value of
+/// create, when executed, should be something convertible to a
+/// std::unique_ptr<Reducer>. CREATE may pick up a const PolyRing&
+/// by the name ring.
+#define MATHICGB_REGISTER_REDUCER(NAME, ID, CREATE) \
+  Reducer::Registration MATHICGB_UNIQUE(reducerRegistration) ( \
+    NAME, \
+    Reducer:: ID, \
+    [](const PolyRing& ring) -> std::unique_ptr<Reducer> { \
+      return CREATE; \
+    } \
+  )
 
 MATHICGB_NAMESPACE_END
 #endif

@@ -59,10 +59,6 @@ private:
 
 MATHICGB_NAMESPACE_END
 
-#define MYLIB__CAT_HELPER(A, B) A##B
-#define MYLIB__CAT(A, B) MYLIB__CAT_HELPER(A, B)
-#define MYLIB__UNIQUE(NAME) MYLIB__CAT(MyLib_,MYLIB__CAT(NAME,__LINE__))
-
 // Example, with no need to dismiss:
 //   FILE* file = fopen("file.txt", "r");
 //   MATHICGB_SCOPE_EXIT() {
@@ -89,10 +85,10 @@ MATHICGB_NAMESPACE_END
 // to copy, but this way we can keep the copy constructor private
 // and help out any compiler that has issue with eliding that copy.
 #define MATHICGB_SCOPE_EXIT(NAME) \
-  bool MYLIB__UNIQUE(active) = true; \
-  ::mgb::Dismisser NAME(static_cast<bool&>(MYLIB__UNIQUE(active)));    \
-  const auto& MYLIB__UNIQUE(guard) = \
-    ::mgb::GuardMaker(MYLIB__UNIQUE(active)) + [&]
+  bool MATHICGB_UNIQUE(active) = true; \
+  ::mgb::Dismisser NAME(static_cast<bool&>(MATHICGB_UNIQUE(active))); \
+  const auto& MATHICGB_UNIQUE(guard) = \
+    ::mgb::GuardMaker(MATHICGB_UNIQUE(active)) + [&]
 
 // Without this pragma, MSVC will say
 //  warning C4003: not enough actual parameters for macro 'MYLIB_SCOPE_EXIT'
