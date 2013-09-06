@@ -51,8 +51,6 @@ MATHICGB_NAMESPACE_BEGIN
 
 void f4ReducerDependency() {}
 
-class QuadMatrix;
-
 class F4Reducer : public Reducer {
 public:
   enum Type {
@@ -136,7 +134,8 @@ void F4Reducer::writeMatricesTo(std::string file, size_t minEntries) {
 }
 
 std::unique_ptr<Poly> F4Reducer::classicReduce
-(const Poly& poly, const PolyBasis& basis) {
+  (const Poly& poly, const PolyBasis& basis)
+{
   if (tracingLevel >= 2)
     std::cerr <<
       "F4Reducer: Using fall-back reducer for single classic reduction\n";
@@ -146,7 +145,8 @@ std::unique_ptr<Poly> F4Reducer::classicReduce
 }
 
 std::unique_ptr<Poly> F4Reducer::classicTailReduce
-(const Poly& poly, const PolyBasis& basis) {
+  (const Poly& poly, const PolyBasis& basis)
+{
   if (tracingLevel >= 2)
     std::cerr <<
       "F4Reducer: Using fall-back reducer for single classic tail reduction\n";
@@ -233,11 +233,11 @@ void F4Reducer::classicReduceSPolySet(
     mRing.freeMonomial(*it);
 }
 
-void F4Reducer::classicReducePolySet
-(const std::vector< std::unique_ptr<Poly> >& polys,
- const PolyBasis& basis,
- std::vector< std::unique_ptr<Poly> >& reducedOut)
-{
+void F4Reducer::classicReducePolySet(
+  const std::vector< std::unique_ptr<Poly> >& polys,
+  const PolyBasis& basis,
+  std::vector< std::unique_ptr<Poly> >& reducedOut
+) {
   if (polys.size() <= 1 && false) {
     if (tracingLevel >= 2)
       std::cerr << "F4Reducer: Using fall-back reducer for "
@@ -351,12 +351,10 @@ std::unique_ptr<Reducer> makeF4Reducer(
   return std::move(reducer);
 }
 
-Reducer::Registration r19(
+MATHICGB_REGISTER_REDUCER(
   "F4Old",
-  Reducer::Reducer_F4_Old,
-  [](const PolyRing& ring) -> std::unique_ptr<Reducer> {
-    return make_unique<F4Reducer>(ring, F4Reducer::OldType);
-  }
+  Reducer_F4_Old,
+  (make_unique<F4Reducer>(ring, F4Reducer::OldType))
 );
 
 MATHICGB_REGISTER_REDUCER(

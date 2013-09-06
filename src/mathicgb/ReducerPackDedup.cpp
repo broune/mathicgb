@@ -114,18 +114,13 @@ private:
 };
 
 template<template<typename> class Q>
-ReducerPackDedup<Q>::~ReducerPackDedup()
-{
+ReducerPackDedup<Q>::~ReducerPackDedup() {
   resetReducer();
   mRing.freeMonomial(mLeadTerm.monom);
 }
 
-///////////////////////////////////////
-// External interface routines ////////
-///////////////////////////////////////
 template<template<typename> class Q>
-void ReducerPackDedup<Q>::insertTail(const_term multiple, const Poly* poly)
-{
+void ReducerPackDedup<Q>::insertTail(const_term multiple, const Poly* poly) {
   if (poly->nTerms() <= 1)
     return;
   mLeadTermKnown = false;
@@ -138,8 +133,7 @@ void ReducerPackDedup<Q>::insertTail(const_term multiple, const Poly* poly)
 }
 
 template<template<typename> class Q>
-void ReducerPackDedup<Q>::insert(monomial multiple, const Poly* poly)
-{
+void ReducerPackDedup<Q>::insert(monomial multiple, const Poly* poly) {
   if (poly->isZero())
     return;
   mLeadTermKnown = false;
@@ -153,28 +147,37 @@ void ReducerPackDedup<Q>::insert(monomial multiple, const Poly* poly)
 }
 
 template<template<typename> class Q>
-ReducerPackDedup<Q>::MultipleWithPos::MultipleWithPos
-(const Poly& poly, const_term multipleParam):
+ReducerPackDedup<Q>::MultipleWithPos::MultipleWithPos(
+  const Poly& poly,
+  const_term multipleParam
+):
   pos(poly.begin()),
   end(poly.end()),
   multiple(ReducerHelper::allocTermCopy(poly.ring(), multipleParam)),
   current(poly.ring().allocMonomial()),
-  chain(this) {}
+  chain(this)
+{}
 
 template<template<typename> class Q>
-void ReducerPackDedup<Q>::MultipleWithPos::computeCurrent(const PolyRing& ring) {
+void ReducerPackDedup<Q>::MultipleWithPos::computeCurrent
+  (const PolyRing& ring)
+{
   ring.monomialMult(multiple.monom, pos.getMonomial(), current);  
 }
 
 template<template<typename> class Q>
-void ReducerPackDedup<Q>::MultipleWithPos::currentCoefficient
-(const PolyRing& ring, coefficient& coeff) {
+void ReducerPackDedup<Q>::MultipleWithPos::currentCoefficient(
+  const PolyRing& ring,
+  coefficient& coeff
+) {
   ring.coefficientMult(multiple.coeff, pos.getCoefficient(), coeff);
 }
 
 template<template<typename> class Q>
-void ReducerPackDedup<Q>::MultipleWithPos::addCurrentCoefficient
-(const PolyRing& ring, coefficient& coeff) {
+void ReducerPackDedup<Q>::MultipleWithPos::addCurrentCoefficient(
+  const PolyRing& ring,
+  coefficient& coeff
+) {
   coefficient tmp;
   ring.coefficientMult(multiple.coeff, pos.getCoefficient(), tmp);
   ring.coefficientAddTo(coeff, tmp);
@@ -201,8 +204,7 @@ void ReducerPackDedup<Q>::MultipleWithPos::destroy(const PolyRing& ring) {
 }
 
 template<template<typename> class Q>
-bool ReducerPackDedup<Q>::leadTerm(const_term& result)
-{
+bool ReducerPackDedup<Q>::leadTerm(const_term& result) {
   if (mLeadTermKnown) {
     result = mLeadTerm;
     return true;
@@ -274,8 +276,7 @@ bool ReducerPackDedup<Q>::leadTerm(const_term& result)
 }
 
 template<template<typename> class Q>
-void ReducerPackDedup<Q>::removeLeadTerm()
-{
+void ReducerPackDedup<Q>::removeLeadTerm() {
   if (!mLeadTermKnown) {
     const_term dummy;
     leadTerm(dummy);
@@ -284,44 +285,36 @@ void ReducerPackDedup<Q>::removeLeadTerm()
 }
 
 template<template<typename> class Q>
-void ReducerPackDedup<Q>::resetReducer()
-{
+void ReducerPackDedup<Q>::resetReducer() {
   MonomialFree freeer(mRing);
   mQueue.forAll(freeer);
   mQueue.clear();
 }
 
 template<template<typename> class Q>
-size_t ReducerPackDedup<Q>::getMemoryUse() const
-{
+size_t ReducerPackDedup<Q>::getMemoryUse() const {
   return
     TypicalReducer::getMemoryUse() +
     mQueue.getMemoryUse() +
     mPool.getMemoryUse();
 }
 
-Reducer::Registration r5(
+MATHICGB_REGISTER_REDUCER(
   "TourDedupPack",
-  Reducer::Reducer_TourTree_Dedup_Packed,
-  [](const PolyRing& ring) -> std::unique_ptr<Reducer> {
-    return make_unique<ReducerPackDedup<mic::TourTree>>(ring);
-  }
+  Reducer_TourTree_Dedup_Packed,
+  make_unique<ReducerPackDedup<mic::TourTree>>(ring)
 );
 
-Reducer::Registration r11(
+MATHICGB_REGISTER_REDUCER(
   "HeapDedupPack",
-  Reducer::Reducer_Heap_Dedup_Packed,
-  [](const PolyRing& ring) -> std::unique_ptr<Reducer> {
-    return make_unique<ReducerPackDedup<mic::Heap>>(ring);
-  }
+  Reducer_Heap_Dedup_Packed,
+  make_unique<ReducerPackDedup<mic::Heap>>(ring)
 );
 
-Reducer::Registration r17(
+MATHICGB_REGISTER_REDUCER(
   "GeoDedupPack",
-  Reducer::Reducer_Geobucket_Dedup_Packed,
-  [](const PolyRing& ring) -> std::unique_ptr<Reducer> {
-    return make_unique<ReducerPackDedup<mic::Geobucket>>(ring);
-  }
+  Reducer_Geobucket_Dedup_Packed,
+  make_unique<ReducerPackDedup<mic::Geobucket>>(ring)
 );
 
 MATHICGB_NAMESPACE_END

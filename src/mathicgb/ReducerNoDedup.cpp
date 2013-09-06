@@ -12,8 +12,6 @@ MATHICGB_NAMESPACE_BEGIN
 
 void reducerNoDedupDependency() {}
 
-template<template<typename ConfigType> class Queue> class ReducerNoDedup;
-
 template<template<typename> class Queue>
 class ReducerNoDedup : public TypicalReducer {
 public:
@@ -38,7 +36,6 @@ protected:
 public:
   // This Configuration is designed to work with
   // mathic::TourTree, mathic::Heap, and mathic::Geobucket
-
   class Configuration : public ReducerHelper::PlainConfiguration {
   public:
     typedef term Entry;
@@ -66,8 +63,7 @@ ReducerNoDedup<Q>::ReducerNoDedup(const PolyRing& ring):
 }
 
 template<template<typename> class Q>
-class ReducerNoDedup<Q>::MonomialFree
-{
+class ReducerNoDedup<Q>::MonomialFree {
 public:
   MonomialFree(const PolyRing& ring): mRing(ring) {}
 
@@ -81,18 +77,13 @@ private:
 };
 
 template<template<typename> class Q>
-ReducerNoDedup<Q>::~ReducerNoDedup()
-{
+ReducerNoDedup<Q>::~ReducerNoDedup() {
   resetReducer();
   mRing.freeMonomial(mLeadTerm.monom);
 }
 
-///////////////////////////////////////
-// External interface routines ////////
-///////////////////////////////////////
 template<template<typename> class Q>
-void ReducerNoDedup<Q>::insertTail(const_term multiple, const Poly* poly)
-{
+void ReducerNoDedup<Q>::insertTail(const_term multiple, const Poly* poly) {
   if (poly->nTerms() <= 1)
     return;
   mLeadTermKnown = false;
@@ -109,8 +100,7 @@ void ReducerNoDedup<Q>::insertTail(const_term multiple, const Poly* poly)
 }
 
 template<template<typename> class Q>
-void ReducerNoDedup<Q>::insert(monomial multiple, const Poly* poly)
-{
+void ReducerNoDedup<Q>::insert(monomial multiple, const Poly* poly) {
   if (poly->isZero())
     return;
   mLeadTermKnown = false;
@@ -123,8 +113,7 @@ void ReducerNoDedup<Q>::insert(monomial multiple, const Poly* poly)
 }
 
 template<template<typename> class Q>
-bool ReducerNoDedup<Q>::leadTerm(const_term& result)
-{
+bool ReducerNoDedup<Q>::leadTerm(const_term& result) {
   if (mLeadTermKnown) {
     result = mLeadTerm;
     return true;
@@ -155,8 +144,7 @@ bool ReducerNoDedup<Q>::leadTerm(const_term& result)
 }
 
 template<template<typename> class Q>
-void ReducerNoDedup<Q>::removeLeadTerm()
-{
+void ReducerNoDedup<Q>::removeLeadTerm() {
   if (!mLeadTermKnown) {
     const_term dummy;
     leadTerm(dummy);
@@ -165,42 +153,33 @@ void ReducerNoDedup<Q>::removeLeadTerm()
 }
 
 template<template<typename> class Q>
-void ReducerNoDedup<Q>::resetReducer()
-{
+void ReducerNoDedup<Q>::resetReducer() {
   MonomialFree freeer(mRing);
   //mQueue.forAll(freeer);
   //  mQueue.clear();
 }
 
 template<template<typename> class Q>
-size_t ReducerNoDedup<Q>::getMemoryUse() const
-{
+size_t ReducerNoDedup<Q>::getMemoryUse() const {
   return TypicalReducer::getMemoryUse() + mQueue.getMemoryUse();
 }
 
-Reducer::Registration r1(
+MATHICGB_REGISTER_REDUCER(
   "TourNoDedup",
-  Reducer::Reducer_TourTree_NoDedup,
-  [](const PolyRing& ring) -> std::unique_ptr<Reducer> {
-    return make_unique<ReducerNoDedup<mic::TourTree>>(ring);
-  }
+  Reducer_TourTree_NoDedup,
+  make_unique<ReducerNoDedup<mic::TourTree>>(ring)
 );
 
-Reducer::Registration r7(
+MATHICGB_REGISTER_REDUCER(
   "HeapNoDedup",
-  Reducer::Reducer_Heap_NoDedup,
-  [](const PolyRing& ring) -> std::unique_ptr<Reducer> {
-    return make_unique<ReducerNoDedup<mic::Heap>>(ring);
-  }
+  Reducer_Heap_NoDedup,
+  make_unique<ReducerNoDedup<mic::Heap>>(ring)
 );
 
-Reducer::Registration r13(
+MATHICGB_REGISTER_REDUCER(
   "GeoNoDedup",
-  Reducer::Reducer_Geobucket_NoDedup,
-  [](const PolyRing& ring) -> std::unique_ptr<Reducer> {
-    return make_unique<ReducerNoDedup<mic::Geobucket>>(ring);
-  }
+  Reducer_Geobucket_NoDedup,
+  make_unique<ReducerNoDedup<mic::Geobucket>>(ring)
 );
-
 
 MATHICGB_NAMESPACE_END

@@ -46,7 +46,6 @@ protected:
 private:
   // Represents a term multiple of a polynomial, 
   // together with a current term of the multiple.
-public:
   struct MultipleWithPos {
     MultipleWithPos(const Poly& poly, const_term multiple);
 

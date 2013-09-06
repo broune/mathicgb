@@ -13,8 +13,6 @@ MATHICGB_NAMESPACE_BEGIN
 
 void reducerHashPackDependency() {}
 
-template<template<typename ConfigType> class Queue> class ReducerHashPack;
-
 template<template<typename> class Queue>
 class ReducerHashPack : public TypicalReducer {
 public:
@@ -78,8 +76,7 @@ ReducerHashPack<Q>::ReducerHashPack(const PolyRing& ring):
 {}
 
 template<template<typename> class Q>
-class ReducerHashPack<Q>::MonomialFree
-{
+class ReducerHashPack<Q>::MonomialFree {
 public:
   MonomialFree(const PolyRing& ring): mRing(ring) {}
 
@@ -92,17 +89,12 @@ private:
 };
 
 template<template<typename> class Q>
-ReducerHashPack<Q>::~ReducerHashPack()
-{
+ReducerHashPack<Q>::~ReducerHashPack() {
   resetReducer();
 }
 
-///////////////////////////////////////
-// External interface routines ////////
-///////////////////////////////////////
 template<template<typename> class Q>
-void ReducerHashPack<Q>::insertTail(const_term multiple, const Poly* poly)
-{
+void ReducerHashPack<Q>::insertTail(const_term multiple, const Poly* poly) {
   MATHICGB_ASSERT(poly != 0);
   MATHICGB_ASSERT(&poly->ring() == &mRing);
   if (poly->nTerms() < 2)
@@ -114,8 +106,7 @@ void ReducerHashPack<Q>::insertTail(const_term multiple, const Poly* poly)
 }
 
 template<template<typename> class Q>
-void ReducerHashPack<Q>::insert(monomial multiple, const Poly* poly)
-{
+void ReducerHashPack<Q>::insert(monomial multiple, const Poly* poly) {
   MATHICGB_ASSERT(poly != 0);
   MATHICGB_ASSERT(&poly->ring() == &mRing);
   if (poly->isZero())
@@ -133,16 +124,20 @@ namespace {
 }
 
 template<template<typename> class Q>
-ReducerHashPack<Q>::MultipleWithPos::MultipleWithPos
-(const Poly& poly, const_term multiple):
+ReducerHashPack<Q>::MultipleWithPos::MultipleWithPos(
+  const Poly& poly,
+  const_term multiple
+):
   pos(poly.begin()),
   end(poly.end()),
   multiple(allocTerm(poly.ring(), multiple)),
-  node(0) {}
+  node(0)
+{}  
 
 template<template<typename> class Q>
 void ReducerHashPack<Q>::MultipleWithPos::destroy(const PolyRing& ring) {
-  ring.freeMonomial(const_cast<ConstMonomial&>(multiple.monom).castAwayConst());
+  ring.freeMonomial
+    (const_cast<ConstMonomial&>(multiple.monom).castAwayConst());
 
   // Call the destructor to destruct the iterators into std::vector.
   // In debug mode MSVC puts those in a linked list and the destructor
@@ -216,8 +211,7 @@ void ReducerHashPack<Q>::insertEntry(MultipleWithPos* entry) {
 }
 
 template<template<typename> class Q>
-void ReducerHashPack<Q>::resetReducer()
-{
+void ReducerHashPack<Q>::resetReducer() {
   MonomialFree freeer(mRing);
   mQueue.forAll(freeer);
   mQueue.clear();
@@ -225,34 +219,28 @@ void ReducerHashPack<Q>::resetReducer()
 }
 
 template<template<typename> class Q>
-size_t ReducerHashPack<Q>::getMemoryUse() const
-{
+size_t ReducerHashPack<Q>::getMemoryUse() const {
   return mQueue.getMemoryUse() +
     mPool.getMemoryUse() +
     mHashTable.getMemoryUse();
 }
 
-Reducer::Registration r6(
+MATHICGB_REGISTER_REDUCER(
   "TourHashPack",
-  Reducer::Reducer_TourTree_Hashed_Packed,
-  [](const PolyRing& ring) -> std::unique_ptr<Reducer> {
-    return make_unique<ReducerHashPack<mic::TourTree>>(ring);
-  }
+  Reducer_TourTree_Hashed_Packed,
+  make_unique<ReducerHashPack<mic::TourTree>>(ring)
 );
- 
-Reducer::Registration r12(
+
+MATHICGB_REGISTER_REDUCER(
   "HeapHashPack",
-  Reducer::Reducer_Heap_Hashed_Packed,
-  [](const PolyRing& ring) -> std::unique_ptr<Reducer> {
-    return make_unique<ReducerHashPack<mic::Heap>>(ring);
-  }
+  Reducer_Heap_Hashed_Packed,
+  make_unique<ReducerHashPack<mic::Heap>>(ring)
 );
-Reducer::Registration r18(
+
+MATHICGB_REGISTER_REDUCER(
   "GeoHashPack",
-  Reducer::Reducer_Geobucket_Hashed_Packed,
-  [](const PolyRing& ring) -> std::unique_ptr<Reducer> {
-    return make_unique<ReducerHashPack<mic::Geobucket>>(ring);
-  }
+  Reducer_Geobucket_Hashed_Packed,
+  make_unique<ReducerHashPack<mic::Geobucket>>(ring)
 );
 
 MATHICGB_NAMESPACE_END

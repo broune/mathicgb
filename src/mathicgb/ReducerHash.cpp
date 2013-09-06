@@ -13,8 +13,6 @@ MATHICGB_NAMESPACE_BEGIN
 
 void reducerHashDependency() {}
 
-template<template<typename ConfigType> class Queue> class ReducerHash;
-
 template<template<typename> class Queue>
 class ReducerHash : public TypicalReducer {
 public:
@@ -61,13 +59,8 @@ ReducerHash<Q>::ReducerHash(const PolyRing &ring):
   mQueue(Configuration(ring))
 {}
 
-///////////////////////////////////////
-// External interface routines ////////
-///////////////////////////////////////
-
 template<template<typename> class Q>
-void ReducerHash<Q>::insertTail(const_term multiplier, const Poly *g1)
-{
+void ReducerHash<Q>::insertTail(const_term multiplier, const Poly *g1) {
   if (g1->nTerms() <= 1) return;
 
   mNodesTmp.clear();
@@ -83,8 +76,7 @@ void ReducerHash<Q>::insertTail(const_term multiplier, const Poly *g1)
 }
 
 template<template<typename> class Q>
-void ReducerHash<Q>::insert(monomial multiplier, const Poly *g1)
-{
+void ReducerHash<Q>::insert(monomial multiplier, const Poly *g1) {
   mNodesTmp.clear();
   const auto end = g1->end();
   for (auto it = g1->begin(); it != end; ++it) {
@@ -98,8 +90,7 @@ void ReducerHash<Q>::insert(monomial multiplier, const Poly *g1)
 }
 
 template<template<typename> class Q>
-bool ReducerHash<Q>::leadTerm(const_term& result)
-{
+bool ReducerHash<Q>::leadTerm(const_term& result) {
   while (!mQueue.empty()) {
     const auto top = mQueue.top();
     if (!mRing.coefficientIsZero(top->value())) {
@@ -114,17 +105,14 @@ bool ReducerHash<Q>::leadTerm(const_term& result)
 }
 
 template<template<typename> class Q>
-void ReducerHash<Q>::removeLeadTerm()
-// returns true if there is a term to extract
-{
+void ReducerHash<Q>::removeLeadTerm() {
   const auto top = mQueue.top();
   mQueue.pop();
   mHashTable.remove(top);
 }
 
 template<template<typename> class Q>
-void ReducerHash<Q>::resetReducer()
-{
+void ReducerHash<Q>::resetReducer() {
   while (!mQueue.empty()) {
     const auto top = mQueue.top();
     mQueue.pop();
@@ -134,34 +122,29 @@ void ReducerHash<Q>::resetReducer()
 }
 
 template<template<typename> class Q>
-size_t ReducerHash<Q>::getMemoryUse() const
-{
+size_t ReducerHash<Q>::getMemoryUse() const {
   size_t result = TypicalReducer::getMemoryUse();
   result += mHashTable.getMemoryUse();
   result += mQueue.getMemoryUse();
   return result;
 }
 
-Reducer::Registration r3(
+MATHICGB_REGISTER_REDUCER(
   "TourHash",
-  Reducer::Reducer_TourTree_Hashed,
-  [](const PolyRing& ring) -> std::unique_ptr<Reducer> {
-    return make_unique<ReducerHash<mic::TourTree>>(ring);
-  }
+  Reducer_TourTree_Hashed,
+  make_unique<ReducerHash<mic::TourTree>>(ring)
 );
-Reducer::Registration r9(
+
+MATHICGB_REGISTER_REDUCER(
   "HeapHash",
-  Reducer::Reducer_Heap_Hashed,
-  [](const PolyRing& ring) -> std::unique_ptr<Reducer> {
-    return make_unique<ReducerHash<mic::Heap>>(ring);
-  }
+  Reducer_Heap_Hashed,
+  make_unique<ReducerHash<mic::Heap>>(ring)
 );
-Reducer::Registration r15(
+
+MATHICGB_REGISTER_REDUCER(
   "GeoHash",
-  Reducer::Reducer_Geobucket_Hashed,
-  [](const PolyRing& ring) -> std::unique_ptr<Reducer> {
-    return make_unique<ReducerHash<mic::Geobucket>>(ring);
-  }
+  Reducer_Geobucket_Hashed,
+  make_unique<ReducerHash<mic::Geobucket>>(ring)
 );
 
 MATHICGB_NAMESPACE_END
