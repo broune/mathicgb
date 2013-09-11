@@ -44,20 +44,11 @@ F4MatrixBuilder2::findOrCreateColumn(
   MATHICGB_ASSERT(!monoA.isNull());
   MATHICGB_ASSERT(!monoB.isNull());
   const auto col = colMap.findProduct(monoA, monoB);
-  if (col.first == 0)
+  if (col.first == 0) {
+    // The reader may be out of date, so try again with a fresh reader.
     return findOrCreateColumn(monoA, monoB, feeder);
+  }
   return std::make_pair(*col.first, col.second);
-}
-
-MATHICGB_NO_INLINE
-void F4MatrixBuilder2::createTwoColumns(
-  const const_monomial monoA1,
-  const const_monomial monoA2,
-  const const_monomial monoB,
-  TaskFeeder& feeder
-) {
-  createColumn(monoA1, monoB, feeder);
-  createColumn(monoA2, monoB, feeder);
 }
 
 F4MatrixBuilder2::F4MatrixBuilder2(
@@ -372,11 +363,8 @@ void F4MatrixBuilder2::appendRow(
       (it.getMonomial(), multiple, reader, feeder);
 	MATHICGB_ASSERT(it.getCoefficient() < std::numeric_limits<Scalar>::max());
     MATHICGB_ASSERT(it.getCoefficient());
-    //matrix.appendEntry(col.first, static_cast<Scalar>(it.getCoefficient()));
     *indices = col.first;
     ++indices;
-    //*row.first++ = col.first;
-    //*row.second++ = static_cast<Scalar>(it.getCoefficient());
     ++it;
   }
 updateReader:
@@ -397,26 +385,18 @@ updateReader:
 
     const auto colPair = colMap.findTwoProducts(mono1, mono2, multiple);
     if (colPair.first == 0 || colPair.second == 0) {
-      createTwoColumns(mono1, mono2, multiple, feeder);
+      createColumn(mono1, multiple, feeder);
+      createColumn(mono2, multiple, feeder);
       goto updateReader;
     }
-
-    //matrix.appendEntry(*colPair.first, scalar1);
-    //matrix.appendEntry(*colPair.second, scalar2);
 
     *indices = *colPair.first;
     ++indices;
     *indices = *colPair.second;
     ++indices;
 
-    //*row.first++ = *colPair.first;
-    //*row.second++ = scalar1;
-    //*row.first++ = *colPair.second;
-    //*row.second++ = scalar2;
-
     it = ++it2;
   }
-  //matrix.rowDone();
 }
 
 void F4MatrixBuilder2::appendRowSPair(
@@ -476,7 +456,6 @@ void F4MatrixBuilder2::appendRowSPair(
     }
     MATHICGB_ASSERT(coeff < std::numeric_limits<Scalar>::max());
     if (coeff != 0) {
-      //matrix.appendEntry(col, static_cast<Scalar>(coeff));
       *row.first++ = col;
       *row.second++ = static_cast<Scalar>(coeff);
     }
@@ -485,7 +464,6 @@ void F4MatrixBuilder2::appendRowSPair(
   for (; itA != endA; ++itA) {
     const auto colA = findOrCreateColumn
       (itA.getMonomial(), mulA, colMap, feeder);
-    //matrix.appendEntry(colA.first, static_cast<Scalar>(itA.getCoefficient()));
     *row.first++ = colA.first;
     *row.second++ = static_cast<Scalar>(itA.getCoefficient());
   }
@@ -494,7 +472,6 @@ void F4MatrixBuilder2::appendRowSPair(
     const auto colB = findOrCreateColumn
       (itB.getMonomial(), mulB, colMap, feeder);
     const auto negative = ring().coefficientNegate(itB.getCoefficient());
-    //matrix.appendEntry(colB.first, static_cast<Scalar>(negative));
     *row.first++ = colB.first;
     *row.second++ = static_cast<Scalar>(negative);
   }

@@ -11,15 +11,13 @@
 
 MATHICGB_NAMESPACE_BEGIN
 
-class ostream;
-
-/** Represents a matrix composed of 4 sub-matrices that fit together
-  into one matrix divided into top left, top right, bottom left and
-  bottom right. This is a convenient representation of the matrices
-  encountered in the F4 polynomial reduction algorithm.
-
-  So far this is just a data class used as the output of a
-  QuadMatrixBuilder or F4MatrixBuilder. */
+/// Represents a matrix composed of 4 sub-matrices that fit together
+/// into one matrix divided into top left, top right, bottom left and
+/// bottom right. This is a convenient representation of the matrices
+/// encountered in the F4 polynomial reduction algorithm.
+///
+/// So far this is just a data class used as the output of a
+/// QuadMatrixBuilder or F4MatrixBuilder.
 class QuadMatrix {
 public:
   QuadMatrix() {}

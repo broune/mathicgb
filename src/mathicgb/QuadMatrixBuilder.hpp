@@ -17,10 +17,10 @@ MATHICGB_NAMESPACE_BEGIN
 
 class QuadMatrix;
 
-/** Builder for QuadMatrix. This is not quite the builder pattern in
-  that the interface is not virtual and the implementation cannot be
-  swapped out - it only follows the builder pattern in that it is a
-  class that allows step-wise construction of a final product. */
+/// Builder for QuadMatrix. This is not quite the builder pattern in
+/// that the interface is not virtual and the implementation cannot be
+/// swapped out - it only follows the builder pattern in that it is a
+/// class that allows step-wise construction of a final product.
 class QuadMatrixBuilder {
  public:
   typedef SparseMatrix::RowIndex RowIndex;
@@ -36,8 +36,8 @@ class QuadMatrixBuilder {
     LeftRightColIndex():
       mRawIndex(std::numeric_limits<ColIndex>::max()), mLeft(false) {}
     LeftRightColIndex(ColIndex index, bool left):
-      mRawIndex(index), mLeft(left) {
-    }
+      mRawIndex(index), mLeft(left)
+    {}
 
     ColIndex leftIndex() const {
       MATHICGB_ASSERT(left());
@@ -50,7 +50,7 @@ class QuadMatrixBuilder {
     }
 
     /// Use leftIndex() or rightIndex() instead if you know what side
-    /// you are expecting, as this does an assert on your expectation.
+    /// you are expecting, as those do an assert on your expectation.
     ColIndex index() const {
       MATHICGB_ASSERT(valid());
       return mRawIndex;

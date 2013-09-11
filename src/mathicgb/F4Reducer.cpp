@@ -168,9 +168,9 @@ std::unique_ptr<Poly> F4Reducer::classicReduceSPoly(
 }
 
 void F4Reducer::classicReduceSPolySet(
-  std::vector< std::pair<size_t, size_t> >& spairs,
+  std::vector<std::pair<size_t, size_t>>& spairs,
   const PolyBasis& basis,
-  std::vector< std::unique_ptr<Poly> >& reducedOut
+  std::vector<std::unique_ptr<Poly>>& reducedOut
 ) {
   if (spairs.size() <= 1 && false) {
     if (tracingLevel >= 2)
@@ -218,10 +218,6 @@ void F4Reducer::classicReduceSPolySet(
     for (auto it = qm.leftColumnMonomials.begin(); it != end; ++it)
       mRing.freeMonomial(*it);
   }
-
-  if (tracingLevel >= 2 && false)
-    std::cerr << "F4Reducer: Extracted " << reduced.rowCount()
-              << " non-zero rows\n";
 
   for (SparseMatrix::RowIndex row = 0; row < reduced.rowCount(); ++row) {
     auto p = make_unique<Poly>(basis.ring());

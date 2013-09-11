@@ -411,8 +411,6 @@ void F4MatrixBuilder::appendRowBottom(
     const auto colB = findOrCreateColumn
       (itB.getMonomial(), mulB, colMap, feeder);
     const auto cmp = ring().monomialCompare(colA.second, colB.second);
-    //const auto cmp = ring().monomialCompare
-    //  (builder.monomialOfCol(colA), builder.monomialOfCol(colB));
     if (cmp != LT) {
       coeff = itA.getCoefficient();
       col = colA.first;
