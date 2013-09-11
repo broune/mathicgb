@@ -73,9 +73,6 @@ public:
   const PolyRing& ring() const {return mBasis.ring();}
 
 private:
-  typedef const Map::Reader ColReader;
-  typedef std::vector<monomial> Monomials;
-
   /// Represents the task of adding a row to the matrix. If sPairPoly is null
   /// then the row to add is multiply * poly. Otherwise, the row to add is
   ///   multiply * poly - sPairMultiply * sPairPoly
@@ -86,88 +83,14 @@ private:
     const Poly* poly;
     const Poly* sPairPoly;
   };
-  typedef mgb::mtbb::parallel_do_feeder<RowTask> TaskFeeder;
 
-  /// Creates a column with monomial label monoA * monoB and schedules a new
-  /// row to reduce that column if possible. If such a column already
-  /// exists, then a new column is not inserted. In either case, returns
-  /// the column index and column monomial corresponding to monoA * monoB.
-  ///
-  /// createColumn can be used simply to search for an existing column, but
-  /// since createColumn incurs locking overhead, this is not a good idea.
-  /// Note that createColumn has to work correctly for pre-existing columns
-  /// because the only way to be *certain* that no other thread has inserted
-  /// the column of interest is to grab a lock, and the lock being grabbed
-  /// is being grabbed inside createColumn.
-  MATHICGB_NO_INLINE
-  std::pair<ColIndex, ConstMonomial> createColumn(
-    const_monomial monoA,
-    const_monomial monoB,
-    TaskFeeder& feeder
-  );
-
-  /// Append multiple * poly to block, creating new columns as necessary.
-  void appendRow(
-    const_monomial multiple,
-    const Poly& poly,
-    F4ProtoMatrix& block,
-    TaskFeeder& feeder
-  );
-
-  /// Append poly*multiply - sPairPoly*sPairMultiply to block, creating new
-  /// columns as necessary.
-  void appendRowSPair(
-    const Poly* poly,
-    monomial multiply,
-    const Poly* sPairPoly,
-    monomial sPairMultiply,
-    F4ProtoMatrix& block,
-    TaskFeeder& feeder
-  );
-
-  /// As createColumn, except with much better performance in the common
-  /// case that the column for monoA * monoB already exists. In particular,
-  /// no lock is grabbed in that case.
-  MATHICGB_NO_INLINE
-  std::pair<ColIndex, ConstMonomial> findOrCreateColumn(
-    const_monomial monoA,
-    const_monomial monoB,
-    TaskFeeder& feeder
-  );
-
-  /// As the overload that does not take a ColReader parameter, except with
-  /// better performance in the common case that the column already exists
-  /// and colMap is up-to-date.
-  MATHICGB_INLINE
-  std::pair<ColIndex, ConstMonomial> findOrCreateColumn(
-    const_monomial monoA,
-    const_monomial monoB,
-    const ColReader& colMap,
-    TaskFeeder& feeder
-  );
-
-  /// The split into left and right columns is not done until the whole matrix
-  /// has been constructed. This vector keeps track of which side each column
-  /// should go to once we do the split. char is used in place of bool because
-  /// the specialized bool would just be slower for this use case. See
-  /// http://isocpp.org/blog/2012/11/on-vectorbool .
-  std::vector<char> mIsColumnToLeft;
+  class Builder;
 
   /// How much memory to allocate every time more memory is needed.
   const size_t mMemoryQuantum;
 
-  /// If you want to modify the columns, you need to grab this lock first.
-  mgb::mtbb::mutex mCreateColumnLock;
-
-  /// A monomial for temporary scratch calculations. Protected by
-  /// mCreateColumnLock.
-  monomial mTmp;
-
   /// The basis that supplies reducers.
   const PolyBasis& mBasis;
-
-  /// Mapping from monomials to column indices.
-  Map mMap;
 
   /// Stores the rows that have been scheduled to be added.
   std::vector<RowTask> mTodo;

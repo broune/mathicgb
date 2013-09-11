@@ -119,7 +119,12 @@ void Reducer::displayReducerTypes(std::ostream& out)
   mathic::ColumnPrinter pr;
   auto& id = pr.addColumn(false, "  ");
   auto& desc = pr.addColumn(true, "   ");
-  for (const auto& r : reducerTypes()) {
+  auto types = reducerTypes();
+  auto cmp = [](const Registration* a, const Registration* b) {
+    return a->mId < b->mId;
+  };
+  std::sort(types.begin(), types.end(), cmp);
+  for (const auto& r : types) {
     id << r->mId << '\n';
     desc << r->mName << '\n';
   }

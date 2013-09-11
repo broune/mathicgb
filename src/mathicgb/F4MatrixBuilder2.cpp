@@ -18,9 +18,103 @@ MATHICGB_DEFINE_LOG_DOMAIN(
 
 MATHICGB_NAMESPACE_BEGIN
 
+class F4MatrixBuilder2::Builder {
+public:
+  void buildMatrixAndClear(  std::vector<RowTask>& mTodo, QuadMatrix& quadMatrix);
+
+  const PolyRing& ring() const {return mBasis.ring();}
+  Builder(const PolyBasis& basis, const size_t memoryQuantum);
+
+  typedef const Map::Reader ColReader;
+  typedef std::vector<monomial> Monomials;
+
+  typedef mgb::mtbb::parallel_do_feeder<RowTask> TaskFeeder;
+
+  /// Creates a column with monomial label monoA * monoB and schedules a new
+  /// row to reduce that column if possible. If such a column already
+  /// exists, then a new column is not inserted. In either case, returns
+  /// the column index and column monomial corresponding to monoA * monoB.
+  ///
+  /// createColumn can be used simply to search for an existing column, but
+  /// since createColumn incurs locking overhead, this is not a good idea.
+  /// Note that createColumn has to work correctly for pre-existing columns
+  /// because the only way to be *certain* that no other thread has inserted
+  /// the column of interest is to grab a lock, and the lock being grabbed
+  /// is being grabbed inside createColumn.
+  MATHICGB_NO_INLINE
+  std::pair<ColIndex, ConstMonomial> createColumn(
+    const_monomial monoA,
+    const_monomial monoB,
+    TaskFeeder& feeder
+  );
+
+  /// Append multiple * poly to block, creating new columns as necessary.
+  void appendRow(
+    const_monomial multiple,
+    const Poly& poly,
+    F4ProtoMatrix& block,
+    TaskFeeder& feeder
+  );
+
+  /// Append poly*multiply - sPairPoly*sPairMultiply to block, creating new
+  /// columns as necessary.
+  void appendRowSPair(
+    const Poly* poly,
+    monomial multiply,
+    const Poly* sPairPoly,
+    monomial sPairMultiply,
+    F4ProtoMatrix& block,
+    TaskFeeder& feeder
+  );
+
+  /// As createColumn, except with much better performance in the common
+  /// case that the column for monoA * monoB already exists. In particular,
+  /// no lock is grabbed in that case.
+  MATHICGB_NO_INLINE
+  std::pair<ColIndex, ConstMonomial> findOrCreateColumn(
+    const_monomial monoA,
+    const_monomial monoB,
+    TaskFeeder& feeder
+  );
+
+  /// As the overload that does not take a ColReader parameter, except with
+  /// better performance in the common case that the column already exists
+  /// and colMap is up-to-date.
+  MATHICGB_INLINE
+  std::pair<ColIndex, ConstMonomial> findOrCreateColumn(
+    const_monomial monoA,
+    const_monomial monoB,
+    const ColReader& colMap,
+    TaskFeeder& feeder
+  );
+
+  /// The split into left and right columns is not done until the whole matrix
+  /// has been constructed. This vector keeps track of which side each column
+  /// should go to once we do the split. char is used in place of bool because
+  /// the specialized bool would just be slower for this use case. See
+  /// http://isocpp.org/blog/2012/11/on-vectorbool .
+  std::vector<char> mIsColumnToLeft;
+
+  /// How much memory to allocate every time more memory is needed.
+  const size_t mMemoryQuantum;
+
+  /// If you want to modify the columns, you need to grab this lock first.
+  mgb::mtbb::mutex mCreateColumnLock;
+
+  /// A monomial for temporary scratch calculations. Protected by
+  /// mCreateColumnLock.
+  monomial mTmp;
+
+  /// Mapping from monomials to column indices.
+  Map mMap;
+
+  /// The basis that supplies reducers.
+  const PolyBasis& mBasis;
+};
+
 MATHICGB_NO_INLINE
 std::pair<F4MatrixBuilder2::ColIndex, ConstMonomial>
-F4MatrixBuilder2::findOrCreateColumn(
+F4MatrixBuilder2::Builder::findOrCreateColumn(
   const const_monomial monoA,
   const const_monomial monoB,
   TaskFeeder& feeder
@@ -35,7 +129,7 @@ F4MatrixBuilder2::findOrCreateColumn(
 
 MATHICGB_INLINE
 std::pair<F4MatrixBuilder2::ColIndex, ConstMonomial>
-F4MatrixBuilder2::findOrCreateColumn(
+F4MatrixBuilder2::Builder::findOrCreateColumn(
   const const_monomial monoA,
   const const_monomial monoB,
   const ColReader& colMap,
@@ -52,6 +146,14 @@ F4MatrixBuilder2::findOrCreateColumn(
 }
 
 F4MatrixBuilder2::F4MatrixBuilder2(
+  const PolyBasis& basis,
+  const size_t memoryQuantum
+):
+  mBasis(basis),
+  mMemoryQuantum(memoryQuantum)
+{}
+
+F4MatrixBuilder2::Builder::Builder(
   const PolyBasis& basis,
   const size_t memoryQuantum
 ):
@@ -108,10 +210,19 @@ void F4MatrixBuilder2::addPolynomialToMatrix
   ring().monomialMult(poly.getLeadMonomial(), multiple, task.desiredLead);
 
   MATHICGB_ASSERT(task.sPairPoly == 0);
+
   mTodo.push_back(task);
 }
 
 void F4MatrixBuilder2::buildMatrixAndClear(QuadMatrix& quadMatrix) {
+  Builder builder(mBasis, mMemoryQuantum);
+  builder.buildMatrixAndClear(mTodo, quadMatrix);
+}
+
+void F4MatrixBuilder2::Builder::buildMatrixAndClear(
+  std::vector<RowTask>& mTodo,
+  QuadMatrix& quadMatrix
+) {
   MATHICGB_LOG_TIME(F4MatrixBuild2) <<
     "\n***** Constructing matrix *****\n";
 
@@ -299,7 +410,7 @@ void F4MatrixBuilder2::buildMatrixAndClear(QuadMatrix& quadMatrix) {
 }
 
 std::pair<F4MatrixBuilder2::ColIndex, ConstMonomial>
-F4MatrixBuilder2::createColumn(
+F4MatrixBuilder2::Builder::createColumn(
   const const_monomial monoA,
   const const_monomial monoB,
   TaskFeeder& feeder
@@ -342,7 +453,7 @@ F4MatrixBuilder2::createColumn(
   return std::make_pair(*inserted.first.first, inserted.first.second);
 }
 
-void F4MatrixBuilder2::appendRow(
+void F4MatrixBuilder2::Builder::appendRow(
   const const_monomial multiple,
   const Poly& poly,
   F4ProtoMatrix& block,
@@ -399,7 +510,7 @@ updateReader:
   }
 }
 
-void F4MatrixBuilder2::appendRowSPair(
+void F4MatrixBuilder2::Builder::appendRowSPair(
   const Poly* poly,
   monomial multiply,
   const Poly* sPairPoly,
