@@ -5,6 +5,7 @@
 
 #include "MonoOrder.hpp"
 #include "NonCopyable.hpp"
+#include <cstddef>
 #include <vector>
 #include <algorithm>
 #include <memtailor.h>
@@ -372,6 +373,8 @@ public:
   static ConstMonoRef toRef(const Exponent* e) {return ConstMonoRef(e);}
   static Exponent* toOld(MonoRef e) {return rawPtr(e);}
   static const Exponent* toOld(ConstMonoRef e) {return rawPtr(e);}
+  static Exponent* toOld(Mono& e) {return rawPtr(e);}
+  static const Exponent* toOld(const Mono& e) {return rawPtr(e);}
 
 
   // *** Constructors and accessors
@@ -877,6 +880,9 @@ public:
   /// Returns the number of gradings.
   using Base::gradingCount;
 
+  /// Returns the number of entries per monomial. This includes entries
+  /// used fo r internal book-keeping, so it can be greater than varCount().
+  using Base::entryCount;
 
   // *** Monomial mutating computations
 
@@ -969,7 +975,7 @@ public:
 
   /// Sets mono to 1, which is the identity for multiplication.
   void setIdentity(MonoRef mono) const {
-    std::fill_n(rawPtr(mono), entryCount(), static_cast<Exponent>(0));
+    std::fill_n(rawPtr(mono), entryCount(), 0);
 
     MATHICGB_ASSERT(debugValid(mono));
     MATHICGB_ASSERT(isIdentity(mono));
@@ -1169,7 +1175,8 @@ public:
 
   class ConstMonoPtr {
   public:
-    ConstMonoPtr(): mMono(0) {}
+    ConstMonoPtr(): mMono(nullptr) {}
+    ConstMonoPtr(std::nullptr_t): mMono(nullptr) {}
     ConstMonoPtr(const ConstMonoPtr& mono): mMono(rawPtr(mono)) {}
 
     ConstMonoPtr operator=(const ConstMonoPtr& mono) {
@@ -1183,8 +1190,15 @@ public:
     /// to observe the ptr/ref distinction. Kill it with fire!
     operator ConstMonoRef() const {return ConstMonoRef(*this);}
 
-    bool isNull() const {return mMono == 0;}
-    void toNull() {mMono = 0;}
+    bool isNull() const {return mMono == nullptr;}
+    void toNull() {mMono = nullptr;}
+
+    bool operator==(std::nullptr_t) const {return isNull();}
+    bool operator!=(std::nullptr_t) const {return !isNull();}
+
+    MonoPtr castAwayConst() const {
+      return MonoPtr(const_cast<Exponent*>(mMono));
+    }
 
   private:
     friend class MonoMonoid;
@@ -1197,7 +1211,8 @@ public:
 
   class MonoPtr {
   public:
-    MonoPtr(): mMono(0) {}
+    MonoPtr(): mMono(nullptr) {}
+    MonoPtr(std::nullptr_t): mMono(nullptr) {}
     MonoPtr(const MonoPtr& mono): mMono(mono.mMono) {}
 
     MonoPtr operator=(const MonoPtr& mono) {
@@ -1211,13 +1226,17 @@ public:
     /// to observe the ptr/ref distinction. Kill it with fire!
     operator MonoRef() const {return MonoRef(*this);}
 
-    bool isNull() const {return mMono == 0;}
-    void toNull() {mMono = 0;}
+    bool isNull() const {return mMono == nullptr;}
+    void toNull() {mMono = nullptr;}
+
+    bool operator==(std::nullptr_t) const {return isNull();}
+    bool operator!=(std::nullptr_t) const {return !isNull();}
 
     operator ConstMonoPtr() const {return ConstMonoPtr(mMono);}
 
   private:
     friend class MonoMonoid;
+    friend class ConstMonoPtr;
     friend class PolyRing; // todo: remove
     friend class Poly; // todo: remove
 
@@ -1229,7 +1248,8 @@ public:
 
   class Mono : public NonCopyable<Mono> {
   public:
-    Mono(): mMono(), mPool(0) {}
+    Mono(): mMono(), mPool(nullptr) {}
+    Mono(std::nullptr_t): mMono(), mPool(nullptr) {}
 
     /// Passes ownership of the resources of mono to this object. Mono must
     /// have been allocated from pool and it must have no other owner.
@@ -1243,7 +1263,7 @@ public:
 
     Mono(Mono&& mono): mMono(mono.mMono), mPool(mono.mPool) {
       mono.mMono.toNull();
-      mono.mPool = 0;
+      mono.mPool = nullptr;
     }
 
     ~Mono() {toNull();}
@@ -1255,7 +1275,7 @@ public:
       mono.mMono.toNull();
 
       mPool = mono.mPool;
-      mono.mPool = 0;
+      mono.mPool = nullptr;
     }
 
     /// Sets this object to null but does NOT free the resources previously
@@ -1264,20 +1284,31 @@ public:
     /// already null then the returned MonoPtr is also null.
     MonoPtr release() {
       const auto oldPtr = ptr();
-      mMono = 0;
-      mPool = 0;
+      mMono.toNull();
+      mPool = nullptr;
       return oldPtr;
     }
 
     bool isNull() const {return mMono.isNull();}
     void toNull() {mPool->free(std::move(*this));}
 
-    MonoPtr ptr() const {return mMono;}
+    MonoPtr ptr() {return mMono;}
+    ConstMonoPtr ptr() const {return mMono;}
+
+    MonoRef operator*() {
+      MATHICGB_ASSERT(!isNull());
+      return *mMono;
+    }
+
+    ConstMonoRef operator*() const {
+      MATHICGB_ASSERT(!isNull());
+      return *mMono;
+    }
+
+    operator MonoPtr() const {return ptr();}
 
     /// @todo: Get rid of this as soon as all code has been migrated
     /// to observe the ptr/ref distinction. Kill it with fire!
-    operator MonoPtr() const {return ptr();}
-
     operator MonoRef() const {
       MATHICGB_ASSERT(!isNull());
       return *mMono;
@@ -1307,6 +1338,7 @@ public:
   private:
     void operator=(const MonoRef&); // not available
     friend class MonoMonoid;
+    friend class ConstMonoRef;
 
     MonoRef(MonoPtr mono): mMono(mono) {}
     Exponent* internalRawPtr() const {return rawPtr(mMono);}
@@ -1326,6 +1358,8 @@ public:
     /// @todo: Get rid of this as soon as all code has been migrated
     /// to observe the ptr/ref distinction. Kill it with fire!
     operator ConstMonoPtr() const {return ptr();}
+
+    MonoRef castAwayConst() const {return MonoRef(mMono.castAwayConst());}
 
   private:
     void operator=(const MonoRef&); // not available
@@ -1363,8 +1397,8 @@ public:
       if (mono.isNull())
         return;
       freeRaw(mono);
-      mono.mMono = 0;
-      mono.mPool = 0;
+      mono.mMono.toNull();
+      mono.mPool = nullptr;
     }
     void freeRaw(MonoRef mono) {mPool.free(rawPtr(mono));}
 
@@ -1811,12 +1845,6 @@ private:
   // *** Code determining the layout of monomials in memory
   // Layout in memory:
   //   [component] [exponents...] [order data...] [hash]
-
-  /// Returns how many Exponents are necessary to store a
-  /// monomial. This can include other data than the exponents, so
-  /// this number can be larger than varCount().
-  using Base::entryCount;
-  //size_t entryCount() const {return mEntryCount;}
 
   VarIndex componentIndex() const {
     //static_assert(HasComponent, "");

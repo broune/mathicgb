@@ -28,7 +28,7 @@ MATHICGB_NAMESPACE_BEGIN
 ///
 ///  1) grab a reader X
 ///  2) perform queries on X until done or there is a miss
-///  3) replace X with a fresh reader Y
+///  3) replace X with a fresh reader
 ///  4) go to 2 if the miss is now a hit
 ///  5) grab a lock shared with all writers
 ///  6) perform the query again - a miss is now guaranteed to be accurate
@@ -41,6 +41,13 @@ MATHICGB_NAMESPACE_BEGIN
 template<class T>
 class MonomialMap {
 public:
+  typedef PolyRing::Monoid Monoid;
+  typedef Monoid::Mono Mono;
+  typedef Monoid::MonoRef MonoRef;
+  typedef Monoid::ConstMonoRef ConstMonoRef;
+  typedef Monoid::MonoPtr MonoPtr;
+  typedef Monoid::ConstMonoPtr ConstMonoPtr;
+
   typedef T mapped_type;
   typedef FixedSizeMonomialMap<mapped_type> FixedSizeMap;
   typedef typename FixedSizeMap::value_type value_type;
@@ -56,7 +63,9 @@ public:
   }
 
   ~MonomialMap() {
-    delete mMap.load();
+    // We can load with std::memory_order_relaxed because the destructor
+    // cannot run concurrently.
+    delete mMap.load(std::memory_order_relaxed);
   }
 
   const PolyRing& ring() const {return mRing;}
@@ -92,16 +101,16 @@ public:
     /// inserted. Also returns the internal monomial that matches mono if such
     /// a monomial exists. Misses can be spurious! Read the comments on the parent
     /// class.
-    std::pair<const mapped_type*, ConstMonomial>
-    find(const_monomial mono) const {
+    std::pair<const mapped_type*, ConstMonoPtr>
+    find(ConstMonoRef mono) const {
       return mMap.find(mono);
     }
 
     // As find but looks for the product of a and b and also returns the
     // monomal that is the product.
-    std::pair<const mapped_type*, ConstMonomial> findProduct(
-      const const_monomial a,
-      const const_monomial b
+    std::pair<const mapped_type*, ConstMonoPtr> findProduct(
+      ConstMonoRef a,
+      ConstMonoRef b
     ) const {
       return mMap.findProduct(a, b);
     }
@@ -132,7 +141,11 @@ public:
 
   /// Removes all entries from the hash table. This requires mutual exclusion
   /// from and synchronization with all readers and writers.
-  void clearNonConcurrent() {mMap.load()->clearNonConcurrent();}
+  void clearNonConcurrent() {
+    // We can load with std::memory_order_relaxed because this method
+    // requires external synchronization.
+    mMap.load(std::memory_order_relaxed)->clearNonConcurrent();
+  }
 
   /// Makes value.first map to value.second unless value.first is already
   /// present in the map - in that case nothing is done. If p is the returned
@@ -141,7 +154,7 @@ public:
   /// equal value.second if an insertion was not performed - unless the
   /// inserted value equals the already present value. p.first.second is an
   /// internal monomial that equals value.first.
-  std::pair< std::pair<const mapped_type*, ConstMonomial>, bool>
+  std::pair<std::pair<const mapped_type*, ConstMonoPtr>, bool>
   insert(const value_type& value) {
     const mgb::mtbb::mutex::scoped_lock lockGuard(mInsertionMutex);
 
@@ -180,8 +193,8 @@ public:
     return p;
   }
 
-  /// Return the number of entries. This method requires locking so do not
-  /// call too much. The count may have 
+  /// Return the number of entries. This method uses internal synchronization
+  /// so do not call too much or you'll get degraded performance.
   size_t entryCount() const {
     const mgb::mtbb::mutex::scoped_lock lockGuard(mInsertionMutex);
     // We can load with std::memory_order_relaxed because we are holding the
@@ -211,7 +224,7 @@ private:
   /// keep these around as we have no way to determine if there are still
   /// readers looking at them. This could be changed at the cost of
   /// more overhead in the Reader constructor and destructor.
-  std::vector< std::unique_ptr<FixedSizeMap>> mOldMaps;
+  std::vector<std::unique_ptr<FixedSizeMap>> mOldMaps;
 };
 
 MATHICGB_NAMESPACE_END

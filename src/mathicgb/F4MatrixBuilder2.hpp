@@ -21,13 +21,14 @@ MATHICGB_NAMESPACE_BEGIN
 /// very workable without an RAII monomial handle or a scope exit
 /// functionality, so add one of those before fixing this.
 class F4MatrixBuilder2 {
-private:
-  typedef SparseMatrix::ColIndex ColIndex;
-  typedef SparseMatrix::Scalar Scalar;
-  typedef MonomialMap<ColIndex> Map;
-  typedef SparseMatrix::RowIndex RowIndex;
-
 public:
+  typedef PolyRing::Monoid Monoid;
+  typedef Monoid::Mono Mono;
+  typedef Monoid::MonoRef MonoRef;
+  typedef Monoid::ConstMonoRef ConstMonoRef;
+  typedef Monoid::MonoPtr MonoPtr;
+  typedef Monoid::ConstMonoPtr ConstMonoPtr;
+
   /// memoryQuantum is how much to increase the memory size by each time the
   /// current amount of memory is exhausted. A value of 0 indicates to start
   /// small and double the quantum at each exhaustion.
@@ -46,7 +47,7 @@ public:
   /// matrix. No ownership is taken, but poly must remain valid until
   /// the matrix is constructed. multiple is copied, so it need not
   /// remain valid.
-  void addPolynomialToMatrix(const_monomial multiple, const Poly& poly);
+  void addPolynomialToMatrix(ConstMonoRef multiple, const Poly& poly);
 
   /// As the overload with a multiple, where the multiple is 1.
   void addPolynomialToMatrix(const Poly& poly);
@@ -71,6 +72,7 @@ public:
   void buildMatrixAndClear(QuadMatrix& matrix);
 
   const PolyRing& ring() const {return mBasis.ring();}
+  const Monoid& monoid() const {return mBasis.ring().monoid();}
 
 private:
   /// Represents the task of adding a row to the matrix. If sPairPoly is null
@@ -79,7 +81,7 @@ private:
   /// where multiply and sPairMultiply are such that the leading terms become
   /// desiredLead.
   struct RowTask {
-    monomial desiredLead; // multiply a monomial onto poly to get this lead
+    ConstMonoPtr desiredLead; // multiply a monomial onto poly to get this lead
     const Poly* poly;
     const Poly* sPairPoly;
   };

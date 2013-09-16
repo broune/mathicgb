@@ -72,9 +72,11 @@ namespace {
       auto p(inserted.first);
       toMonomial.back() = copied;
 
-      MATHICGB_ASSERT(ring.monomialEqualHintTrue(copied, p.second));
+      MATHICGB_ASSERT(ring.monoid().equalHintTrue(copied, *p.second));
       MATHICGB_ASSERT(*p.first == QuadMatrixBuilder::LeftRightColIndex(colCount, left));
-      return std::make_pair(*p.first, p.second);
+
+      auto ptr = const_cast<exponent*>(Monoid::toOld(*p.second));
+      return std::make_pair(*p.first, ptr);
     } catch (...) {
       toMonomial.pop_back();
       ring.freeMonomial(copied);

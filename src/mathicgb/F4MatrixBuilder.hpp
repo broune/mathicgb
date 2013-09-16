@@ -29,6 +29,14 @@ private:
   typedef QuadMatrixBuilder::MonomialsType Monomials;
 
 public:
+  typedef PolyRing::Monoid Monoid;
+  typedef Monoid::Mono Mono;
+  typedef Monoid::MonoRef MonoRef;
+  typedef Monoid::ConstMonoRef ConstMonoRef;
+  typedef Monoid::MonoPtr MonoPtr;
+  typedef Monoid::ConstMonoPtr ConstMonoPtr;
+
+
   /// memoryQuantum is how much to increase the memory size by each time the
   /// current amount of memory is exhausted. A value of 0 indicates to start
   /// small and double the quantum at each exhaustion.
@@ -91,7 +99,7 @@ private:
   /// reduce that column if possible. Here x is monoA if monoB is
   /// null and otherwise x is the product of monoA and monoB.
   MATHICGB_NO_INLINE
-  std::pair<LeftRightColIndex, ConstMonomial>
+  std::pair<LeftRightColIndex, ConstMonoRef>
   createColumn(
     const_monomial monoA,
     const_monomial monoB,
@@ -122,7 +130,7 @@ private:
   );
 
   MATHICGB_NO_INLINE
-  std::pair<QuadMatrixBuilder::LeftRightColIndex, ConstMonomial>
+  std::pair<QuadMatrixBuilder::LeftRightColIndex, ConstMonoRef>
   findOrCreateColumn(
     const_monomial monoA,
     const_monomial monoB,
@@ -130,7 +138,7 @@ private:
   );
   
   MATHICGB_INLINE
-  std::pair<QuadMatrixBuilder::LeftRightColIndex, ConstMonomial>
+  std::pair<QuadMatrixBuilder::LeftRightColIndex, ConstMonoRef>
   findOrCreateColumn(
     const_monomial monoA,
     const_monomial monoB,

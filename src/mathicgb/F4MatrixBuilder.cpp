@@ -13,34 +13,32 @@ MATHICGB_DEFINE_LOG_DOMAIN(
 MATHICGB_NAMESPACE_BEGIN
 
 MATHICGB_NO_INLINE
-std::pair<QuadMatrixBuilder::LeftRightColIndex, ConstMonomial>
-F4MatrixBuilder::findOrCreateColumn(
+auto F4MatrixBuilder::findOrCreateColumn(
   const const_monomial monoA,
   const const_monomial monoB,
   TaskFeeder& feeder
-) {
+) -> std::pair<QuadMatrixBuilder::LeftRightColIndex, ConstMonoRef> {
   MATHICGB_ASSERT(!monoA.isNull());
   MATHICGB_ASSERT(!monoB.isNull());
   const auto col = ColReader(mMap).findProduct(monoA, monoB);
   if (col.first != 0)
-    return std::make_pair(*col.first, col.second);
+    return std::make_pair(*col.first, *col.second);
   return createColumn(monoA, monoB, feeder);
 }
 
 MATHICGB_INLINE
-std::pair<QuadMatrixBuilder::LeftRightColIndex, ConstMonomial>
-F4MatrixBuilder::findOrCreateColumn(
+auto F4MatrixBuilder::findOrCreateColumn(
   const const_monomial monoA,
   const const_monomial monoB,
   const ColReader& colMap,
   TaskFeeder& feeder
-) {
+) -> std::pair<QuadMatrixBuilder::LeftRightColIndex, ConstMonoRef> {
   MATHICGB_ASSERT(!monoA.isNull());
   MATHICGB_ASSERT(!monoB.isNull());
   const auto col = colMap.findProduct(monoA, monoB);
   if (col.first == 0)
     return findOrCreateColumn(monoA, monoB, feeder);
-  return std::make_pair(*col.first, col.second);
+  return std::make_pair(*col.first, *col.second);
 }
 
 MATHICGB_NO_INLINE
@@ -206,7 +204,7 @@ void F4MatrixBuilder::buildMatrixAndClear(QuadMatrix& matrix) {
     for (auto it = reader.begin(); it != end; ++it) {
       const auto p = *it;
       monomial copy = ring().allocMonomial();
-      ring().monomialCopy(p.second, copy);
+      ring().monoid().copy(p.second, copy);
       auto& monos = p.first.left() ?
         matrix.leftColumnMonomials : matrix.rightColumnMonomials;
       const auto index = p.first.index();
@@ -229,12 +227,11 @@ void F4MatrixBuilder::buildMatrixAndClear(QuadMatrix& matrix) {
   mMap.clearNonConcurrent();
 }
 
-std::pair<F4MatrixBuilder::LeftRightColIndex, ConstMonomial>
-F4MatrixBuilder::createColumn(
+auto F4MatrixBuilder::createColumn(
   const const_monomial monoA,
   const const_monomial monoB,
   TaskFeeder& feeder
-) {
+) -> std::pair<F4MatrixBuilder::LeftRightColIndex, ConstMonoRef> {
   MATHICGB_ASSERT(!monoA.isNull());
   MATHICGB_ASSERT(!monoB.isNull());
 
@@ -243,7 +240,7 @@ F4MatrixBuilder::createColumn(
   {
     const auto found(ColReader(mMap).findProduct(monoA, monoB));
     if (found.first != 0)
-      return std::make_pair(*found.first, found.second);
+      return std::make_pair(*found.first, *found.second);
   }
 
   // The column really does not exist, so we need to create it
@@ -264,17 +261,18 @@ F4MatrixBuilder::createColumn(
   ++colCount;
   MATHICGB_ASSERT(inserted.second);
   MATHICGB_ASSERT(inserted.first.first != 0);
+  auto ptr = const_cast<exponent*>(Monoid::toOld(*inserted.first.second));
 
   // schedule new task if we found a reducer
   if (insertLeft) {
     RowTask task = {};
     task.addToTop = true;
     task.poly = &mBasis.poly(reducerIndex);
-    task.desiredLead = inserted.first.second.castAwayConst();
+    task.desiredLead = ptr;
     feeder.add(task);
   }
 
-  return std::make_pair(*inserted.first.first, inserted.first.second);
+  return std::make_pair(*inserted.first.first, Monoid::toRef(ptr));
 }
 
 void F4MatrixBuilder::appendRowBottom(
@@ -410,7 +408,7 @@ void F4MatrixBuilder::appendRowBottom(
       (itA.getMonomial(), mulA, colMap, feeder);
     const auto colB = findOrCreateColumn
       (itB.getMonomial(), mulB, colMap, feeder);
-    const auto cmp = ring().monomialCompare(colA.second, colB.second);
+    const auto cmp = ring().monoid().compare(colA.second, colB.second);
     if (cmp != LT) {
       coeff = itA.getCoefficient();
       col = colA.first;

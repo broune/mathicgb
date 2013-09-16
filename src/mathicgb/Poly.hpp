@@ -14,6 +14,10 @@ MATHICGB_NAMESPACE_BEGIN
 
 class Poly {
 public:
+  typedef PolyRing::Monoid Monoid;
+  typedef Monoid::ConstMonoRef ConstMonoRef;
+  typedef Monoid::MonoRef MonoRef;
+
   Poly(const PolyRing& ring) : R(&ring) {MATHICGB_ASSERT(R != 0);}
 
   void parse(std::istream &i); // reads into this, sorts terms
@@ -42,6 +46,7 @@ public:
     iterator operator++() { ++ic; im += monsize; return *this; }
     coefficient &getCoefficient() const { return *ic; }
     monomial getMonomial() const { return &*im; }
+    MonoRef mono() const {return getMonomial();}
     size_t operator-(const iterator &b) const { return ic - b.ic; }
     friend bool operator==(const iterator &a, const iterator &b);
     friend bool operator!=(const iterator &a, const iterator &b);
@@ -76,6 +81,7 @@ public:
     const_iterator operator++() { ++ic; im += monsize; return *this; }
     coefficient getCoefficient() const { return *ic; }
     const_monomial getMonomial() const { return &*im; }
+    ConstMonoRef mono() const {return getMonomial();}
     size_t operator-(const const_iterator &b) const { return ic - b.ic; }
     friend bool operator==(const const_iterator &a, const const_iterator &b);
     friend bool operator!=(const const_iterator &a, const const_iterator &b);
