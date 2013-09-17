@@ -49,7 +49,7 @@ SignatureGB::SignatureGB(
   stats_relativelyPrimeEliminated(0),
   stats_pairsReduced(0),
   stats_nsecs(0.0),
-  GB(make_unique<SigPolyBasis>(R, divlookup_type, montable_type, preferSparseReducers)),
+  GB(make_unique<SigPolyBasis>(*R, divlookup_type, montable_type, preferSparseReducers)),
   mKoszuls(R->monoid()),
   Hsyz(ModuleMonoSet::make(R->monoid(), montable_type, basis.size(), !mPostponeKoszul)),
   Hsyz2(ModuleMonoSet::make(R->monoid(), montable_type, basis.size(), !mPostponeKoszul)),
@@ -153,7 +153,7 @@ bool SignatureGB::processSPair
   size_t gen = GB->minimalLeadInSig(Monoid::toOld(*sig));
   MATHICGB_ASSERT(gen != static_cast<size_t>(-1));
   monomial multiple = R->allocMonomial();
-  monoid().divide(GB->getSignature(gen), *sig, multiple);
+  monoid().divide(GB->signature(gen), *sig, multiple);
   GB->basis().usedAsStart(gen);
 
   // reduce multiple * GB->getSignature(gen)
@@ -231,9 +231,9 @@ bool SignatureGB::step() {
   if (mPostponeKoszul) {
     // Relatively prime check
     for (auto it = mSpairTmp.begin(); it != mSpairTmp.end(); ++it) {
-      const_monomial a = GB->getLeadMonomial(it->first);
-      const_monomial b = GB->getLeadMonomial(it->second);
-      if (R->monomialRelativelyPrime(a, b)) {
+      auto a = GB->leadMono(it->first);
+      auto b = GB->leadMono(it->second);
+      if (monoid().relativelyPrime(a, b)) {
         ++stats_relativelyPrimeEliminated;
         // todo: what are the correct ownership relations here?
         auto ptr = sig.release();
@@ -247,9 +247,9 @@ bool SignatureGB::step() {
   }
 #ifdef DEBUG
   for (auto it = mSpairTmp.begin(); it != mSpairTmp.end(); ++it) {
-    const_monomial a = GB->getLeadMonomial(it->first);
-    const_monomial b = GB->getLeadMonomial(it->second);
-    MATHICGB_ASSERT(!R->monomialRelativelyPrime(a, b));
+    auto a = GB->leadMono(it->first);
+    auto b = GB->leadMono(it->second);
+    MATHICGB_ASSERT(!monoid().relativelyPrime(a, b));
   }
 #endif
 
@@ -262,10 +262,10 @@ bool SignatureGB::step() {
     if (GB->ratioCompare(p.first, p.second) == LT)
       std::swap(p.first, p.second);
 
-    const_monomial greaterSig = GB->getSignature(p.first);
-    const_monomial smallerLead = GB->getLeadMonomial(p.second);   
+    auto greaterSig = GB->signature(p.first);
+    auto smallerLead = GB->leadMono(p.second);   
     monomial koszul = R->allocMonomial();
-    R->monomialMult(greaterSig, smallerLead, koszul);
+    monoid().multiply(greaterSig, smallerLead, koszul);
     if (Hsyz->member(koszul))
       R->freeMonomial(koszul);
     else

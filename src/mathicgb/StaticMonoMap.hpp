@@ -230,7 +230,7 @@ public:
     divisors.clear();
     divisors.reserve(maxDivisors + 1);
     auto wrap = lambdaWrap(proceed);
-    mLookup.findAllDivisors(basis.getSignature(newGenerator), wrap);
+    mLookup.findAllDivisors(basis.signature(newGenerator), wrap);
   }
 
   size_t highBaseDivisor(
@@ -253,7 +253,7 @@ public:
       return true;
     };
     auto wrap = lambdaWrap(proceed);
-    mLookup.findAllDivisors(basis.getLeadMonomial(newGenerator), wrap);
+    mLookup.findAllDivisors(basis.leadMono(newGenerator), wrap);
     return highDivisor;
   }
 
@@ -291,8 +291,8 @@ public:
             // might be more reduced as the constraint on regular reduction
             // is less. Also, as no two generators have same signature, this
             // ensures deterministic behavior.
-            const auto minSig = basis.getSignature(minLeadGen);
-            const auto genSig = basis.getSignature(entry.data());
+            const auto minSig = basis.signature(minLeadGen);
+            const auto genSig = basis.signature(entry.data());
             const auto sigCmp = basis.monoid().compare(minSig, genSig);
             if (basis.monoid().lessThan(genSig, minSig))
               return true;

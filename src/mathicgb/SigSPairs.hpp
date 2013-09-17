@@ -86,6 +86,9 @@ public:
   void setKnownSyzygy(size_t gen1, size_t gen2);
   void setKnownSyzygies(std::vector<std::pair<size_t, size_t> >& pairs);
 
+  const PolyRing& ring() {return *R;}
+  const Monoid& monoid() {return ring().monoid();}
+
   std::string name();
 
 private:

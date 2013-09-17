@@ -34,7 +34,7 @@ std::unique_ptr<Poly> TypicalReducer::regularReduce(
 
   monomial tproduct = ring.allocMonomial(mArena);
   monomial u = ring.allocMonomial(mArena);
-  monoid.multiply(multiple, basis.getLeadMonomial(basisElement), tproduct);
+  monoid.multiply(multiple, basis.leadMono(basisElement), tproduct);
 
   size_t reducer = basis.regularReducer(Monoid::toOld(sig), tproduct);
   if (reducer == static_cast<size_t>(-1)) {
@@ -42,13 +42,13 @@ std::unique_ptr<Poly> TypicalReducer::regularReduce(
     return nullptr; // singular reduction: no regular top reduction possible
   }
 
-  ring.monomialDivide(tproduct, basis.getLeadMonomial(reducer), u);
+  monoid.divide(basis.leadMono(reducer), tproduct, u);
 
   coefficient coef;
   ring.coefficientSet(coef, 1);
   insertTail(const_term(coef, Monoid::toOld(multiple)), &basis.poly(basisElement));
 
-  MATHICGB_ASSERT(ring.coefficientIsOne(basis.getLeadCoefficient(reducer)));
+  MATHICGB_ASSERT(ring.coefficientIsOne(basis.leadCoef(reducer)));
   ring.coefficientFromInt(coef, -1);
   insertTail(const_term(coef, u), &basis.poly(reducer));
   basis.basis().usedAsReducer(reducer);
@@ -66,8 +66,8 @@ std::unique_ptr<Poly> TypicalReducer::regularReduce(
       ++steps;
       basis.basis().usedAsReducer(reducer);
       monomial mon = ring.allocMonomial(mArena);
-      ring.monomialDivide(v.monom, basis.getLeadMonomial(reducer), mon);
-      ring.coefficientDivide(v.coeff, basis.getLeadCoefficient(reducer), coef);
+      monoid.divide(basis.leadMono(reducer), v.monom, mon);
+      ring.coefficientDivide(v.coeff, basis.leadCoef(reducer), coef);
       ring.coefficientNegateTo(coef);
       removeLeadTerm();
       insertTail(const_term(coef, mon), &basis.poly(reducer));

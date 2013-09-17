@@ -112,12 +112,18 @@ void SigSPairs::setupBaseDivisors(
     // Construct a monomial in makeSPair_t2 that can be used
     // to eliminate s-pairs quickly based on the s-pairs already
     // eliminated for baseDivisor.
-    const_monomial newSig = GB->getSignature(newGenerator);
-    const_monomial newLead = GB->getLeadMonomial(newGenerator);
-    const_monomial baseDivSig = GB->getSignature(bd.baseDivisor);
-    const_monomial baseDivLead = GB->getLeadMonomial(bd.baseDivisor);
+    auto newSig = GB->signature(newGenerator);
+    auto newLead = GB->leadMono(newGenerator);
+    auto baseDivSig = GB->signature(bd.baseDivisor);
+    auto baseDivLead = GB->leadMono(bd.baseDivisor);
     bd.baseMonomial = R->allocMonomial();
-    R->mysteriousSPairMonomialRoutine(newSig, newLead, baseDivSig, baseDivLead, bd.baseMonomial);
+    R->mysteriousSPairMonomialRoutine(
+      Monoid::toOld(newSig),
+      Monoid::toOld(newLead),
+      Monoid::toOld(baseDivSig),
+      Monoid::toOld(baseDivLead),
+      bd.baseMonomial
+    );
   }
 
   divisor1.baseDivisor = static_cast<size_t>(-1);
@@ -151,9 +157,9 @@ void SigSPairs::makePreSPairs(size_t newGen)
   if (!mPostponeKoszuls)
     hsyz = R->allocMonomial();
 
-  const_monomial newSig = GB->getSignature(newGen);
-  const_monomial newLead = GB->getLeadMonomial(newGen);
-  monomial pairSig = R->allocMonomial();
+  auto newSig = GB->signature(newGen);
+  auto newLead = GB->leadMono(newGen);
+  auto pairSig = R->allocMonomial();
 
   if (mUseHighBaseDivisors && divisor1.baseDivisor != static_cast<size_t>(-1))
     ++mStats.hasLowBaseDivisor;
@@ -162,8 +168,8 @@ void SigSPairs::makePreSPairs(size_t newGen)
 
   PreSPair result;
   for (size_t oldGen = 0; oldGen < newGen; oldGen++) {
-    const_monomial oldSig = GB->getSignature(oldGen);
-    const_monomial oldLead = GB->getLeadMonomial(oldGen);
+    auto oldSig = GB->signature(oldGen);
+    auto oldLead = GB->leadMono(oldGen);
 
     // Check whether this is a non-regular spair.
     // 'cmp' is used below too.
@@ -199,13 +205,13 @@ void SigSPairs::makePreSPairs(size_t newGen)
       if (
         (divisor1.baseDivisor != oldGen &&  // if divisor1 is a hit
          mKnownSyzygyTri.bitUnordered(divisor1.baseDivisor, oldGen) &&
-         R->monomialIsDivisibleBy(divisor1.baseMonomial, oldLead))
+         monoid().divides(oldLead, divisor1.baseMonomial))
         || // or if divisor2 is a hit
         (divisor2.baseDivisor != static_cast<size_t>(-1) && 
          GB->ratioCompare(oldGen, divisor2.ratioLessThan) == LT &&
          divisor2.baseDivisor != oldGen &&
          mKnownSyzygyTri.bitUnordered(divisor2.baseDivisor, oldGen) &&
-         R->monomialIsDivisibleBy(divisor2.baseMonomial, oldLead))
+         monoid().divides(oldLead, divisor2.baseMonomial))
       ) {
         mKnownSyzygyTri.setBit(newGen, oldGen, true);
         ++mStats.lowBaseDivisorHits;
@@ -218,10 +224,10 @@ void SigSPairs::makePreSPairs(size_t newGen)
     }
 
     if (cmp == GT)
-      R->monomialFindSignature(newLead, oldLead, newSig, pairSig);
+      monoid().colonMultiply(newLead, oldLead, newSig, pairSig);
     else {
       MATHICGB_ASSERT(cmp == LT);
-      R->monomialFindSignature(oldLead, newLead, oldSig, pairSig);
+      monoid().colonMultiply(oldLead, newLead, oldSig, pairSig);
     }
 
     if (Hsyz->member(pairSig)) {
@@ -245,24 +251,24 @@ void SigSPairs::makePreSPairs(size_t newGen)
       // add koszul syzygy to Hsyz.
       MATHICGB_ASSERT(cmp == GT || cmp == LT);
       if (cmp == GT)
-        R->monomialMult(newSig, oldLead, hsyz);
+        monoid().multiply(newSig, oldLead, hsyz);
       else
-        R->monomialMult(oldSig, newLead, hsyz);
+        monoid().multiply(oldSig, newLead, hsyz);
       if (Hsyz->insert(hsyz))
         hsyz = R->allocMonomial();
-      if (R->monomialRelativelyPrime(newLead, oldLead))
-        {
-          ++mStats.earlyRelativelyPrimePairs;
-          continue;
-        }
+      if (monoid().relativelyPrime(newLead, oldLead)) {
+        ++mStats.earlyRelativelyPrimePairs;
+        continue;
+      }
     }
 
     if (mUseSingularCriterionEarly) {
       MATHICGB_ASSERT(cmp == GT || cmp == LT);
       size_t const givesSig = (cmp == GT ? newGen : oldGen);    
-      if (GB->ratioCompare(GB->minimalLeadInSig(pairSig), givesSig) == GT &&
-          !R->monomialRelativelyPrime(newLead, oldLead)) {
-        
+      if (
+        GB->ratioCompare(GB->minimalLeadInSig(pairSig), givesSig) == GT &&
+        !monoid().relativelyPrime(newLead, oldLead)
+      ) {
         ++mStats.earlySingularCriterionPairs;
         continue;
       }
@@ -274,7 +280,6 @@ void SigSPairs::makePreSPairs(size_t newGen)
     result.i = static_cast<BigIndex>(oldGen);
     mIndexSigs.push_back(result);
     ++mStats.queuedPairs;
-    //pairs.push_back(result);
   }
   R->freeMonomial(pairSig);
   if (mUseBaseDivisors && ! baseDivisorMonomial.isNull())

@@ -20,36 +20,43 @@ MATHICGB_NAMESPACE_BEGIN
 class SigPolyBasis {
 public:
   typedef PolyRing::Monoid Monoid;
+  typedef Monoid::Mono Mono;
+  typedef Monoid::MonoRef MonoRef;
+  typedef Monoid::ConstMonoRef ConstMonoRef;
+  typedef Monoid::MonoPtr MonoPtr;
+  typedef Monoid::ConstMonoPtr ConstMonoPtr;
+
   typedef MonoProcessor<Monoid> Processor;
 
   SigPolyBasis(
-    const PolyRing* R,
+    const PolyRing& R,
     int monoLookupType,
     int monTableType,
     bool preferSparseReducers
   );
   ~SigPolyBasis();
 
-  const Monoid& monoid() const {return ring().monoid();}
   const PolyRing& ring() const {return mBasis.ring();}
+  const Monoid& monoid() const {return ring().monoid();}
+
   const Poly& poly(size_t index) const {return mBasis.poly(index);}
   size_t size() const {return mBasis.size();}
 
-  // todo: stop using non-const version of basis() and then remove it.
-  PolyBasis& basis() {return mBasis;}
   const PolyBasis& basis() const {return mBasis;}
 
-  const_monomial getLeadMonomial(size_t i) const {
-    return mBasis.leadMonomial(i);
+  ConstMonoRef leadMono(size_t gen) const {
+    MATHICGB_ASSERT(gen < size());
+    return mBasis.leadMonomial(gen);
   }
 
-  coefficient getLeadCoefficient(size_t i) const {
-    return mBasis.leadCoefficient(i);
+  coefficient leadCoef(size_t gen) const {
+    MATHICGB_ASSERT(gen < size());
+    return mBasis.leadCoefficient(gen);
   }
 
-  const_monomial getSigLeadRatio(size_t i) const {
-    MATHICGB_ASSERT(i < size());
-    return sigLeadRatio[i];
+  ConstMonoRef sigLeadRatio(size_t gen) const {
+    MATHICGB_ASSERT(gen < size());
+    return mSigLeadRatio[gen];
   }
 
   // Signifies that the module has taken on another e_i.
@@ -61,9 +68,9 @@ public:
   // of ring() and f must have been allocated with new.
   void insert(monomial sig, std::unique_ptr<Poly> f);
 
-  const_monomial getSignature(size_t i) const {
-    MATHICGB_ASSERT(i < size());
-    return mSignatures[i];
+  ConstMonoRef signature(size_t gen) const {
+    MATHICGB_ASSERT(gen < size());
+    return mSignatures[gen];
   }
 
   // Returns the index of a basis element that regular reduces term in
@@ -162,7 +169,7 @@ private:
   std::vector<monomial> mSignatures;
 
   // the ratio signature/initial term including negative entries and module component
-  std::vector<monomial> sigLeadRatio;
+  std::vector<monomial> mSigLeadRatio;
 
   // true if giving each generator an integer id based on its
   // position in a sorted order of sig-lead ratios.
@@ -198,7 +205,7 @@ inline int SigPolyBasis::ratioCompare(size_t a, size_t b) const {
   if (mUseRatioRank) {
 #ifdef MATHICGB_DEBUG
     int const value =
-      monoid().compare(getSigLeadRatio(a), getSigLeadRatio(b));
+      monoid().compare(sigLeadRatio(a), sigLeadRatio(b));
 #endif
     if (mRatioRanks[a] < mRatioRanks[b]) {
       MATHICGB_ASSERT_NO_ASSUME(value == LT);
@@ -212,11 +219,12 @@ inline int SigPolyBasis::ratioCompare(size_t a, size_t b) const {
     }
   } else {
     // A/a < B/b   <=>  A < (B/b)a
-    ring().monomialDivideToNegative(getSignature(b), getLeadMonomial(b), mTmp);
-    ring().monomialMultTo(mTmp, getLeadMonomial(a));
-    int value = monoid().compare(getSignature(a), mTmp);
-    MATHICGB_ASSERT(value ==
-      monoid().compare(getSigLeadRatio(a), getSigLeadRatio(b)));
+
+    monoid().divideToNegative(signature(b), leadMono(b), mTmp);
+    monoid().multiplyInPlace(leadMono(a), mTmp);
+    const auto value = monoid().compare(signature(a), mTmp);
+    MATHICGB_ASSERT
+      (value == monoid().compare(sigLeadRatio(a), sigLeadRatio(b)));
     return value;
   }
 }
@@ -225,7 +233,7 @@ inline int SigPolyBasis::StoredRatioCmp::compare(size_t be) const {
   if (SigPolyBasis::mUseStoredRatioRank) {
 #ifdef MATHICGB_DEBUG
     const auto value =
-      mBasis.monoid().compare(mRatio, mBasis.getSigLeadRatio(be));
+      mBasis.monoid().compare(mRatio, mBasis.sigLeadRatio(be));
 #endif
     SigPolyBasis::Rank otherRank = mBasis.ratioRank(be);
     if (mRatioRank < otherRank) {
@@ -239,10 +247,10 @@ inline int SigPolyBasis::StoredRatioCmp::compare(size_t be) const {
       return EQ;
     }
   } else {
-    mBasis.ring().monomialMult(mRatio, mBasis.getLeadMonomial(be), mTmp);
-    int value = mBasis.monoid().compare(mTmp, mBasis.getSignature(be));
-    MATHICGB_ASSERT(value ==
-      mBasis.monoid().compare(mRatio, mBasis.getSigLeadRatio(be)));
+    mBasis.monoid().multiply(mRatio, mBasis.leadMono(be), mTmp);
+    const auto value = mBasis.monoid().compare(mTmp, mBasis.signature(be));
+    MATHICGB_ASSERT
+      (value == mBasis.monoid().compare(mRatio, mBasis.sigLeadRatio(be)));
     return value;
   }
 }

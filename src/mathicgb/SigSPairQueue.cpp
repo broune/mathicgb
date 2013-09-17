@@ -126,9 +126,9 @@ private:
       if (mBasis.ratioCompare(col, row) == LT)
         std::swap(col, row);
       monoid().colonMultiply(
-        mBasis.getLeadMonomial(col),
-        mBasis.getLeadMonomial(row),
-        mBasis.getSignature(col),
+        mBasis.leadMono(col),
+        mBasis.leadMono(row),
+        mBasis.signature(col),
         *sig
       );
     }
