@@ -52,7 +52,7 @@ public:
   // added to the queue. sig must be the signature of the S-pair
   // (pairWith, x).
   //
-  // ATTENTION: the class to pushPairs must have pairWith in the
+  // ATTENTION: the calls to pushPairs must have pairWith in the
   // sequence 0, 1, 2, 3 and so on. It follows from this that the
   // queue can figure out what pairWith is without being told. Thus
   // the purpose of pairWith is to make it possible to make an

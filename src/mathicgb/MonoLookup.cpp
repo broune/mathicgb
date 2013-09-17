@@ -38,7 +38,7 @@ namespace {
       if (mBasis == &basis)
         return;
       MATHICGB_ASSERT(mBasis == 0);
-      MATHICGB_ASSERT(monoid() == basis.ring().monoid());
+      MATHICGB_ASSERT(&monoid() == &basis.ring().monoid());
       mBasis = &basis;
     }
 
@@ -47,7 +47,7 @@ namespace {
         return;
       MATHICGB_ASSERT(mSigBasis == 0);
       MATHICGB_ASSERT(mBasis == 0 || mBasis == &sigBasis.basis());
-      MATHICGB_ASSERT(monoid() == sigBasis.basis().ring().monoid());
+      MATHICGB_ASSERT(&monoid() == &sigBasis.basis().ring().monoid());
       mSigBasis = &sigBasis;
       setBasis(sigBasis.basis());
     }

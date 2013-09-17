@@ -170,7 +170,6 @@ bool SignatureGB::processSPair
     // todo: what are the correct ownership relations here?
     auto ptr = sig.release();
     Hsyz->insert(*ptr);
-    SP->newSyzygy(Monoid::toOld(*ptr));
     SP->setKnownSyzygies(mSpairTmp);
     MATHICGB_LOG(SigSPairFinal) << "   s-reduced to zero.\n";
     return false;
@@ -224,7 +223,6 @@ bool SignatureGB::step() {
     // todo: what are the correct ownership relations here?
     auto ptr = sig.release();
     Hsyz->insert(*ptr);
-    SP->newSyzygy(Monoid::toOld(*ptr));
     SP->setKnownSyzygies(mSpairTmp);
     MATHICGB_LOG(SigSPairFinal) << "   eliminated by Koszul criterion.\n";
     return true;
@@ -240,7 +238,6 @@ bool SignatureGB::step() {
         // todo: what are the correct ownership relations here?
         auto ptr = sig.release();
         Hsyz->insert(*ptr);
-        SP->newSyzygy(Monoid::toOld(*ptr));
         SP->setKnownSyzygies(mSpairTmp);
         MATHICGB_LOG(SigSPairFinal) <<
           "   eliminated by relatively prime criterion.\n";

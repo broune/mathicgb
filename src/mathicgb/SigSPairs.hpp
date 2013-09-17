@@ -46,9 +46,6 @@ public:
   // fills in all the S-pairs with i.
   void newPairs(size_t i);
 
-  // Inform the S-pair handler that there is a new syzygy signature in play.
-  void newSyzygy(const_monomial sig);
-
   struct Stats {
     unsigned long long spairsConstructed; // all spairs
     unsigned long long spairsFinal; // spairs given to client

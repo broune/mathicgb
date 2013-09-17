@@ -217,7 +217,6 @@ void SPairs::addPairs(size_t newGen) {
     mEliminated.addColumn();
   }
 
-
   if (newGen == std::numeric_limits<Queue::Index>::max())
     throw std::overflow_error
       ("Too large basis element index in constructing S-pairs.");
@@ -228,12 +227,12 @@ void SPairs::addPairs(size_t newGen) {
   prePairMonos.reserve(newGen);
   prePairs.reserve(newGen);
 
-  ConstMonoRef newLead = mBasis.leadMonomial(newGen);
+  auto newLead = mBasis.leadMonomial(newGen);
   auto lcm = mBareMonoid.alloc();
   for (size_t oldGen = 0; oldGen < newGen; ++oldGen) {
     if (mBasis.retired(oldGen))
       continue;
-    ConstMonoRef oldLead = mBasis.leadMonomial(oldGen);
+    auto oldLead = mBasis.leadMonomial(oldGen);
     if (monoid().relativelyPrime(newLead, oldLead)) {
       ++mStats.relativelyPrimeHits;
       mEliminated.setBit(newGen, oldGen, true);
@@ -310,16 +309,20 @@ bool SPairs::simpleBuchbergerLcmCriterion(
       // exists i such that b[i] > a[i] && b[i] > c[i] <=>
       // exists i such that b[i] > max(a[i], c[i]) <=>
       // b does not divide lcm(a[i], c[i])
-      const_monomial leadA = mBasis.leadMonomial(mA);
-      const_monomial leadB = mBasis.leadMonomial(mB);
-      const_monomial leadC = mBasis.leadMonomial(index);
-      if (!mSPairs.eliminated(index, mA) &&
-          mMonoid.dividesLcm(leadB, leadC, leadA))
+      auto leadA = mBasis.leadMonomial(mA);
+      auto leadB = mBasis.leadMonomial(mB);
+      auto leadC = mBasis.leadMonomial(index);
+      if (
+        !mSPairs.eliminated(index, mA) &&
+        mMonoid.dividesLcm(leadB, leadC, leadA)
+      )
         return true; // we had lcm(a,index) == lcm(a,b)
 
       // check lcm(b,index) != lcm(a,b)
-      if (!mSPairs.eliminated(index, mB) &&
-          mMonoid.dividesLcm(leadA, leadC, leadB))
+      if (
+        !mSPairs.eliminated(index, mB) &&
+        mMonoid.dividesLcm(leadA, leadC, leadB)
+      )
         return true;  // we had lcm(b,index) == lcm(a,b)
 
       mHit = index;
@@ -545,7 +548,7 @@ bool SPairs::advancedBuchbergerLcmCriterion(
     todo.pop_back();
 
     // loop through all potential edges (currentIndex, otherIndex)
-    const_monomial const currentLead = mBasis.leadMonomial(currentIndex);
+    auto currentLead = mBasis.leadMonomial(currentIndex);
     for (Graph::iterator other = graph.begin(); other != graphEnd; ++other) {
       Connection const otherConnect = other->second;
       if (currentConnect == otherConnect)
@@ -553,7 +556,7 @@ bool SPairs::advancedBuchbergerLcmCriterion(
       size_t const otherIndex = other->first;
       MATHICGB_ASSERT(otherIndex != currentIndex);
 
-      const_monomial const otherLead = mBasis.leadMonomial(otherIndex);
+      auto const otherLead = mBasis.leadMonomial(otherIndex);
       // Note that
       //  lcm(c,d) != lcmAB <=>
       //  exists i such that max(c[i], d[i]) < lcmAB[i] <=>
@@ -637,9 +640,9 @@ bool SPairs::advancedBuchbergerLcmCriterionSlow(size_t a, size_t b) const {
       if (node.second == graph[i].second)
         continue;
       MATHICGB_ASSERT(graph[i].first != node.first);
-      size_t const other = graph[i].first;
+      const size_t other = graph[i].first;
 
-      const_monomial const leadOther = mBasis.leadMonomial(other);
+      auto const leadOther = mBasis.leadMonomial(other);
       monoid().lcm(leadNode, leadOther, lcm);
       if (!eliminated(node.first, other) && monoid().equal(*lcm, *lcmAB))
         continue; // not an edge in G

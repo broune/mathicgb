@@ -38,10 +38,6 @@ SigSPairs::~SigSPairs()
   MATHICGB_ASSERT(mUseBaseDivisors || mUseHighBaseDivisors || mKnownSyzygyTri.empty());
 }
 
-void SigSPairs::newSyzygy(const_monomial sig) {
-  MATHICGB_ASSERT(Hsyz->member(sig));
-}
-
 auto SigSPairs::popSignature(PairContainer& pairs) -> Mono {
   auto sig = mQueue->popSignature(pairs);
   if (!sig.isNull()) {
