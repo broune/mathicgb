@@ -3,6 +3,7 @@
 #include "stdinc.h"
 #include "QuadMatrix.hpp"
 
+#include "MathicIO.hpp"
 #include "mtbb.hpp"
 #include <mathic.h>
 #include <ostream>
@@ -43,17 +44,15 @@ void QuadMatrix::print(std::ostream& out) const {
 
   // column monomials
   out << "Left columns:";
-  const auto leftColCount = leftColumnMonomials.size();
-  for (ColIndex leftCol = 0; leftCol < leftColCount; ++leftCol) {
+  for (const auto& mono : leftColumnMonomials) {
     out << ' ';
-    ring->monomialDisplay(out, leftColumnMonomials[leftCol], false, true);
+    MathicIO<>().writeMonomial(monoid(), false, *mono, out);
   }
 
   out << "\nRight columns:";
-  const auto rightColCount = rightColumnMonomials.size();
-  for (ColIndex rightCol = 0; rightCol < rightColCount; ++rightCol) {
+  for (const auto& mono : rightColumnMonomials) {
     out << ' ';
-    ring->monomialDisplay(out, rightColumnMonomials[rightCol], false, true);
+    MathicIO<>().writeMonomial(monoid(), false, *mono, out);
   }
   out << '\n';
 
@@ -211,7 +210,7 @@ QuadMatrix QuadMatrix::toCanonical() const {
   const auto rightColCount = rightColumnMonomials.size();
 
   // todo: eliminate left/right code duplication here
-  QuadMatrix matrix;
+  QuadMatrix matrix(ring());
   { // left side
     std::vector<SparseMatrix::RowIndex> rows;
     for (SparseMatrix::RowIndex row = 0; row < topLeft.rowCount(); ++row)
@@ -247,7 +246,6 @@ QuadMatrix QuadMatrix::toCanonical() const {
 
   matrix.leftColumnMonomials = leftColumnMonomials;
   matrix.rightColumnMonomials = rightColumnMonomials;
-  matrix.ring = ring;
   
   return std::move(matrix);
 }
@@ -258,34 +256,38 @@ std::ostream& operator<<(std::ostream& out, const QuadMatrix& qm) {
 }
 
 namespace {
+  template<class Monoid>
   class ColumnComparer {
   public:
-    ColumnComparer(const PolyRing& ring): mRing(ring) {}
+    ColumnComparer(const Monoid& monoid): mMonoid(monoid) {}
 
-    typedef SparseMatrix::ColIndex ColIndex;
-    typedef std::pair<monomial, ColIndex> Pair;
+    template<class Pair>
     bool operator()(const Pair& a, const Pair b) const {
-      return mRing.monomialLT(b.first, a.first);
+      return mMonoid.lessThan(*b.first, *a.first);
     }
 
   private:
-    const PolyRing& mRing;
+    const Monoid& mMonoid;
   };
 
   std::vector<SparseMatrix::ColIndex> sortColumnMonomialsAndMakePermutation(
-    std::vector<monomial>& monomials,
-    const PolyRing& ring
+    QuadMatrix::Monomials& monomials,
+    const QuadMatrix::Monoid& monoid
   ) {
     typedef SparseMatrix::ColIndex ColIndex;
     MATHICGB_ASSERT(monomials.size() <= std::numeric_limits<ColIndex>::max());
     const ColIndex colCount = static_cast<ColIndex>(monomials.size());
     // Monomial needs to be non-const as we are going to put these
     // monomials back into the vector of monomials which is not const.
-    std::vector< std::pair<monomial, ColIndex>> columns;
+    std::vector<std::pair<QuadMatrix::ConstMonoPtr, ColIndex>> columns;
     columns.reserve(colCount);
     for (ColIndex col = 0; col < colCount; ++col)
       columns.push_back(std::make_pair(monomials[col], col));
-    std::sort(columns.begin(), columns.end(), ColumnComparer(ring));
+    std::sort(
+      columns.begin(),
+      columns.end(),
+      ColumnComparer<QuadMatrix::Monoid>(monoid)
+    );
 
     // Apply sorting permutation to monomials. This is why it is necessary to
     // copy the values in monomial out of there: in-place application of a
@@ -293,8 +295,10 @@ namespace {
     MATHICGB_ASSERT(columns.size() == colCount);
     MATHICGB_ASSERT(monomials.size() == colCount);
     for (size_t col = 0; col < colCount; ++col) {
-      MATHICGB_ASSERT(col == 0 ||
-        ring.monomialLT(columns[col].first, columns[col - 1].first));
+      MATHICGB_ASSERT(
+        col == 0 ||
+          monoid.lessThan(*columns[col].first, *columns[col - 1].first)
+      );
       monomials[col] = columns[col].first;
     }
 
@@ -318,10 +322,10 @@ void QuadMatrix::sortColumnsLeftRightParallel() {
   mgb::mtbb::parallel_for(0, 2, 1, [&](int i) {
     if (i == 0)
       leftPermutation =
-        sortColumnMonomialsAndMakePermutation(leftColumnMonomials, *ring);
+        sortColumnMonomialsAndMakePermutation(leftColumnMonomials, monoid());
     else 
       rightPermutation =
-        sortColumnMonomialsAndMakePermutation(rightColumnMonomials, *ring);
+        sortColumnMonomialsAndMakePermutation(rightColumnMonomials, monoid());
   });
 
   mgb::mtbb::parallel_for(0, 4, 1, [&](int i) {
@@ -354,7 +358,6 @@ SparseMatrix::Scalar QuadMatrix::read(FILE* file) {
 
   leftColumnMonomials.clear();
   rightColumnMonomials.clear();
-  ring = 0;
 
   const auto topLeftModulus = topLeft.read(file);
   const auto topRightModulus = topRight.read(file);

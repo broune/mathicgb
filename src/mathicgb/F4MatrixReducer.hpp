@@ -20,8 +20,6 @@ class PolyRing;
 class F4MatrixReducer {
 public:
   /// The ring used is Z/pZ where modulus is the prime p.
-  ///
-  ///
   F4MatrixReducer(coefficient modulus);
 
   /// Reduces the bottom rows by the top rows and returns the bottom right

@@ -61,7 +61,7 @@ TEST(F4MatrixBuilder, Empty) {
     BuilderMaker maker;
     F4MatrixBuilder& builder = maker.create();
 
-    QuadMatrix matrix;
+    QuadMatrix matrix(maker.ring());
     builder.buildMatrixAndClear(matrix);
     ASSERT_EQ(0, matrix.topLeft.rowCount());
     ASSERT_EQ(0, matrix.bottomLeft.rowCount());
@@ -82,7 +82,7 @@ TEST(F4MatrixBuilder, SPair) {
     const Poly& p3 = maker.addBasisElement("c2d+3");
     F4MatrixBuilder& builder = maker.create();
     builder.addSPolynomialToMatrix(p1, p2);
-    QuadMatrix qm;
+    QuadMatrix qm(builder.ring());
     builder.buildMatrixAndClear(qm);
     const char* const str1 = 
       "Left columns: c2d\n"
@@ -109,7 +109,7 @@ TEST(F4MatrixBuilder, OneByOne) {
     const Poly& p = maker.addBasisElement("a");
     F4MatrixBuilder& builder = maker.create();
     builder.addPolynomialToMatrix(p.getLeadMonomial(), p);
-    QuadMatrix qm;
+    QuadMatrix qm(builder.ring());
     builder.buildMatrixAndClear(qm);
     const char* str = 
       "Left columns: a2\n"
@@ -144,7 +144,7 @@ TEST(F4MatrixBuilder, DirectReducers) {
       builder.addPolynomialToMatrix(p2.getLeadMonomial(), p2);
     }
 
-    QuadMatrix qm;
+    QuadMatrix qm(builder.ring());
     builder.buildMatrixAndClear(qm);
 
     const char* str =
@@ -168,7 +168,7 @@ TEST(F4MatrixBuilder, IteratedReducer) {
     const Poly& p2 = maker.addBasisElement("a-1");
     F4MatrixBuilder& builder = maker.create();
     builder.addPolynomialToMatrix(p1.getLeadMonomial(), p2);
-    QuadMatrix qm;
+    QuadMatrix qm(builder.ring());
     builder.buildMatrixAndClear(qm);
     const char* str = 
       "Left columns: a5 a4 a3 a2 a\n"

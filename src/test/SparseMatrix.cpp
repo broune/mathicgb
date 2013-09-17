@@ -66,9 +66,9 @@ TEST(SparseMatrix, Simple) {
 TEST(SparseMatrix, toRow) {
   auto ring = ringFromString("32003 6 1\n1 1 1 1 1 1");
   auto polyForMonomials = parsePoly(*ring, "a5+a4+a3+a2+a1+a0");
-  std::vector<monomial> monomials;
+  std::vector<PolyRing::Monoid::ConstMonoPtr> monomials;
   for (auto it = polyForMonomials->begin(); it != polyForMonomials->end(); ++it)
-    monomials.push_back(it.getMonomial());
+    monomials.push_back(it.mono().ptr());
 
   SparseMatrix mat(5);
   mat.clear();

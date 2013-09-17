@@ -23,6 +23,13 @@ class QuadMatrix;
 /// class that allows step-wise construction of a final product.
 class QuadMatrixBuilder {
  public:
+  typedef PolyRing::Monoid Monoid;
+  typedef Monoid::Mono Mono;
+  typedef Monoid::MonoRef MonoRef;
+  typedef Monoid::ConstMonoRef ConstMonoRef;
+  typedef Monoid::MonoPtr MonoPtr;
+  typedef Monoid::ConstMonoPtr ConstMonoPtr;
+
   typedef SparseMatrix::RowIndex RowIndex;
   typedef SparseMatrix::ColIndex ColIndex;
   typedef SparseMatrix::Scalar Scalar;
@@ -84,13 +91,13 @@ class QuadMatrixBuilder {
   };
 
   typedef MonomialMap<LeftRightColIndex> Map;
-  typedef std::vector<monomial> MonomialsType;
+  typedef std::vector<ConstMonoPtr> Monomials;
 
   QuadMatrixBuilder(
     const PolyRing& ring,
     Map& map,
-    MonomialsType& monomialsLeft,
-    MonomialsType& monomialsRight,
+    Monomials& monomialsLeft,
+    Monomials& monomialsRight,
     size_t memoryQuantum = 0
   );
 
@@ -188,8 +195,8 @@ class QuadMatrixBuilder {
   QuadMatrix buildMatrixAndClear();
 
 private:
-  MonomialsType& mMonomialsLeft; /// stores one monomial per left column
-  MonomialsType& mMonomialsRight; /// stores one monomial per right column
+  Monomials& mMonomialsLeft; /// stores one monomial per left column
+  Monomials& mMonomialsRight; /// stores one monomial per right column
 
   /// Used for fast determination of which column has a given monomial.
   Map& mMonomialToCol;

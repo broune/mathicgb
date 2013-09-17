@@ -1167,8 +1167,16 @@ public:
   }
 
   Mono alloc() const {return mPool.alloc();}
+
   void free(Mono&& mono) const {mPool.free(std::move(mono));}
+
   void freeRaw(MonoRef mono) const {mPool.freeRaw(mono);}
+
+  void freeRaw(MonoPtr mono) const {
+    if (mono != nullptr)
+      freeRaw(*mono);
+  }
+
   bool fromPool(ConstMonoRef mono) const {mPool.fromPool(mono);}
 
   // *** Classes for holding and referring to monomials

@@ -15,12 +15,17 @@ MATHICGB_NAMESPACE_BEGIN
 /// into one matrix divided into top left, top right, bottom left and
 /// bottom right. This is a convenient representation of the matrices
 /// encountered in the F4 polynomial reduction algorithm.
-///
-/// So far this is just a data class used as the output of a
-/// QuadMatrixBuilder or F4MatrixBuilder.
 class QuadMatrix {
 public:
-  QuadMatrix() {}
+  typedef PolyRing::Monoid Monoid;
+  typedef Monoid::Mono Mono;
+  typedef Monoid::MonoRef MonoRef;
+  typedef Monoid::ConstMonoRef ConstMonoRef;
+  typedef Monoid::MonoPtr MonoPtr;
+  typedef Monoid::ConstMonoPtr ConstMonoPtr;
+
+  QuadMatrix(): mRing(nullptr) {}
+  QuadMatrix(const PolyRing& ring): mRing(&ring) {}
 
   QuadMatrix(QuadMatrix&& matrix):
     topLeft(std::move(matrix.topLeft)),
@@ -29,22 +34,28 @@ public:
     bottomRight(std::move(matrix.bottomRight)),
     leftColumnMonomials(std::move(matrix.leftColumnMonomials)),
     rightColumnMonomials(std::move(matrix.rightColumnMonomials)),
-    ring(matrix.ring)
+    mRing(&matrix.ring())
   {}
 
   QuadMatrix& operator=(QuadMatrix&& matrix) {
+    MATHICGB_ASSERT(mRing == matrix.mRing);
     this->~QuadMatrix();
     new (this) QuadMatrix(std::move(matrix));
     return *this;
   }
 
+  void clear() {
+    *this = QuadMatrix(ring());
+  }
+
+  typedef std::vector<ConstMonoPtr> Monomials;
+
   SparseMatrix topLeft; 
   SparseMatrix topRight;
   SparseMatrix bottomLeft;
   SparseMatrix bottomRight;
-  std::vector<monomial> leftColumnMonomials;
-  std::vector<monomial> rightColumnMonomials;
-  const PolyRing* ring;
+  Monomials leftColumnMonomials;
+  Monomials rightColumnMonomials;
 
   /// Prints whole matrix to out in human-readable format. Useful for
   /// debugging.
@@ -87,9 +98,14 @@ public:
   /// Asserts internal invariants if asserts are turned on.
   bool debugAssertValid() const;
 
+  const PolyRing& ring() const {return *mRing;}
+  const Monoid& monoid() const {return ring().monoid();}
+
 private:
   QuadMatrix(const QuadMatrix&); // not available
   void operator=(const QuadMatrix&); // not available
+
+  const PolyRing* const mRing;
 };
 
 std::ostream& operator<<(std::ostream& out, const QuadMatrix& qm);

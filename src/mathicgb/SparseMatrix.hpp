@@ -241,7 +241,7 @@ public:
   /// Let poly be the dot product of colMonomials and the given row.
   void rowToPolynomial(
     RowIndex row,
-    const std::vector<monomial>& colMonomials,
+    const std::vector<PolyRing::Monoid::ConstMonoPtr>& colMonomials,
     Poly& poly);
 
   /// Reorders the rows so that the index of the leading column in

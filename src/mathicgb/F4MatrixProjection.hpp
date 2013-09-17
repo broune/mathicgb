@@ -14,6 +14,13 @@ MATHICGB_NAMESPACE_BEGIN
 
 class F4MatrixProjection {
 public:
+  typedef PolyRing::Monoid Monoid;
+  typedef Monoid::Mono Mono;
+  typedef Monoid::MonoRef MonoRef;
+  typedef Monoid::ConstMonoRef ConstMonoRef;
+  typedef Monoid::MonoPtr MonoPtr;
+  typedef Monoid::ConstMonoPtr ConstMonoPtr;
+
   typedef SparseMatrix::RowIndex RowIndex;
   typedef SparseMatrix::ColIndex ColIndex;
   typedef SparseMatrix::Scalar Scalar;
@@ -48,8 +55,8 @@ private:
   std::vector<ColProjectTo> mColProjectTo;
 
   std::vector<F4ProtoMatrix*> mMatrices;
-  std::vector<monomial> mLeftMonomials;
-  std::vector<monomial> mRightMonomials;
+  std::vector<ConstMonoPtr> mLeftMonomials;
+  std::vector<ConstMonoPtr> mRightMonomials;
   const PolyRing& mRing;
 };
 

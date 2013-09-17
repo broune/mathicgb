@@ -201,10 +201,8 @@ namespace {
     const SparseMatrix& reduceByRight = qm.topRight;
 
     const auto leftColCount = qm.computeLeftColCount();
-//      static_cast<SparseMatrix::ColIndex>(qm.leftColumnMonomials.size());
     const auto rightColCount =
       static_cast<SparseMatrix::ColIndex>(qm.computeRightColCount());
-//      static_cast<SparseMatrix::ColIndex>(qm.rightColumnMonomials.size());
     MATHICGB_ASSERT(leftColCount == reduceByLeft.rowCount());
     const auto pivotCount = leftColCount;
     const auto rowCount = toReduceLeft.rowCount();
@@ -488,7 +486,6 @@ namespace {
             denseRow.makeUnitary(modulus, col);
         }
       }});
-      //std::cout << "done reducing that batch" << std::endl;
 
       reduced.clear();
       std::sort(nextReducers.begin(), nextReducers.end());
@@ -553,36 +550,6 @@ namespace {
   }
 }
 
-// todo: use auto instead of these typedefs where possible/reasonable
-// todo: do SparseMatrix::Scalar instead of Scalar and remove this typedef		:: DONE
-//typedef SparseMatrix::Scalar Scalar; 											:: DONE
-//typedef SparseMatrix::RowIndex RowIndex; // todo: same  						:: DONE
-//typedef SparseMatrix::ColIndex ColIndex; // todo: same  						:: DONE
-
-//Scalar modPrime = 11; // todo: remove this variable 							:: DONE
-/*
-class SharwanMatrix {
-public:
-// typedefs for scalar, row index and col index
-// typedef Row to be your representation of a row
-
-  const Scalar& operator[](RowIndex row, ColIndex col) const {return mMatrix[row][col];}
-  Scalar& operator[](RowIndex row, ColIndex col) {return mMatrix[row][col];}
-  
-  Row& operator[](RowIndex) {}
-  const Row& operator[](RowIndex) const {}
-
-  // example of setter. Do not make a setter for modulus, row index or col index. No setters, except for entries of the matrix.
-  void setX(int value) {mX = value;}  
-    
-
-// store matrix, modulus, rowCount and colCount
-// accessor for getting modulus: modulus()
-private:
-  int mX; // todo: remove, just example
-  // all member variables go here. member x is written mX.
-};
-*/
 void addRowMultipleInplace(
   std::vector< std::vector<SparseMatrix::Scalar> >& matrix,
   const SparseMatrix::RowIndex addRow,
@@ -621,11 +588,8 @@ void makeRowUnitary(
   auto multiply = modularInverse(leadingScalar, modulus);
   for(SparseMatrix::ColIndex col = leadingCol; col < colCount; ++col)
     matrix[row][col] = modularProduct(matrix[row][col], multiply, modulus);
-    
-  // todo: use modularProduct on above line    									::DONE
 }
 
-// todo: make this take a parameter startAtCol 									::DONE
 SparseMatrix::ColIndex leadingColumn(
   const std::vector< std::vector<SparseMatrix::Scalar>>& matrix,
   const SparseMatrix::RowIndex row,
@@ -707,9 +671,7 @@ SparseMatrix reduceToEchelonFormShrawan(
     }
   }
 
-  // todo: make modPrime a parameter and rename it to modulus.  				:: DONE
- // modPrime = modulus;  														:: DONE
-  rowReducedEchelonMatrix(matrix, colCount,  modulus);
+  rowReducedEchelonMatrix(matrix, colCount, modulus);
 
   // convert reduced matrix to SparseMatrix.
   SparseMatrix reduced;
@@ -731,7 +693,6 @@ SparseMatrix reduceToEchelonFormShrawanDelayedModulus(
   const SparseMatrix& toReduce,
   SparseMatrix::Scalar modulus
 ) {
-  // todo: implement delayed modulus
   const SparseMatrix::RowIndex rowCount = toReduce.rowCount();
   const auto colCount = toReduce.computeColCount();
 
@@ -793,8 +754,8 @@ SparseMatrix F4MatrixReducer::reducedRowEchelonForm(
     else    
       return reduceToEchelonFormShrawan(matrix, mModulus);
   } else {
-    // todo: actually do some work to determine a good way to determine
-    // when to use the sparse method, or alternatively make some some
+    // todo: actually do some work to find a good way to determine
+    // when to use the sparse method, or alternatively make some
     // sort of hybrid.
     if (matrix.computeDensity() < 0.02)
       return reduceToEchelonFormSparse(matrix, mModulus);

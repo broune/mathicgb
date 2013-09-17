@@ -120,9 +120,9 @@ public:
     /// loop.
     MATHICGB_INLINE
     std::pair<const mapped_type*, const mapped_type*> findTwoProducts(
-      const const_monomial a1,
-      const const_monomial a2,
-      const const_monomial b
+      const ConstMonoRef a1,
+      const ConstMonoRef a2,
+      const ConstMonoRef b
     ) const {
       return mMap.findTwoProducts(a1, a2, b);
     }

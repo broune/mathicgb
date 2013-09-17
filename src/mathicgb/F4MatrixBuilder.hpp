@@ -26,7 +26,7 @@ private:
   typedef QuadMatrixBuilder::LeftRightColIndex LeftRightColIndex;
   typedef QuadMatrixBuilder::Scalar Scalar;
   typedef QuadMatrixBuilder::Map Map;
-  typedef QuadMatrixBuilder::MonomialsType Monomials;
+  typedef QuadMatrixBuilder::Monomials Monomials;
 
 public:
   typedef PolyRing::Monoid Monoid;
@@ -55,7 +55,7 @@ public:
     matrix. No ownership is taken, but poly must remain valid until
     the matrix is constructed. multiple is copied so it need not
     remain valid. */
-  void addPolynomialToMatrix(const_monomial multiple, const Poly& poly);
+  void addPolynomialToMatrix(ConstMonoRef multiple, const Poly& poly);
 
   /// as the overload with a multiple, just letting multiple be the
   /// identity.
@@ -78,6 +78,7 @@ public:
   void buildMatrixAndClear(QuadMatrix& matrix);
 
   const PolyRing& ring() const {return mBuilder.ring();}
+  const Monoid& monoid() const {return mBuilder.ring().monoid();}
 
 private:
   typedef const MonomialMap<LeftRightColIndex>::Reader ColReader;
@@ -88,40 +89,38 @@ private:
   /// where sPairMultiply makes the lead terms cancel.
   struct RowTask {
     bool addToTop; // add the row to the bottom if false
-    monomial desiredLead; // multiply monomial onto poly to get this lead
+    ConstMonoPtr desiredLead; // multiply monomial onto poly to get this lead
     const Poly* poly;
     const Poly* sPairPoly;
-    monomial sPairMultiply;
+    ConstMonoPtr sPairMultiply;
   };
-  typedef ::mgb::mtbb::parallel_do_feeder<RowTask> TaskFeeder;
+  typedef mtbb::parallel_do_feeder<RowTask> TaskFeeder;
 
   /// Creates a column with monomial label x and schedules a new row to
   /// reduce that column if possible. Here x is monoA if monoB is
   /// null and otherwise x is the product of monoA and monoB.
   MATHICGB_NO_INLINE
   std::pair<LeftRightColIndex, ConstMonoRef>
-  createColumn(
-    const_monomial monoA,
-    const_monomial monoB,
-    TaskFeeder& feeder
-  );
+  createColumn(ConstMonoRef monoA, ConstMonoRef monoB, TaskFeeder& feeder);
 
   void appendRowTop(
-    const_monomial multiple,
+    ConstMonoRef multiple,
     const Poly& poly,
     QuadMatrixBuilder& builder,
     TaskFeeder& feeder
   );
+
   void appendRowBottom(
-    const Poly* poly,
-    monomial multiply,
-    const Poly* sPairPoly,
-    monomial sPairMultiply,
+    const Poly& poly,
+    ConstMonoRef multiply,
+    const Poly& sPairPoly,
+    ConstMonoRef sPairMultiply,
     QuadMatrixBuilder& builder,
     TaskFeeder& feeder
   );
+
   void appendRowBottom(
-    const_monomial multiple,
+    ConstMonoRef multiple,
     bool negate,
     Poly::const_iterator begin,
     Poly::const_iterator end,
@@ -132,32 +131,32 @@ private:
   MATHICGB_NO_INLINE
   std::pair<QuadMatrixBuilder::LeftRightColIndex, ConstMonoRef>
   findOrCreateColumn(
-    const_monomial monoA,
-    const_monomial monoB,
+    ConstMonoRef monoA,
+    ConstMonoRef monoB,
     TaskFeeder& feeder
   );
   
   MATHICGB_INLINE
   std::pair<QuadMatrixBuilder::LeftRightColIndex, ConstMonoRef>
   findOrCreateColumn(
-    const_monomial monoA,
-    const_monomial monoB,
+    ConstMonoRef monoA,
+    ConstMonoRef monoB,
     const ColReader& colMap,
     TaskFeeder& feeder
   );
 
   MATHICGB_NO_INLINE
   void createTwoColumns(
-    const const_monomial monoA1,
-    const const_monomial monoA2,
-    const const_monomial monoB,
+    ConstMonoRef monoA1,
+    ConstMonoRef monoA2,
+    ConstMonoRef monoB,
     TaskFeeder& feeder
   );
 
   mgb::mtbb::mutex mCreateColumnLock;
   ColIndex mLeftColCount;
   ColIndex mRightColCount;
-  monomial mTmp;
+  Mono mTmp;
   const PolyBasis& mBasis;
   Monomials mMonomialsLeft;
   Monomials mMonomialsRight;

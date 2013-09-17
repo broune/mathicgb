@@ -127,12 +127,12 @@ public:
   }
 
   void buildMatrixAndClear(std::vector<RowTask>& tasks, QuadMatrix& quadMatrix) {
+    MATHICGB_ASSERT(&quadMatrix.ring() == &ring());
     MATHICGB_LOG_TIME(F4MatrixBuild2) <<
       "\n***** Constructing matrix *****\n";
 
     if (tasks.empty()) {
-      quadMatrix = QuadMatrix();
-      quadMatrix.ring = &ring();
+      quadMatrix.clear();
       return;
     }
 
@@ -259,7 +259,7 @@ public:
   const PolyRing& ring() const {return mBasis.ring();}
   const Monoid& monoid() const {return mBasis.ring().monoid();}
 
-  Builder(const PolyBasis& basis, const size_t memoryQuantum):
+    Builder(const PolyBasis& basis, const size_t memoryQuantum):
     mMemoryQuantum(memoryQuantum),
     mTmp(basis.ring().monoid().alloc()),
     mBasis(basis),
@@ -372,7 +372,7 @@ public:
       const auto scalar2 = static_cast<Scalar>(it2.getCoefficient());
       const auto mono2 = it2.mono();
 
-      const auto colPair = colMap.findTwoProducts(Monoid::toOld(mono1), Monoid::toOld(mono2), Monoid::toOld(multiple));
+      const auto colPair = colMap.findTwoProducts(mono1, mono2, multiple);
       if (colPair.first == 0 || colPair.second == 0) {
         createColumn(mono1, multiple, feeder);
         createColumn(mono2, multiple, feeder);

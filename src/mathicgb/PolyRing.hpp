@@ -299,7 +299,7 @@ public:
 
   // Only call this method for monomials returned by allocMonomial().
   void freeMonomial(Monomial m) const {
-    monoid().freeRaw(m);
+    monoid().freeRaw(Monoid::MonoPtr(m));
   }
 
   // Free monomials allocated here by calling freeMonomial().

@@ -33,7 +33,7 @@ void SparseMatrix::takeRowsFrom(SparseMatrix&& matrix) {
 
 void SparseMatrix::rowToPolynomial(
   const RowIndex row,
-  const std::vector<monomial>& colMonomials,
+  const std::vector<PolyRing::Monoid::ConstMonoPtr>& colMonomials,
   Poly& poly
 ) {
   poly.setToZero();
@@ -42,7 +42,7 @@ void SparseMatrix::rowToPolynomial(
   for (auto it = rowBegin(row); it != end; ++it) {
     MATHICGB_ASSERT(it.index() < colMonomials.size());
     if (it.scalar() != 0)
-      poly.appendTerm(it.scalar(), colMonomials[it.index()]);
+      poly.appendTerm(it.scalar(), Monoid::toOld(*colMonomials[it.index()]));
   }
   MATHICGB_ASSERT(poly.termsAreInDescendingOrder());
 }

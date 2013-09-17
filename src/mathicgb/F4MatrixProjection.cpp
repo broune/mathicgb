@@ -269,8 +269,7 @@ done:;
   bottom.appendRowsPermuted(tb.moveBottom());
 
   // Move the data into place
-  QuadMatrix qm;
-  qm.ring = &ring();
+  QuadMatrix qm(ring());
   qm.leftColumnMonomials = std::move(mLeftMonomials);
   qm.rightColumnMonomials = std::move(mRightMonomials);
 
@@ -346,11 +345,10 @@ QuadMatrix F4MatrixProjection::makeAndClearTwoStep(const size_t quantum) {
   }
   MATHICGB_ASSERT(tb.debugAssertValid());
 
-  QuadMatrix qm;
+  QuadMatrix qm(ring());
   auto left = projectRows(tb, quantum, lr.moveLeft());
   auto right = projectRows(tb, quantum, lr.moveRight());
 
-  qm.ring = &ring();
   qm.topLeft = std::move(left.first);
   qm.bottomLeft = std::move(left.second);
   qm.topRight = std::move(right.first);

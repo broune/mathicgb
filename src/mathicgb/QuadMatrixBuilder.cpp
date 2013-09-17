@@ -12,8 +12,8 @@ MATHICGB_NAMESPACE_BEGIN
 QuadMatrixBuilder::QuadMatrixBuilder(
   const PolyRing& ring,
   Map& map,
-  MonomialsType& monomialsLeft,
-  MonomialsType& monomialsRight,
+  Monomials& monomialsLeft,
+  Monomials& monomialsRight,
   const size_t memoryQuantum
 ):
   mMonomialToCol(map),
@@ -26,7 +26,7 @@ QuadMatrixBuilder::QuadMatrixBuilder(
 {}
 
 void QuadMatrixBuilder::takeRowsFrom(QuadMatrix&& matrix) {
-  MATHICGB_ASSERT(&ring() == matrix.ring);
+  MATHICGB_ASSERT(&ring() == &matrix.ring());
   MATHICGB_ASSERT(matrix.debugAssertValid());
 
   mTopLeft.takeRowsFrom(std::move(matrix.topLeft));
@@ -59,7 +59,8 @@ namespace {
     if (colCount == std::numeric_limits<QuadMatrixBuilder::ColIndex>::max())
       throw std::overflow_error("Too many columns in QuadMatrixBuilder");
 
-    toMonomial.push_back(0); // allocate memory now to avoid bad_alloc later
+    // allocate memory in toMonomial now to avoid bad_alloc later
+    toMonomial.emplace_back(nullptr);
     monomial copied = ring.allocMonomial();
     ring.monomialCopy(mono, copied);
     std::pair<QuadMatrixBuilder::LeftRightColIndex, ConstMonomial> p;
@@ -114,13 +115,12 @@ QuadMatrixBuilder::createColumnRight(
 }
 
 QuadMatrix QuadMatrixBuilder::buildMatrixAndClear() {
-  QuadMatrix out;
+  QuadMatrix out(ring());
 
   mTopLeft.swap(out.topLeft);
   mTopRight.swap(out.topRight);
   mBottomLeft.swap(out.bottomLeft);
   mBottomRight.swap(out.bottomRight);
-  out.ring = &ring();
 
   mTopLeft.clear();
   mTopRight.clear();

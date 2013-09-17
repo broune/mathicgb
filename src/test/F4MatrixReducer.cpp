@@ -14,9 +14,7 @@ using namespace mgb;
 
 TEST(F4MatrixReducer, Reduce) {
   auto ring = ringFromString("101 6 1\n10 1 1 1 1 1");
-
-  QuadMatrix m;
-  m.ring = ring.get();
+  QuadMatrix m(*ring);
 
   Poly p(*ring);
   std::istringstream in("a4+a3+a2+a1+b5+b4+b3+b2+b1");

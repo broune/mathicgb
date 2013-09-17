@@ -8,6 +8,7 @@
 #include "mathicgb/io-util.hpp"
 #include "mathicgb/Basis.hpp"
 #include "mathicgb/QuadMatrix.hpp"
+#include "mathicgb/MathicIO.hpp"
 #include <gtest/gtest.h>
 
 using namespace mgb;
@@ -16,6 +17,16 @@ namespace {
   std::string monToStr(const PolyRing& ring, ConstMonomial a) {
     std::ostringstream out;
     ring.monomialDisplay(out, a, false, true);
+    return out.str();
+  }
+
+  template<class Monoid>
+  std::string monoToStr(
+    const Monoid& monoid,
+    typename Monoid::ConstMonoRef a
+  ) {
+    std::ostringstream out;
+    MathicIO<Monoid>().writeMonomial(monoid, false, a, out);
     return out.str();
   }
 
@@ -61,8 +72,8 @@ TEST(QuadMatrixBuilder, Empty) {
   // test a builder with no rows and no columns
   PolyRing ring(2, PolyRing::Monoid(0));
   QuadMatrixBuilder::Map map(ring);
-  QuadMatrixBuilder::MonomialsType monoLeft;
-  QuadMatrixBuilder::MonomialsType monoRight;
+  QuadMatrixBuilder::Monomials monoLeft;
+  QuadMatrixBuilder::Monomials monoRight;
   QuadMatrixBuilder b(ring, map, monoLeft, monoRight);
   const char* matrixStr = 
     "Left columns:\n"
@@ -79,8 +90,8 @@ TEST(QuadMatrixBuilder, Empty) {
 TEST(QuadMatrixBuilder, Construction) {
   std::unique_ptr<PolyRing> ring(ringFromString("32003 6 1\n1 1 1 1 1 1"));
   QuadMatrixBuilder::Map map(*ring);
-  QuadMatrixBuilder::MonomialsType monoLeft;
-  QuadMatrixBuilder::MonomialsType monoRight;
+  QuadMatrixBuilder::Monomials monoLeft;
+  QuadMatrixBuilder::Monomials monoRight;
   QuadMatrixBuilder b(*ring, map, monoLeft, monoRight);
   createColumns("a<1>+<0>", "bc<0>+b<0>+c<0>", b);
 
@@ -122,8 +133,8 @@ TEST(QuadMatrixBuilder, Construction) {
 TEST(QuadMatrixBuilder, ColumnQuery) {
   std::unique_ptr<PolyRing> ring(ringFromString("32003 6 1\n1 1 1 1 1 1"));
   QuadMatrixBuilder::Map map(*ring);
-  QuadMatrixBuilder::MonomialsType monoLeft;
-  QuadMatrixBuilder::MonomialsType monoRight;
+  QuadMatrixBuilder::Monomials monoLeft;
+  QuadMatrixBuilder::Monomials monoRight;
   QuadMatrixBuilder b(*ring, map, monoLeft, monoRight);
   createColumns("a<1>+<0>", "b<0>+c<0>+bc<0>", b);
 
@@ -156,8 +167,8 @@ TEST(QuadMatrixBuilder, SortColumns) {
   // one row top, no rows bottom, no columns
   {
     QuadMatrixBuilder::Map map(*ring);
-    QuadMatrixBuilder::MonomialsType monoLeft;
-    QuadMatrixBuilder::MonomialsType monoRight;
+    QuadMatrixBuilder::Monomials monoLeft;
+    QuadMatrixBuilder::Monomials monoRight;
     QuadMatrixBuilder b(*ring, map, monoLeft, monoRight);
     b.rowDoneTopLeftAndRight();
     auto matrix = b.buildMatrixAndClear();
@@ -173,8 +184,8 @@ TEST(QuadMatrixBuilder, SortColumns) {
 
   {
     QuadMatrixBuilder::Map map(*ring);
-    QuadMatrixBuilder::MonomialsType monoLeft;
-    QuadMatrixBuilder::MonomialsType monoRight;
+    QuadMatrixBuilder::Monomials monoLeft;
+    QuadMatrixBuilder::Monomials monoRight;
     QuadMatrixBuilder b(*ring, map, monoLeft, monoRight);
     createColumns("<0>+a<0>", "b<0>+bcd<0>+bc<0>", b);
     b.appendEntryTopLeft(0,1);
@@ -219,8 +230,8 @@ TEST(QuadMatrixBuilder, SortColumns) {
 TEST(QuadMatrixBuilder, BuildAndClear) {
   std::unique_ptr<PolyRing> ring(ringFromString("32003 6 1\n1 1 1 1 1 1"));
   QuadMatrixBuilder::Map map(*ring);
-  QuadMatrixBuilder::MonomialsType monoLeft;
-  QuadMatrixBuilder::MonomialsType monoRight;
+  QuadMatrixBuilder::Monomials monoLeft;
+  QuadMatrixBuilder::Monomials monoRight;
   QuadMatrixBuilder b(*ring, map, monoLeft, monoRight);
   createColumns("a<1>+<0>", "b<0>+c<0>+bc<0>", b);
 
@@ -243,6 +254,8 @@ TEST(QuadMatrixBuilder, BuildAndClear) {
   ASSERT_EQ("0: 2#4\n", qm.bottomRight.toString());
   ASSERT_EQ(2, qm.leftColumnMonomials.size());
   ASSERT_EQ(3, qm.rightColumnMonomials.size());
-  ASSERT_EQ("a", monToStr(*ring, qm.leftColumnMonomials[0]));
-  ASSERT_EQ("b", monToStr(*ring, qm.rightColumnMonomials[0]));
+
+  const auto& monoid = ring->monoid();
+  ASSERT_EQ("a", monoToStr(monoid, *qm.leftColumnMonomials[0]));
+  ASSERT_EQ("b", monoToStr(monoid, *qm.rightColumnMonomials[0]));
 }
