@@ -67,18 +67,16 @@ SignatureGB::SignatureGB(
     GB->addComponent();
 
   for (Component i = 0; i < componentCount; i++) {
-    Poly *g = new Poly(*R);
+    auto g = make_unique<Poly>(*R);
     basis.getPoly(i)->copy(*g);
     g->makeMonic();
 
-    monomial sig = 0;
-    sig = R->allocMonomial();
-    R->monomialEi(i, sig);
-    mProcessor->preprocess(sig);
-    {
-      std::unique_ptr<Poly> autoG(g);
-      GB->insert(sig, std::move(autoG));
-    }
+    auto sig = monoid().alloc();
+    monoid().setIdentity(*sig);
+    monoid().setComponent(i, *sig);
+    mProcessor->preprocess(*sig);
+
+    GB->insert(std::move(sig), std::move(g));
   }
 
   // Populate SP
@@ -107,7 +105,7 @@ void SignatureGB::computeGrobnerBasis()
         if (Hsyz->member(*sig))
           ++syzygySigs;
         else
-          GB->minimalLeadInSig(Monoid::toOld(*sig));
+          GB->minimalLeadInSig(*sig);
       }
       const double syzygyRatio = static_cast<double>(syzygySigs) / sigs;
       std::cerr << "*** Early exit statistics ***\n"
@@ -150,7 +148,7 @@ bool SignatureGB::processSPair
   MATHICGB_ASSERT(!pairs.empty());
 
   // the module term to reduce is multiple * GB->getSignature(gen)
-  size_t gen = GB->minimalLeadInSig(Monoid::toOld(*sig));
+  size_t gen = GB->minimalLeadInSig(*sig);
   MATHICGB_ASSERT(gen != static_cast<size_t>(-1));
   monomial multiple = R->allocMonomial();
   monoid().divide(GB->signature(gen), *sig, multiple);
@@ -176,11 +174,9 @@ bool SignatureGB::processSPair
   }
 
   // new basis element
-  MATHICGB_ASSERT(!GB->isSingularTopReducibleSlow(*f, Monoid::toOld(*sig)));
+  MATHICGB_ASSERT(!GB->isSingularTopReducibleSlow(*f, *sig));
 
-  // todo: what are the correct ownership relations here?
-  auto ptr = sig.release();
-  GB->insert(Monoid::toOld(*ptr), std::move(f));
+  GB->insert(std::move(sig), std::move(f));
 
   MATHICGB_LOG(SigSPairFinal) << "   s-reduced to new basis element.\n";
 

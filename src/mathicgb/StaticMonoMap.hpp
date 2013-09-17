@@ -168,8 +168,7 @@ public:
     const SigPolyBasis& sigBasis,
     const bool preferSparseReducers
   ) const {
-    SigPolyBasis::StoredRatioCmp ratioCmp
-      (Monoid::toOld(sig), Monoid::toOld(mono), sigBasis);
+    SigPolyBasis::StoredRatioCmp ratioCmp(sig, mono, sigBasis);
     const auto& basis = sigBasis.basis();
 
     auto reducer = size_t(-1);

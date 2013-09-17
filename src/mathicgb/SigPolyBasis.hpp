@@ -65,8 +65,8 @@ public:
   void addComponent();
 
   // Takes over ownership of sig and f. sig must come from the pool
-  // of ring() and f must have been allocated with new.
-  void insert(monomial sig, std::unique_ptr<Poly> f);
+  // of ring().
+  void insert(Mono sig, std::unique_ptr<Poly> f);
 
   ConstMonoRef signature(size_t gen) const {
     MATHICGB_ASSERT(gen < size());
@@ -77,7 +77,7 @@ public:
   // signature sig. Returns -1 if no such element exists. A basis element
   // u is a regular reducer if leadTerm(u) divides term
   // and (term / leadTerm(u)) * signature(u) < sig.
-  size_t regularReducer(const_monomial sig, const_monomial term) const;
+  size_t regularReducer(ConstMonoRef sig, ConstMonoRef term) const;
 
   // Uses the functionality in the divisor finder for
   // computing up to maxDivisors low ratio base divisors.
@@ -85,7 +85,8 @@ public:
   void lowBaseDivisors(
     std::vector<size_t>& divisors,
     size_t maxDivisors,
-    size_t newGenerator) const;
+    size_t newGenerator
+  ) const;
 
   // Uses the functionality in the divisor finder for
   // computing a high base divisor. Returns the index
@@ -94,7 +95,7 @@ public:
 
   // Find the basis element g_i whose signature S divides sig
   // such that (S/sig)g_i has minimal leading term. Returns i.
-  size_t minimalLeadInSig(const_monomial sig) const;
+  size_t minimalLeadInSig(ConstMonoRef sig) const;
 
   // Returns true if poly can be singular reduced in signature sig.
   // In other words, returns true if there is a basis element with
@@ -102,7 +103,7 @@ public:
   // of poly and such that N/M*S == sig. This is slow because it is
   // currently only used for asserts - implement a fast version if
   // that changes.
-  bool isSingularTopReducibleSlow(const Poly& poly, const_monomial sig) const;
+  bool isSingularTopReducibleSlow(const Poly& poly, ConstMonoRef sig) const;
 
   void display(std::ostream& out) const;
   void displayFancy(std::ostream& out, const Processor& processor) const;
@@ -121,8 +122,8 @@ public:
     // Stores the ratio numerator/denominator and prepares it for comparing
     // to the sig/lead ratios in basis.
     StoredRatioCmp(
-      const_monomial numerator,
-      const_monomial denominator,
+      ConstMonoRef numerator,
+      ConstMonoRef denominator,
       const SigPolyBasis& basis);
     ~StoredRatioCmp();
 
@@ -141,8 +142,8 @@ public:
 
 private:
   // Slow versions use simpler code. Used to check results in debug mode.
-  size_t regularReducerSlow(const_monomial sig, const_monomial term) const;
-  size_t minimalLeadInSigSlow(const_monomial sig) const;
+  size_t regularReducerSlow(ConstMonoRef sig, ConstMonoRef term) const;
+  size_t minimalLeadInSigSlow(ConstMonoRef sig) const;
   size_t highBaseDivisorSlow(size_t newGenerator) const;
   void lowBaseDivisorsSlow(
     std::vector<size_t>& divisors,

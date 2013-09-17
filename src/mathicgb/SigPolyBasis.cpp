@@ -53,25 +53,24 @@ void SigPolyBasis::addComponent() {
   mSignatureLookup.back() = lookup.release(); // only release after alloc
 }
 
-void SigPolyBasis::insert(monomial sig, std::unique_ptr<Poly> f)
-{
-  MATHICGB_ASSERT(f.get() != 0);
+void SigPolyBasis::insert(Mono ownedSig, std::unique_ptr<Poly> f) {
+  MATHICGB_ASSERT(f.get() != nullptr);
+  MATHICGB_ASSERT(!f->isZero());
   MATHICGB_ASSERT(f->getLeadCoefficient() != 0);
-  // This assert really should work. todo: why doesn't it?
-  //MATHICGB_ASSERT(sig.isNull() || ring().fromPool(sig));
+  MATHICGB_ASSERT(!ownedSig.isNull());
+  MATHICGB_ASSERT(monoid().fromPool(*ownedSig));
+
   const size_t index = mSignatures.size();
-
-  mSignatures.push_back(sig);
+  mSignatures.push_back(Monoid::toOld(*ownedSig.release()));
+  auto sig = mSignatures.back();
   
-  monomial ratio = 0;
-  if (!sig.isNull()) {
-    const size_t component = ring().monomialGetComponent(sig);
-    MATHICGB_ASSERT(component < mSignatureLookup.size());
-    mSignatureLookup[component]->insert(sig, index);
+  const size_t component = ring().monomialGetComponent(sig);
+  MATHICGB_ASSERT(component < mSignatureLookup.size());
+  mSignatureLookup[component]->insert(sig, index);
 
-    ratio = ring().allocMonomial();
-    ring().monomialDivideToNegative(sig, f->getLeadMonomial(), ratio);
-  }
+  auto ratio = ring().allocMonomial();
+  ring().monomialDivideToNegative(sig, f->getLeadMonomial(), ratio);
+
   mSigLeadRatio.push_back(ratio);
 
   const_monomial const lead = f->getLeadMonomial();
@@ -166,8 +165,8 @@ again:
 }
 
 size_t SigPolyBasis::regularReducer(
-  const_monomial sig,
-  const_monomial term
+  ConstMonoRef sig,
+  ConstMonoRef term
 ) const {
   size_t reducer = monoLookup().regularReducer(sig, term);
 #ifdef MATHICGB_SLOW_DEBUG
@@ -189,8 +188,8 @@ size_t SigPolyBasis::regularReducer(
 }
 
 size_t SigPolyBasis::regularReducerSlow(
-  const_monomial sig,
-  const_monomial term
+  ConstMonoRef sig,
+  ConstMonoRef term
 ) const {
   monomial m = ring().allocMonomial();
   const size_t stop = size();
@@ -296,20 +295,19 @@ size_t SigPolyBasis::highBaseDivisorSlow(size_t newGenerator) const {
   return highDivisor;
 }
 
-size_t SigPolyBasis::minimalLeadInSig(const_monomial sig) const {
-  MATHICGB_ASSERT(! sig.isNull() );
-  const size_t component = ring().monomialGetComponent(sig);
-  const size_t minLeadGen = mSignatureLookup[component]->minimalLeadInSig(sig);
+size_t SigPolyBasis::minimalLeadInSig(ConstMonoRef sig) const {
+  const auto component = monoid().component(sig);
+  const auto minLeadGen = mSignatureLookup[component]->minimalLeadInSig(sig);
   MATHICGB_ASSERT(minLeadGen == minimalLeadInSigSlow(sig));
   return minLeadGen;
 }
 
-size_t SigPolyBasis::minimalLeadInSigSlow(const_monomial sig) const {
+size_t SigPolyBasis::minimalLeadInSigSlow(ConstMonoRef sig) const {
   monomial multiplier = ring().allocMonomial();
   monomial minLead = ring().allocMonomial();
 
   size_t minLeadGen = static_cast<size_t>(-1);
-  const int sigComponent = ring().monomialGetComponent(sig);
+  const auto sigComponent = monoid().component(sig);
   const size_t genCount = size();
   for (size_t gen = 0; gen < genCount; ++gen) {
     if (monoid().component(signature(gen)) != sigComponent)
@@ -354,9 +352,10 @@ size_t SigPolyBasis::minimalLeadInSigSlow(const_monomial sig) const {
   return minLeadGen;
 }
 
-bool SigPolyBasis::isSingularTopReducibleSlow
-(const Poly& poly, const_monomial sig) const {
-  MATHICGB_ASSERT( ! sig.isNull() );
+bool SigPolyBasis::isSingularTopReducibleSlow(
+  const Poly& poly,
+  ConstMonoRef sig
+) const {
   if (poly.isZero())
     return false;
 
@@ -475,14 +474,16 @@ size_t SigPolyBasis::ratioRank(const_monomial ratio) const {
 }
 
 SigPolyBasis::StoredRatioCmp::StoredRatioCmp(
-  const_monomial numerator,
-  const_monomial denominator,
-  const SigPolyBasis& basis):
+  ConstMonoRef numerator,
+  ConstMonoRef denominator,
+  const SigPolyBasis& basis
+):
   mBasis(basis)
 {
-  const PolyRing& ring = basis.ring();
-  mRatio = ring.allocMonomial();
-  ring.monomialDivideToNegative(numerator, denominator, mRatio);
+  const auto& monoid = basis.ring().monoid();
+  mRatio = Monoid::toOld(*monoid.alloc().release());
+
+  monoid.divideToNegative(denominator, numerator, mRatio);
 
   if (SigPolyBasis::mUseRatioRank) {
     mRatioRank = basis.ratioRank(mRatio);

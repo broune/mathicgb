@@ -1177,7 +1177,7 @@ public:
       freeRaw(*mono);
   }
 
-  bool fromPool(ConstMonoRef mono) const {mPool.fromPool(mono);}
+  bool fromPool(ConstMonoRef mono) const {return mPool.fromPool(mono);}
 
   // *** Classes for holding and referring to monomials
 

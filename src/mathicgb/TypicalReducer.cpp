@@ -36,7 +36,7 @@ std::unique_ptr<Poly> TypicalReducer::regularReduce(
   monomial u = ring.allocMonomial(mArena);
   monoid.multiply(multiple, basis.leadMono(basisElement), tproduct);
 
-  size_t reducer = basis.regularReducer(Monoid::toOld(sig), tproduct);
+  auto reducer = basis.regularReducer(sig, tproduct);
   if (reducer == static_cast<size_t>(-1)) {
     mArena.freeAllAllocs();
     return nullptr; // singular reduction: no regular top reduction possible
@@ -58,7 +58,7 @@ std::unique_ptr<Poly> TypicalReducer::regularReduce(
   unsigned long long steps = 2; // number of steps in this reduction
   for (const_term v; leadTerm(v);) {
     MATHICGB_ASSERT(v.coeff != 0);
-    reducer = basis.regularReducer(Monoid::toOld(sig), v.monom);
+    reducer = basis.regularReducer(sig, v.monom);
     if (reducer == static_cast<size_t>(-1)) { // no reducer found
       result->appendTerm(v.coeff, v.monom);
       removeLeadTerm();
