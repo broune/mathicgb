@@ -6,7 +6,6 @@
 #include "mathicgb/Basis.hpp"
 #include "mathicgb/ModuleMonoSet.hpp"
 #include "mathicgb/io-util.hpp"
-#include "mathicgb/MonomialHashTable.hpp"
 #include "mathicgb/SigPolyBasis.hpp"
 #include "mathicgb/SignatureGB.hpp"
 #include <gtest/gtest.h>
@@ -731,21 +730,3 @@ std::string somePolys =
   cde2f4+d2e2f4+ae3f4+be3f4+ce3f4+e4f4+bc2f5+b2df5+c2df5+ad2f5+cd2f5+d3f5+acef5+adef5+bdef5+d2ef5+ce2f5+e3f5\n\
   d2e3f4+de4f4+bc2df5+abd2f5+bcd2f5+c2d2f5+bc2ef5+abdef5+bd2ef5+d3ef5+b2e2f5+ace2f5+bce2f5+cde2f5+ae3f5+de3f5\n\
 ";
-
-TEST(MonomialHashTable,test1) {
-  std::unique_ptr<PolyRing> R = ringFromString("32003 6 1\n1 1 1 1 1 1");
-  MonomialHashTable H(R.get(), 3);
-  std::unique_ptr<Poly> f1 = polyParseFromString(R.get(), "3bd2+7cd2+5c2f+2adf+bdf+10cef");
-  int count = 0;
-  int was_there_count = 0;
-  for (int j = 0; j<10; j++)
-    for (Poly::iterator i = f1->begin(); i != f1->end(); ++i)
-      {
-	bool was_there = H.lookupAndInsert(i.getMonomial(), count);
-	count++;
-	if (was_there) was_there_count++;
-      }
-  MonomialHashTable::Stats stats;
-  H.getStats(stats);
-  //H.dump(1);
-}

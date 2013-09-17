@@ -442,7 +442,6 @@
     <ClCompile Include="..\..\..\src\mathicgb.cpp" />
     <ClCompile Include="..\..\..\src\mathicgb\Basis.cpp" />
     <ClCompile Include="..\..\..\src\mathicgb\CFile.cpp" />
-    <ClCompile Include="..\..\..\src\mathicgb\ChainedHashTable.cpp" />
     <ClCompile Include="..\..\..\src\mathicgb\ClassicGBAlg.cpp" />
     <ClCompile Include="..\..\..\src\mathicgb\F4MatrixBuilder.cpp" />
     <ClCompile Include="..\..\..\src\mathicgb\F4MatrixBuilder2.cpp" />
@@ -483,7 +482,6 @@
     <ClInclude Include="..\..\..\src\mathicgb\Atomic.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\Basis.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\CFile.hpp" />
-    <ClInclude Include="..\..\..\src\mathicgb\ChainedHashTable.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\ClassicGBAlg.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\F4MatrixBuilder.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\F4MatrixBuilder2.hpp" />
@@ -499,7 +497,6 @@
     <ClInclude Include="..\..\..\src\mathicgb\MathicIO.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\ModuleMonoSet.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\MonoLookup.hpp" />
-    <ClInclude Include="..\..\..\src\mathicgb\MonomialHashTable.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\MonomialMap.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\MonoMonoid.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\MonoOrder.hpp" />

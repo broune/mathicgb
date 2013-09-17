@@ -11,9 +11,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\src\mathicgb\ChainedHashTable.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\src\mathicgb\F4MatrixBuilder.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -127,9 +124,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\src\mathicgb\ChainedHashTable.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\src\mathicgb\F4MatrixBuilder.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -143,9 +137,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\src\mathicgb\KoszulQueue.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\mathicgb\MonomialHashTable.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\src\mathicgb\PairTriangle.hpp">
