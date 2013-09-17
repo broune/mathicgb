@@ -21,8 +21,7 @@ libmathicgb_la_SOURCES = src/mathicgb/ReducerPack.hpp					\
   src/mathicgb/Basis.cpp src/mathicgb/Basis.hpp							\
   src/mathicgb/io-util.cpp src/mathicgb/io-util.hpp						\
   src/mathicgb/KoszulQueue.hpp src/mathicgb/ModuleMonoSet.cpp			\
-  src/mathicgb/ModuleMonoSet.hpp src/mathicgb/PairTriangle.cpp			\
-  src/mathicgb/PairTriangle.hpp src/mathicgb/Poly.cpp					\
+  src/mathicgb/ModuleMonoSet.hpp src/mathicgb/Poly.cpp					\
   src/mathicgb/Poly.hpp src/mathicgb/PolyBasis.cpp						\
   src/mathicgb/PolyBasis.hpp src/mathicgb/PolyHashTable.cpp				\
   src/mathicgb/PolyHashTable.hpp src/mathicgb/PolyRing.cpp				\

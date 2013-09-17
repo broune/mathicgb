@@ -227,7 +227,7 @@ public:
     const auto colEnd = columns.end();
     for (auto it = columns.begin(); it != colEnd; ++it) {
       const auto p = *it;
-      projection.addColumn(p.first, Monoid::toOld(*p.second), mIsColumnToLeft[p.first]);
+      projection.addColumn(p.first, *p.second, mIsColumnToLeft[p.first]);
     }
 
     quadMatrix = projection.makeAndClear(mMemoryQuantum);

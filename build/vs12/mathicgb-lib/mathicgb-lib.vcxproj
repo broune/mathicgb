@@ -454,7 +454,6 @@
     <ClCompile Include="..\..\..\src\mathicgb\LogDomainSet.cpp" />
     <ClCompile Include="..\..\..\src\mathicgb\ModuleMonoSet.cpp" />
     <ClCompile Include="..\..\..\src\mathicgb\MonoLookup.cpp" />
-    <ClCompile Include="..\..\..\src\mathicgb\PairTriangle.cpp" />
     <ClCompile Include="..\..\..\src\mathicgb\Poly.cpp" />
     <ClCompile Include="..\..\..\src\mathicgb\PolyBasis.cpp" />
     <ClCompile Include="..\..\..\src\mathicgb\PolyHashTable.cpp" />
@@ -503,7 +502,6 @@
     <ClInclude Include="..\..\..\src\mathicgb\MonoProcessor.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\mtbb.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\NonCopyable.hpp" />
-    <ClInclude Include="..\..\..\src\mathicgb\PairTriangle.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\Poly.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\PolyBasis.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\PolyHashTable.hpp" />

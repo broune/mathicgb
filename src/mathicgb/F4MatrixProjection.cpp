@@ -17,29 +17,27 @@ F4MatrixProjection::F4MatrixProjection(
 
 void F4MatrixProjection::addColumn(
   const ColIndex projectFrom,
-  const const_monomial mono,
+  ConstMonoRef mono,
   const bool isLeft
 ) {
   MATHICGB_ASSERT(projectFrom < mColProjectTo.size());
   MATHICGB_ASSERT
     (mLeftMonomials.size() + mRightMonomials.size() < mColProjectTo.size());
 
-  auto monoCopy = mRing.allocMonomial();
-  MATHICGB_SCOPE_EXIT(monoGuard) {mRing.freeMonomial(monoCopy);};
-  mRing.monomialCopy(mono, monoCopy);
+  auto monoCopy = mRing.monoid().alloc();
+  mRing.monoid().copy(mono, *monoCopy);
 
   auto& projected = mColProjectTo[projectFrom];
   if (isLeft) {
     projected.isLeft = true;
     projected.index = static_cast<ColIndex>(mLeftMonomials.size());
-    mLeftMonomials.push_back(monoCopy);
+    mLeftMonomials.push_back(monoCopy.ptr());
   } else {
     projected.isLeft = false;
     projected.index = static_cast<ColIndex>(mRightMonomials.size());
-    mRightMonomials.push_back(monoCopy);
+    mRightMonomials.push_back(monoCopy.ptr());
   }
-
-  monoGuard.dismiss();
+  monoCopy.release();
 }
 
 struct RowData : F4ProtoMatrix::Row {

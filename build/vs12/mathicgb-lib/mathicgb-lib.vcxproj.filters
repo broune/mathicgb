@@ -23,9 +23,6 @@
     <ClCompile Include="..\..\..\src\mathicgb\io-util.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\src\mathicgb\PairTriangle.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\src\mathicgb\Poly.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -137,9 +134,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\src\mathicgb\KoszulQueue.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\mathicgb\PairTriangle.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\src\mathicgb\Poly.hpp">

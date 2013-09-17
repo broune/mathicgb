@@ -30,7 +30,7 @@ public:
   void addProtoMatrix(F4ProtoMatrix&& matrix) {mMatrices.push_back(&matrix);}
 
   // No reference to mono is retained.
-  void addColumn(ColIndex index, const_monomial mono, const bool isLeft);
+  void addColumn(ColIndex index, ConstMonoRef mono, const bool isLeft);
 
   QuadMatrix makeAndClear(const size_t quantum);
 
