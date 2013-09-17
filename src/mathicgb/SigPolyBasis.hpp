@@ -13,8 +13,8 @@
 
 MATHICGB_NAMESPACE_BEGIN
 
-#ifndef USE_RATIO_RANK
-#define USE_RATIO_RANK true
+#ifndef MATHICGB_USE_RATIO_RANK
+#define MATHICGB_USE_RATIO_RANK true
 #endif
 
 class SigPolyBasis {
@@ -56,7 +56,7 @@ public:
 
   ConstMonoRef sigLeadRatio(size_t gen) const {
     MATHICGB_ASSERT(gen < size());
-    return mSigLeadRatio[gen];
+    return *mSigLeadRatio[gen];
   }
 
   // Signifies that the module has taken on another e_i.
@@ -70,7 +70,7 @@ public:
 
   ConstMonoRef signature(size_t gen) const {
     MATHICGB_ASSERT(gen < size());
-    return mSignatures[gen];
+    return *mSignatures[gen];
   }
 
   // Returns the index of a basis element that regular reduces term in
@@ -125,7 +125,6 @@ public:
       ConstMonoRef numerator,
       ConstMonoRef denominator,
       const SigPolyBasis& basis);
-    ~StoredRatioCmp();
 
     // compares the stored ratio to the basis element with index be.
     inline int compare(size_t be) const;
@@ -136,8 +135,8 @@ public:
 
     const SigPolyBasis& mBasis;
     size_t mRatioRank;
-    monomial mRatio;
-    mutable monomial mTmp;
+    Mono mRatio;
+    mutable Mono mTmp;
   };
 
 private:
@@ -148,7 +147,8 @@ private:
   void lowBaseDivisorsSlow(
     std::vector<size_t>& divisors,
     size_t maxDivisors,
-    size_t newGenerator) const;
+    size_t newGenerator
+  ) const;
 
   friend class StoredRatioCmp;
 
@@ -156,40 +156,44 @@ private:
 
   std::unique_ptr<MonoLookup::Factory const> const mMonoLookupFactory;
 
-  // may change at next insert!
+  /// The ratio rank can change at each insert!
   size_t ratioRank(size_t index) const {
     MATHICGB_ASSERT(index < size());
     return mRatioRanks[index];
   }
 
   // Only useful for comparing to basis elements. Two ratios might get the same
-  // rank without being equal. The proper rank may change when a new generator
+  // rank without being equal. All ranks can change when a new generator
   // is added.
-  size_t ratioRank(const_monomial ratio) const;
+  size_t ratioRank(ConstMonoRef ratio) const;
 
-  std::vector<monomial> mSignatures;
+  std::vector<MonoPtr> mSignatures;
 
   // the ratio signature/initial term including negative entries and module component
-  std::vector<monomial> mSigLeadRatio;
+  std::vector<MonoPtr> mSigLeadRatio;
 
   // true if giving each generator an integer id based on its
   // position in a sorted order of sig-lead ratios.
-  static const bool mUseRatioRank = USE_RATIO_RANK;
-  static const bool mUseStoredRatioRank = USE_RATIO_RANK;
+  static const bool mUseRatioRank = MATHICGB_USE_RATIO_RANK;
+  static const bool mUseStoredRatioRank = MATHICGB_USE_RATIO_RANK;
+
   class RatioOrder {
   public:
-    RatioOrder(std::vector<monomial>& ratio, const Monoid& monoid):
+    RatioOrder(std::vector<MonoPtr>& ratio, const Monoid& monoid):
       mRatio(ratio), mMonoid(monoid) {}
+
     bool operator()(size_t a, size_t b) const {
-      return mMonoid.lessThan(mRatio[a], mRatio[b]);
+      return mMonoid.lessThan(*mRatio[a], *mRatio[b]);
     }
+
   private:
-    std::vector<monomial>& mRatio;
+    std::vector<MonoPtr>& mRatio;
     const Monoid& mMonoid;
   };
-  typedef std::multiset<size_t, RatioOrder> RatioSortedType;
+
+  typedef std::multiset<size_t, RatioOrder> RatioSorted;
   typedef size_t Rank;
-  RatioSortedType mRatioSorted;
+  RatioSorted mRatioSorted;
   std::vector<Rank> mRatioRanks;
 
   std::vector<MonoLookup*> mSignatureLookup;
@@ -234,7 +238,7 @@ inline int SigPolyBasis::StoredRatioCmp::compare(size_t be) const {
   if (SigPolyBasis::mUseStoredRatioRank) {
 #ifdef MATHICGB_DEBUG
     const auto value =
-      mBasis.monoid().compare(mRatio, mBasis.sigLeadRatio(be));
+      mBasis.monoid().compare(*mRatio, mBasis.sigLeadRatio(be));
 #endif
     SigPolyBasis::Rank otherRank = mBasis.ratioRank(be);
     if (mRatioRank < otherRank) {
@@ -248,10 +252,10 @@ inline int SigPolyBasis::StoredRatioCmp::compare(size_t be) const {
       return EQ;
     }
   } else {
-    mBasis.monoid().multiply(mRatio, mBasis.leadMono(be), mTmp);
-    const auto value = mBasis.monoid().compare(mTmp, mBasis.signature(be));
+    mBasis.monoid().multiply(*mRatio, mBasis.leadMono(be), *mTmp);
+    const auto value = mBasis.monoid().compare(*mTmp, mBasis.signature(be));
     MATHICGB_ASSERT
-      (value == mBasis.monoid().compare(mRatio, mBasis.sigLeadRatio(be)));
+      (value == mBasis.monoid().compare(*mRatio, mBasis.sigLeadRatio(be)));
     return value;
   }
 }

@@ -4,6 +4,7 @@
 #include "SigPolyBasis.hpp"
 
 #include "Poly.hpp"
+#include "MathicIO.hpp"
 #include <mathic.h>
 #include <limits>
 #include <iostream>
@@ -36,9 +37,9 @@ SigPolyBasis::~SigPolyBasis()
 
   for (size_t i = 0; i < mBasis.size(); i++) {
     if (!mSignatures[i].isNull())
-      ring().freeMonomial(mSignatures[i]);
+      monoid().freeRaw(*mSignatures[i]);
     if (!mSigLeadRatio[i].isNull())
-      ring().freeMonomial(mSigLeadRatio[i]);
+      monoid().freeRaw(*mSigLeadRatio[i]);
   }
   for (size_t i = 0; i < mSignatureLookup.size(); ++i)
     delete mSignatureLookup[i];
@@ -60,16 +61,16 @@ void SigPolyBasis::insert(Mono ownedSig, std::unique_ptr<Poly> f) {
   MATHICGB_ASSERT(!ownedSig.isNull());
   MATHICGB_ASSERT(monoid().fromPool(*ownedSig));
 
-  const size_t index = mSignatures.size();
-  mSignatures.push_back(Monoid::toOld(*ownedSig.release()));
-  auto sig = mSignatures.back();
+  const auto index = mSignatures.size();
+  mSignatures.push_back(ownedSig.release());
+  auto sig = *mSignatures.back();
   
-  const size_t component = ring().monomialGetComponent(sig);
+  const auto component = monoid().component(sig);
   MATHICGB_ASSERT(component < mSignatureLookup.size());
   mSignatureLookup[component]->insert(sig, index);
 
   auto ratio = ring().allocMonomial();
-  ring().monomialDivideToNegative(sig, f->getLeadMonomial(), ratio);
+  monoid().divideToNegative(f->getLeadMonomial(), sig, ratio);
 
   mSigLeadRatio.push_back(ratio);
 
@@ -84,33 +85,33 @@ void SigPolyBasis::insert(Mono ownedSig, std::unique_ptr<Poly> f) {
     mBasis.minimalLeadCount() == mMinimalMonoLookup->size());
   MATHICGB_ASSERT(mSignatures.size() == index + 1);
   MATHICGB_ASSERT(mBasis.size() == index + 1);
-  if (!mUseRatioRank || sig.isNull())
+  if (!mUseRatioRank)
     return;
 
   // compute rank of the ratio
-  RatioSortedType::iterator pos = mRatioSorted.insert(index);
+  auto pos = mRatioSorted.insert(index);
 again:
   Rank prevRank;
   if (pos == mRatioSorted.begin())
     prevRank = 0;
   else {
-    RatioSortedType::iterator prev = pos;
+    auto prev = pos;
     --prev;
     prevRank = mRatioRanks[*prev];
-    if (monoid().equal(ratio, mSigLeadRatio[*prev])) {
+    if (monoid().equal(ratio, *mSigLeadRatio[*prev])) {
       mRatioRanks.push_back(prevRank);
       return;
     }
   }
 
   Rank nextRank;
-  RatioSortedType::iterator next = pos;
+  auto next = pos;
   ++next;
   if (next == mRatioSorted.end())
     nextRank = std::numeric_limits<Rank>::max();
   else {
     nextRank = mRatioRanks[*next];
-    if (monoid().equal(ratio, mSigLeadRatio[*next])) {
+    if (monoid().equal(ratio, *mSigLeadRatio[*next])) {
       mRatioRanks.push_back(nextRank);
       return;
     }
@@ -132,8 +133,8 @@ again:
     MATHICGB_ASSERT(!mRatioSorted.empty());
     size_t rankSum = increment; // leave a gap at beginning
     Rank prevRank = *mRatioRanks.begin();
-    for (RatioSortedType::iterator it = mRatioSorted.begin();
-      it != mRatioSorted.end(); ++it) {
+    auto end = mRatioSorted.end();
+    for (auto it = mRatioSorted.begin(); it != end; ++it) {
       if (it == pos)
         continue;
       if (mRatioRanks[*it] != prevRank)
@@ -154,9 +155,9 @@ again:
     MATHICGB_ASSERT(mRatioRanks[*mRatioSorted.begin()] > 0);
     MATHICGB_ASSERT(mRatioRanks[*mRatioSorted.rbegin()] <
       std::numeric_limits<Rank>::max());
-    RatioSortedType::iterator it2 = mRatioSorted.begin();
+    auto it2 = mRatioSorted.begin();
     for (++it2; it2 != mRatioSorted.end(); ++it2) {
-      RatioSortedType::iterator prev = it2;
+      auto prev = it2;
       --prev;
       MATHICGB_ASSERT(mRatioRanks[*it2] == mRatioRanks[*prev] ||
         mRatioRanks[*it2] - 1 > mRatioRanks[*prev]);
@@ -373,16 +374,18 @@ bool SigPolyBasis::isSingularTopReducibleSlow(
   return false;
 }
 
-void SigPolyBasis::display(std::ostream& o) const {
+void SigPolyBasis::display(std::ostream& out) const {
   for (size_t i = 0; i < mBasis.size(); i++) {
-    o << i << " ";
-    if (!mSignatures[i].isNull())
-      ring().monomialDisplay(o, mSignatures[i]);
-    if (!mBasis.retired(i)) {
-      o << "  ";
-      mBasis.poly(i).display(o, false); // don't display component
-    }
-    o << std::endl;
+    out << i << " ";
+    // This is needed for compatibility with old tests.
+    // todo: change the tests so this isn't necessary.
+    if (monoid().isIdentity(*mSignatures[i]))
+      MathicIO<>().writeComponent(monoid(), *mSignatures[i], out);
+    else
+      MathicIO<>().writeMonomial(monoid(), true, *mSignatures[i], out);
+    out << "  ";
+    mBasis.poly(i).display(out, false);
+    out << '\n';
   }
 }
 
@@ -399,25 +402,24 @@ void SigPolyBasis::displayFancy
   for (size_t i = 0; i < mBasis.size(); i++) {
     indexOut << i << '\n';
 
-    if (!mSignatures[i].isNull()) {
-      monoid().copy(mSignatures[i], sig);
-      processor.postprocess(sig);
-      ring().monomialDisplay(sigOut, Monoid::toOld(*sig.ptr()));
-    }
+    monoid().copy(*mSignatures[i], *sig);
+    processor.postprocess(sig);
+
+    if (monoid().isIdentity(*sig))
+      MathicIO<>().writeComponent(monoid(), *sig, out);
+    else
+      MathicIO<>().writeMonomial(monoid(), true, *sig, out);
     sigOut << '\n';
 
-    if (mBasis.retired(i))
-      polyOut << "retired";
-    else
-      mBasis.poly(i).display(polyOut, false);
+    mBasis.poly(i).display(polyOut, false);
     polyOut << '\n';
   }
   out << pr;
 }
 
 void SigPolyBasis::postprocess(const MonoProcessor<PolyRing::Monoid>& processor) {
-  for (size_t i = 0; i < mSignatures.size(); ++i)
-    processor.postprocess(mSignatures[i]);
+  for (auto& mono : mSignatures)
+    processor.postprocess(*mono);
 }
 
 size_t SigPolyBasis::getMemoryUse() const
@@ -442,21 +444,21 @@ size_t SigPolyBasis::getMemoryUse() const
   return total;
 }
 
-size_t SigPolyBasis::ratioRank(const_monomial ratio) const {
+size_t SigPolyBasis::ratioRank(ConstMonoRef ratio) const {
   MATHICGB_ASSERT(mUseRatioRank);
   const size_t index = size();
   if (index == 0)
     return 0; // any value will do as there is nothing to compare to
   auto& sigLeadRatioNonConst =
-    const_cast<std::vector<monomial>&>(mSigLeadRatio);
+    const_cast<std::vector<MonoPtr>&>(mSigLeadRatio);
 
   sigLeadRatioNonConst.push_back(ratio.castAwayConst());
-  RatioSortedType::iterator pos = mRatioSorted.lower_bound(index);
+  auto pos = mRatioSorted.lower_bound(index);
   sigLeadRatioNonConst.pop_back();
 
   if (pos == mRatioSorted.end()) {
-    MATHICGB_ASSERT(ratioRank(*mRatioSorted.rbegin()) <
-      std::numeric_limits<Rank>::max());
+    MATHICGB_ASSERT
+      (ratioRank(*mRatioSorted.rbegin()) < std::numeric_limits<Rank>::max());
     return std::numeric_limits<Rank>::max();
   } else {
     if (monoid().equal(ratio, sigLeadRatio(*pos)))
@@ -464,7 +466,7 @@ size_t SigPolyBasis::ratioRank(const_monomial ratio) const {
     MATHICGB_ASSERT(ratioRank(*pos) > 0);
 #ifdef MATHICGB_DEBUG
     if (pos != mRatioSorted.begin()) {
-      RatioSortedType::iterator prev = pos;
+      auto prev = pos;
       --prev;
       MATHICGB_ASSERT(ratioRank(*pos) - 1 > ratioRank(*prev));
     }
@@ -478,24 +480,15 @@ SigPolyBasis::StoredRatioCmp::StoredRatioCmp(
   ConstMonoRef denominator,
   const SigPolyBasis& basis
 ):
-  mBasis(basis)
+  mBasis(basis),
+  mRatio(basis.monoid().alloc())
 {
   const auto& monoid = basis.ring().monoid();
-  mRatio = Monoid::toOld(*monoid.alloc().release());
-
   monoid.divideToNegative(denominator, numerator, mRatio);
-
-  if (SigPolyBasis::mUseRatioRank) {
-    mRatioRank = basis.ratioRank(mRatio);
-    mTmp = 0;
-  } else
-    mTmp = mBasis.ring().allocMonomial();
-}
-
-SigPolyBasis::StoredRatioCmp::~StoredRatioCmp() {
-  mBasis.ring().freeMonomial(mRatio);
-  if (!SigPolyBasis::mUseRatioRank)
-    mBasis.ring().freeMonomial(mTmp);
+  if (SigPolyBasis::mUseRatioRank)
+    mRatioRank = basis.ratioRank(*mRatio);
+  else
+    mTmp = mBasis.monoid().alloc();
 }
 
 MATHICGB_NAMESPACE_END
