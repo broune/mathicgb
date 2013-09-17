@@ -90,21 +90,21 @@ TEST(MathicIO, ReadWriteMonomial) {
     // read monomial from string
     auto monoRead = m.alloc();
     Scanner in(str);
-    MathicIO<>().readMonomial(m, doComponent, monoRead, in);
+    MathicIO<>().readMonomial(m, doComponent, *monoRead, in);
 
     // directly make monomial
     auto monoSet = m.alloc();
     if (var1 != -1)
-      m.setExponent(var1, exp1, monoSet);
+      m.setExponent(var1, exp1, *monoSet);
     if (var2 != -1)
-      m.setExponent(var2, exp2, monoSet);
+      m.setExponent(var2, exp2, *monoSet);
     if (doComponent)
-      m.setComponent(component, monoSet);
-    ASSERT_TRUE(m.equal(monoRead, monoSet)) << "Str: " << str;
+      m.setComponent(component, *monoSet);
+    ASSERT_TRUE(m.equal(*monoRead, *monoSet)) << "Str: " << str;
 
     // print monomial
     std::ostringstream out;
-    MathicIO<>().writeMonomial(m, doComponent, monoRead, out);
+    MathicIO<>().writeMonomial(m, doComponent, *monoRead, out);
     const auto correctStr = canonicalStr == 0 ? str : canonicalStr;
     ASSERT_EQ(correctStr, out.str());
   };
@@ -224,13 +224,13 @@ TEST(MathicIO, ReadWriteTerm) {
       auto monoRead = m.alloc();
       Coefficient readCoef = f.zero();
       Scanner in(str);
-      MathicIO<>().readTerm(ring, doComponent, readCoef, monoRead, in);
+      MathicIO<>().readTerm(ring, doComponent, readCoef, *monoRead, in);
       
       ASSERT_EQ(coef, readCoef.value());
 
       // print monomial
       std::ostringstream out;
-      MathicIO<>().writeTerm(ring, doComponent, readCoef, monoRead, out);
+      MathicIO<>().writeTerm(ring, doComponent, readCoef, *monoRead, out);
       const auto correctStr = outStr == 0 ? inStr : outStr;
       ASSERT_EQ(correctStr, out.str());
     }

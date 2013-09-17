@@ -20,6 +20,7 @@ class SigSPairs;
 class SignatureGB {
 public:
   typedef PolyRing::Monoid Monoid;
+  typedef Monoid::Mono Mono;
   typedef Monoid::ConstMonoRef ConstMonoRef;
   typedef Monoid::ConstMonoPtr ConstMonoPtr;
   typedef Monoid::MonoVector MonoVector;
@@ -67,7 +68,7 @@ private:
 
 
 
-  bool processSPair(monomial sig, const SigSPairs::PairContainer& pairs);
+  bool processSPair(Mono sig, const SigSPairs::PairContainer& pairs);
   bool step();
 
   const PolyRing *R;

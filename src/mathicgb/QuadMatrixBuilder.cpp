@@ -4,6 +4,7 @@
 #include "QuadMatrixBuilder.hpp"
 
 #include "QuadMatrix.hpp"
+#include "ScopeExit.hpp"
 #include <mathic.h>
 #include <sstream>
 
@@ -41,15 +42,15 @@ namespace {
   /// purpose of this function is to avoid code duplication. It is a            
   /// template in order to avoid referring to private types of
   /// QuadMatrixBuilder.
-  template<class ToMono, class ToCol>
+  template<class ToMono, class ToCol, class Monoid>
   std::pair<QuadMatrixBuilder::LeftRightColIndex, ConstMonomial>
   createCol(
-    const_monomial mono,
+    typename Monoid::ConstMonoRef mono,
     SparseMatrix& top,
     SparseMatrix& bottom,
     ToMono& toMonomial,
     ToCol& toCol,
-    const PolyRing& ring,
+    const Monoid& monoid,
     const bool left
   ) {
     MATHICGB_ASSERT(typename ToCol::Reader(toCol).find(mono).first == 0);
@@ -59,59 +60,60 @@ namespace {
     if (colCount == std::numeric_limits<QuadMatrixBuilder::ColIndex>::max())
       throw std::overflow_error("Too many columns in QuadMatrixBuilder");
 
-    // allocate memory in toMonomial now to avoid bad_alloc later
+    // allocate memory in toMonomial now to ensure no bad_alloc later
     toMonomial.emplace_back(nullptr);
-    monomial copied = ring.allocMonomial();
-    ring.monomialCopy(mono, copied);
-    std::pair<QuadMatrixBuilder::LeftRightColIndex, ConstMonomial> p;
-    try {
-      auto inserted = toCol.insert(std::make_pair(
-          copied, QuadMatrixBuilder::LeftRightColIndex(colCount, left))
-      );
-      MATHICGB_ASSERT(inserted.second);
-      MATHICGB_ASSERT(inserted.first.first != 0);
-      auto p(inserted.first);
-      toMonomial.back() = copied;
+    MATHICGB_SCOPE_EXIT(toMonomialGuard) {toMonomial.pop_back();};
+    auto copied = monoid.alloc();
+    monoid.copy(mono, copied);
+    auto inserted = toCol.insert(
+      std::make_pair(
+        copied.ptr(),
+        QuadMatrixBuilder::LeftRightColIndex(colCount, left)
+      )
+    );
+    MATHICGB_ASSERT(inserted.second);
+    MATHICGB_ASSERT(inserted.first.first != 0);
+    auto p(inserted.first);
+    toMonomial.back() = copied;
 
-      MATHICGB_ASSERT(ring.monoid().equalHintTrue(copied, *p.second));
-      MATHICGB_ASSERT(*p.first == QuadMatrixBuilder::LeftRightColIndex(colCount, left));
+    MATHICGB_ASSERT(monoid.equalHintTrue(*copied, *p.second));
+    MATHICGB_ASSERT(*p.first == QuadMatrixBuilder::LeftRightColIndex(colCount, left));
 
-      auto ptr = const_cast<exponent*>(Monoid::toOld(*p.second));
-      return std::make_pair(*p.first, ptr);
-    } catch (...) {
-      toMonomial.pop_back();
-      ring.freeMonomial(copied);
-      throw;
-    }
+    auto ptr = const_cast<exponent*>(Monoid::toOld(*p.second));
+    toMonomialGuard.dismiss();
+    copied.release();
+    return std::make_pair(*p.first, ptr);
   }
 }
 
 std::pair<QuadMatrixBuilder::LeftRightColIndex, ConstMonomial>
 QuadMatrixBuilder::createColumnLeft(
-  const_monomial monomialToBeCopied
+  ConstMonoRef monomialToBeCopied
 ) {
-  return createCol
-    (monomialToBeCopied,
-     mTopLeft,
-     mBottomLeft,
-     mMonomialsLeft,
-     mMonomialToCol,
-     ring(),
-     true);
+  return createCol(
+    monomialToBeCopied,
+    mTopLeft,
+    mBottomLeft,
+    mMonomialsLeft,
+    mMonomialToCol,
+    monoid(),
+    true
+  );
 }
 
 std::pair<QuadMatrixBuilder::LeftRightColIndex, ConstMonomial>
 QuadMatrixBuilder::createColumnRight(
-  const_monomial monomialToBeCopied
+  ConstMonoRef monomialToBeCopied
 ) {
-  return createCol
-    (monomialToBeCopied,
-     mTopRight,
-     mBottomRight,
-     mMonomialsRight,
-     mMonomialToCol,
-     ring(),
-     false);
+  return createCol(
+    monomialToBeCopied,
+    mTopRight,
+    mBottomRight,
+    mMonomialsRight,
+    mMonomialToCol,
+    monoid(),
+    false
+  );
 }
 
 QuadMatrix QuadMatrixBuilder::buildMatrixAndClear() {

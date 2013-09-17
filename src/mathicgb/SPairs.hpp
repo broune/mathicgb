@@ -182,10 +182,10 @@ private:
 
     typedef bool CompareResult;
     bool compare(
-      size_t colA, size_t rowA, OrderMonoid::ConstMonoRef a,
-      size_t colB, size_t rowB, OrderMonoid::ConstMonoRef b
-      ) const {
-      const auto cmp = orderMonoid().compare(a, b);
+      size_t colA, size_t rowA, OrderMonoid::ConstMonoPtr a,
+      size_t colB, size_t rowB, OrderMonoid::ConstMonoPtr b
+    ) const {
+      const auto cmp = orderMonoid().compare(*a, *b);
       if (cmp == GT)
         return true;
       if (cmp == LT)

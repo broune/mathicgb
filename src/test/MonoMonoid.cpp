@@ -266,12 +266,12 @@ TYPED_TEST(Monoids, MonoPool) {
       pool.alloc();
       pool.free(pool.alloc());
       auto m1 = pool.alloc();
-      ASSERT_TRUE(monoid.isIdentity(m1));
+      ASSERT_TRUE(monoid.isIdentity(*m1));
       auto m2 = pool.alloc();
-      ASSERT_TRUE(monoid.isIdentity(m2));
+      ASSERT_TRUE(monoid.isIdentity(*m2));
       for (VarIndex var = 0; var < varCount; ++var) {
-        monoid.setExponent(var, 1, m1);
-        monoid.setExponent(var, 1, m2);
+        monoid.setExponent(var, 1, *m1);
+        monoid.setExponent(var, 1, *m2);
       }
       if (i > 10) {
         using std::swap;
@@ -285,7 +285,7 @@ TYPED_TEST(Monoids, MonoPool) {
     int i = 0;
     do {
       MATHICGB_ASSERT(!monos[i].isNull());
-      ASSERT_FALSE(monoid.isIdentity(monos[i]));
+      ASSERT_FALSE(monoid.isIdentity(*monos[i]));
       pool.free(std::move(monos[i]));
       ASSERT_TRUE(monos[i].isNull());
       pool.free(std::move(monos[i]));
@@ -300,13 +300,13 @@ TYPED_TEST(Monoids, MonoPool) {
 
     for (int i = 0; i < count; ++i) {
       monos[i] = pool.alloc();
-      ASSERT_TRUE(monoid.isIdentity(monos[i]));
+      ASSERT_TRUE(monoid.isIdentity(*monos[i]));
       for (VarIndex var = 0; var < varCount; ++var)
-        monoid.setExponent(var, expect(i, var, varCount), monos[i]);
+        monoid.setExponent(var, expect(i, var, varCount), *monos[i]);
     }
     for (int i = 0; i < count; ++i) {
       for (VarIndex var = 0; var < varCount; ++var) {
-        ASSERT_EQ(expect(i, var, varCount), monoid.exponent(monos[i], var));
+        ASSERT_EQ(expect(i, var, varCount), monoid.exponent(*monos[i], var));
       }
     }
     // everything should be free'd now. Let's do all that again.
@@ -403,7 +403,8 @@ TYPED_TEST(Monoids, MultiplyDivide) {
   typedef TypeParam Monoid;
   Monoid m(49);
   typename Monoid::MonoPool pool(m);
-  auto mono = pool.alloc();
+  auto monoOwner = pool.alloc();
+  auto mono = *monoOwner;
   auto check = [&](const char* const str, const bool component) -> void {
     if (component && !Monoid::HasComponent)
       return;
@@ -528,8 +529,10 @@ TYPED_TEST(Monoids, LcmColon) {
   Monoid mNonConst(49);
   auto& m = mNonConst;
   typename Monoid::MonoPool pool(m);
-  auto mono = pool.alloc();
-  auto mono2 = pool.alloc();
+  auto monoOwner = pool.alloc();
+  auto mono = *monoOwner;
+  auto mono2Owner = pool.alloc();
+  auto mono2 = *mono2Owner;
   auto check = [&](const char* const str, const bool component) -> void {
     if (component && !Monoid::HasComponent)
       return;
@@ -791,7 +794,8 @@ TYPED_TEST(Monoids, HasAmpleCapacityTotalDegree) {
       ASSERT_EQ(varCount, m.varCount());
 
       typename Monoid::MonoPool p(m);
-      auto mono = p.alloc();
+      auto monoOwner = p.alloc();
+      auto mono = *monoOwner;
       const auto last = m.varCount() - 1;
       const auto max = std::numeric_limits<Exponent>::max() / 2;
 
@@ -841,15 +845,25 @@ TYPED_TEST(Monoids, CopyEqualConversion) {
     Monoid some(Monoid::create(none));
     MonoidAll all(MonoidAll::create(some));
 
-    auto none1 = none.alloc();
-    auto none2 = none.alloc();
-    auto none3 = none.alloc();
-    auto some1 = some.alloc();
-    auto some2 = some.alloc();
-    auto some3 = some.alloc();
-    auto all1 = all.alloc();
-    auto all2 = all.alloc();
-    auto all3 = all.alloc();
+    auto none1Owner = none.alloc();
+    auto none2Owner = none.alloc();
+    auto none3Owner = none.alloc();
+    auto some1Owner = some.alloc();
+    auto some2Owner = some.alloc();
+    auto some3Owner = some.alloc();
+    auto all1Owner = all.alloc();
+    auto all2Owner = all.alloc();
+    auto all3Owner = all.alloc();
+
+    auto none1 = *none1Owner;
+    auto none2 = *none2Owner;
+    auto none3 = *none3Owner;
+    auto some1 = *some1Owner;
+    auto some2 = *some2Owner;
+    auto some3 = *some3Owner;
+    auto all1 = *all1Owner;
+    auto all2 = *all2Owner;
+    auto all3 = *all3Owner;
 
     none.setExponent(0, 1, none1);
     none.setExponent(varCount / 2, 2, none1);

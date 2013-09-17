@@ -242,7 +242,7 @@ auto F4MatrixBuilder::createColumn(
 
   // The column really does not exist, so we need to create it
   monoid().multiply(monoA, monoB, mTmp);
-  if (!monoid().hasAmpleCapacity(mTmp))
+  if (!monoid().hasAmpleCapacity(*mTmp))
     mathic::reportError("Monomial exponent overflow in F4MatrixBuilder.");
 
   // look for a reducer of mTmp

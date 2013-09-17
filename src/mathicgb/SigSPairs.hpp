@@ -22,6 +22,13 @@ class Reducer;
 class SigSPairs
 {
 public:
+  typedef PolyRing::Monoid Monoid;
+  typedef Monoid::Mono Mono;
+  typedef Monoid::MonoRef MonoRef;
+  typedef Monoid::ConstMonoRef ConstMonoRef;
+  typedef Monoid::MonoPtr MonoPtr;
+  typedef Monoid::ConstMonoPtr ConstMonoPtr;
+
   SigSPairs(
     const PolyRing *R0,
     const SigPolyBasis *GB0,
@@ -34,7 +41,7 @@ public:
   ~SigSPairs();
 
   typedef std::vector<std::pair<size_t, size_t> > PairContainer;
-  monomial popSignature(PairContainer& pairs);
+  Mono popSignature(PairContainer& pairs);
 
   // fills in all the S-pairs with i.
   void newPairs(size_t i);

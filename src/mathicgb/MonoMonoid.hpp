@@ -1314,10 +1314,18 @@ public:
     }
 
     operator MonoPtr() const {return ptr();}
+    operator ConstMonoPtr() const {return ptr();}
 
     /// @todo: Get rid of this as soon as all code has been migrated
     /// to observe the ptr/ref distinction. Kill it with fire!
     operator MonoRef() const {
+      MATHICGB_ASSERT(!isNull());
+      return *mMono;
+    }
+
+    /// @todo: Get rid of this as soon as all code has been migrated
+    /// to observe the ptr/ref distinction. Kill it with fire!
+    operator ConstMonoRef() const {
       MATHICGB_ASSERT(!isNull());
       return *mMono;
     }

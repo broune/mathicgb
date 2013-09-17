@@ -22,7 +22,7 @@ class QuadMatrix;
 /// swapped out - it only follows the builder pattern in that it is a
 /// class that allows step-wise construction of a final product.
 class QuadMatrixBuilder {
- public:
+public:
   typedef PolyRing::Monoid Monoid;
   typedef Monoid::Mono Mono;
   typedef Monoid::MonoRef MonoRef;
@@ -42,6 +42,7 @@ class QuadMatrixBuilder {
   public:
     LeftRightColIndex():
       mRawIndex(std::numeric_limits<ColIndex>::max()), mLeft(false) {}
+
     LeftRightColIndex(ColIndex index, bool left):
       mRawIndex(index), mLeft(left)
     {}
@@ -169,17 +170,17 @@ class QuadMatrixBuilder {
   // and to avoid the need for the client to immediately construct a
   // LeftRightColIndex based on the return value.
 
-  /** Creates a new column associated to the monomial
-    monomialToBeCopied to the left matrices. There must not already
-    exist a column for this monomial on the left or on the right. */
+  /// Creates a new column associated to the monomial
+  /// monomialToBeCopied to the left matrices. There must not already
+  /// exist a column for this monomial on the left or on the right.
   std::pair<QuadMatrixBuilder::LeftRightColIndex, ConstMonomial>
-  createColumnLeft(const_monomial monomialToBeCopied);
+  createColumnLeft(ConstMonoRef monomialToBeCopied);
 
-  /** Creates a new column associated to the monomial monomialToBeCopied
-    to the right matrices. There must not already exist a column for
-    this monomial on the left or on the right. */
+  /// Creates a new column associated to the monomial monomialToBeCopied
+  /// to the right matrices. There must not already exist a column for
+  /// this monomial on the left or on the right.
   std::pair<QuadMatrixBuilder::LeftRightColIndex, ConstMonomial>
-  createColumnRight(const_monomial monomialToBeCopied);
+  createColumnRight(ConstMonoRef monomialToBeCopied);
 
   // *** Querying columns
 
@@ -189,6 +190,7 @@ class QuadMatrixBuilder {
   const SparseMatrix& bottomRight() const {return mBottomRight;}
 
   const PolyRing& ring() const {return mMonomialToCol.ring();}
+  const Monoid& monoid() const {return ring().monoid();}
 
   /// Returns the built matrix and sets the builder to a state
   /// with no columns and no rows.

@@ -16,7 +16,7 @@ namespace {
 
     Comparer(const Monoid& monoid): mMonoid(monoid) {}
     bool operator()(const PreSPair& a, const PreSPair& b) const {
-      return mMonoid.lessThan(a.signature, b.signature);
+      return mMonoid.lessThan(*a.signature, *b.signature);
     }
   private:
     const Monoid& mMonoid;
@@ -57,30 +57,33 @@ public:
   ConcreteSigSPairQueue(SigPolyBasis const& basis):
   mPairQueue(Configuration(basis)) {}
 
-  virtual monomial popSignature(Pairs& pairs) {
+  virtual Mono popSignature(Pairs& pairs) {
     pairs.clear();
     if (mPairQueue.empty())
       return 0;
-    monomial sig = ring().allocMonomial();
-    ring().monomialCopy(mPairQueue.topPairData(), sig);
+    auto sig = monoid().alloc();
+    monoid().copy(*mPairQueue.topPairData(), *sig);
     do {
       pairs.push_back(mPairQueue.topPair());
       mPairQueue.pop();
-    } while
-        (!mPairQueue.empty() && ring().monomialEQ(mPairQueue.topPairData(), sig));
+    } while (
+      !mPairQueue.empty() &&
+      monoid().equal(*mPairQueue.topPairData(), *sig)
+    );
     return sig;
   }
 
   virtual void pushPairs(size_t pairWith, IndexSigs& pairs) {
 #ifdef DEBUG
-    monomial tmp = ring().allocMonomial();
-    for (size_t i = 0; i < pairs.size(); ++i) {
-      MATHICGB_ASSERT(pairs[i].i < columnCount());
-      mPairQueue.configuration().computePairData
-        (columnCount(), pairs[i].i, tmp);
-      MATHICGB_ASSERT(ring().monomialEQ(tmp, pairs[i].signature));
+    {
+      auto tmp = monoid().alloc();
+      for (size_t i = 0; i < pairs.size(); ++i) {
+        MATHICGB_ASSERT(pairs[i].i < columnCount());
+        mPairQueue.configuration().computePairData
+          (columnCount(), pairs[i].i, tmp.ptr());
+        MATHICGB_ASSERT(monoid().equal(*tmp, *pairs[i].signature));
+      }
     }
-    ring().freeMonomial(tmp);
 #endif
 
     if (columnCount() >= std::numeric_limits<BigIndex>::max())
@@ -94,9 +97,8 @@ public:
     mPairQueue.addColumnDescending(Iter(pairs.begin()), Iter(pairs.end()));
     
     // free signatures
-    std::vector<PreSPair>::iterator end = pairs.end();
-    for (std::vector<PreSPair>::iterator it = pairs.begin(); it != end; ++it)
-      ring().freeMonomial(it->signature);
+    for (auto& spair : pairs)
+      monoid().freeRaw(spair.signature);
     pairs.clear();
   }
   
@@ -117,26 +119,30 @@ private:
   public:
     Configuration(SigPolyBasis const& basis): mBasis(basis) {}
 
-    typedef monomial PairData;
-    void computePairData(size_t col, size_t row, monomial sig) {
+    typedef MonoPtr PairData;
+    void computePairData(size_t col, size_t row, PairData sig) {
       MATHICGB_ASSERT(mBasis.ratioCompare(col, row) != EQ);
       // ensure that ratio(col) > ratio(row)
       if (mBasis.ratioCompare(col, row) == LT)
         std::swap(col, row);
-      mBasis.ring().monomialFindSignature
-        (mBasis.getLeadMonomial(col),
-         mBasis.getLeadMonomial(row),
-         mBasis.getSignature(col), sig);
+      monoid().colonMultiply(
+        mBasis.getLeadMonomial(col),
+        mBasis.getLeadMonomial(row),
+        mBasis.getSignature(col),
+        *sig
+      );
     }
 
     typedef bool CompareResult;
-    bool compare(int colA, int rowA, const_monomial a,
-                 int colB, int rowB, const_monomial b) const {
-      return mBasis.ring().monoid().lessThan(b, a);
+    bool compare(int colA, int rowA, PairData a,
+                 int colB, int rowB, PairData b) const {
+      return mBasis.ring().monoid().lessThan(*b, *a);
     }
     bool cmpLessThan(bool v) const {return v;}
 
     SigPolyBasis const& basis() const {return mBasis;}
+    const PolyRing& ring() const {return basis().ring();}
+    const Monoid& monoid() const {return ring().monoid();}
 
   private:
     SigPolyBasis const& mBasis;
@@ -147,7 +153,9 @@ private:
   const SigPolyBasis& basis() const {
     return mPairQueue.configuration().basis();
   }
-  PolyRing const& ring() const {return basis().ring();}
+
+  const PolyRing& ring() const {return basis().ring();}
+  const Monoid& monoid() const {return ring().monoid();}
 
   mathic::PairQueue<Configuration> mPairQueue;
   friend struct
@@ -195,9 +203,9 @@ namespace mathic {
         Index row,
         mgb::ConcreteSigSPairQueue::Configuration& conf
       ) {
-        MATHICGB_ASSERT(pd != 0);
+        MATHICGB_ASSERT(pd != nullptr);
         MATHICGB_ASSERT(col > row);
-        conf.basis().ring().freeMonomial(*pd);
+        conf.monoid().freeRaw(*pd);
       }
     };
   }

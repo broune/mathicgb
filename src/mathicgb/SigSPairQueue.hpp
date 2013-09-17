@@ -14,7 +14,7 @@ typedef unsigned int BigIndex;
 
 struct PreSPair {
   BigIndex i;
-  monomial signature;
+  PolyRing::Monoid::MonoPtr signature;
 };
 
 class SigPolyBasis;
@@ -26,6 +26,11 @@ class SigPolyBasis;
 class SigSPairQueue {
 public:
   typedef PolyRing::Monoid Monoid;
+  typedef Monoid::Mono Mono;
+  typedef Monoid::MonoRef MonoRef;
+  typedef Monoid::ConstMonoRef ConstMonoRef;
+  typedef Monoid::MonoPtr MonoPtr;
+  typedef Monoid::ConstMonoPtr ConstMonoPtr;
 
   virtual ~SigSPairQueue();
 
@@ -41,7 +46,7 @@ public:
   //
   // This class does not have an empty() method on purpose - you are
   // supposed to call this method until it returns null.
-  virtual monomial popSignature(Pairs& pairs) = 0;
+  virtual Mono popSignature(Pairs& pairs) = 0;
 
   // If (x, sig) is an element of pairsConsumed then (pairWith, x) is
   // added to the queue. sig must be the signature of the S-pair

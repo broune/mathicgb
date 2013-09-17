@@ -51,15 +51,15 @@ std::pair<size_t, size_t> SPairs::pop() {
       continue;
     }
     auto lcm = bareMonoid().alloc(); // todo: just keep one around instead
-    bareMonoid().copy(orderMonoid(), mQueue.topPairData(), lcm);
+    bareMonoid().copy(orderMonoid(), *mQueue.topPairData(), *lcm);
     mQueue.pop();
 
     MATHICGB_ASSERT(bareMonoid().isLcm(
       monoid(), mBasis.leadMonomial(p.first),
       monoid(), mBasis.leadMonomial(p.second),
-      lcm
+      *lcm
     ));
-    if (!advancedBuchbergerLcmCriterion(p.first, p.second, lcm)) {
+    if (!advancedBuchbergerLcmCriterion(p.first, p.second, *lcm)) {
       mEliminated.setBit(p.first, p.second, true);
       return p;
     }
@@ -78,25 +78,25 @@ std::pair<size_t, size_t> SPairs::pop(exponent& w) {
     if (mBasis.retired(p.first) || mBasis.retired(p.second))
       continue;
     auto lcm = bareMonoid().alloc(); // todo: just keep one around instead
-    bareMonoid().copy(orderMonoid(), mQueue.topPairData(), lcm);
+    bareMonoid().copy(orderMonoid(), *mQueue.topPairData(), *lcm);
 
     MATHICGB_ASSERT(bareMonoid().isLcm(
       monoid(), mBasis.leadMonomial(p.first),
       monoid(), mBasis.leadMonomial(p.second),
-      lcm
+      *lcm
     ));
-    if (advancedBuchbergerLcmCriterion(p.first, p.second, lcm))
+    if (advancedBuchbergerLcmCriterion(p.first, p.second, *lcm))
       continue;
     if (w == 0)
-      w = bareMonoid().degree(lcm);
-    else if (w != bareMonoid().degree(lcm))
+      w = bareMonoid().degree(*lcm);
+    else if (w != bareMonoid().degree(*lcm))
       break;
     mQueue.pop();
     mEliminated.setBit(p.first, p.second, true);
     MATHICGB_IF_STREAM_LOG(SPairLcm) {
       stream << "Scheduling S-pair with lcm ";
       MathicIO<BareMonoid>().writeMonomial
-        (bareMonoid(), BareMonoid::HasComponent, lcm, stream);
+        (bareMonoid(), BareMonoid::HasComponent, *lcm, stream);
       stream << '.' << std::endl;
     };
     return p;
@@ -239,13 +239,13 @@ void SPairs::addPairs(size_t newGen) {
       mEliminated.setBit(newGen, oldGen, true);
       continue;
     }
-    mBareMonoid.lcm(monoid(), newLead, monoid(), oldLead, lcm);
-    if (simpleBuchbergerLcmCriterion(newGen, oldGen, lcm)) {
+    mBareMonoid.lcm(monoid(), newLead, monoid(), oldLead, *lcm);
+    if (simpleBuchbergerLcmCriterion(newGen, oldGen, *lcm)) {
       mEliminated.setBit(newGen, oldGen, true);
       continue;
     }
 
-    prePairMonos.push_back(bareMonoid(), lcm);
+    prePairMonos.push_back(bareMonoid(), *lcm);
     prePairs.emplace_back
       (prePairMonos.back().ptr(), static_cast<Queue::Index>(oldGen));
   }
@@ -254,7 +254,7 @@ void SPairs::addPairs(size_t newGen) {
     [&](const PrePair& a, const PrePair& b)
   {
     return mQueue.configuration().compare
-      (b.second, newGen, *b.first, a.second, newGen, *a.first);
+      (b.second, newGen, b.first, a.second, newGen, a.first);
   });
   mQueue.addColumnDescending
 	(makeSecondIterator(prePairs.begin()), makeSecondIterator(prePairs.end()));
@@ -436,14 +436,14 @@ bool SPairs::simpleBuchbergerLcmCriterionSlow(size_t a, size_t b) const {
   bareMonoid().lcm(
     monoid(), mBasis.leadMonomial(a),
     monoid(), mBasis.leadMonomial(b),
-    lcmAB
+    *lcmAB
   );
   size_t stop = mBasis.size();
   size_t i = 0;
   for (; i < stop; ++i) {
     if (mBasis.retired(i))
       continue;
-    if (!bareMonoid().divides(monoid(), mBasis.leadMonomial(i), lcmAB))
+    if (!bareMonoid().divides(monoid(), mBasis.leadMonomial(i), *lcmAB))
       continue;
     if (i == a || i == b)
       continue;
@@ -451,9 +451,9 @@ bool SPairs::simpleBuchbergerLcmCriterionSlow(size_t a, size_t b) const {
       bareMonoid().lcm(
         monoid(), mBasis.leadMonomial(a),
         monoid(), mBasis.leadMonomial(i),
-        lcm
+        *lcm
       );
-      if (bareMonoid().equal(lcmAB, lcm))
+      if (bareMonoid().equal(*lcmAB, *lcm))
         continue;
     }
 
@@ -461,9 +461,9 @@ bool SPairs::simpleBuchbergerLcmCriterionSlow(size_t a, size_t b) const {
       bareMonoid().lcm(
         monoid(), mBasis.leadMonomial(b),
         monoid(), mBasis.leadMonomial(i),
-        lcm
+        *lcm
       );
-      if (bareMonoid().equal(lcmAB, lcm))
+      if (bareMonoid().equal(*lcmAB, *lcm))
         continue;
     }
     break;
@@ -608,7 +608,7 @@ bool SPairs::advancedBuchbergerLcmCriterionSlow(size_t a, size_t b) const {
   for (size_t i = 0; i != stop; ++i) {
     if (mBasis.retired(i))
       continue;
-    if (!monoid().divides(mBasis.leadMonomial(i), lcmAB))
+    if (!monoid().divides(mBasis.leadMonomial(i), *lcmAB))
       continue;
     Connection con = NotConnected;
     if (i == a) {
@@ -641,7 +641,7 @@ bool SPairs::advancedBuchbergerLcmCriterionSlow(size_t a, size_t b) const {
 
       const_monomial const leadOther = mBasis.leadMonomial(other);
       monoid().lcm(leadNode, leadOther, lcm);
-      if (!eliminated(node.first, other) && monoid().equal(lcm, lcmAB))
+      if (!eliminated(node.first, other) && monoid().equal(*lcm, *lcmAB))
         continue; // not an edge in G
       
       if (graph[i].second == NotConnected) {

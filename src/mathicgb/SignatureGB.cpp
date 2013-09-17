@@ -100,15 +100,14 @@ void SignatureGB::computeGrobnerBasis()
       size_t sigs = 0;
       size_t syzygySigs = 0;
       while (true) {
-        monomial sig = SP->popSignature(mSpairTmp);
+        auto sig = SP->popSignature(mSpairTmp);
         if (sig.isNull())
           break;
         ++sigs;
-        if (Hsyz->member(sig))
+        if (Hsyz->member(*sig))
           ++syzygySigs;
         else
-          GB->minimalLeadInSig(sig);
-        R->freeMonomial(sig);
+          GB->minimalLeadInSig(Monoid::toOld(*sig));
       }
       const double syzygyRatio = static_cast<double>(syzygySigs) / sigs;
       std::cerr << "*** Early exit statistics ***\n"
@@ -146,39 +145,43 @@ void SignatureGB::computeGrobnerBasis()
 }
 
 bool SignatureGB::processSPair
-  (monomial sig, const SigSPairs::PairContainer& pairs)
+  (Mono sig, const SigSPairs::PairContainer& pairs)
 {
   MATHICGB_ASSERT(!pairs.empty());
 
   // the module term to reduce is multiple * GB->getSignature(gen)
-  size_t gen = GB->minimalLeadInSig(sig);
+  size_t gen = GB->minimalLeadInSig(Monoid::toOld(*sig));
   MATHICGB_ASSERT(gen != static_cast<size_t>(-1));
   monomial multiple = R->allocMonomial();
-  R->monomialDivide(sig, GB->getSignature(gen), multiple);
+  monoid().divide(GB->getSignature(gen), *sig, multiple);
   GB->basis().usedAsStart(gen);
 
   // reduce multiple * GB->getSignature(gen)
-  auto f = reducer->regularReduce(sig, multiple, gen, *GB);
+  auto f = reducer->regularReduce(*sig, multiple, gen, *GB);
 
   R->freeMonomial(multiple);
 
   if (f == nullptr) { // singular reduction
-    R->freeMonomial(sig);
     MATHICGB_LOG(SigSPairFinal) << "   eliminated by singular criterion.\n";
     return true;
   }
 
   if (f->isZero()) { // reduction to zero
-    Hsyz->insert(sig);
-    SP->newSyzygy(sig);
+    // todo: what are the correct ownership relations here?
+    auto ptr = sig.release();
+    Hsyz->insert(*ptr);
+    SP->newSyzygy(Monoid::toOld(*ptr));
     SP->setKnownSyzygies(mSpairTmp);
     MATHICGB_LOG(SigSPairFinal) << "   s-reduced to zero.\n";
     return false;
   }
 
   // new basis element
-  MATHICGB_ASSERT(!GB->isSingularTopReducibleSlow(*f, sig));
-  GB->insert(sig, std::move(f));
+  MATHICGB_ASSERT(!GB->isSingularTopReducibleSlow(*f, Monoid::toOld(*sig)));
+
+  // todo: what are the correct ownership relations here?
+  auto ptr = sig.release();
+  GB->insert(Monoid::toOld(*ptr), std::move(f));
 
   MATHICGB_LOG(SigSPairFinal) << "   s-reduced to new basis element.\n";
 
@@ -192,9 +195,8 @@ bool SignatureGB::processSPair
   return true;
 }
 
-bool SignatureGB::step()
-{
-  monomial sig = SP->popSignature(mSpairTmp);
+bool SignatureGB::step() {
+  auto sig = SP->popSignature(mSpairTmp);
   if (sig.isNull())
     return false;
   ++stats_sPairSignaturesDone;
@@ -202,26 +204,27 @@ bool SignatureGB::step()
 
   MATHICGB_IF_STREAM_LOG(SigSPairFinal) {
     stream << "Final processing of signature ";
-    R->monomialDisplay(stream, sig);
+    R->monomialDisplay(stream, Monoid::toOld(*sig));
     stream << '\n';
   };
 
-  if (Hsyz->member(sig)) {
+  if (Hsyz->member(*sig)) {
     ++stats_SignatureCriterionLate;
     SP->setKnownSyzygies(mSpairTmp);
-    R->freeMonomial(sig);
     MATHICGB_LOG(SigSPairFinal) << "   eliminated by signature criterion.\n";
     return true;
   }
 
-  while (!mKoszuls.empty() && R->monoid().lessThan(mKoszuls.top(), sig))
+  while (!mKoszuls.empty() && R->monoid().lessThan(mKoszuls.top(), *sig))
     mKoszuls.pop();
   
-  if (!mKoszuls.empty() && R->monoid().equal(mKoszuls.top(), sig)) {
+  if (!mKoszuls.empty() && R->monoid().equal(mKoszuls.top(), *sig)) {
     ++stats_koszulEliminated;
     // This signature is of a syzygy that is not in Hsyz, so add it
-    Hsyz->insert(sig);
-    SP->newSyzygy(sig);
+    // todo: what are the correct ownership relations here?
+    auto ptr = sig.release();
+    Hsyz->insert(*ptr);
+    SP->newSyzygy(Monoid::toOld(*ptr));
     SP->setKnownSyzygies(mSpairTmp);
     MATHICGB_LOG(SigSPairFinal) << "   eliminated by Koszul criterion.\n";
     return true;
@@ -234,8 +237,10 @@ bool SignatureGB::step()
       const_monomial b = GB->getLeadMonomial(it->second);
       if (R->monomialRelativelyPrime(a, b)) {
         ++stats_relativelyPrimeEliminated;
-        Hsyz->insert(sig);
-        SP->newSyzygy(sig);
+        // todo: what are the correct ownership relations here?
+        auto ptr = sig.release();
+        Hsyz->insert(*ptr);
+        SP->newSyzygy(Monoid::toOld(*ptr));
         SP->setKnownSyzygies(mSpairTmp);
         MATHICGB_LOG(SigSPairFinal) <<
           "   eliminated by relatively prime criterion.\n";
@@ -253,7 +258,7 @@ bool SignatureGB::step()
 
   // Reduce the pair
   ++stats_pairsReduced;
-  if (!processSPair(sig, mSpairTmp) || !mPostponeKoszul)
+  if (!processSPair(std::move(sig), mSpairTmp) || !mPostponeKoszul)
     return true;
   for (auto it = mSpairTmp.begin(); it != mSpairTmp.end(); ++it) {
     std::pair<size_t, size_t> p = *it;

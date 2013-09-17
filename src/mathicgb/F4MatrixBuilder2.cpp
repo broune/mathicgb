@@ -20,6 +20,13 @@ MATHICGB_NAMESPACE_BEGIN
 
 class F4MatrixBuilder2::Builder {
 public:
+  typedef PolyRing::Monoid Monoid;
+  typedef Monoid::Mono Mono;
+  typedef Monoid::MonoRef MonoRef;
+  typedef Monoid::ConstMonoRef ConstMonoRef;
+  typedef Monoid::MonoPtr MonoPtr;
+  typedef Monoid::ConstMonoPtr ConstMonoPtr;
+
   typedef SparseMatrix::ColIndex ColIndex;
   typedef SparseMatrix::Scalar Scalar;
   typedef MonomialMap<ColIndex> Map;
@@ -306,7 +313,7 @@ public:
 
     // The column really does not exist, so we need to create it
     monoid().multiply(monoA, monoB, mTmp);
-    if (!monoid().hasAmpleCapacity(mTmp))
+    if (!monoid().hasAmpleCapacity(*mTmp))
       mathic::reportError("Monomial exponent overflow in F4MatrixBuilder2.");
 
     // look for a reducer of mTmp

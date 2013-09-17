@@ -42,8 +42,8 @@ void SigSPairs::newSyzygy(const_monomial sig) {
   MATHICGB_ASSERT(Hsyz->member(sig));
 }
 
-monomial SigSPairs::popSignature(PairContainer& pairs) {
-  monomial sig = mQueue->popSignature(pairs);
+auto SigSPairs::popSignature(PairContainer& pairs) -> Mono {
+  auto sig = mQueue->popSignature(pairs);
   if (!sig.isNull()) {
     size_t const pairCount = pairs.size();
     mStats.spairsFinal += pairCount;
