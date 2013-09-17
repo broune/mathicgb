@@ -163,7 +163,8 @@ void TypicalReducer::setMemoryQuantum(size_t quantum) {
 
 std::unique_ptr<Poly> TypicalReducer::classicReduce
     (std::unique_ptr<Poly> result, const PolyBasis& basis) {
-  const PolyRing& ring = basis.ring();
+  const auto& ring = basis.ring();
+  const auto& monoid = ring.monoid();
   MATHICGB_ASSERT(&result->ring() == &ring);
 
   if (tracingLevel > 100)
@@ -190,8 +191,8 @@ std::unique_ptr<Poly> TypicalReducer::classicReduce
       ++steps;
       basis.usedAsReducer(reducer);
       monomial mon = ring.allocMonomial(mArena);
-      ring.monomialDivide(v.monom, basis.leadMonomial(reducer), mon);
-      ring.coefficientDivide(v.coeff, basis.leadCoefficient(reducer), coef);
+      monoid.divide(basis.leadMono(reducer), v.monom, mon);
+      ring.coefficientDivide(v.coeff, basis.leadCoef(reducer), coef);
       ring.coefficientNegateTo(coef);
       removeLeadTerm();
       insertTail(const_term(coef, mon), &basis.poly(reducer));

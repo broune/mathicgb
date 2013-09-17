@@ -34,7 +34,7 @@ std::unique_ptr<Basis> PolyBasis::initialIdeal() const {
   for (size_t gen = 0; gen != basisSize; ++gen) {
     if (!retired(gen) && leadMinimal(gen)) {
       std::unique_ptr<Poly> p(new Poly(mRing));
-      p->appendTerm(1, leadMonomial(gen));
+      p->appendTerm(1, leadMono(gen));
       basis->insert(std::move(p));
     }
   }
@@ -89,7 +89,7 @@ void PolyBasis::insert(std::unique_ptr<Poly> poly) {
 std::unique_ptr<Poly> PolyBasis::retire(size_t index) {
   MATHICGB_ASSERT(index < size());
   MATHICGB_ASSERT(!retired(index));
-  mMonoLookup->remove(leadMonomial(index));
+  mMonoLookup->remove(leadMono(index));
   std::unique_ptr<Poly> poly(mEntries[index].poly);
   mEntries[index].poly = 0;
   mEntries[index].retired = true;
@@ -104,29 +104,28 @@ std::unique_ptr<Basis> PolyBasis::toBasisAndRetireAll() {
   return basis;
 }
 
-size_t PolyBasis::divisor(const_monomial mon) const {
-  size_t index = monoLookup().divisor(mon);
+size_t PolyBasis::divisor(ConstMonoRef mono) const {
+  size_t index = monoLookup().divisor(mono);
   MATHICGB_ASSERT((index == static_cast<size_t>(-1)) ==
-    (divisorSlow(mon) == static_cast<size_t>(-1)));
+    (divisorSlow(mono) == static_cast<size_t>(-1)));
   MATHICGB_ASSERT(index == static_cast<size_t>(-1) ||
-    ring().monomialIsDivisibleBy(mon, leadMonomial(index)));
+    monoid().divides(leadMono(index), mono));
   return index;
 }
 
-size_t PolyBasis::classicReducer(const_monomial mon) const {
-  return monoLookup().classicReducer(mon);
-  size_t index = monoLookup().classicReducer(mon);
+size_t PolyBasis::classicReducer(ConstMonoRef mono) const {
+  const auto index = monoLookup().classicReducer(mono);
   MATHICGB_ASSERT((index == static_cast<size_t>(-1)) ==
-    (divisorSlow(mon) == static_cast<size_t>(-1)));
+    (divisorSlow(mono) == static_cast<size_t>(-1)));
   MATHICGB_ASSERT(index == static_cast<size_t>(-1) ||
-    ring().monomialIsDivisibleBy(mon, leadMonomial(index)));
+    monoid().divides(leadMono(index), mono));
   return index;
 }
 
-size_t PolyBasis::divisorSlow(const_monomial mon) const {
+size_t PolyBasis::divisorSlow(ConstMonoRef mono) const {
   const size_t stop = size();
   for (size_t i = 0; i != stop; ++i)
-    if (!retired(i) && ring().monomialIsDivisibleBy(mon, leadMonomial(i)))
+    if (!retired(i) && monoid().divides(leadMono(i), mono))
       return i;
   return static_cast<size_t>(-1);
 }
@@ -134,14 +133,14 @@ size_t PolyBasis::divisorSlow(const_monomial mon) const {
 bool PolyBasis::leadMinimalSlow(size_t index) const {
   MATHICGB_ASSERT(index < size());
   MATHICGB_ASSERT(!retired(index));
-  const_monomial const lead = leadMonomial(index);
+  const auto lead = leadMono(index);
   EntryCIter const skip = mEntries.begin() + index;
   EntryCIter const stop = mEntries.end();
   for (EntryCIter it = mEntries.begin(); it != stop; ++it) {
     if (it->retired)
       continue;
-    const_monomial const itLead = it->poly->getLeadMonomial();
-    if (ring().monomialIsDivisibleBy(lead, itLead) && it != skip)
+    const auto itLead = it->poly->getLeadMonomial();
+    if (monoid().divides(itLead, lead) && it != skip)
       return false;
   }
   return true;

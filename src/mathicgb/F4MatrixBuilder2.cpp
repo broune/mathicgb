@@ -317,7 +317,7 @@ public:
       mathic::reportError("Monomial exponent overflow in F4MatrixBuilder2.");
 
     // look for a reducer of mTmp
-    const size_t reducerIndex = mBasis.classicReducer(Monoid::toOld(*mTmp.ptr()));
+    const size_t reducerIndex = mBasis.classicReducer(*mTmp);
     const bool insertLeft = (reducerIndex != static_cast<size_t>(-1));
 
     // Create the new left or right column

@@ -17,6 +17,8 @@ MATHICGB_NAMESPACE_BEGIN
 #define MATHICGB_USE_RATIO_RANK true
 #endif
 
+/// Stores a basis of polynomials that each have a signature. Designed for
+/// use in signature Groebner basis algorithms.
 class SigPolyBasis {
 public:
   typedef PolyRing::Monoid Monoid;
@@ -46,12 +48,12 @@ public:
 
   ConstMonoRef leadMono(size_t gen) const {
     MATHICGB_ASSERT(gen < size());
-    return mBasis.leadMonomial(gen);
+    return mBasis.leadMono(gen);
   }
 
   coefficient leadCoef(size_t gen) const {
     MATHICGB_ASSERT(gen < size());
-    return mBasis.leadCoefficient(gen);
+    return mBasis.leadCoef(gen);
   }
 
   ConstMonoRef sigLeadRatio(size_t gen) const {
