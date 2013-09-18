@@ -170,7 +170,7 @@ size_t PolyBasis::monomialCount() const {
   EntryCIter const stop = mEntries.end();
   for (EntryCIter it = mEntries.begin(); it != stop; ++it)
     if (!it->retired)
-      sum += it->poly->nTerms();
+      sum += it->poly->termCount();
   return sum;
 }
 

@@ -137,7 +137,7 @@ void ClassicGBAlg::insertReducedPoly(
     } else {
       mRing.printMonomialFrobbyM2Format
         (std::cerr, polyToInsert->getLeadMonomial());
-      if (polyToInsert->nTerms() > 1)
+      if (polyToInsert->termCount() > 1)
         std::cerr << " + [...]";
       std::cerr << std::endl;
     }
@@ -281,8 +281,8 @@ void ClassicGBAlg::step() {
     const std::unique_ptr<Poly>& a,
     const std::unique_ptr<Poly>& b
   ) {
-    const auto aTermCount = a->nTerms();
-    const auto bTermCount = b->nTerms();
+    const auto aTermCount = a->termCount();
+    const auto bTermCount = b->termCount();
     if (aTermCount < bTermCount)
       return true;
     if (aTermCount > bTermCount)

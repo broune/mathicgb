@@ -178,8 +178,8 @@ public:
 
       if (reducer != size_t(-1)) {
         if (preferSparseReducers) {
-          const auto newTermCount = basis.poly(e.data()).nTerms();
-          const auto oldTermCount = basis.poly(reducer).nTerms();
+          const auto newTermCount = basis.poly(e.data()).termCount();
+          const auto oldTermCount = basis.poly(reducer).termCount();
           if (newTermCount > oldTermCount)
             return true; // what we already have is sparser
           // resolve ties by picking oldest
@@ -280,8 +280,8 @@ public:
         if (ratioCmp == EQ) {
           // If same lead monomial in signature, pick the one with fewer terms
           // as that one might be less effort to reduce.
-          const size_t minTerms = basis.poly(minLeadGen).nTerms();
-          const size_t terms = basis.poly(entry.data()).nTerms();
+          const size_t minTerms = basis.poly(minLeadGen).termCount();
+          const size_t terms = basis.poly(entry.data()).termCount();
           if (minTerms > terms)
             return true;
           if (minTerms == terms) {
@@ -320,8 +320,8 @@ public:
         return true;
       }
       if (preferSparseReducers) {
-        const auto oldTermCount = basis.poly(reducer).nTerms();
-        const auto newTermCount = basis.poly(entry.data()).nTerms();
+        const auto oldTermCount = basis.poly(reducer).termCount();
+        const auto newTermCount = basis.poly(entry.data()).termCount();
         if (oldTermCount > newTermCount) {
           reducer = entry.data(); // prefer sparser
           return true;

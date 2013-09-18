@@ -64,7 +64,7 @@ ReducerHash<Q>::ReducerHash(const PolyRing &ring):
 
 template<template<typename> class Q>
 void ReducerHash<Q>::insertTail(NewConstTerm multiplier, const Poly& f) {
-  if (f.nTerms() <= 1)
+  if (f.termCount() <= 1)
     return;
 
   mNodesTmp.clear();

@@ -95,7 +95,7 @@ ReducerHashPack<Q>::~ReducerHashPack() {
 template<template<typename> class Q>
 void ReducerHashPack<Q>::insertTail(NewConstTerm multiple, const Poly& poly) {
   MATHICGB_ASSERT(&poly.ring() == &mRing);
-  if (poly.nTerms() <= 1)
+  if (poly.termCount() <= 1)
     return;
   auto entry = new (mPool.alloc()) MultipleWithPos(poly, multiple);
   ++entry->pos;

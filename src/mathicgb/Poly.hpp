@@ -15,10 +15,13 @@ MATHICGB_NAMESPACE_BEGIN
 class Poly {
 public:
   typedef PolyRing::Monoid Monoid;
-  typedef Monoid::ConstMonoRef ConstMonoRef;
+  typedef Monoid::Mono Mono;
   typedef Monoid::MonoRef MonoRef;
+  typedef Monoid::ConstMonoRef ConstMonoRef;
+  typedef Monoid::MonoPtr MonoPtr;
+  typedef Monoid::ConstMonoPtr ConstMonoPtr;
 
-  Poly(const PolyRing& ring) : R(&ring) {MATHICGB_ASSERT(R != 0);}
+  Poly(const PolyRing& ring) : mRing(ring) {}
 
   void parse(std::istream &i); // reads into this, sorts terms
   void parseDoNotOrder(std::istream &i); // reads into this, does not sort terms
@@ -33,7 +36,7 @@ public:
     std::vector<exponent>::iterator im;
     friend class Poly;
 
-    iterator(Poly& f) : monsize(f.getRing()->maxMonomialSize()), ic(f.coeffs.begin()), im(f.monoms.begin()) {}
+    iterator(Poly& f) : monsize(f.ring().maxMonomialSize()), ic(f.coeffs.begin()), im(f.monoms.begin()) {}
     iterator(Poly& f,int) : ic(f.coeffs.end()), im() {}
   public:
     typedef std::random_access_iterator_tag iterator_category;
@@ -68,7 +71,7 @@ public:
     std::vector<exponent>::const_iterator im;
     friend class Poly;
 
-    const_iterator(const Poly& f) : monsize(f.getRing()->maxMonomialSize()), ic(f.coeffs.begin()), im(f.monoms.begin()) {}
+    const_iterator(const Poly& f) : monsize(f.ring().maxMonomialSize()), ic(f.coeffs.begin()), im(f.monoms.begin()) {}
     const_iterator(const Poly& f,int) : ic(f.coeffs.end()), im() {}
   public:
     typedef std::random_access_iterator_tag iterator_category;
@@ -103,7 +106,7 @@ public:
   // Insert [first, last) onto the end of this.
   // This invalidates iterators on this.
 
-  Poly *copy() const;
+  //Poly *copy() const;
 
   // Cannot call this monomial() since that is already a type :-(
   monomial monomialAt(size_t index);
@@ -128,14 +131,6 @@ public:
 
   const coefficient* coefficientBegin() const {return coeffs.data();}
 
-
-  static Poly * add(const PolyRing *R,
-                    iterator first1,
-                    iterator last1,
-                    iterator first2,
-                    iterator last2,
-                    size_t &n_compares);
-
   void multByTerm(coefficient a, const_monomial m);
   void multByMonomial(const_monomial m);
   void multByCoefficient(coefficient a);
@@ -145,31 +140,31 @@ public:
 
   const_monomial getLeadMonomial() const { return &(monoms[0]); }
   const_coefficient getLeadCoefficient() const  { return coeffs[0]; }
-  exponent getLeadComponent() const  { return R->monomialGetComponent(&(monoms[0])); }
+  exponent getLeadComponent() const  { return ring().monomialGetComponent(&(monoms[0])); }
   bool isZero() const { return coeffs.empty(); }
 
-  size_t nTerms() const { return coeffs.size(); } /// @todo: deprecated
+  //size_t nTerms() const { return coeffs.size(); } /// @todo: deprecated
   size_t termCount() const {return coeffs.size();}
 
   size_t getMemoryUse() const;
 
   void setToZero();
 
-  void copy(Poly &result) const;
+  //void copy(Poly &result) const;
+  Poly& operator=(const Poly& poly) {return *this = Poly(poly);}
+  Poly& operator=(Poly&& poly);
+
   friend bool operator==(const Poly &a, const Poly &b);
 
-  // deprecated
-  const PolyRing *getRing() const { return R; }
+  const PolyRing& ring() const {return mRing;}
+  const Monoid& monoid() const {return ring().monoid();}
 
-  // use this instead of getRing()
-  const PolyRing& ring() const {return *R;}
-
-  void dump() const; // used for debugging
+  //void dump() const; // used for debugging
 
   bool termsAreInDescendingOrder() const;
 
 private:
-  const PolyRing *R;
+  const PolyRing& mRing;
   std::vector<coefficient> coeffs;
   std::vector<exponent> monoms;
 };
@@ -198,14 +193,14 @@ inline void Poly::appendTerm(coefficient a, const_monomial m)
 {
   // the monomial will be copied on.
   coeffs.push_back(a);
-  size_t len = R->maxMonomialSize();
+  size_t len = ring().maxMonomialSize();
   exponent const * e = m.unsafeGetRepresentation();
   monoms.insert(monoms.end(), e, e + len);
 }
 
 inline void Poly::appendTerm(coefficient a, PolyRing::Monoid::ConstMonoRef m) {
   coeffs.push_back(a);
-  size_t len = R->maxMonomialSize();
+  size_t len = ring().maxMonomialSize();
   auto& monoid = ring().monoid();
   const auto offset = monoms.size();
   monoms.resize(offset + monoid.entryCount());

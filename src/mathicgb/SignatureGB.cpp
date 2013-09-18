@@ -67,8 +67,7 @@ SignatureGB::SignatureGB(
     GB->addComponent();
 
   for (Component i = 0; i < componentCount; i++) {
-    auto g = make_unique<Poly>(*R);
-    basis.getPoly(i)->copy(*g);
+    auto g = make_unique<Poly>(*basis.getPoly(i));
     g->makeMonic();
 
     auto sig = monoid().alloc();

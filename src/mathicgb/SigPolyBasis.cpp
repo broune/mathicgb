@@ -324,8 +324,8 @@ size_t SigPolyBasis::minimalLeadInSigSlow(ConstMonoRef sig) const {
       if (leadCmp == Monoid::EqualTo) {
         // If same lead monomial in signature, pick the one with fewer terms
         // as that one might be less effort to reduce.
-        const size_t minTerms = poly(minLeadGen).nTerms();
-        const size_t terms = poly(gen).nTerms();
+        const size_t minTerms = poly(minLeadGen).termCount();
+        const size_t terms = poly(gen).termCount();
         if (minTerms > terms)
           continue;
         if (minTerms == terms) {

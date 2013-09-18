@@ -117,7 +117,7 @@ ReducerPackDedup<Q>::~ReducerPackDedup() {
 
 template<template<typename> class Q>
 void ReducerPackDedup<Q>::insertTail(NewConstTerm multiple, const Poly& poly) {
-  if (poly.nTerms() <= 1)
+  if (poly.termCount() <= 1)
     return;
   mLeadTermKnown = false;
 

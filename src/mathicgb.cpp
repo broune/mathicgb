@@ -800,7 +800,7 @@ namespace mgbi {
   size_t IdealAdapter::termCount(PolyIndex poly) const {
     MATHICGB_ASSERT(mPimpl->basis.get() != 0);
     MATHICGB_ASSERT(poly < mPimpl->basis->size());
-    return mPimpl->basis->getPoly(poly)->nTerms();
+    return mPimpl->basis->getPoly(poly)->termCount();
   }
 
   auto IdealAdapter::term(
@@ -812,7 +812,7 @@ namespace mgbi {
 
     const auto& monoid = mPimpl->basis->ring().monoid();
     const auto& p = *mPimpl->basis->getPoly(poly);
-    MATHICGB_ASSERT(term < p.nTerms());
+    MATHICGB_ASSERT(term < p.termCount());
     MATHICGB_ASSERT(p.ring().monoid() == monoid);
 
     const auto& from = p.monomialAt(term);
