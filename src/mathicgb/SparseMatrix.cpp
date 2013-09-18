@@ -42,7 +42,7 @@ void SparseMatrix::rowToPolynomial(
   for (auto it = rowBegin(row); it != end; ++it) {
     MATHICGB_ASSERT(it.index() < colMonomials.size());
     if (it.scalar() != 0)
-      poly.appendTerm(it.scalar(), Monoid::toOld(*colMonomials[it.index()]));
+      poly.append(it.scalar(), *colMonomials[it.index()]);
   }
   MATHICGB_ASSERT(poly.termsAreInDescendingOrder());
 }

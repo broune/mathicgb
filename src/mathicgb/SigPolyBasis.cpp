@@ -57,7 +57,7 @@ void SigPolyBasis::addComponent() {
 void SigPolyBasis::insert(Mono ownedSig, std::unique_ptr<Poly> f) {
   MATHICGB_ASSERT(f.get() != nullptr);
   MATHICGB_ASSERT(!f->isZero());
-  MATHICGB_ASSERT(f->getLeadCoefficient() != 0);
+  MATHICGB_ASSERT(f->leadCoef() != 0);
   MATHICGB_ASSERT(!ownedSig.isNull());
   MATHICGB_ASSERT(monoid().fromPool(*ownedSig));
 
@@ -70,11 +70,11 @@ void SigPolyBasis::insert(Mono ownedSig, std::unique_ptr<Poly> f) {
   mSignatureLookup[component]->insert(sig, index);
 
   auto ratio = ring().allocMonomial();
-  monoid().divideToNegative(f->getLeadMonomial(), sig, ratio);
+  monoid().divideToNegative(f->leadMono(), sig, ratio);
 
   mSigLeadRatio.push_back(ratio);
 
-  const_monomial const lead = f->getLeadMonomial();
+  const auto lead = f->leadMono();
   mBasis.insert(std::move(f));
   if (mBasis.leadMinimal(mBasis.size() - 1)) {
     mMinimalMonoLookup->removeMultiples(lead);
@@ -362,7 +362,7 @@ bool SigPolyBasis::isSingularTopReducibleSlow(
 
   monomial multiplier = ring().allocMonomial();
   const size_t genCount = size();
-  const_monomial polyLead = poly.getLeadMonomial();
+  const auto polyLead = poly.leadMono();
   for (size_t i = 0; i < genCount; ++i) {
     if (!monoid().divides(leadMono(i), polyLead))
       continue;

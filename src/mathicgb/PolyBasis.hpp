@@ -56,7 +56,7 @@ public:
     MATHICGB_ASSERT(newValue.get() != nullptr);
     MATHICGB_ASSERT(!newValue->isZero());
     MATHICGB_ASSERT
-      (monoid().equal(leadMono(index), newValue->getLeadMonomial()));
+      (monoid().equal(leadMono(index), newValue->leadMono()));
     mMonoLookup->remove(leadMono(index));
     delete mEntries[index].poly;
     mEntries[index].poly = newValue.release();
@@ -108,14 +108,14 @@ public:
   ConstMonoRef leadMono(size_t index) const {
     MATHICGB_ASSERT(index < size());
     MATHICGB_ASSERT(!retired(index));
-    return poly(index).getLeadMonomial();
+    return poly(index).leadMono();
   }
 
   /// Returns the lead coefficient of poly(index).
   coefficient leadCoef(size_t index) const {
     MATHICGB_ASSERT(index < size());
     MATHICGB_ASSERT(!retired(index));
-    return poly(index).getLeadCoefficient();
+    return poly(index).leadCoef();
   }
 
   /// Returns true if the leading monomial of the basis element at index is not
@@ -133,7 +133,7 @@ public:
   /// lead monomial of any basis element. Equality counts as divisibility.
   bool leadMinimal(const Poly& poly) const {
     MATHICGB_ASSERT(&poly != 0);
-    return mMonoLookup->divisor(poly.getLeadMonomial()) !=
+    return mMonoLookup->divisor(poly.leadMono()) !=
       static_cast<size_t>(-1);
   }
 

@@ -60,7 +60,7 @@ protected:
   // out sub-steps in the reduction.
   virtual void insertTail(const_term multiplier, const Poly* f) {
     MATHICGB_ASSERT(f != 0);
-    NewConstTerm t = {multiplier.monom, multiplier.coeff};
+    NewConstTerm t = {multiplier.coeff, multiplier.monom};
     insertTail(t, *f);
   }
 

@@ -55,11 +55,11 @@ private:
     NewTerm multiple;
 
     // invariant: current is the monomial product of multiple.monom 
-    // and pos.getMonomial().
+    // and pos.mono().
     MonoPtr current;
 
     // Ensures the invariant, so sets current to the product of
-    // multiple.monom and pos.getMonomial().
+    // multiple.monom and pos.mono().
     void computeCurrent(const PolyRing& ring);
     void currentCoefficient(const PolyRing& ring, Coefficient& coeff);
     void addCurrentCoefficient(const PolyRing& ring, Coefficient& coeff);
@@ -133,7 +133,7 @@ void ReducerPackDedup<Q>::insert(ConstMonoRef multiple, const Poly& poly) {
     return;
   mLeadTermKnown = false;
 
-  NewConstTerm termMultiple = {multiple.ptr(), 1};
+  NewConstTerm termMultiple = {1, multiple.ptr()};
   auto entry = new (mPool.alloc()) MultipleWithPos(poly, termMultiple);
   entry->computeCurrent(poly.ring());
   mQueue.push(entry);
@@ -158,7 +158,7 @@ template<template<typename> class Q>
 void ReducerPackDedup<Q>::MultipleWithPos::computeCurrent(
   const PolyRing& ring
 ) {
-  ring.monoid().multiply(*multiple.mono, pos.getMonomial(), *current);
+  ring.monoid().multiply(*multiple.mono, pos.mono(), *current);
 }
 
 template<template<typename> class Q>
@@ -166,7 +166,7 @@ void ReducerPackDedup<Q>::MultipleWithPos::currentCoefficient(
   const PolyRing& ring,
   Coefficient& coef
 ) {
-  ring.coefficientMult(multiple.coef, pos.getCoefficient(), coef);
+  ring.coefficientMult(multiple.coef, pos.coef(), coef);
 }
 
 template<template<typename> class Q>
@@ -175,7 +175,7 @@ void ReducerPackDedup<Q>::MultipleWithPos::addCurrentCoefficient(
   Coefficient& coeff
 ) {
   Coefficient tmp;
-  ring.coefficientMult(multiple.coef, pos.getCoefficient(), tmp);
+  ring.coefficientMult(multiple.coef, pos.coef(), tmp);
   ring.coefficientAddTo(coeff, tmp);
 }
 

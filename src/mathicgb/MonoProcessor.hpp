@@ -48,7 +48,7 @@ public:
   void setSchreyerMultipliers(const Basis& basis) {
     MonoVector schreyer(monoid());
     for (size_t gen = 0; gen < basis.size(); ++gen)
-      schreyer.push_back(basis.getPoly(gen)->getLeadMonomial());
+      schreyer.push_back(basis.getPoly(gen)->leadMono());
     setSchreyerMultipliers(std::move(schreyer));
   }
 

@@ -196,16 +196,16 @@ typedef MonoMonoid<exponent>::ConstMonoPtr ConstMonomial;
 #endif
 
 struct NewConstTerm {
-  MonoMonoid<exponent>::ConstMonoPtr mono;
   coefficient coef;
+  MonoMonoid<exponent>::ConstMonoPtr mono;
 };
 
 struct NewTerm {
-  MonoMonoid<exponent>::MonoPtr mono;
   coefficient coef;
+  MonoMonoid<exponent>::MonoPtr mono;
 
   operator NewConstTerm() const {
-    NewConstTerm t = {mono, coef};
+    NewConstTerm t = {coef, mono};
     return t;
   }
 };

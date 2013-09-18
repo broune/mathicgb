@@ -1449,7 +1449,7 @@ public:
     class const_iterator {
     public:
       typedef std::forward_iterator_tag iterator_category;
-      typedef ConstMonoPtr value_type;
+      typedef ConstMonoRef value_type;
     
       const_iterator(): mIt(), mEntriesPerMono(0) {}
       const_iterator(const const_iterator& it):

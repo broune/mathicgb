@@ -720,7 +720,7 @@ void GroebnerInputIdealStream::appendTermDone(Coefficient coefficient) {
   // @todo: do this directly into the polynomial instead of copying a second
   // time.
   mPimpl->ring.monomialSetExternalExponents(mPimpl->monomial, mExponents);
-  mPimpl->poly.appendTerm(coefficient, mPimpl->monomial);
+  mPimpl->poly.append(coefficient, mPimpl->monomial);
 
   MATHICGB_ASSERT(debugAssertValid());
 }
@@ -815,11 +815,11 @@ namespace mgbi {
     MATHICGB_ASSERT(term < p.termCount());
     MATHICGB_ASSERT(p.ring().monoid() == monoid);
 
-    const auto& from = p.monomialAt(term);
+    const auto& from = p.mono(term);
     auto to = mPimpl->tmpTerm.get();
     for (VarIndex var = 0; var < monoid.varCount(); ++var)
       to[var] = monoid.externalExponent(from, var);
-    return std::make_pair(p.coefficientAt(term), to);
+    return std::make_pair(p.coef(term), to);
   }
 }
 

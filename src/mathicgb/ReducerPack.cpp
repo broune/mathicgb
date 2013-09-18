@@ -90,7 +90,7 @@ private:
 template<template<typename> class Q>
 void ReducerPack<Q>::insertTail(NewConstTerm multiple, const Poly& poly)
 {
-  if (poly.nTerms() <= 1)
+  if (poly.termCount() <= 1)
     return;
   mLeadTermKnown = false;
 
@@ -108,7 +108,7 @@ void ReducerPack<Q>::insert(ConstMonoRef multiple, const Poly& poly)
     return;
   mLeadTermKnown = false;
 
-  NewConstTerm termMultiple = {multiple.ptr(), 1};
+  NewConstTerm termMultiple = {1, multiple.ptr()};
   auto entry = new (mPool.alloc()) MultipleWithPos(poly, termMultiple);
   entry->computeCurrent(poly.ring());
   mQueue.push(entry);
@@ -130,13 +130,13 @@ ReducerPack<Q>::MultipleWithPos::MultipleWithPos(
 
 template<template<typename> class Q>
 void ReducerPack<Q>::MultipleWithPos::computeCurrent(const PolyRing& ring) {
-  ring.monoid().multiply(*multiple.mono, pos.getMonomial(), *current);  
+  ring.monoid().multiply(*multiple.mono, pos.mono(), *current);  
 }
 
 template<template<typename> class Q>
 void ReducerPack<Q>::MultipleWithPos::currentCoefficient
 (const PolyRing& ring, coefficient& coeff) {
-  ring.coefficientMult(multiple.coef, pos.getCoefficient(), coeff);
+  ring.coefficientMult(multiple.coef, pos.coef(), coeff);
 }
 
 template<template<typename> class Q>

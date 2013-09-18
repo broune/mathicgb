@@ -385,7 +385,7 @@ Poly MathicIO<M, BF>::readPoly(
     if (!p.isZero() && !in.peekSign())
       in.expect('+', '-');
     readTerm(ring, readComponent, coef, mono, in);
-    p.appendTerm(coef.value(), Monoid::toOld(*mono));
+    p.append(coef.value(), *mono);
   } while (!in.peekWhite() && !in.matchEOF());
   return std::move(p);
 }
@@ -408,8 +408,8 @@ void MathicIO<M, BF>::writePoly(
     writeTerm(
       poly.ring(),
       writeComponent,
-      poly.ring().field().toElement(it.getCoefficient()),
-      it.getMonomial(),
+      poly.ring().field().toElement(it.coef()),
+      it.mono(),
       out
     );
   }

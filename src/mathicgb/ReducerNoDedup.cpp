@@ -81,8 +81,8 @@ void ReducerNoDedup<Q>::insertTail(NewConstTerm multiple, const Poly& poly) {
   for (++it; it != end; ++it) {
     NewTerm t;
     t.mono = mRing.allocMonomial();
-    mRing.monoid().multiply(*multiple.mono, it.getMonomial(), *t.mono);
-    mRing.coefficientMult(multiple.coef, it.getCoefficient(), t.coef);
+    mRing.monoid().multiply(*multiple.mono, it.mono(), *t.mono);
+    mRing.coefficientMult(multiple.coef, it.coef(), t.coef);
     mQueue.push(t);
   }
 }
@@ -95,8 +95,8 @@ void ReducerNoDedup<Q>::insert(ConstMonoRef multiple, const Poly& poly) {
 
   const auto end = poly.end();
   for (auto it = poly.begin(); it != end; ++it) {
-    NewTerm t = {mRing.monoid().alloc().release(), it.getCoefficient()};
-    mRing.monoid().multiply(multiple, it.getMonomial(), *t.mono);
+    NewTerm t = {it.coef(), mRing.monoid().alloc().release()};
+    mRing.monoid().multiply(multiple, it.mono(), *t.mono);
     mQueue.push(t);
   }
 }

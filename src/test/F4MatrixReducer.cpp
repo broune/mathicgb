@@ -20,12 +20,11 @@ TEST(F4MatrixReducer, Reduce) {
   std::istringstream in("a4+a3+a2+a1+b5+b4+b3+b2+b1");
   p.parse(in);
   size_t count = 0;
-  for (Poly::iterator it = p.begin(); it != p.end(); ++it) {
-    monomial mono = it.getMonomial();
+  for (auto it = p.begin(); it != p.end(); ++it) {
     if (count < 4)
-      m.leftColumnMonomials.push_back(mono);
+      m.leftColumnMonomials.push_back(it.mono());
     else
-      m.rightColumnMonomials.push_back(mono);
+      m.rightColumnMonomials.push_back(it.mono());
     ++count;
   }
 

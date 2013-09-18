@@ -108,7 +108,7 @@ TEST(F4MatrixBuilder, OneByOne) {
     BuilderMaker maker;
     const Poly& p = maker.addBasisElement("a");
     F4MatrixBuilder& builder = maker.create();
-    builder.addPolynomialToMatrix(p.getLeadMonomial(), p);
+    builder.addPolynomialToMatrix(p.leadMono(), p);
     QuadMatrix qm(builder.ring());
     builder.buildMatrixAndClear(qm);
     const char* str = 
@@ -134,14 +134,14 @@ TEST(F4MatrixBuilder, DirectReducers) {
     { 
       std::istringstream in("a3<0>+b2+c+d");
       p1.parse(in);
-      builder.addPolynomialToMatrix(p1.getLeadMonomial(), p1);
+      builder.addPolynomialToMatrix(p1.leadMono(), p1);
     }
 
     Poly p2(builder.ring());
     {
       std::istringstream in("a3<0>+2b2+3c+4d");
       p2.parse(in);
-      builder.addPolynomialToMatrix(p2.getLeadMonomial(), p2);
+      builder.addPolynomialToMatrix(p2.leadMono(), p2);
     }
 
     QuadMatrix qm(builder.ring());
@@ -167,7 +167,7 @@ TEST(F4MatrixBuilder, IteratedReducer) {
     const Poly& p1 = maker.addBasisElement("a4-a3");
     const Poly& p2 = maker.addBasisElement("a-1");
     F4MatrixBuilder& builder = maker.create();
-    builder.addPolynomialToMatrix(p1.getLeadMonomial(), p2);
+    builder.addPolynomialToMatrix(p1.leadMono(), p2);
     QuadMatrix qm(builder.ring());
     builder.buildMatrixAndClear(qm);
     const char* str = 

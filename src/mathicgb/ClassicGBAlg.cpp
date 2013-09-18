@@ -62,7 +62,7 @@ void ClassicGBAlg::insertPolys
       MATHICGB_ASSERT(it->get() != 0);
       if ((*it)->isZero())
         continue;
-      if (mBasis.divisor((*it)->getLeadMonomial()) != static_cast<size_t>(-1)) {
+      if (mBasis.divisor((*it)->leadMono()) != static_cast<size_t>(-1)) {
         *it = mReducer.classicReduce(**it, mBasis);
         if ((*it)->isZero())
           continue;
@@ -94,7 +94,7 @@ void ClassicGBAlg::insertPolys
       // We check for a divisor from mBasis because a new reducer
       // might have been added since we did the reduction or perhaps a
       // non-reduced polynomial was passed in.
-      if (mBasis.divisor((*it)->getLeadMonomial()) != static_cast<size_t>(-1))
+      if (mBasis.divisor((*it)->leadMono()) != static_cast<size_t>(-1))
         toReduce.push_back(std::move(*it));
       else {
         mBasis.insert(std::move(*it));
@@ -126,7 +126,7 @@ void ClassicGBAlg::insertReducedPoly(
   MATHICGB_ASSERT(polyToInsert.get() != 0);
   if (polyToInsert->isZero())
     return;
-  MATHICGB_ASSERT(mBasis.divisor(polyToInsert->getLeadMonomial()) ==
+  MATHICGB_ASSERT(mBasis.divisor(polyToInsert->leadMono()) ==
     static_cast<size_t>(-1));
 
   if (tracingLevel > 20) {
@@ -136,7 +136,7 @@ void ClassicGBAlg::insertReducedPoly(
       std::cerr << std::endl;
     } else {
       mRing.printMonomialFrobbyM2Format
-        (std::cerr, polyToInsert->getLeadMonomial());
+        (std::cerr, Monoid::toOld(polyToInsert->leadMono()));
       if (polyToInsert->termCount() > 1)
         std::cerr << " + [...]";
       std::cerr << std::endl;
@@ -172,7 +172,7 @@ void ClassicGBAlg::insertReducedPoly(
                 "inserting reduced poly with lead term "
                 << std::endl;
               mRing.printMonomialFrobbyM2Format
-              (std::cerr, reduced->getLeadMonomial());
+              (std::cerr, Monoid::toOld(reduced->leadMono()));
               std::cerr << '\n';
             }
           }
@@ -291,14 +291,14 @@ void ClassicGBAlg::step() {
     const auto aEnd = a->end();
     for (auto aIt = a->begin(); aIt != aEnd; ++aIt, ++bIt) {
       const auto monoCmp =
-        mRing.monomialCompare(aIt.getMonomial(), bIt.getMonomial());
+        mRing.monoid().compare(aIt.mono(), bIt.mono());
       if (monoCmp == LT)
         return true;
       if (monoCmp == GT)
         return false;
-      if (aIt.getCoefficient() < bIt.getCoefficient())
+      if (aIt.coef() < bIt.coef())
           return true;
-      if (aIt.getCoefficient() > bIt.getCoefficient())
+      if (aIt.coef() > bIt.coef())
         return false;
     }
     return false;

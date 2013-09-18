@@ -25,7 +25,7 @@ void Basis::sort() {
     const std::unique_ptr<Poly>& a,
     const std::unique_ptr<Poly>& b
   ) {
-    return monoid.lessThan(a->getLeadMonomial(), b->getLeadMonomial());
+    return monoid.lessThan(a->leadMono(), b->leadMono());
   };
   std::sort(mGenerators.begin(), mGenerators.end(), cmp);
 }

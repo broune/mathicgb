@@ -636,9 +636,10 @@ TEST(Poly,lead) {
   // This also tests Poly::iterator, Poly::read, Poly::write
   std::unique_ptr<Basis> I = basisParseFromString(ideal1);
   std::unique_ptr<const PolyRing> R(I->getPolyRing());
+  const auto& monoid = R->monoid();
   monomial lm = stringToMonomial(R.get(), "ab");
-  EXPECT_TRUE(R->monomialEQ(lm, I->getPoly(0)->getLeadMonomial()));
-  EXPECT_EQ(1, I->getPoly(0)->getLeadCoefficient());
-  EXPECT_EQ(0, I->getPoly(0)->getLeadComponent());
+  EXPECT_TRUE(monoid.equal(lm, I->getPoly(0)->leadMono()));
+  EXPECT_EQ(1, I->getPoly(0)->leadCoef());
+  EXPECT_EQ(0, monoid.component(I->getPoly(0)->leadMono()));
   R->freeMonomial(lm);
 }

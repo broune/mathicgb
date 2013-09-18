@@ -38,9 +38,9 @@ namespace {
       std::istringstream in(left);
       p.parseDoNotOrder(in);
       size_t colCount = 0;
-      for (Poly::iterator it = p.begin(); it != p.end(); ++it) {
+      for (auto it = p.begin(); it != p.end(); ++it) {
         QuadMatrixBuilder::LeftRightColIndex lrCol =
-          b.createColumnLeft(it.getMonomial()).first;
+          b.createColumnLeft(it.mono()).first;
         ASSERT_TRUE(lrCol.left());
         ASSERT_FALSE(lrCol.right());
         auto col = lrCol.leftIndex();
@@ -54,9 +54,9 @@ namespace {
       std::istringstream in(right);
       p.parseDoNotOrder(in);
       size_t colCount = 0;
-      for (Poly::iterator it = p.begin(); it != p.end(); ++it) {
+      for (auto it = p.begin(); it != p.end(); ++it) {
         QuadMatrixBuilder::LeftRightColIndex lrCol =
-          b.createColumnRight(it.getMonomial()).first;
+          b.createColumnRight(it.mono()).first;
         ASSERT_TRUE(lrCol.right());
         ASSERT_FALSE(lrCol.left());
         auto col = lrCol.rightIndex();
@@ -143,15 +143,16 @@ TEST(QuadMatrixBuilder, ColumnQuery) {
   std::istringstream in
     ("10a<1>+11<0>+20b<0>+21c<0>+22bc<0>+30ab<0>+30e<0>+10a<1>");
   p.parseDoNotOrder(in);
-  for (Poly::iterator it = p.begin(); it != p.end(); ++it) {
+  for (auto it = p.begin(); it != p.end(); ++it) {
     const QuadMatrixBuilder::LeftRightColIndex* col =
-      MonomialMap<QuadMatrixBuilder::LeftRightColIndex>::Reader(map).find(it.getMonomial()).first;
-    if (it.getCoefficient() / 10 == 3)
+      MonomialMap<QuadMatrixBuilder::LeftRightColIndex>::Reader(map).
+        find(it.mono()).first;
+    if (it.coef() / 10 == 3)
       ASSERT_EQ(col, static_cast<void*>(0));
     else {
       ASSERT_TRUE(col != static_cast<void*>(0));
-      ASSERT_EQ(it.getCoefficient() % 10, col->index());
-      if (it.getCoefficient() / 10 == 2)
+      ASSERT_EQ(it.coef() % 10, col->index());
+      if (it.coef() / 10 == 2)
         ASSERT_TRUE(col->right());
       else
         ASSERT_TRUE(col->left());

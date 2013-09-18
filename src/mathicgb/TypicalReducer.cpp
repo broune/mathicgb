@@ -60,7 +60,7 @@ std::unique_ptr<Poly> TypicalReducer::regularReduce(
     MATHICGB_ASSERT(v.coeff != 0);
     reducer = basis.regularReducer(sig, v.monom);
     if (reducer == static_cast<size_t>(-1)) { // no reducer found
-      result->appendTerm(v.coeff, v.monom);
+      result->append(v.coeff, v.monom);
       removeLeadTerm();
     } else { // reduce by reducer
       ++steps;
@@ -97,7 +97,7 @@ std::unique_ptr<Poly> TypicalReducer::classicTailReduce(const Poly& poly, const 
   insertTail(identity, &poly);
 
   std::unique_ptr<Poly> result(new Poly(basis.ring()));
-  result->appendTerm(poly.getLeadCoefficient(), poly.getLeadMonomial());
+  result->append(poly.leadCoef(), poly.leadMono());
 
   return classicReduce(std::move(result), basis);
 }
@@ -107,22 +107,22 @@ std::unique_ptr<Poly> TypicalReducer::classicReduceSPoly(
   const Poly& b,
   const PolyBasis& basis
 ) {
-  const PolyRing& ring = basis.ring();
+  const auto& ring = basis.ring();
+  const auto& monoid = basis.ring().monoid();
 
   monomial lcm = ring.allocMonomial();
-  ring.monomialLeastCommonMultiple
-    (a.getLeadMonomial(), b.getLeadMonomial(), lcm);
+  monoid.lcm(a.leadMono(), b.leadMono(), lcm);
 
   // insert tail of multiple of a
   monomial multiple1 = ring.allocMonomial();
-  ring.monomialDivide(lcm, a.getLeadMonomial(), multiple1);
+  monoid.divide(a.leadMono(), lcm, multiple1);
   coefficient plusOne;
   ring.coefficientSet(plusOne, 1);
   insertTail(const_term(plusOne, multiple1), &a);
 
   // insert tail of multiple of b
   monomial multiple2 = ring.allocMonomial();
-  ring.monomialDivide(lcm, b.getLeadMonomial(), multiple2);
+  monoid.divide(b.leadMono(), lcm, multiple2);
   coefficient minusOne = plusOne;
   ring.coefficientNegateTo(minusOne);
   insertTail(const_term(minusOne, multiple2), &b);
@@ -183,9 +183,9 @@ std::unique_ptr<Poly> TypicalReducer::classicReduce
     if (reducer == static_cast<size_t>(-1)) { // no reducer found
       MATHICGB_ASSERT(
         result->isZero() ||
-        basis.monoid().lessThan(v.monom, result->backMonomial())
+        basis.monoid().lessThan(v.monom, result->backMono())
       );
-      result->appendTerm(v.coeff, v.monom);
+      result->append(v.coeff, v.monom);
       removeLeadTerm();
     } else { // reduce by reducer
       ++steps;

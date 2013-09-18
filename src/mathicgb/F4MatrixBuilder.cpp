@@ -102,7 +102,7 @@ void F4MatrixBuilder::addPolynomialToMatrix
     return;
 
   auto desiredLead = monoid().alloc();
-  monoid().multiply(poly.getLeadMonomial(), multiple, desiredLead);
+  monoid().multiply(poly.leadMono(), multiple, desiredLead);
   RowTask task = {};
   task.addToTop = false;
   task.poly = &poly;
@@ -159,8 +159,8 @@ void F4MatrixBuilder::buildMatrixAndClear(QuadMatrix& matrix) {
     if (task.sPairPoly != 0) {
       MATHICGB_ASSERT(!task.addToTop);
       monoid().colons(
-        poly.getLeadMonomial(),
-        task.sPairPoly->getLeadMonomial(),
+        poly.leadMono(),
+        task.sPairPoly->leadMono(),
         data.tmp2,
         data.tmp1
       );
@@ -171,7 +171,7 @@ void F4MatrixBuilder::buildMatrixAndClear(QuadMatrix& matrix) {
     if (task.desiredLead == nullptr)
       monoid().setIdentity(data.tmp1);
     else
-      monoid().divide(poly.getLeadMonomial(), *task.desiredLead, data.tmp1);
+      monoid().divide(poly.leadMono(), *task.desiredLead, data.tmp1);
     if (task.addToTop)
       appendRowTop(data.tmp1, *task.poly, builder, feeder);
     else
@@ -289,13 +289,13 @@ updateReader:
   // changes inside the loop.
   const ColReader reader(mMap);
   for (; it != end; ++it) {
-    const auto col = reader.findProduct(it.getMonomial(), multiple);
+    const auto col = reader.findProduct(it.mono(), multiple);
     if (col.first == 0) {
-      createColumn(it.getMonomial(), multiple, feeder);
+      createColumn(it.mono(), multiple, feeder);
       goto updateReader;
     }
 
-    const auto origScalar = it.getCoefficient();
+    const auto origScalar = it.coef();
     MATHICGB_ASSERT(origScalar != 0);
     const auto maybeNegated =
       negate ? ring().coefficientNegateNonZero(origScalar) : origScalar;
@@ -316,30 +316,29 @@ void F4MatrixBuilder::appendRowTop(
 
   auto it = poly.begin();
   const auto end = poly.end();
-  if ((std::distance(it, end) % 2) == 1) {
+  if ((poly.termCount() % 2) == 1) {
     ColReader reader(mMap);
     const auto col = findOrCreateColumn
-      (it.getMonomial(), multiple, reader, feeder);
-	MATHICGB_ASSERT(it.getCoefficient() < std::numeric_limits<Scalar>::max());
-    MATHICGB_ASSERT(it.getCoefficient());
+      (it.mono(), multiple, reader, feeder);
+	MATHICGB_ASSERT(it.coef() < std::numeric_limits<Scalar>::max());
+    MATHICGB_ASSERT(it.coef());
     builder.appendEntryTop
-      (col.first, static_cast<Scalar>(it.getCoefficient()));
+      (col.first, static_cast<Scalar>(it.coef()));
     ++it;
   }
 updateReader:
   ColReader colMap(mMap);
-  MATHICGB_ASSERT((std::distance(it, end) % 2) == 0);
   while (it != end) {
-	MATHICGB_ASSERT(it.getCoefficient() < std::numeric_limits<Scalar>::max());
-    MATHICGB_ASSERT(it.getCoefficient() != 0);
-    const auto scalar1 = static_cast<Scalar>(it.getCoefficient());
+	MATHICGB_ASSERT(it.coef() < std::numeric_limits<Scalar>::max());
+    MATHICGB_ASSERT(it.coef() != 0);
+    const auto scalar1 = static_cast<Scalar>(it.coef());
     const auto mono1 = it.mono();
 
     auto it2 = it;
     ++it2;
-	MATHICGB_ASSERT(it2.getCoefficient() < std::numeric_limits<Scalar>::max());
-    MATHICGB_ASSERT(it2.getCoefficient() != 0);
-    const auto scalar2 = static_cast<Scalar>(it2.getCoefficient());
+	MATHICGB_ASSERT(it2.coef() < std::numeric_limits<Scalar>::max());
+    MATHICGB_ASSERT(it2.coef() != 0);
+    const auto scalar2 = static_cast<Scalar>(it2.coef());
     const auto mono2 = it2.mono();
 
     const auto colPair = colMap.findTwoProducts(mono1, mono2, multiple);
@@ -372,7 +371,7 @@ void F4MatrixBuilder::appendRowBottom(
   Poly::const_iterator endB = sPairPoly.end();
 
   // skip leading terms since they cancel
-  MATHICGB_ASSERT(itA.getCoefficient() == itB.getCoefficient());
+  MATHICGB_ASSERT(itA.coef() == itB.coef());
   ++itA;
   ++itB;
 
@@ -396,17 +395,17 @@ void F4MatrixBuilder::appendRowBottom(
     coefficient coeff = 0;
     LeftRightColIndex col;
     const auto colA = findOrCreateColumn
-      (itA.getMonomial(), mulA, colMap, feeder);
+      (itA.mono(), mulA, colMap, feeder);
     const auto colB = findOrCreateColumn
-      (itB.getMonomial(), mulB, colMap, feeder);
+      (itB.mono(), mulB, colMap, feeder);
     const auto cmp = monoid().compare(colA.second, colB.second);
     if (cmp != LT) {
-      coeff = itA.getCoefficient();
+      coeff = itA.coef();
       col = colA.first;
       ++itA;
     }
     if (cmp != GT) {
-      coeff = ring().coefficientSubtract(coeff, itB.getCoefficient());
+      coeff = ring().coefficientSubtract(coeff, itB.coef());
       col = colB.first;
       ++itB;
     }

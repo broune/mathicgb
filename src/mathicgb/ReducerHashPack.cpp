@@ -107,7 +107,7 @@ void ReducerHashPack<Q>::insert(ConstMonoRef multiple, const Poly& poly) {
   MATHICGB_ASSERT(&poly.ring() == &mRing);
   if (poly.isZero())
     return;
-  NewConstTerm termMultiple = {multiple.ptr(), 1};
+  NewConstTerm termMultiple = {1, multiple.ptr()};
   insertEntry(new (mPool.alloc()) MultipleWithPos(poly, termMultiple));
 }
 
@@ -174,8 +174,7 @@ void ReducerHashPack<Q>::removeLeadTerm() {
       break;
     }
 
-    const auto p = mHashTable.insertProduct
-      (entry->multiple, entry->pos.term());
+    const auto p = mHashTable.insertProduct(entry->multiple, *entry->pos);
     if (p.second) {
       entry->node = p.first;
       mQueue.decreaseTop(entry);
@@ -188,8 +187,7 @@ template<template<typename> class Q>
 void ReducerHashPack<Q>::insertEntry(MultipleWithPos* entry) {
   MATHICGB_ASSERT(entry != 0);
   for (; entry->pos != entry->end; ++entry->pos) {
-    const auto p = mHashTable.insertProduct
-      (entry->multiple, entry->pos.term());
+    const auto p = mHashTable.insertProduct(entry->multiple, *entry->pos);
     if (p.second) {
       entry->node = p.first;
       mQueue.push(entry);

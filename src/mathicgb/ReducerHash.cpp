@@ -71,7 +71,7 @@ void ReducerHash<Q>::insertTail(NewConstTerm multiplier, const Poly& f) {
   auto it = f.begin();
   const auto end = f.end();
   for (++it; it != end; ++it) {
-    auto p = mHashTable.insertProduct(it.term(), multiplier);
+    auto p = mHashTable.insertProduct(*it, multiplier);
     if (p.second)
       mNodesTmp.emplace_back(p.first);
   }
@@ -84,8 +84,7 @@ void ReducerHash<Q>::insert(ConstMonoRef multiplier, const Poly& f) {
   mNodesTmp.clear();
   const auto end = f.end();
   for (auto it = f.begin(); it != end; ++it) {
-    auto p = mHashTable.insertProduct
-      (it.getMonomial(), multiplier, it.getCoefficient());
+    auto p = mHashTable.insertProduct(it.mono(), multiplier, it.coef());
     if (p.second)
       mNodesTmp.emplace_back(p.first);
   }

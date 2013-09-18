@@ -34,7 +34,7 @@ std::unique_ptr<Basis> PolyBasis::initialIdeal() const {
   for (size_t gen = 0; gen != basisSize; ++gen) {
     if (!retired(gen) && leadMinimal(gen)) {
       std::unique_ptr<Poly> p(new Poly(mRing));
-      p->appendTerm(1, leadMono(gen));
+      p->append(1, leadMono(gen));
       basis->insert(std::move(p));
     }
   }
@@ -48,13 +48,13 @@ void PolyBasis::insert(std::unique_ptr<Poly> poly) {
   poly->makeMonic();
   const size_t index = size();
   EntryIter const stop = mEntries.end();
-  const_monomial const lead = poly->getLeadMonomial();
+  const auto lead = poly->leadMono();
 #ifdef DEBUG
   // lead monomials must be unique among basis elements
   for (EntryIter it = mEntries.begin(); it != stop; ++it) {
     if (it->retired)
       continue;
-    MATHICGB_ASSERT(!ring().monomialEQ(lead, it->poly->getLeadMonomial()));
+    MATHICGB_ASSERT(!monoid().equal(lead, it->poly->leadMono()));
   }
 #endif
 
@@ -139,7 +139,7 @@ bool PolyBasis::leadMinimalSlow(size_t index) const {
   for (EntryCIter it = mEntries.begin(); it != stop; ++it) {
     if (it->retired)
       continue;
-    const auto itLead = it->poly->getLeadMonomial();
+    const auto itLead = it->poly->leadMono();
     if (monoid().divides(itLead, lead) && it != skip)
       return false;
   }
