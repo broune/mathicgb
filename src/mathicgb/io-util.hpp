@@ -33,7 +33,6 @@ std::unique_ptr<Poly> polyParseFromString
   (const PolyRing *R, const std::string &s);
 
 void output(std::ostream &o, const PolyBasis &I);
-void output(FILE* file, const PolyBasis &I);
 
 MATHICGB_NAMESPACE_END
 #endif

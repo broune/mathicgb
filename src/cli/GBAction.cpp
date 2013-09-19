@@ -99,19 +99,13 @@ void GBAction::performAction() {
   alg.computeGrobnerBasis();
   alg.printStats(std::cerr);
 
-  if (mGBParams.mOutputResult.value())
-    {
-      // output Groebner basis into .gb file.
+  if (mGBParams.mOutputResult.value()) {
+    // output Groebner basis into .gb file.
 
-      // The stats information is displayed to cout (above),
-      // so we disable it here.
-      // std::ofstream statsOut((projectName + ".stats").c_str());
-      // alg.printStats(statsOut);
-
-      std::string basisFileName = projectName + ".gb";
-      FILE* basisOut = std::fopen(basisFileName.c_str(), "w");
-      output(basisOut, alg.basis());
-    }
+    std::string basisFileName = projectName + ".gb";
+    std::ofstream out(basisFileName);
+    output(out, alg.basis());
+  }
 }
 
 const char* GBAction::staticName() {

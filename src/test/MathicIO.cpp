@@ -175,7 +175,7 @@ TEST(MathicIO, ReadWritePoly) {
         continue;
 
       Scanner in(str);
-      const auto poly = MathicIO<>().readPoly(ring, doComponent, in);
+      const auto poly = MathicIO<>().readPolyDoNotOrder(ring, doComponent, in);
       std::ostringstream out;
       MathicIO<>().writePoly(poly, doComponent, out);
       const auto correctStr = outStr == 0 ? inStr : outStr;
@@ -230,14 +230,15 @@ TEST(MathicIO, ReadWriteTerm) {
 
       // print monomial
       std::ostringstream out;
-      MathicIO<>().writeTerm(ring, doComponent, readCoef, *monoRead, out);
+      MathicIO<>().writeTerm
+        (ring, doComponent, readCoef, *monoRead, false, out);
       const auto correctStr = outStr == 0 ? inStr : outStr;
       ASSERT_EQ(correctStr, out.str());
     }
   };
 
   check("1", 0, false, 1);
-  check("-1", "100", false, f.minusOne().value());
+  check("-1", "-1", false, f.minusOne().value());
   check("+1", "1", false, 1);
   check("2", 0, false, 2);
   check("+102", "1", false, 1);
@@ -246,7 +247,7 @@ TEST(MathicIO, ReadWriteTerm) {
   check("+1<2>", "1<2>", true, 1);
   check("2<3>", 0, true, 2);
   check("+3<4>", "3<4>", true, 3);
-  check("-3<4>", "98<4>", true, f.negative(f.toElement(3)).value());
+  check("-3<4>", "-3<4>", true, f.negative(f.toElement(3)).value());
 
   check("+1a<0>", "a<0>", true, 1);
   check("+2b", "2b", false, 2);

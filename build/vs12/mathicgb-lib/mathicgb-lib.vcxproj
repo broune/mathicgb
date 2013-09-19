@@ -509,6 +509,7 @@
     <ClInclude Include="..\..\..\src\mathicgb\PrimeField.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\QuadMatrix.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\QuadMatrixBuilder.hpp" />
+    <ClInclude Include="..\..\..\src\mathicgb\Range.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\RawVector.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\Reducer.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\ReducerDedup.hpp" />
@@ -530,6 +531,7 @@
     <ClInclude Include="..\..\..\src\mathicgb\stdinc.h" />
     <ClInclude Include="..\..\..\src\mathicgb\TypicalReducer.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\Unchar.hpp" />
+    <ClInclude Include="..\..\..\src\mathicgb\Zip.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

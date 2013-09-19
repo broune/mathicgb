@@ -13,13 +13,16 @@ class F4ProtoMatrix {
 public:
   typedef uint32 RowIndex;
   typedef uint32 ColIndex;
-  typedef coefficient ExternalScalar;
   typedef SparseMatrix::Scalar Scalar;
+  typedef coefficient ExternalScalar;
+  typedef Poly::ConstCoefIterator ExternalConstCoefIterator;
 
   struct Row {
+    Row(): indices(), scalars(), externalScalars(), entryCount() {}
+
     const ColIndex* indices;
     const Scalar* scalars;
-    const ExternalScalar* externalScalars;
+    ExternalConstCoefIterator externalScalars;
     ColIndex entryCount;
   };
 
@@ -38,7 +41,8 @@ private:
     size_t indicesBegin;
     size_t scalarsBegin;
     ColIndex entryCount;
-    const ExternalScalar* externalScalars;
+    bool scalarsStoredExternally;
+    ExternalConstCoefIterator externalScalars;
   };
 
   std::vector<ColIndex> mIndices;

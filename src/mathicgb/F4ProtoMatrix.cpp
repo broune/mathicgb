@@ -11,11 +11,10 @@ auto F4ProtoMatrix::row(const RowIndex row) const -> Row {
   Row rr;
   rr.indices = mIndices.data() + r.indicesBegin;
   rr.entryCount = r.entryCount;
-  if (r.externalScalars == 0) {
+  if (!r.scalarsStoredExternally) {
     rr.scalars = mScalars.data() + r.scalarsBegin;
-    rr.externalScalars = 0;
   } else {
-    rr.scalars = 0;
+    rr.scalars = nullptr;
     rr.externalScalars = r.externalScalars;
   }
   return rr;
@@ -30,7 +29,8 @@ auto F4ProtoMatrix::makeRowWithTheseScalars(const Poly& scalars) -> ColIndex*
   row.indicesBegin = mIndices.size();
   row.scalarsBegin = std::numeric_limits<decltype(row.scalarsBegin)>::max();
   row.entryCount = static_cast<ColIndex>(scalars.termCount());
-  row.externalScalars = scalars.coefficientBegin();
+  row.scalarsStoredExternally = true;
+  row.externalScalars = scalars.coefBegin();
   mRows.push_back(row);
 
   mIndices.resize(mIndices.size() + row.entryCount);
@@ -44,7 +44,7 @@ auto F4ProtoMatrix::makeRow(ColIndex entryCount) -> std::pair<ColIndex*, Scalar*
   row.indicesBegin = mIndices.size();
   row.scalarsBegin = mScalars.size();
   row.entryCount = entryCount;
-  row.externalScalars = 0;
+  row.scalarsStoredExternally = false;
   mRows.push_back(row);
 
   mIndices.resize(mIndices.size() + entryCount);
@@ -62,7 +62,7 @@ void F4ProtoMatrix::removeLastEntries(const RowIndex row, const ColIndex count) 
   if (row != rowCount() - 1)
     return;
   mIndices.resize(mIndices.size() - count);
-  if (mRows[row].externalScalars == 0)
+  if (!mRows[row].scalarsStoredExternally)
     mScalars.resize(mScalars.size() - count);
 }
 

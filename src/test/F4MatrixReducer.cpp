@@ -7,6 +7,7 @@
 #include "mathicgb/QuadMatrix.hpp"
 #include "mathicgb/io-util.hpp"
 #include "mathicgb/Poly.hpp"
+#include "mathicgb/MathicIO.hpp"
 #include <gtest/gtest.h>
 #include <sstream>
 
@@ -16,9 +17,9 @@ TEST(F4MatrixReducer, Reduce) {
   auto ring = ringFromString("101 6 1\n10 1 1 1 1 1");
   QuadMatrix m(*ring);
 
-  Poly p(*ring);
   std::istringstream in("a4+a3+a2+a1+b5+b4+b3+b2+b1");
-  p.parse(in);
+  Scanner scanner(in);
+  auto p = MathicIO<>().readPoly(*ring, false, scanner);
   size_t count = 0;
   for (auto it = p.begin(); it != p.end(); ++it) {
     if (count < 4)

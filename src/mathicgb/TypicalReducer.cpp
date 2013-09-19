@@ -5,6 +5,7 @@
 
 #include "SigPolyBasis.hpp"
 #include "PolyBasis.hpp"
+#include "MathicIO.hpp"
 #include <iostream>
 
 MATHICGB_NAMESPACE_BEGIN
@@ -73,7 +74,8 @@ std::unique_ptr<Poly> TypicalReducer::regularReduce(
       insertTail(const_term(coef, mon), &basis.poly(reducer));
     }
   }
-  result->makeMonic();
+  if (!result->isZero())
+    result->makeMonic();
 
   reset();
   return result;
@@ -199,7 +201,7 @@ std::unique_ptr<Poly> TypicalReducer::classicReduce
 
       if (tracingLevel > 100) {
         std::cerr << "Reducing by basis element " << reducer << ": ";
-        basis.poly(reducer).display(std::cerr);
+        MathicIO<>().writePoly(basis.poly(reducer), false, std::cerr);
         std::cerr << std::endl;
         std::cerr << "multiplied by: " << coef << "  *  ";
         basis.ring().monomialDisplay(std::cerr, mon);
@@ -207,7 +209,8 @@ std::unique_ptr<Poly> TypicalReducer::classicReduce
       }
     }
   }
-  result->makeMonic();
+  if (!result->isZero())
+    result->makeMonic();
 
   if (tracingLevel > 100)
     std::cerr << "Classic reduction done." << std::endl;

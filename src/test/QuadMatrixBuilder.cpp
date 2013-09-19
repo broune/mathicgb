@@ -34,9 +34,9 @@ namespace {
   {
     const PolyRing& ring = b.ring();
     {
-      Poly p(b.ring());
       std::istringstream in(left);
-      p.parseDoNotOrder(in);
+      Scanner scanner(in);
+      auto p = MathicIO<>().readPolyDoNotOrder(ring, true, scanner);
       size_t colCount = 0;
       for (auto it = p.begin(); it != p.end(); ++it) {
         QuadMatrixBuilder::LeftRightColIndex lrCol =
@@ -50,9 +50,9 @@ namespace {
       }
     }
     {
-      Poly p(b.ring());
       std::istringstream in(right);
-      p.parseDoNotOrder(in);
+      Scanner scanner(in);
+      auto p = MathicIO<>().readPolyDoNotOrder(ring, true, scanner);
       size_t colCount = 0;
       for (auto it = p.begin(); it != p.end(); ++it) {
         QuadMatrixBuilder::LeftRightColIndex lrCol =
@@ -138,11 +138,11 @@ TEST(QuadMatrixBuilder, ColumnQuery) {
   QuadMatrixBuilder b(*ring, map, monoLeft, monoRight);
   createColumns("a<1>+<0>", "b<0>+c<0>+bc<0>", b);
 
-  Poly p(b.ring());
   // coefficient 1X=left, 2X=right, 30=not there, % 10 = column index
   std::istringstream in
     ("10a<1>+11<0>+20b<0>+21c<0>+22bc<0>+30ab<0>+30e<0>+10a<1>");
-  p.parseDoNotOrder(in);
+  Scanner scanner(in);
+  auto p = MathicIO<>().readPolyDoNotOrder(b.ring(), true, scanner);
   for (auto it = p.begin(); it != p.end(); ++it) {
     const QuadMatrixBuilder::LeftRightColIndex* col =
       MonomialMap<QuadMatrixBuilder::LeftRightColIndex>::Reader(map).

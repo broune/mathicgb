@@ -274,8 +274,8 @@ auto F4MatrixBuilder::createColumn(
 void F4MatrixBuilder::appendRowBottom(
   ConstMonoRef multiple,
   const bool negate,
-  const Poly::const_iterator begin,
-  const Poly::const_iterator end,
+  const Poly::ConstTermIterator begin,
+  const Poly::ConstTermIterator end,
   QuadMatrixBuilder& builder,
   TaskFeeder& feeder
 ) {
@@ -363,12 +363,12 @@ void F4MatrixBuilder::appendRowBottom(
   TaskFeeder& feeder
 ) {
   MATHICGB_ASSERT(!poly.isZero());
-  Poly::const_iterator itA = poly.begin();
-  const Poly::const_iterator endA = poly.end();
+  auto itA = poly.begin();
+  const auto endA = poly.end();
 
   MATHICGB_ASSERT(!sPairPoly.isZero());
-  Poly::const_iterator itB = sPairPoly.begin();
-  Poly::const_iterator endB = sPairPoly.end();
+  auto itB = sPairPoly.begin();
+  const auto endB = sPairPoly.end();
 
   // skip leading terms since they cancel
   MATHICGB_ASSERT(itA.coef() == itB.coef());

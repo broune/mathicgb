@@ -5,6 +5,7 @@
 
 #include "Basis.hpp"
 #include "LogDomain.hpp"
+#include "MathicIO.hpp"
 #include <iostream>
 
 MATHICGB_DEFINE_LOG_DOMAIN(
@@ -132,7 +133,7 @@ void ClassicGBAlg::insertReducedPoly(
   if (tracingLevel > 20) {
     std::cerr << "inserting basis element " << mBasis.size() << ": ";
     if (tracingLevel > 100) {
-      polyToInsert->display(std::cerr);
+      MathicIO<>().writePoly(*polyToInsert, false, std::cerr);
       std::cerr << std::endl;
     } else {
       mRing.printMonomialFrobbyM2Format

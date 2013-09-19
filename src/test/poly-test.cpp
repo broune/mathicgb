@@ -8,6 +8,7 @@
 #include "mathicgb/io-util.hpp"
 #include "mathicgb/SigPolyBasis.hpp"
 #include "mathicgb/SignatureGB.hpp"
+#include "mathicgb/MathicIO.hpp"
 #include <gtest/gtest.h>
 #include <cstdio>
 #include <string>
@@ -36,25 +37,14 @@ a2c2d-b2d3 \
 c3d3-b2d4 \
 ";
 
-TEST(Poly,readwrite) {
-  std::string f1 = "14ce2<72>+13adf<16>";
-  std::unique_ptr<PolyRing> R(ringFromString("32003 6 1\n1 1 1 1 1 1"));
-  Poly f(*R);
-  std::stringstream ifil(f1);
-  f.parseDoNotOrder(ifil);
-  std::ostringstream o;
-  f.display(o,true);
-  EXPECT_EQ(o.str(), f1);
-}
-
-bool testPolyParse(PolyRing* R, std::string s)
+bool testPolyParse(PolyRing* R, std::string s, bool withComponent)
 {
   // parse poly, then see if it matches the orig string
-  Poly f(*R);
   std::istringstream i(s);
-  f.parseDoNotOrder(i);
+  Scanner in(i);
+  auto f = MathicIO<>().readPolyDoNotOrder(*R, withComponent, in);
   std::ostringstream o;
-  f.display(o);
+  MathicIO<>().writePoly(f, withComponent, o);
   //  std::cout << "orig = " << s << std::endl;
   //  std::cout << "f    = " << o.str() << std::endl;
   return o.str() == s;
@@ -62,11 +52,11 @@ bool testPolyParse(PolyRing* R, std::string s)
 bool testPolyParse2(PolyRing* R, std::string s, std::string answer)
 {
   // parse poly, then see if it matches the orig string
-  Poly f(*R);
   std::istringstream i(s);
-  f.parseDoNotOrder(i);
+  Scanner scanner(i);
+  auto f = MathicIO<>().readPolyDoNotOrder(*R, false, scanner);
   std::ostringstream o;
-  f.display(o);
+  MathicIO<>().writePoly(f, false, o);
   //  std::cout << "orig = " << s << std::endl;
   //  std::cout << "f    = " << o.str() << std::endl;
   return o.str() == answer;
@@ -75,9 +65,10 @@ bool testPolyParse2(PolyRing* R, std::string s, std::string answer)
 TEST(Poly,parse) {
   std::unique_ptr<PolyRing> R(ringFromString("32003 6 1\n1 1 1 1 1 1"));
 
-  EXPECT_TRUE(testPolyParse(R.get(), "3a<1>+<0>"));
-  EXPECT_TRUE(testPolyParse(R.get(), "3a<1>+13af3<0>+14cde<0>"));
-  EXPECT_TRUE(testPolyParse(R.get(), "<1>+13af3<0>+14cde<0>"));
+  EXPECT_TRUE(testPolyParse(R.get(), "3a<1>+1<0>", true));
+  EXPECT_TRUE(testPolyParse(R.get(), "3a+1", false));
+  EXPECT_TRUE(testPolyParse(R.get(), "3a<1>+13af3<0>+14cde<0>", true));
+  EXPECT_TRUE(testPolyParse(R.get(), "1<1>+13af3<0>+14cde<0>", true));
 }
 
 bool testMonomialParse(PolyRing* R, std::string s)
@@ -624,11 +615,10 @@ TEST(Ideal,readwrite) {
     {
       const Poly *f = I->getPoly(i);
       std::ostringstream o;
-      f->display(o,false);
-      Poly g(f->ring());
+      MathicIO<>().writePoly(*f, false, o);
       std::stringstream ifil(o.str());
-      g.parse(ifil);
-      EXPECT_TRUE(g == *f);
+      Scanner scanner(ifil);
+      EXPECT_TRUE(MathicIO<>().readPoly(f->ring(), false, scanner) == *f);
     }
 }
 

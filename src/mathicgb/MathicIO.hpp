@@ -80,11 +80,16 @@ public:
     std::ostream& out
   );
 
-  Poly readPoly(
+  /// Reads a polynomial and does not reorder the terms to be in descending
+  /// order.
+  Poly readPolyDoNotOrder(
     const PolyRing& ring,
     const bool readComponent,
     Scanner& in
   );
+
+  /// Reads a polynomial and orders the terms in descending order.
+  Poly readPoly(const PolyRing& ring, const bool readComponent, Scanner& in);
 
   void writePoly(
     const Poly& poly,
@@ -105,6 +110,7 @@ public:
     const bool writeComponent,
     const Coefficient coef,
     ConstMonoRef mono,
+    bool writeSignEvenIfPositive,
     std::ostream& out
   );
 
@@ -372,6 +378,17 @@ Poly MathicIO<M, BF>::readPoly(
   const bool readComponent,
   Scanner& in
 ) {
+  auto p = readPolyDoNotOrder(ring, readComponent, in);
+  p.sortTermsDescending();
+  return p;
+}
+
+template<class M, class BF>
+Poly MathicIO<M, BF>::readPolyDoNotOrder(
+  const PolyRing& ring,
+  const bool readComponent,
+  Scanner& in
+) {
   Poly p(ring);
 
   // also skips whitespace
@@ -382,7 +399,7 @@ Poly MathicIO<M, BF>::readPoly(
   auto mono = ring.monoid().alloc();
   auto coef = ring.field().zero();
   do {
-    if (!p.isZero() && !in.peekSign())
+    if (!p.isZero() && !in.peekSign() && (!readComponent || in.peek() != '<'))
       in.expect('+', '-');
     readTerm(ring, readComponent, coef, mono, in);
     p.append(coef.value(), *mono);
@@ -403,13 +420,12 @@ void MathicIO<M, BF>::writePoly(
 
   const auto end = poly.end();
   for (auto it = poly.begin(); it != end; ++it) {
-    if (it != poly.begin())
-      out << '+';
     writeTerm(
       poly.ring(),
       writeComponent,
       poly.ring().field().toElement(it.coef()),
       it.mono(),
+      it != poly.begin(),
       out
     );
   }
@@ -449,10 +465,16 @@ template<class M, class BF>
 void MathicIO<M, BF>::writeTerm(
   const PolyRing& ring,
   const bool writeComponent,
-  const Coefficient coef,
+  Coefficient coef,
   ConstMonoRef mono,
+  bool writeSignEvenIfPositive,
   std::ostream& out
 ) {
+  if (ring.field().isNegative(coef)) {
+    out << "-";
+    coef = ring.field().negativeNonZero(coef);
+  } else if (writeSignEvenIfPositive)
+    out << '+';
   if (!ring.field().isOne(coef)) {
     out << unchar(coef.value());
     if (ring.monoid().isIdentity(mono)) {
@@ -481,7 +503,7 @@ void MathicIO<M, BF>::readMonomial(
       err << "Expected monomial, but got " << e << " (did you mean 1?).";
       in.reportError(err.str());
     }
-  } else {
+  } else if (!readComponent || in.peek() != '<') {
     bool sawSome = false;
     while (true) {
       const auto letterCount = 'z' - 'a' + 1;

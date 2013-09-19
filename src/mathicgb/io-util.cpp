@@ -21,16 +21,15 @@ MATHICGB_NAMESPACE_BEGIN
 
 std::unique_ptr<Poly> polyParseFromString(const PolyRing *R, const std::string &s)
 {
-  std::unique_ptr<Poly> f(new Poly(*R));
   std::istringstream in(s);
-  f->parse(in);
-  return f;
+  Scanner scanner(in);
+  return make_unique<Poly>(MathicIO<>().readPoly(*R, false, scanner));
 }
 
 std::string toString(const Poly *g)
 {
   std::ostringstream o;
-  g->display(o);
+  MathicIO<>().writePoly(*g, true, o);
   return o.str();
 }
 
@@ -88,7 +87,7 @@ std::string toString(SigPolyBasis *I)
   for (size_t i=0; i<I->size(); i++)
     {
       o << "  ";
-      I->poly(i).display(o, false);
+      MathicIO<>().writePoly(I->poly(i), false, o);
       o << std::endl;
     }
   return o.str();
@@ -114,7 +113,7 @@ std::string toString(Basis *I)
   for (size_t i=0; i<I->size(); i++)
     {
       o << "  ";
-      I->getPoly(i)->display(o,false);
+      MathicIO<>().writePoly(*I->getPoly(i), false, o);
       o << std::endl;
     }
   return o.str();
@@ -126,20 +125,8 @@ void output(std::ostream &o, const PolyBasis &I)
     {
       if (!I.retired(i))
         {
-          I.poly(i).display(o, false);
+          MathicIO<>().writePoly(I.poly(i), false, o);
           o << std::endl;
-        }
-    }
-}
-
-void output(FILE* file, const PolyBasis &I)
-{
-  for (size_t i = 0; i < I.size(); i++)
-    {
-      if (!I.retired(i))
-        {
-          I.poly(i).display(file, false);
-          fputc('\n', file);
         }
     }
 }

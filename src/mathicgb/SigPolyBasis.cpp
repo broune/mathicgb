@@ -384,7 +384,7 @@ void SigPolyBasis::display(std::ostream& out) const {
     else
       MathicIO<>().writeMonomial(monoid(), true, *mSignatures[i], out);
     out << "  ";
-    mBasis.poly(i).display(out, false);
+    MathicIO<>().writePoly(mBasis.poly(i), false, out);
     out << '\n';
   }
 }
@@ -411,7 +411,7 @@ void SigPolyBasis::displayFancy
       MathicIO<>().writeMonomial(monoid(), true, *sig, out);
     sigOut << '\n';
 
-    mBasis.poly(i).display(polyOut, false);
+    MathicIO<>().writePoly(mBasis.poly(i), false, polyOut);
     polyOut << '\n';
   }
   out << pr;

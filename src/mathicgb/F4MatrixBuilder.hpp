@@ -122,8 +122,8 @@ private:
   void appendRowBottom(
     ConstMonoRef multiple,
     bool negate,
-    Poly::const_iterator begin,
-    Poly::const_iterator end,
+    Poly::ConstTermIterator begin,
+    Poly::ConstTermIterator end,
     QuadMatrixBuilder& builder,
     TaskFeeder& feeder
   );

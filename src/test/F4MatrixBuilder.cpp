@@ -9,7 +9,7 @@
 #include "mathicgb/PolyBasis.hpp"
 #include "mathicgb/io-util.hpp"
 #include "mathicgb/mtbb.hpp"
-
+#include "mathicgb/MathicIO.hpp"
 #include <gtest/gtest.h>
 #include <memory>
 
@@ -32,9 +32,10 @@ namespace {
     {}
 
     const Poly& addBasisElement(const std::string& str) {
-      std::unique_ptr<Poly> p(new Poly(*mRing));
       std::istringstream in(str);
-      p->parse(in);
+      Scanner scanner(in);
+      auto p = make_unique<Poly>
+        (MathicIO<>().readPoly(*mRing, false, scanner));
       mBasis.insert(std::move(p));
       return mBasis.poly(mBasis.size() - 1);
     }
@@ -124,23 +125,25 @@ TEST(F4MatrixBuilder, OneByOne) {
 TEST(F4MatrixBuilder, DirectReducers) {
   for (int threadCount = 1; threadCount < 4; ++threadCount) {
     BuilderMaker maker;
-    maker.addBasisElement("a6<0>"); // reducer == to lead term
-    maker.addBasisElement("a3b2<0>+a3c"); // reducer == to lower order term
-    maker.addBasisElement("c<0>"); // reducer divides
-    maker.addBasisElement("d2<0>"); // does not divide
+    maker.addBasisElement("a6"); // reducer == to lead term
+    maker.addBasisElement("a3b2+a3c"); // reducer == to lower order term
+    maker.addBasisElement("c"); // reducer divides
+    maker.addBasisElement("d2"); // does not divide
     F4MatrixBuilder& builder = maker.create();
 
     Poly p1(builder.ring());
     { 
-      std::istringstream in("a3<0>+b2+c+d");
-      p1.parse(in);
+      std::istringstream in("a3+b2+c+d");
+      Scanner scanner(in);
+      p1 = MathicIO<>().readPoly(builder.ring(), false, scanner);
       builder.addPolynomialToMatrix(p1.leadMono(), p1);
     }
 
     Poly p2(builder.ring());
     {
-      std::istringstream in("a3<0>+2b2+3c+4d");
-      p2.parse(in);
+      std::istringstream in("a3+2b2+3c+4d");
+      Scanner scanner(in);
+      p2 = MathicIO<>().readPoly(builder.ring(), false, scanner);
       builder.addPolynomialToMatrix(p2.leadMono(), p2);
     }
 

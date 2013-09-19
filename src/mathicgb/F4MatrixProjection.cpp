@@ -154,10 +154,9 @@ public:
 
   void appendRow(const Row& row) {
     MATHICGB_ASSERT(row.entryCount > 0); // could be OK, but unexpected
-    MATHICGB_ASSERT(row.scalars == 0 || row.externalScalars == 0);
 
     const auto indicesEnd = row.indices + row.entryCount;
-    if (row.externalScalars != 0)
+    if (row.scalars == nullptr)
       appendRow(row.indices, indicesEnd, row.externalScalars);
     else
       appendRow(row.indices, indicesEnd, row.scalars);
@@ -245,7 +244,7 @@ QuadMatrix F4MatrixProjection::makeAndClearOneStep(const size_t quantum) {
         MATHICGB_ASSERT(row.indices[lead] < mColProjectTo.size());
         auto const projected = mColProjectTo[row.indices[lead]];
         if (projected.isLeft) {
-          const auto leadScalar = row.scalars != 0 ?
+          const auto leadScalar = row.scalars != nullptr ?
             row.scalars[lead] :
             static_cast<Scalar>(row.externalScalars[lead]);
           tb.addRow(row, projected.index, leadScalar);

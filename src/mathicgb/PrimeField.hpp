@@ -50,6 +50,13 @@ public:
   bool isZero(const Element a) const {return a == zero();}
   bool isOne(const Element a) const {return a == one();}
 
+  /// Returns true if a is strictly in the upper half of the range of values.
+  /// These can be considered as a negative number with smaller absolute
+  /// value, which can be useful for example when printing the value.
+  bool isNegative(const Element a) const {
+    return a.value() > (charac() + 1) / 2;
+  }
+
   T charac() const {return mCharac;}
 
   /// Assumes that i is in the range [0;charac()).

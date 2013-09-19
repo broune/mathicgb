@@ -54,8 +54,8 @@ private:
   struct MultipleWithPos {
     MultipleWithPos(const Poly& poly, NewConstTerm multiple);
 
-    Poly::const_iterator pos;
-    Poly::const_iterator const end;
+    Poly::ConstTermIterator pos;
+    const Poly::ConstTermIterator end;
     NewTerm multiple;
     PolyHashTable::Node* node;
 

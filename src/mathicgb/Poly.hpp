@@ -4,6 +4,8 @@
 #define MATHICGB_POLY_GUARD
 
 #include "PolyRing.hpp"
+#include "Range.hpp"
+#include "Zip.hpp"
 #include <vector>
 #include <ostream>
 #include <utility>
@@ -23,161 +25,212 @@ public:
 
   Poly(const PolyRing& ring): mRing(ring) {}
 
-  void parse(std::istream &i); // reads into this, sorts terms
-  void parseDoNotOrder(std::istream &i); // reads into this, does not sort terms
-  void display(FILE* file, bool printComponent = true) const;
-  void display(std::ostream& out, bool printComponent = true) const;
-  void see(bool print_comp) const;
+  Poly(const Poly& poly):
+    mRing(poly.ring()), mCoefs(poly.mCoefs), mMonos(poly.mMonos)
+  {}
 
-  class const_iterator {
-  public:
-    typedef std::random_access_iterator_tag iterator_category;
-    typedef std::pair<const coefficient, const const_monomial> value_type;
-    typedef ptrdiff_t difference_type;
-    typedef value_type* pointer; // todo: is this OK?
-    typedef std::pair<const coefficient&, const const_monomial> reference;
+  Poly(const Poly&& poly):
+    mRing(poly.ring()),
+    mCoefs(std::move(poly.mCoefs)),
+    mMonos(std::move(poly.mMonos))
+  {}
 
-    const_iterator() {}
-    const_iterator& operator++() { ++ic; im += monsize; return *this; }
-
-    coefficient coef() const {return *ic;}
-    ConstMonoRef mono() const {return Monoid::toRef(&*im);}
-
-    friend bool operator==(const const_iterator &a, const const_iterator &b);
-    friend bool operator!=(const const_iterator &a, const const_iterator &b);
-
-    NewConstTerm operator*() const {
-      NewConstTerm t = {coef(), mono()};
-      return t;
-    }
-
-  private:
-    size_t monsize;
-    std::vector<coefficient>::const_iterator ic;
-    std::vector<exponent>::const_iterator im;
-    friend class Poly;
-
-    const_iterator(const Poly& f) : monsize(f.ring().maxMonomialSize()), ic(f.coeffs.begin()), im(f.monoms.begin()) {}
-    const_iterator(const Poly& f,int) : ic(f.coeffs.end()), im() {}
-  };
-
-  const_iterator begin() const { return const_iterator(*this); }
-  const_iterator end() const { return const_iterator(*this,1); }
-
-  class MonoIterator {
-    size_t monsize;
-    std::vector<coefficient>::const_iterator ic;
-    std::vector<exponent>::const_iterator im;
-    friend class Poly;
-
-    MonoIterator(const Poly& f) : monsize(f.ring().maxMonomialSize()), ic(f.coeffs.begin()), im(f.monoms.begin()) {}
-    MonoIterator(const Poly& f,int) : ic(f.coeffs.end()), im(f.monoms.end()) {}
-
-  public:
-    typedef std::forward_iterator_tag iterator_category;
-    typedef ConstMonoRef value_type;
-    typedef ptrdiff_t difference_type;
-    typedef value_type* pointer;
-    typedef ConstMonoRef reference;
-
-    MonoIterator() {}
-    MonoIterator operator++() { ++ic; im += monsize; return *this; }
-    bool operator==(const MonoIterator& it) const {return im == it.im;}
-    bool operator!=(const MonoIterator& it) const {return im != it.im;}
-    const value_type operator*() const {return Monoid::toRef(&*im);}
-  };
-
-  MonoIterator monoBegin() const { return MonoIterator(*this); }
-  MonoIterator monoEnd() const { return MonoIterator(*this,1); }
-  struct MonoRange {
-    MonoIterator mBegin;
-    const MonoIterator mEnd;
-    MonoIterator begin() {return mBegin;}
-    MonoIterator end() {return mEnd;}
-  };
-  MonoRange monoRange() const {
-    MonoRange range = {monoBegin(), monoEnd()};
-    return range;
-  }
+  const PolyRing& ring() const {return mRing;}
+  const Monoid& monoid() const {return ring().monoid();}
+  bool isZero() const {return mCoefs.empty();}
+  size_t termCount() const {return mCoefs.size();}
+  size_t getMemoryUse() const;
 
   /// Orders terms in descending order.
   void sortTermsDescending();
 
-  /// Returns the coefficient of the given term.
-  coefficient& coef(size_t index);
-
-  /// Returns the coefficient of the given term.
-  coefficient coef(size_t index) const;
-
-  /// Returns the monomial of the given term.
-  MonoRef mono(size_t index);
-
-  /// Returns the monomial of the given term.
-  ConstMonoRef mono(size_t index) const;
-
-  /// Returns the coefficient of the leading term.
-  coefficient leadCoef() const {return coef(0);}
-
-  /// Returns the monomial of the leading term.
-  ConstMonoRef leadMono() const {return mono(0);}
-
-  /// Returns the monomial of the last term.
-  const_monomial backMono() const;
-
   /// Appends the given term as the last term in the polynomial.
   void append(coefficient coef, ConstMonoRef mono);
 
-  /// Hint that space for termCount terms is going to be needed. This serves
-  /// the same purpose as std::vector<>::reserve.
-  void reserve(size_t termCount);
+  /// Hint that space for the give number of terms is going to be needed.
+  /// This serves the same purpose as std::vector<>::reserve.
+  void reserve(size_t spaceForThisManyTerms) {
+    mMonos.reserve(spaceForThisManyTerms * monoid().entryCount());
+  }
 
-  const coefficient* coefficientBegin() const {return coeffs.data();}
-
+  /// Makes the polynomial monic by multiplying by the multiplicative inverse
+  /// of leadCoef(). Calling this method is an error if isZero().
   void makeMonic();
-  bool isMonic() const;
 
-  bool isZero() const { return coeffs.empty(); }
-
-  size_t termCount() const {return coeffs.size();}
-
-  size_t getMemoryUse() const;
-
-  void setToZero();
+  void setToZero() {
+    mCoefs.clear();
+    mMonos.clear();
+  }
 
   Poly& operator=(const Poly& poly) {return *this = Poly(poly);}
-  Poly& operator=(Poly&& poly);
+  Poly& operator=(Poly&& poly) {
+    MATHICGB_ASSERT(&ring() == &poly.ring());
+    mCoefs = std::move(poly.mCoefs);
+    mMonos = std::move(poly.mMonos);
+    return *this;
+  }
 
-  friend bool operator==(const Poly &a, const Poly &b);
 
-  const PolyRing& ring() const {return mRing;}
-  const Monoid& monoid() const {return ring().monoid();}
+  // *** Accessing the coefficients of the terms in the polynomial.
 
+  /// Returns the coefficient of the given term.
+  coefficient coef(size_t index) const {
+    MATHICGB_ASSERT(index < termCount());
+    return mCoefs[index];
+  }
+
+  /// Returns the coefficient of the leading term.
+  coefficient leadCoef() const {
+    MATHICGB_ASSERT(!isZero());
+    return coef(0);
+  }
+
+  /// Returns true if the polynomial is monic. A polynomial is monic if
+  /// the coefficient of the leading monomial is 1. If you are asking this
+  /// question about a polynomial, that likely means that you are expecting
+  /// the polynomial not to be zero. So it is an error to ask if the zero
+  /// polynomial is monic - you'll get an assert to help pinpoint the error.
+  bool isMonic() const {
+    MATHICGB_ASSERT(!isZero());
+    return ring().coefficientIsOne(leadCoef());
+  }
+
+  typedef std::vector<coefficient>::const_iterator ConstCoefIterator;
+  typedef Range<ConstCoefIterator> ConstCoefIteratorRange;
+
+  ConstCoefIterator coefBegin() const {return mCoefs.begin();}
+  ConstCoefIterator coefEnd() const {return mCoefs.end();}
+  ConstCoefIteratorRange coefRange() const {
+    return range(coefBegin(), coefEnd());
+  }
+
+
+  // *** Accessing the monomials of the terms in the polynomial
+
+  /// Returns the monomial of the given term.
+  ConstMonoRef mono(size_t index) const {
+    MATHICGB_ASSERT(index < termCount());
+    return Monoid::toRef(&mMonos[index * monoid().entryCount()]);
+  }
+
+  /// Returns the monomial of the leading term.
+  ConstMonoRef leadMono() const {
+    MATHICGB_ASSERT(!isZero());
+    return mono(0);
+  }
+
+  /// Returns the monomial of the last term.
+  ConstMonoRef backMono() const {
+    MATHICGB_ASSERT(!isZero());
+    return mono(termCount() - 1);
+  }
+
+  /// Returns true if the terms are in descending order. The terms are in
+  /// descending order when mono(0) >= mono(1) >= ... >= backMono.
   bool termsAreInDescendingOrder() const;
 
+  class ConstMonoIterator {
+  public:
+    typedef std::forward_iterator_tag iterator_category;
+    typedef ConstMonoRef value_type;
+    typedef value_type* pointer;
+    typedef ConstMonoRef reference;
+
+    ConstMonoIterator() {}
+
+    ConstMonoIterator& operator++() {
+      mIt += mEntryCount;
+      return *this;
+    }
+
+    ConstMonoRef operator*() const {return Monoid::toRef(&*mIt);}
+
+    bool operator==(const ConstMonoIterator& it) const {return mIt == it.mIt;}
+    bool operator!=(const ConstMonoIterator& it) const {return mIt != it.mIt;}
+
+  private:
+    friend class Poly;
+    typedef std::vector<exponent>::const_iterator Iterator;
+
+    ConstMonoIterator(const Monoid& monoid, Iterator it):
+      mEntryCount(monoid.entryCount()),
+      mIt(it)
+    {}
+
+    size_t mEntryCount;
+    Iterator mIt;
+  };
+
+  typedef Range<ConstMonoIterator> ConstMonoIteratorRange;
+
+  ConstMonoIterator monoBegin() const {
+    return ConstMonoIterator(monoid(), mMonos.begin());
+  }
+
+  ConstMonoIterator monoEnd() const {
+    return ConstMonoIterator(monoid(), mMonos.end());
+  }
+
+  ConstMonoIteratorRange monoRange() const {
+    return range(monoBegin(), monoEnd());
+  }
+
+
+  // *** Iteration through terms
+
+  class ConstTermIterator {
+  public:
+    typedef std::forward_iterator_tag iterator_category;
+    typedef NewConstTerm value_type;
+
+    ConstTermIterator() {}
+
+    ConstTermIterator& operator++() {
+      ++mIt;
+      return *this;
+    }
+
+    value_type operator*() const {
+      auto pair = *mIt;
+      NewConstTerm term = {pair.first, pair.second};
+      return term;
+    }
+
+    bool operator==(const ConstTermIterator& it) const {return mIt == it.mIt;}
+    bool operator!=(const ConstTermIterator& it) const {return mIt != it.mIt;}
+
+    coefficient coef() const {return (*mIt).first;}
+    ConstMonoRef mono() const {return (*mIt).second;}
+
+  private:
+    friend class Poly;
+    typedef Zip<ConstCoefIterator, ConstMonoIterator> Iterator;
+    ConstTermIterator(const Iterator& it): mIt(it) {}
+
+    Iterator mIt;
+  };
+
+  typedef Range<ConstTermIterator> ConstTermIteratorRange;
+
+  ConstTermIterator begin() const {return makeZip(coefBegin(), monoBegin());}
+  ConstTermIterator end() const {return makeZip(coefEnd(), monoEnd());}
+  ConstTermIteratorRange termRange() const {return range(begin(), end());}
+
 private:
+  friend bool operator==(const Poly &a, const Poly &b);
+
   const PolyRing& mRing;
-  std::vector<coefficient> coeffs;
-  std::vector<exponent> monoms;
+  std::vector<coefficient> mCoefs;
+  std::vector<exponent> mMonos;
 };
 
-std::ostream& operator<<(std::ostream& out, const Poly& p);
-
-inline bool operator==(const Poly::const_iterator &a, const Poly::const_iterator &b)
-{
-  return a.ic == b.ic;
-}
-inline bool operator!=(const Poly::const_iterator &a, const Poly::const_iterator &b)
-{
-  return a.ic != b.ic;
-}
-
+// This is inline since it is performance-critical.
 inline void Poly::append(coefficient a, ConstMonoRef m) {
-  coeffs.push_back(a);
-  size_t len = ring().maxMonomialSize();
-  auto& monoid = ring().monoid();
-  const auto offset = monoms.size();
-  monoms.resize(offset + monoid.entryCount());
-  monoid.copy(m, *PolyRing::Monoid::MonoPtr(monoms.data() + offset));
+  mCoefs.push_back(a);
+
+  const auto offset = mMonos.size();
+  mMonos.resize(offset + monoid().entryCount());
+  monoid().copy(m, *PolyRing::Monoid::MonoPtr(mMonos.data() + offset));
 }
 
 MATHICGB_NAMESPACE_END

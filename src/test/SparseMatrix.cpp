@@ -6,6 +6,7 @@
 #include "mathicgb/Poly.hpp"
 #include "mathicgb/PolyRing.hpp"
 #include "mathicgb/io-util.hpp"
+#include "mathicgb/MathicIO.hpp"
 #include <gtest/gtest.h>
 #include <memory>
 #include <string>
@@ -14,10 +15,9 @@ using namespace mgb;
 
 namespace {
   std::unique_ptr<Poly> parsePoly(const PolyRing& ring, std::string str) {
-    auto p = make_unique<Poly>(ring);
     std::istringstream in(str);
-    p->parse(in);
-    return p;
+    Scanner scanner(in);
+    return make_unique<Poly>(MathicIO<>().readPoly(ring, false, scanner));
   }
 }
 
