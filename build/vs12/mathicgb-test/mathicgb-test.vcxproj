@@ -407,6 +407,7 @@
     <ClCompile Include="..\..\..\src\test\poly-test.cpp" />
     <ClCompile Include="..\..\..\src\test\PrimeField.cpp" />
     <ClCompile Include="..\..\..\src\test\QuadMatrixBuilder.cpp" />
+    <ClCompile Include="..\..\..\src\test\Range.cpp" />
     <ClCompile Include="..\..\..\src\test\Scanner.cpp" />
     <ClCompile Include="..\..\..\src\test\SparseMatrix.cpp" />
     <ClCompile Include="..\..\..\src\test\testMain.cpp" />

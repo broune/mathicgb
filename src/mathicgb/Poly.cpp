@@ -3,33 +3,58 @@
 #include "stdinc.h"
 #include "Poly.hpp"
 
-#include "Range.hpp"
-#include "Zip.hpp"
-#include <ostream>
-#include <iostream>
 #include <algorithm>
 
 MATHICGB_NAMESPACE_BEGIN
 
-void Poly::sortTermsDescending() {
-  const size_t count = termCount();
-  std::vector<size_t> ordered(count);
-  for (size_t i = 0; i < count; ++i)
-    ordered[i] = i;
-
-  auto cmp = [&](size_t a, size_t b) {
-    MATHICGB_ASSERT(a < termCount());
-    MATHICGB_ASSERT(b < termCount());
-    return monoid().lessThan(mono(b), mono(a));
+Poly Poly::polyWithTermsDescending() {
+  // *** Sort (term, index) pairs in descending order of monomial.
+  // Grr, if only C++11 lambda's allowed auto in the parameter list,
+  // then it would not have been necessary to ever mention the type
+  // Entry. But alas, that won't be here until C++14.
+  typedef std::pair<NewConstTerm, size_t> Entry;
+  auto greaterThan = [&](const Entry& a, const Entry& b) {
+    return monoid().lessThan(*b.first.mono, *a.first.mono);
   };
-  std::sort(ordered.begin(), ordered.end(), cmp);
+  auto ordered = rangeToVector(indexRange(*this));
+  std::sort(std::begin(ordered), std::end(ordered), greaterThan);
 
+  // *** Make a new polynomial with terms in that order
   Poly poly(ring());
-  for (size_t i = 0; i < count; ++i)
-    poly.append(coef(ordered[i]), mono(ordered[i]));
-  *this = std::move(poly);
+  poly.reserve(termCount());
+  for (const auto& p : ordered)
+    poly.append(p.first);
 
-  MATHICGB_ASSERT(termsAreInDescendingOrder());
+  MATHICGB_ASSERT(poly.termsAreInDescendingOrder());
+  MATHICGB_ASSERT(termCount() == poly.termCount());
+
+  // This return statements causes no copy. The return value optimization
+  // will be used at the option of the compiler. If a crappy compiler gets
+  // that wrong, poly will be treated as an r-value, which is to say that
+  // this code becomes equivalent to return std::move(poly). That happens
+  // because poly is a local variable being returned, so the standard
+  // allows movement out of poly in this particular situation - that is
+  // safe/reasonable because the very next thing that will happen to poly is
+  // that it will get destructed, so anyone in a position to know that the
+  // contents of poly had been moved out would then also be using
+  // a pointer to the now-invalid poly object, which invokes undefined
+  // behavior anyway.
+  //
+  // Capturing the returned Poly into another poly also will not cause a copy.
+  // Consider the code
+  //
+  //   Poly p1(q.polyWithTermsDescending());
+  //   Poly p2(ring);
+  //   p2 = q.polyWithTermsDescending();
+  //   
+  // The return value is an unnamed temporary that is constructed/assigned
+  // into p1/p2. Unnamed temporaries are r-values, so the guts of those
+  // temporary objects will be moved into p1/p2. There will be no copy.
+  //
+  // (Of course there is the one copy that we are doing further up into poly
+  // to avoid doing an in-place sort. The point is that there are no further
+  // copies than that one.)
+  return poly;
 }
 
 void Poly::makeMonic() {
@@ -61,22 +86,16 @@ bool operator==(const Poly& a, const Poly& b) {
 }
 
 size_t Poly::getMemoryUse() const {
-  size_t total = sizeof(const PolyRing *);
-  total += sizeof(coefficient) * mCoefs.capacity();
-  total += sizeof(int) * mMonos.capacity();
-  return total;
+  return 
+    sizeof(mCoefs.front()) * mCoefs.capacity() +
+    sizeof(mMonos.front()) * mMonos.capacity();
 }
 
 bool Poly::termsAreInDescendingOrder() const {
-  if (!isZero()) {
-    auto prev = leadMono().ptr();
-    for (const auto& mono : range(++monoBegin(), monoEnd())) {
-      if (monoid().lessThan(*prev, mono))
-        return false;
-      prev = mono.ptr();
-    }
-  }
-  return true;
+  auto greaterThanOrEqual = [&](ConstMonoRef a, ConstMonoRef b) {
+    return !monoid().lessThan(a, b);
+  };
+  return std::is_sorted(monoBegin(), monoEnd(), greaterThanOrEqual);
 }
 
 MATHICGB_NAMESPACE_END

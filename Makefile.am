@@ -13,7 +13,7 @@ libmathicgb_la_LIBADD= $(DEPS_LIBS)
 
 # the sources that are built to make libmathicgb. Listing the headers in
 # sources ensure that those files are included in distributions.
-libmathicgb_la_SOURCES = src/mathicgb/Zip.hpp src/mathicgb/Range.hpp	\
+libmathicgb_la_SOURCES = src/mathicgb/Range.hpp							\
   src/mathicgb/ReducerPack.hpp src/mathicgb/ReducerPack.cpp				\
   src/mathicgb/ClassicGBAlg.cpp src/mathicgb/ClassicGBAlg.hpp			\
   src/mathicgb/MonoLookup.hpp src/mathicgb/MonoLookup.cpp				\
@@ -96,13 +96,13 @@ check_PROGRAMS=$(TESTS)
 unittest_LDADD = $(DEPS_LIBS) $(top_builddir)/libmathicgb.la
 
 test_LIBS=
-unittest_SOURCES= src/test/gtestInclude.cpp src/test/testMain.cpp	\
-  src/test/gb-test.cpp src/test/ideals.cpp src/test/poly-test.cpp	\
-  src/test/ideals.hpp src/test/SparseMatrix.cpp				\
-  src/test/QuadMatrixBuilder.cpp src/test/F4MatrixBuilder.cpp		\
-  src/test/F4MatrixReducer.cpp src/test/mathicgb.cpp			\
-  src/test/PrimeField.cpp src/test/MonoMonoid.cpp			\
-  src/test/Scanner.cpp src/test/MathicIO.cpp
+unittest_SOURCES=src/test/Range.cpp src/test/gtestInclude.cpp			\
+  src/test/testMain.cpp src/test/gb-test.cpp src/test/ideals.cpp		\
+  src/test/poly-test.cpp src/test/ideals.hpp src/test/SparseMatrix.cpp	\
+  src/test/QuadMatrixBuilder.cpp src/test/F4MatrixBuilder.cpp			\
+  src/test/F4MatrixReducer.cpp src/test/mathicgb.cpp					\
+  src/test/PrimeField.cpp src/test/MonoMonoid.cpp src/test/Scanner.cpp	\
+  src/test/MathicIO.cpp
 
 else
 

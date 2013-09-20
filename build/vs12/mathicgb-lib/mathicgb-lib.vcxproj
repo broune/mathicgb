@@ -531,7 +531,6 @@
     <ClInclude Include="..\..\..\src\mathicgb\stdinc.h" />
     <ClInclude Include="..\..\..\src\mathicgb\TypicalReducer.hpp" />
     <ClInclude Include="..\..\..\src\mathicgb\Unchar.hpp" />
-    <ClInclude Include="..\..\..\src\mathicgb\Zip.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

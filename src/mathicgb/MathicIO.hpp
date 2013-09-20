@@ -352,7 +352,7 @@ Basis MathicIO<M, BF>::readBasis(
   Basis basis(ring);
   for (size_t i = 0; i < polyCount; ++i) {
     auto p = make_unique<Poly>(readPoly(ring, readComponent, in));
-    p->sortTermsDescending();
+    *p = p->polyWithTermsDescending();
     basis.insert(std::move(p));
   }
   return std::move(basis);
@@ -378,9 +378,7 @@ Poly MathicIO<M, BF>::readPoly(
   const bool readComponent,
   Scanner& in
 ) {
-  auto p = readPolyDoNotOrder(ring, readComponent, in);
-  p.sortTermsDescending();
-  return p;
+  return readPolyDoNotOrder(ring, readComponent, in).polyWithTermsDescending();
 }
 
 template<class M, class BF>

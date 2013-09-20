@@ -734,7 +734,7 @@ void GroebnerInputIdealStream::appendPolynomialDone() {
   // todo: give Poly a Poly&& constructor
   auto poly = make_unique<Poly>(std::move(mPimpl->poly));
   if (!poly->termsAreInDescendingOrder())
-    poly->sortTermsDescending();
+    *poly = poly->polyWithTermsDescending();
   mPimpl->basis.insert(std::move(poly));
   mPimpl->poly.setToZero();
 

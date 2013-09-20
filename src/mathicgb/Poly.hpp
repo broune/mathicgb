@@ -5,7 +5,6 @@
 
 #include "PolyRing.hpp"
 #include "Range.hpp"
-#include "Zip.hpp"
 #include <vector>
 #include <ostream>
 #include <utility>
@@ -41,10 +40,24 @@ public:
   size_t termCount() const {return mCoefs.size();}
   size_t getMemoryUse() const;
 
-  /// Orders terms in descending order.
-  void sortTermsDescending();
+  /// Returns a polynomial whose terms have been permuted to be in
+  /// descending order.
+  ///
+  /// Making the copy is not wasteful, because doing the permutation in-place
+  /// would be require swapping monomials which is slow if they are large.
+  /// The returned object is not copy (return value optimization) and using
+  /// move assignment this code will only create the single copy of a Poly
+  /// p that is necessary to avoid an in-place operation:
+  ///
+  ///   p = p.polyWithTermsDescending()
+  Poly polyWithTermsDescending();
 
   /// Appends the given term as the last term in the polynomial.
+  void append(const NewConstTerm& term) {
+    MATHICGB_ASSERT(term.mono != nullptr);
+    append(term.coef, *term.mono);
+  }
+
   void append(coefficient coef, ConstMonoRef mono);
 
   /// Hint that space for the give number of terms is going to be needed.
@@ -82,7 +95,7 @@ public:
   /// Returns the coefficient of the leading term.
   coefficient leadCoef() const {
     MATHICGB_ASSERT(!isZero());
-    return coef(0);
+    return mCoefs.front();
   }
 
   /// Returns true if the polynomial is monic. A polynomial is monic if
@@ -116,13 +129,13 @@ public:
   /// Returns the monomial of the leading term.
   ConstMonoRef leadMono() const {
     MATHICGB_ASSERT(!isZero());
-    return mono(0);
+    return Monoid::toRef(&mMonos.front());
   }
 
   /// Returns the monomial of the last term.
   ConstMonoRef backMono() const {
     MATHICGB_ASSERT(!isZero());
-    return mono(termCount() - 1);
+    return Monoid::toRef(&mMonos[(termCount() - 1) * monoid().entryCount()]);
   }
 
   /// Returns true if the terms are in descending order. The terms are in
@@ -133,6 +146,7 @@ public:
   public:
     typedef std::forward_iterator_tag iterator_category;
     typedef ConstMonoRef value_type;
+    typedef ptrdiff_t difference_type;
     typedef value_type* pointer;
     typedef ConstMonoRef reference;
 
@@ -182,6 +196,9 @@ public:
   public:
     typedef std::forward_iterator_tag iterator_category;
     typedef NewConstTerm value_type;
+    typedef ptrdiff_t difference_type;
+    typedef value_type* pointer;
+    typedef value_type& reference;
 
     ConstTermIterator() {}
 
@@ -209,6 +226,11 @@ public:
 
     Iterator mIt;
   };
+
+  NewConstTerm term(size_t index) const {
+    NewConstTerm t = {coef(index), mono(index).ptr()};
+    return t;
+  }
 
   typedef Range<ConstTermIterator> ConstTermIteratorRange;
 
