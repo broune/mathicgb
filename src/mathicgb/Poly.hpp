@@ -22,6 +22,7 @@ public:
   typedef Monoid::MonoPtr MonoPtr;
   typedef Monoid::ConstMonoPtr ConstMonoPtr;
 
+  /// Constructs the zero polynomial in the given ring.
   Poly(const PolyRing& ring): mRing(ring) {}
 
   Poly(const Poly& poly):
@@ -57,6 +58,35 @@ public:
     MATHICGB_ASSERT(term.mono != nullptr);
     append(term.coef, *term.mono);
   }
+
+  /// Appends each term in the range r to the end of the polynomial.
+  /// 
+  template<class Range>
+  void append(const Range& r) {
+    for (const auto& term : r)
+      append(term);
+  }
+
+  /// As append(r), but possibly with better performance. The number of
+  /// elements in the range r must equal rangeTermCount.
+  template<class Range>
+  void append(const Range& r, size_t rangeTermCount) {
+    MATHICGB_ASSERT
+      (std::distance(std::begin(r), std::end(r)) == rangeTermCount);
+    reserve(termCount() + rangeTermCount);
+    for (const auto& term : r)
+      append(term);
+  }
+
+  /// As append(range(termsBegin, termsEnd))
+  template<class ForwardIterator>
+  void append(
+    const ForwardIterator& termsBegin,
+    const ForwardIterator& termsEnd
+  ) {
+    append(range(termsBegin, termsEnd));
+  }
+
 
   void append(coefficient coef, ConstMonoRef mono);
 
@@ -245,6 +275,8 @@ private:
   std::vector<coefficient> mCoefs;
   std::vector<exponent> mMonos;
 };
+
+bool operator==(const Poly& a, const Poly& b);
 
 // This is inline since it is performance-critical.
 inline void Poly::append(coefficient a, ConstMonoRef m) {

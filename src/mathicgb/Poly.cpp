@@ -8,25 +8,23 @@
 MATHICGB_NAMESPACE_BEGIN
 
 Poly Poly::polyWithTermsDescending() {
-  // *** Sort (term, index) pairs in descending order of monomial.
-  // Grr, if only C++11 lambda's allowed auto in the parameter list,
-  // then it would not have been necessary to ever mention the type
-  // Entry. But alas, that won't be here until C++14.
-  typedef std::pair<NewConstTerm, size_t> Entry;
-  auto greaterThan = [&](const Entry& a, const Entry& b) {
-    return monoid().lessThan(*b.first.mono, *a.first.mono);
+  // *** Sort terms in descending order of monomial.
+  // It would be possible but cumbersome to implement a sort directly
+  // on mMonos. That way no allocation would need to happen, however
+  // it is not clear that that would be any faster, since swapping around
+  // monomials in-place is slow. Swapping terms is faster, since terms
+  // just refer to the monomials. This way is also easier to implement.
+  auto greaterOrEqual = [&](const NewConstTerm& a, const NewConstTerm& b) {
+    return monoid().lessThan(*b.mono, *a.mono);
   };
-  auto ordered = rangeToVector(indexRange(*this));
-  std::sort(std::begin(ordered), std::end(ordered), greaterThan);
+  auto terms = rangeToVector(*this);
+  std::sort(std::begin(terms), std::end(terms), greaterOrEqual);
 
   // *** Make a new polynomial with terms in that order
   Poly poly(ring());
-  poly.reserve(termCount());
-  for (const auto& p : ordered)
-    poly.append(p.first);
+  poly.append(terms, termCount());
 
   MATHICGB_ASSERT(poly.termsAreInDescendingOrder());
-  MATHICGB_ASSERT(termCount() == poly.termCount());
 
   // This return statements causes no copy. The return value optimization
   // will be used at the option of the compiler. If a crappy compiler gets
@@ -68,6 +66,19 @@ void Poly::makeMonic() {
   MATHICGB_ASSERT(isMonic());
 }
 
+size_t Poly::getMemoryUse() const {
+  return 
+    sizeof(mCoefs.front()) * mCoefs.capacity() +
+    sizeof(mMonos.front()) * mMonos.capacity();
+}
+
+bool Poly::termsAreInDescendingOrder() const {
+  auto greaterThanOrEqual = [&](ConstMonoRef a, ConstMonoRef b) {
+    return !monoid().lessThan(a, b);
+  };
+  return std::is_sorted(monoBegin(), monoEnd(), greaterThanOrEqual);
+}
+
 bool operator==(const Poly& a, const Poly& b) {
   MATHICGB_ASSERT(&a.ring() == &b.ring());
   if (a.termCount() != b.termCount())
@@ -83,19 +94,6 @@ bool operator==(const Poly& a, const Poly& b) {
       return false;
 
   return true;
-}
-
-size_t Poly::getMemoryUse() const {
-  return 
-    sizeof(mCoefs.front()) * mCoefs.capacity() +
-    sizeof(mMonos.front()) * mMonos.capacity();
-}
-
-bool Poly::termsAreInDescendingOrder() const {
-  auto greaterThanOrEqual = [&](ConstMonoRef a, ConstMonoRef b) {
-    return !monoid().lessThan(a, b);
-  };
-  return std::is_sorted(monoBegin(), monoEnd(), greaterThanOrEqual);
 }
 
 MATHICGB_NAMESPACE_END
