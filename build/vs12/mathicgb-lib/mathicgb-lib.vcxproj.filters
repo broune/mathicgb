@@ -23,9 +23,6 @@
     <ClCompile Include="..\..\..\src\mathicgb\io-util.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\src\mathicgb\Poly.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\src\mathicgb\PolyBasis.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

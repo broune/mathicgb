@@ -27,7 +27,7 @@ public:
   typedef Monoid::ConstMonoPtr ConstMonoPtr;
 
   /// Constructs the zero polynomial in the given ring.
-  Poly(const PolyRing& ring): mRing(ring) {}
+  Poly(const PolyRing& ring): mRing(ring), mMonos(ring.monoid()) {}
 
   Poly(const Poly& poly):
     mRing(poly.ring()), mCoefs(poly.mCoefs), mMonos(poly.mMonos)
@@ -45,7 +45,10 @@ public:
 
   bool isZero() const {return mCoefs.empty();}
   size_t termCount() const {return mCoefs.size();}
-  size_t getMemoryUse() const;
+  size_t getMemoryUse() const {
+    return sizeof(mCoefs.front()) * mCoefs.capacity() +
+      mMonos.memoryBytesUsed();
+  }
 
   /// Returns a polynomial whose terms have been permuted to be in
   /// descending order.
@@ -57,21 +60,46 @@ public:
   /// p that is necessary to avoid an in-place operation:
   ///
   ///   p = p.polyWithTermsDescending()
-  Poly polyWithTermsDescending();
+  Poly polyWithTermsDescending() {
+    // *** Sort terms in descending order of monomial.
+    // It would be possible but cumbersome to implement a sort directly
+    // on mMonos. That way no allocation would need to happen, however
+    // it is not clear that that would be any faster, since swapping around
+    // monomials in-place is slow. Swapping terms is faster, since terms
+    // just refer to the monomials. This way is also easier to implement.
+    //
+    /// @todo: make a separate TermSorter object that allows the temporary
+    /// vector to be reused between sorts. This should matter for sorting input
+    /// ideals where there might be a lot of polynomials to go through.
+    auto greaterOrEqual = [&](const NewConstTerm& a, const NewConstTerm& b) {
+      return monoid().lessThan(*b.mono, *a.mono);
+    };
+    auto terms = rangeToVector(*this);
+    std::sort(std::begin(terms), std::end(terms), greaterOrEqual);
+
+    // *** Make a new polynomial with terms in that order
+    Poly poly(ring());
+    poly.reserve(termCount());
+    poly.append(terms);
+
+    MATHICGB_ASSERT(poly.termsAreInDescendingOrder());
+    MATHICGB_ASSERT(poly.termCount() == termCount());
+    return poly;
+  }
+
+  /// Appends the given term as the last term in the polynomial.
+  void append(ConstCoefRef coef, ConstMonoRef mono) {
+    mCoefs.push_back(coef);
+    mMonos.push_back(mono);
+  }
 
   /// Appends the given term as the last term in the polynomial.
   void append(const NewConstTerm& term) {
     MATHICGB_ASSERT(term.mono != nullptr);
-    typedef Field::RawElement C;
-    typedef Field::Element E;
-    C c = term.coef;
-    E e = c;
-
     append(term.coef, *term.mono);
   }
 
   /// Appends each term in the range r to the end of the polynomial.
-  /// 
   template<class Range>
   void append(const Range& r) {
     for (const auto& term : r)
@@ -87,8 +115,6 @@ public:
     append(range(termsBegin, termsEnd));
   }
 
-  void append(ConstCoefRef coef, ConstMonoRef mono);
-
   /// Hint that space for the give number of terms is going to be needed.
   /// This serves the same purpose as std::vector<>::reserve.
   void reserve(size_t spaceForThisManyTerms) {
@@ -97,7 +123,15 @@ public:
 
   /// Makes the polynomial monic by multiplying by the multiplicative inverse
   /// of leadCoef(). Calling this method is an error if isZero().
-  void makeMonic();
+  void makeMonic() {
+    MATHICGB_ASSERT(!isZero());
+    if (isMonic())
+      return;
+    auto multiplier = field().inverse(leadCoef());
+    for (auto& coef : mCoefs)
+      coef = field().product(coef, multiplier);
+    MATHICGB_ASSERT(isMonic());
+  }
 
   void setToZero() {
     mCoefs.clear();
@@ -131,7 +165,8 @@ public:
     return field().isOne(leadCoef());
   }
 
-  typedef std::vector<Coef>::const_iterator ConstCoefIterator;
+  typedef Field::ElementVector CoefVector;
+  typedef CoefVector::const_iterator ConstCoefIterator;
   typedef Range<ConstCoefIterator> ConstCoefIteratorRange;
 
   ConstCoefIterator coefBegin() const {return mCoefs.begin();}
@@ -146,62 +181,31 @@ public:
   /// Returns the monomial of the leading term.
   ConstMonoRef leadMono() const {
     MATHICGB_ASSERT(!isZero());
-    return Monoid::toRef(&mMonos.front());
+    return mMonos.front();
   }
 
   /// Returns the monomial of the last term.
   ConstMonoRef backMono() const {
     MATHICGB_ASSERT(!isZero());
-    return Monoid::toRef(&mMonos[(termCount() - 1) * monoid().entryCount()]);
+    return mMonos.back();
   }
 
   /// Returns true if the terms are in descending order. The terms are in
   /// descending order when mono(0) >= mono(1) >= ... >= backMono.
-  bool termsAreInDescendingOrder() const;
+  /// The coefficient of the terms are not considered in this comparison.
+  bool termsAreInDescendingOrder() const {
+    auto greaterThanOrEqual = [&](ConstMonoRef a, ConstMonoRef b) {
+      return !monoid().lessThan(a, b);
+    };
+    return std::is_sorted(monoBegin(), monoEnd(), greaterThanOrEqual);
+  }
 
-  class ConstMonoIterator {
-  public:
-    typedef std::forward_iterator_tag iterator_category;
-    typedef ConstMonoRef value_type;
-    typedef ptrdiff_t difference_type;
-    typedef value_type* pointer;
-    typedef ConstMonoRef reference;
-
-    ConstMonoIterator() {}
-
-    ConstMonoIterator& operator++() {
-      mIt += mEntryCount;
-      return *this;
-    }
-
-    ConstMonoRef operator*() const {return Monoid::toRef(&*mIt);}
-
-    bool operator==(const ConstMonoIterator& it) const {return mIt == it.mIt;}
-    bool operator!=(const ConstMonoIterator& it) const {return mIt != it.mIt;}
-
-  private:
-    friend class Poly;
-    typedef std::vector<exponent>::const_iterator Iterator;
-
-    ConstMonoIterator(const Monoid& monoid, Iterator it):
-      mEntryCount(monoid.entryCount()),
-      mIt(it)
-    {}
-
-    size_t mEntryCount;
-    Iterator mIt;
-  };
-
+  typedef Monoid::MonoVector MonoVector;
+  typedef MonoVector::const_iterator ConstMonoIterator;
   typedef Range<ConstMonoIterator> ConstMonoIteratorRange;
 
-  ConstMonoIterator monoBegin() const {
-    return ConstMonoIterator(monoid(), mMonos.begin());
-  }
-
-  ConstMonoIterator monoEnd() const {
-    return ConstMonoIterator(monoid(), mMonos.end());
-  }
-
+  ConstMonoIterator monoBegin() const {return mMonos.begin();}
+  ConstMonoIterator monoEnd() const {return mMonos.end();}
   ConstMonoIteratorRange monoRange() const {
     return range(monoBegin(), monoEnd());
   }
@@ -254,19 +258,13 @@ private:
   friend bool operator==(const Poly &a, const Poly &b);
 
   const PolyRing& mRing;
-  std::vector<Coef> mCoefs;
-  std::vector<exponent> mMonos;
+  CoefVector mCoefs;
+  MonoVector mMonos;
 };
 
-bool operator==(const Poly& a, const Poly& b);
-
-// This is inline since it is performance-critical.
-inline void Poly::append(ConstCoefRef a, ConstMonoRef m) {
-  mCoefs.push_back(a);
-
-  const auto offset = mMonos.size();
-  mMonos.resize(offset + monoid().entryCount());
-  monoid().copy(m, *PolyRing::Monoid::MonoPtr(mMonos.data() + offset));
+inline bool operator==(const Poly& a, const Poly& b) {
+  MATHICGB_ASSERT(a.ring() == b.ring());
+  return a.mCoefs == b.mCoefs && a.mMonos == b.mMonos;
 }
 
 MATHICGB_NAMESPACE_END

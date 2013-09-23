@@ -22,23 +22,22 @@ libmathicgb_la_SOURCES = src/mathicgb/Range.hpp							\
   src/mathicgb/Basis.hpp src/mathicgb/io-util.cpp						\
   src/mathicgb/io-util.hpp src/mathicgb/KoszulQueue.hpp					\
   src/mathicgb/ModuleMonoSet.cpp src/mathicgb/ModuleMonoSet.hpp			\
-  src/mathicgb/Poly.cpp src/mathicgb/Poly.hpp							\
-  src/mathicgb/PolyBasis.cpp src/mathicgb/PolyBasis.hpp					\
-  src/mathicgb/PolyHashTable.cpp src/mathicgb/PolyHashTable.hpp			\
-  src/mathicgb/PolyRing.cpp src/mathicgb/PolyRing.hpp					\
-  src/mathicgb/Reducer.cpp src/mathicgb/Reducer.hpp						\
-  src/mathicgb/ReducerDedup.hpp src/mathicgb/ReducerDedup.cpp			\
-  src/mathicgb/ReducerHash.hpp src/mathicgb/ReducerHash.cpp				\
-  src/mathicgb/ReducerHashPack.hpp src/mathicgb/ReducerHashPack.cpp		\
-  src/mathicgb/ReducerHelper.hpp src/mathicgb/ReducerNoDedup.hpp		\
-  src/mathicgb/ReducerNoDedup.cpp src/mathicgb/ReducerPackDedup.hpp		\
-  src/mathicgb/ReducerPackDedup.cpp src/mathicgb/SignatureGB.cpp		\
-  src/mathicgb/SignatureGB.hpp src/mathicgb/SigSPairs.cpp				\
-  src/mathicgb/SigSPairs.hpp src/mathicgb/SPairs.cpp					\
-  src/mathicgb/SPairs.hpp src/mathicgb/stdinc.h							\
-  src/mathicgb/SigSPairQueue.hpp src/mathicgb/SigSPairQueue.cpp			\
-  src/mathicgb/SparseMatrix.hpp src/mathicgb/SparseMatrix.cpp			\
-  src/mathicgb/QuadMatrixBuilder.hpp									\
+  src/mathicgb/Poly.hpp src/mathicgb/PolyBasis.cpp						\
+  src/mathicgb/PolyBasis.hpp src/mathicgb/PolyHashTable.cpp				\
+  src/mathicgb/PolyHashTable.hpp src/mathicgb/PolyRing.cpp				\
+  src/mathicgb/PolyRing.hpp src/mathicgb/Reducer.cpp					\
+  src/mathicgb/Reducer.hpp src/mathicgb/ReducerDedup.hpp				\
+  src/mathicgb/ReducerDedup.cpp src/mathicgb/ReducerHash.hpp			\
+  src/mathicgb/ReducerHash.cpp src/mathicgb/ReducerHashPack.hpp			\
+  src/mathicgb/ReducerHashPack.cpp src/mathicgb/ReducerHelper.hpp		\
+  src/mathicgb/ReducerNoDedup.hpp src/mathicgb/ReducerNoDedup.cpp		\
+  src/mathicgb/ReducerPackDedup.hpp src/mathicgb/ReducerPackDedup.cpp	\
+  src/mathicgb/SignatureGB.cpp src/mathicgb/SignatureGB.hpp				\
+  src/mathicgb/SigSPairs.cpp src/mathicgb/SigSPairs.hpp					\
+  src/mathicgb/SPairs.cpp src/mathicgb/SPairs.hpp						\
+  src/mathicgb/stdinc.h src/mathicgb/SigSPairQueue.hpp					\
+  src/mathicgb/SigSPairQueue.cpp src/mathicgb/SparseMatrix.hpp			\
+  src/mathicgb/SparseMatrix.cpp src/mathicgb/QuadMatrixBuilder.hpp		\
   src/mathicgb/QuadMatrixBuilder.cpp src/mathicgb/TypicalReducer.cpp	\
   src/mathicgb/TypicalReducer.hpp src/mathicgb/F4Reducer.hpp			\
   src/mathicgb/F4Reducer.cpp src/mathicgb/F4MatrixBuilder.hpp			\

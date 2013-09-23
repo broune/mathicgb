@@ -3,6 +3,7 @@
 #ifndef MATHICGB_PRIME_FIELD_GUARD
 #define MATHICGB_PRIME_FIELD_GUARD
 
+#include <vector>
 #include <limits>
 #include <type_traits>
 #include <ostream>
@@ -69,6 +70,8 @@ public:
   typedef const Element& ConstElementRef;
   typedef Element* ElementPtr;
   typedef const Element* ConstElementPtr;
+
+  typedef std::vector<Element> ElementVector;
 
   PrimeField(const T primeCharacteristic): mCharac(primeCharacteristic) {}
 
@@ -270,6 +273,17 @@ auto PrimeField<T>::inverse(const Element elementA) const -> Element {
   return inverseElement;
 }
 
+/// Returns true if a and b are the same object.
+template<class E>
+bool operator==(const PrimeField<E>& a, const PrimeField<E>& b) {
+  return &a == &b;
+}
+
+/// As !(a == b).
+template<class E>
+bool operator!=(const PrimeField<E>& a, const PrimeField<E>& b) {
+  return !(a == b);
+}
 
 template<class T>
 std::ostream& operator<<(

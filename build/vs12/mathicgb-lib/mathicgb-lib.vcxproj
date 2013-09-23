@@ -454,7 +454,6 @@
     <ClCompile Include="..\..\..\src\mathicgb\LogDomainSet.cpp" />
     <ClCompile Include="..\..\..\src\mathicgb\ModuleMonoSet.cpp" />
     <ClCompile Include="..\..\..\src\mathicgb\MonoLookup.cpp" />
-    <ClCompile Include="..\..\..\src\mathicgb\Poly.cpp" />
     <ClCompile Include="..\..\..\src\mathicgb\PolyBasis.cpp" />
     <ClCompile Include="..\..\..\src\mathicgb\PolyHashTable.cpp" />
     <ClCompile Include="..\..\..\src\mathicgb\PolyRing.cpp" />

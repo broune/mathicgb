@@ -726,5 +726,15 @@ inline bool PolyRing::monomialHasAmpleCapacity(ConstMonomial mono) const {
   return monoid().hasAmpleCapacity(mono);
 }
 
+/// Returns true if a and b are the same object.
+inline bool operator==(const PolyRing& a, const PolyRing& b) {
+  return &a == &b;
+}
+
+/// As !(a == b).
+inline bool operator!=(const PolyRing& a, const PolyRing& b) {
+  return !(a == b);
+}
+
 MATHICGB_NAMESPACE_END
 #endif

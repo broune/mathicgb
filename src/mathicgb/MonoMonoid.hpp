@@ -425,14 +425,6 @@ public:
     );
   }
 
-  bool operator==(const MonoMonoid& monoid) const {
-    return this == &monoid;
-  }
-
-  bool operator!=(const MonoMonoid& monoid) const {
-    return !(*this == monoid);
-  }
-
   /// Returns true if higher component is considered greater when
   /// comparing module monomials. Only relevant once actually
   /// considering the component. This is only relevant for module
@@ -1450,6 +1442,9 @@ public:
     public:
       typedef std::forward_iterator_tag iterator_category;
       typedef ConstMonoRef value_type;
+      typedef ptrdiff_t difference_type;
+      typedef ConstMonoPtr pointer;
+      typedef ConstMonoRef reference;
     
       const_iterator(): mIt(), mEntriesPerMono(0) {}
       const_iterator(const const_iterator& it):
@@ -1458,7 +1453,7 @@ public:
       bool operator==(const const_iterator& it) const {return mIt == it.mIt;}
       bool operator!=(const const_iterator& it) const {return mIt != it.mIt;}
 
-      ConstMonoRef operator*() {
+      ConstMonoRef operator*() const {
         MATHICGB_ASSERT(debugValid());
         return *ConstMonoPtr(&*mIt);
       }
@@ -1471,7 +1466,7 @@ public:
 
     private:
       friend class MonoVector;
-      bool debugValid() {return mEntriesPerMono > 0;}
+      bool debugValid() const {return mEntriesPerMono > 0;}
 
       const_iterator(
         typename RawVector::const_iterator it,
@@ -1482,7 +1477,9 @@ public:
       size_t mEntriesPerMono;		     
     };
 
-    // ** Constructors and assignment
+
+    // *** Constructors and assignment
+
     MonoVector(const MonoMonoid& monoid): mMonoid(monoid) {}
     MonoVector(const MonoVector& v): mMonos(v.mMonos), mMonoid(v.monoid()) {}
     MonoVector(MonoVector&& v):
@@ -1500,7 +1497,9 @@ public:
       return *this;      
     }
 
-    // ** Iterators
+
+    // *** Iterators
+
     const_iterator begin() const {
       return const_iterator(mMonos.begin(), mMonoid.entryCount());
     }
@@ -1512,11 +1511,32 @@ public:
     const_iterator cbegin() const {return begin();}
     const_iterator cend() const {return end();}
 
-    // ** Capacity
+    // *** Operators
+    
+    /// Returns true if *this and v contain the same monomials in the same
+    /// order. This ought to be a free-standing function, but it cannot be,
+    /// because template argument deduction cannot deduce a type T from
+    /// something of the form A<T>::MonoVector.
+    bool operator==(const MonoVector& v) const {
+      MATHICGB_ASSERT(monoid() == v.monoid());
+      return mMonos == v.mMonos;
+    }
+
+    /// As !(*this == v).
+    bool operator!=(const MonoVector& v) const {
+      MATHICGB_ASSERT(monoid() == v.monoid());
+      return !(*this == v);
+    }
+
+
+    // *** Size and capacity
+
     size_t size() const {return mMonos.size() / monoid().entryCount();}
     bool empty() const {return mMonos.empty();}
 
-    // ** Element access
+
+    // *** Element access
+
     ConstMonoRef front() const {
       MATHICGB_ASSERT(!empty());
       return *begin();
@@ -1534,7 +1554,8 @@ public:
       return *ConstMonoPtr(mMonos.data() + offset);
     }
 
-    // ** Modifiers
+
+    // *** Modifiers
 
     void reserve(size_t count) {
       mMonos.reserve(count * monoid().entryCount());
@@ -1575,16 +1596,11 @@ public:
 
     void clear() {mMonos.clear();}
 
-    // ** Relational operators
-    bool operator==(const MonoVector& v) const {
-      MATHICGB_ASSERT(monoid() == v.monoid());
-      return mMonos == v.mMonos;
-    }
-    bool operator!=(const MonoVector& v) const {return !(*this == v);}
 
-    // ** Other
+    // *** Other
+
     size_t memoryBytesUsed() const {
-      return mMonos.capacity() * sizeof(mMonos[0]);
+      return mMonos.capacity() * sizeof(mMonos.front());
     }
 
     const MonoMonoid& monoid() const {return mMonoid;}
@@ -1889,20 +1905,22 @@ private:
   mutable MonoPool mPool;
 };
 
-namespace MonoMonoidHelper {
-  /// ostream and istream handle characters differently from other
-  /// integers. Use unchar to cast chars to a different type that get
-  /// handled as other integers do.
-  template<class T>
-  struct unchar {typedef int type;};
+/// Returns true if a and b are the same object.
+template<class E, bool HC, bool SH, bool SO>
+bool operator==(
+  const MonoMonoid<E,HC,SH,SO>& a,
+  const MonoMonoid<E,HC,SH,SO>& b
+) {
+  return &a == &b;
+}
 
-  // Yes: char, signed char and unsigned char are 3 distinct types.
-  template<>
-  struct unchar<char> {typedef short type;};
-  template<>
-  struct unchar<signed char> {typedef short type;};
-  template<>
-  struct unchar<unsigned char> {typedef unsigned short type;};
+/// As !(a == b).
+template<class E, bool HC, bool SH, bool SO>
+bool operator!=(
+  const MonoMonoid<E,HC,SH,SO>& a,
+  const MonoMonoid<E,HC,SH,SO>& b
+) {
+  return !(a == b);
 }
 
 MATHICGB_NAMESPACE_END
