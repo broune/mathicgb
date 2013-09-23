@@ -774,13 +774,15 @@ namespace mgbi {
 // ** Implementation of mgbi::IdealAdapter
 namespace mgbi {
   struct IdealAdapter::Pimpl {
+    Pimpl(): polyIndex(0), mTermIt() {}
+
     std::unique_ptr<Basis> basis;
     std::unique_ptr<Exponent[]> tmpTerm;
+    size_t polyIndex;
+    Poly::ConstTermIterator mTermIt;
   };
 
-  IdealAdapter::IdealAdapter():
-    mPimpl(new Pimpl()) {
-  }
+  IdealAdapter::IdealAdapter(): mPimpl(new Pimpl()) {}
 
   IdealAdapter::~IdealAdapter() {
     MATHICGB_ASSERT(mPimpl != 0);
@@ -803,23 +805,47 @@ namespace mgbi {
     return mPimpl->basis->getPoly(poly)->termCount();
   }
 
-  auto IdealAdapter::term(
-    PolyIndex poly,
-    TermIndex term
-  ) const -> std::pair<Coefficient, const Exponent*> {
+  void IdealAdapter::toFirstTerm() {
+    mPimpl->polyIndex = 0;
+    while (
+      mPimpl->polyIndex < mPimpl->basis->size() &&
+      mPimpl->basis->getPoly(mPimpl->polyIndex)->isZero()
+    )
+      ++(mPimpl->polyIndex);
+
+    if (mPimpl->polyIndex < mPimpl->basis->size())
+      mPimpl->mTermIt = mPimpl->basis->getPoly(mPimpl->polyIndex)->begin();
+  }
+
+  auto IdealAdapter::nextTerm() const
+  -> std::pair<Coefficient, const Exponent*>
+  {
     MATHICGB_ASSERT(mPimpl->basis.get() != 0);
-    MATHICGB_ASSERT(poly < mPimpl->basis->size());
+    MATHICGB_ASSERT(mPimpl->polyIndex < mPimpl->basis->size());
 
     const auto& monoid = mPimpl->basis->ring().monoid();
-    const auto& p = *mPimpl->basis->getPoly(poly);
-    MATHICGB_ASSERT(term < p.termCount());
+    const auto& p = *mPimpl->basis->getPoly(mPimpl->polyIndex);
     MATHICGB_ASSERT(p.ring().monoid() == monoid);
 
-    const auto& from = p.mono(term);
+    const auto& from = *mPimpl->mTermIt;
     auto to = mPimpl->tmpTerm.get();
     for (VarIndex var = 0; var < monoid.varCount(); ++var)
-      to[var] = monoid.externalExponent(from, var);
-    return std::make_pair(p.coef(term), to);
+      to[var] = monoid.externalExponent(*from.mono, var);
+
+    ++(mPimpl->mTermIt);
+    if (mPimpl->mTermIt == p.end()) {
+      ++mPimpl->polyIndex;
+      while (
+        mPimpl->polyIndex < mPimpl->basis->size() &&
+        mPimpl->basis->getPoly(mPimpl->polyIndex)->isZero()
+      )
+        ++(mPimpl->polyIndex);
+
+      if (mPimpl->polyIndex < mPimpl->basis->size())
+        mPimpl->mTermIt = mPimpl->basis->getPoly(mPimpl->polyIndex)->begin();
+    }
+
+    return std::make_pair(from.coef, to);
   }
 }
 

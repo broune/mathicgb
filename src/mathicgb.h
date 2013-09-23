@@ -789,8 +789,12 @@ namespace mgb {
       size_t polyCount() const;
       size_t termCount(PolyIndex poly) const;
 
-      // Return value only valid until the next call to term.
-      ConstTerm term(PolyIndex poly, TermIndex term) const;
+      /// Sets the internal position to the first term of the first polynomial.
+      void toFirstTerm();
+
+      /// Returns the next term. First all terms of polynomial 0 are returned,
+      /// then all terms of the next polynomial and so on.
+      ConstTerm nextTerm() const;
 
     private:
       friend class mgbi::PimplOf;
@@ -816,6 +820,7 @@ namespace mgb {
     if (!doOutput)
       return;
 
+    ideal.toFirstTerm();
     const size_t varCount = ideal.varCount();
     const size_t polyCount = ideal.polyCount();
     output.idealBegin(polyCount);
@@ -824,7 +829,7 @@ namespace mgb {
       output.appendPolynomialBegin(termCount);
       for (size_t termIndex = 0; termIndex < termCount; ++termIndex) {
         output.appendTermBegin();
-        const ConstTerm term = ideal.term(polyIndex, termIndex);
+        const ConstTerm term = ideal.nextTerm();
         for (size_t var = 0; var < varCount; ++var)
           output.appendExponent(var, term.second[var]);
         output.appendTermDone(term.first);

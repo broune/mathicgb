@@ -115,12 +115,6 @@ public:
 
   // *** Accessing the coefficients of the terms in the polynomial.
 
-  /// Returns the coefficient of the given term.
-  const Coef& coef(size_t index) const {
-    MATHICGB_ASSERT(index < termCount());
-    return mCoefs[index];
-  }
-
   /// Returns the coefficient of the leading term.
   const Coef& leadCoef() const {
     MATHICGB_ASSERT(!isZero());
@@ -148,12 +142,6 @@ public:
 
 
   // *** Accessing the monomials of the terms in the polynomial
-
-  /// Returns the monomial of the given term.
-  ConstMonoRef mono(size_t index) const {
-    MATHICGB_ASSERT(index < termCount());
-    return Monoid::toRef(&mMonos[index * monoid().entryCount()]);
-  }
 
   /// Returns the monomial of the leading term.
   ConstMonoRef leadMono() const {
@@ -255,11 +243,6 @@ public:
 
     Iterator mIt;
   };
-
-  NewConstTerm term(size_t index) const {
-    NewConstTerm t = {coef(index), mono(index).ptr()};
-    return t;
-  }
 
   typedef Range<ConstTermIterator> ConstTermIteratorRange;
 
