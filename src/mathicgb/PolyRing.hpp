@@ -91,7 +91,9 @@ typedef int32 exponent ;
 typedef uint32 HashValue;
 typedef long coefficient;
 typedef MonoMonoid<exponent> Monoid;
-typedef PrimeField<unsigned long> Field;
+
+/// This typedef should really be for an unsigned type.
+typedef PrimeField<coefficient> Field;
 
 
 typedef exponent* vecmonomial; // includes a component
@@ -231,7 +233,9 @@ struct term {
 class PolyRing {
 public:
   typedef MonoMonoid<exponent> Monoid;
-  typedef PrimeField<unsigned long> Field;
+
+  /// This typedef should really be for an unsigned type.
+  typedef PrimeField<coefficient> Field;
 
   /// @todo: make this dependent on the monoid and field once all code
   /// has been migrated from ::term to PolyRing::Term.
@@ -499,7 +503,7 @@ public:
   ///////////////////////////////////////////
 
   const Monoid& monoid() const {return mMonoid;}
-  const Field field() const {return mField;}
+  const Field& field() const {return mField;}
 
 private:
   Field mField;

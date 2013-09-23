@@ -20,6 +20,8 @@ MATHICGB_NAMESPACE_BEGIN
 
 class F4MatrixBuilder2::Builder {
 public:
+  typedef PolyRing::Field Field;
+
   typedef PolyRing::Monoid Monoid;
   typedef Monoid::Mono Mono;
   typedef Monoid::MonoRef MonoRef;
@@ -264,7 +266,8 @@ public:
   }
 
   const PolyRing& ring() const {return mBasis.ring();}
-  const Monoid& monoid() const {return mBasis.ring().monoid();}
+  const Monoid& monoid() const {return ring().monoid();}
+  const Field& field() const {return ring().field();}
 
     Builder(const PolyBasis& basis, const size_t memoryQuantum):
     mMemoryQuantum(memoryQuantum),
@@ -358,7 +361,7 @@ public:
       const auto col = findOrCreateColumn
         (it.mono(), multiple, reader, feeder);
 	  MATHICGB_ASSERT(it.coef() < std::numeric_limits<Scalar>::max());
-      MATHICGB_ASSERT(it.coef() != 0);
+      MATHICGB_ASSERT(!field().isZero(it.coef()));
       *indices = col.first;
       ++indices;
       ++it;
@@ -367,14 +370,14 @@ public:
     ColReader colMap(mMap);
     while (it != end) {
 	  MATHICGB_ASSERT(it.coef() < std::numeric_limits<Scalar>::max());
-      MATHICGB_ASSERT(it.coef() != 0);
+      MATHICGB_ASSERT(!field().isZero(it.coef()));
       const auto scalar1 = static_cast<Scalar>(it.coef());
       const auto mono1 = it.mono();
 
       auto it2 = it;
       ++it2;
 	  MATHICGB_ASSERT(it2.coef() < std::numeric_limits<Scalar>::max());
-      MATHICGB_ASSERT(it2.coef() != 0);
+      MATHICGB_ASSERT(!field().isZero(it2.coef()));
       const auto scalar2 = static_cast<Scalar>(it2.coef());
       const auto mono2 = it2.mono();
 

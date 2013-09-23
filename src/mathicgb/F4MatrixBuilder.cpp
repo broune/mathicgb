@@ -296,9 +296,9 @@ updateReader:
     }
 
     const auto origScalar = it.coef();
-    MATHICGB_ASSERT(origScalar != 0);
+    MATHICGB_ASSERT(!ring().field().isZero(origScalar));
     const auto maybeNegated =
-      negate ? ring().coefficientNegateNonZero(origScalar) : origScalar;
+      negate ? field().negativeNonZero(origScalar) : origScalar;
 	MATHICGB_ASSERT(maybeNegated < std::numeric_limits<Scalar>::max());
     builder.appendEntryBottom(*col.first, static_cast<Scalar>(maybeNegated));
   }
@@ -330,14 +330,14 @@ updateReader:
   ColReader colMap(mMap);
   while (it != end) {
 	MATHICGB_ASSERT(it.coef() < std::numeric_limits<Scalar>::max());
-    MATHICGB_ASSERT(it.coef() != 0);
+    MATHICGB_ASSERT(!field().isZero(it.coef()));
     const auto scalar1 = static_cast<Scalar>(it.coef());
     const auto mono1 = it.mono();
 
     auto it2 = it;
     ++it2;
 	MATHICGB_ASSERT(it2.coef() < std::numeric_limits<Scalar>::max());
-    MATHICGB_ASSERT(it2.coef() != 0);
+    MATHICGB_ASSERT(!field().isZero(it2.coef()));
     const auto scalar2 = static_cast<Scalar>(it2.coef());
     const auto mono2 = it2.mono();
 
@@ -410,7 +410,7 @@ void F4MatrixBuilder::appendRowBottom(
       ++itB;
     }
     MATHICGB_ASSERT(coeff < std::numeric_limits<Scalar>::max());
-    if (coeff != 0)
+    if (!field().isZero(coeff))
       builder.appendEntryBottom(col, static_cast<Scalar>(coeff));
   }
 }

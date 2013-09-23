@@ -22,6 +22,8 @@ MATHICGB_NAMESPACE_BEGIN
 /// functionality, so add one of those before fixing this.
 class F4MatrixBuilder2 {
 public:
+  typedef PolyRing::Field Field;
+
   typedef PolyRing::Monoid Monoid;
   typedef Monoid::Mono Mono;
   typedef Monoid::MonoRef MonoRef;
@@ -72,7 +74,8 @@ public:
   void buildMatrixAndClear(QuadMatrix& matrix);
 
   const PolyRing& ring() const {return mBasis.ring();}
-  const Monoid& monoid() const {return mBasis.ring().monoid();}
+  const Monoid& monoid() const {return ring().monoid();}
+  const Field& field() const {return ring().field();}
 
 private:
   /// Represents the task of adding a row to the matrix. If sPairPoly is null

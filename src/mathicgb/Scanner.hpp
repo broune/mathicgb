@@ -255,7 +255,8 @@ typename PrimeField<T>::Element Scanner::readModular(
 
   // Otherwise we need to consider that the most negative value's
   // negative cannot be represented as a positive number when reading.
-  static_assert(!std::is_signed<T>::value, "");
+  // todo: reinstate this assert once we get rid of signed coefficients.
+  //static_assert(!std::is_signed<T>::value, "");
 
   eatWhite();
   const bool minus = !match('+') && match('-');

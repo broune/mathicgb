@@ -29,6 +29,8 @@ private:
   typedef QuadMatrixBuilder::Monomials Monomials;
 
 public:
+  typedef PolyRing::Field Field;
+
   typedef PolyRing::Monoid Monoid;
   typedef Monoid::Mono Mono;
   typedef Monoid::MonoRef MonoRef;
@@ -78,7 +80,8 @@ public:
   void buildMatrixAndClear(QuadMatrix& matrix);
 
   const PolyRing& ring() const {return mBuilder.ring();}
-  const Monoid& monoid() const {return mBuilder.ring().monoid();}
+  const Monoid& monoid() const {return ring().monoid();}
+  const Field& field() const {return ring().field();}
 
 private:
   typedef const MonomialMap<LeftRightColIndex>::Reader ColReader;

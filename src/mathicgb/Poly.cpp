@@ -14,6 +14,11 @@ Poly Poly::polyWithTermsDescending() {
   // it is not clear that that would be any faster, since swapping around
   // monomials in-place is slow. Swapping terms is faster, since terms
   // just refer to the monomials. This way is also easier to implement.
+  //
+  /// @todo: make a separate TermSorter object that allows the terms vector
+  /// to be reused between sorts. This should matter for sorting input
+  /// ideals where there might be a lot of polynomials to go through.
+  /// That way terms would not need to be allocated anew for each polynomial.
   auto greaterOrEqual = [&](const NewConstTerm& a, const NewConstTerm& b) {
     return monoid().lessThan(*b.mono, *a.mono);
   };
@@ -22,36 +27,11 @@ Poly Poly::polyWithTermsDescending() {
 
   // *** Make a new polynomial with terms in that order
   Poly poly(ring());
-  poly.append(terms, termCount());
+  poly.reserve(termCount());
+  poly.append(terms);
 
   MATHICGB_ASSERT(poly.termsAreInDescendingOrder());
-
-  // This return statements causes no copy. The return value optimization
-  // will be used at the option of the compiler. If a crappy compiler gets
-  // that wrong, poly will be treated as an r-value, which is to say that
-  // this code becomes equivalent to return std::move(poly). That happens
-  // because poly is a local variable being returned, so the standard
-  // allows movement out of poly in this particular situation - that is
-  // safe/reasonable because the very next thing that will happen to poly is
-  // that it will get destructed, so anyone in a position to know that the
-  // contents of poly had been moved out would then also be using
-  // a pointer to the now-invalid poly object, which invokes undefined
-  // behavior anyway.
-  //
-  // Capturing the returned Poly into another poly also will not cause a copy.
-  // Consider the code
-  //
-  //   Poly p1(q.polyWithTermsDescending());
-  //   Poly p2(ring);
-  //   p2 = q.polyWithTermsDescending();
-  //   
-  // The return value is an unnamed temporary that is constructed/assigned
-  // into p1/p2. Unnamed temporaries are r-values, so the guts of those
-  // temporary objects will be moved into p1/p2. There will be no copy.
-  //
-  // (Of course there is the one copy that we are doing further up into poly
-  // to avoid doing an in-place sort. The point is that there are no further
-  // copies than that one.)
+  MATHICGB_ASSERT(poly.termCount() == termCount());
   return poly;
 }
 
@@ -59,10 +39,9 @@ void Poly::makeMonic() {
   MATHICGB_ASSERT(!isZero());
   if (isMonic())
     return;
-  auto multiply = leadCoef();
-  ring().coefficientReciprocalTo(multiply);
+  auto multiplier = field().inverse(leadCoef());
   for (auto& coef : mCoefs)
-    ring().coefficientMultTo(coef, multiply);
+    coef = field().product(coef, multiplier);
   MATHICGB_ASSERT(isMonic());
 }
 

@@ -19,8 +19,30 @@ public:
 
   class Element {
   public:
-    static_assert(!std::numeric_limits<T>::is_signed, "");
+    // Re-instate this assert once all code has moved to using PrimeField
+    // properly so that coefficients are no longer signed.
+    //static_assert(!std::numeric_limits<T>::is_signed, "");
     static_assert(std::numeric_limits<T>::is_integer, "");
+
+    /// This constructor/conversion needs to go away as soon as all code
+    /// has been converted to using PrimeField properly. Kill it with fire!
+    Element(const RawElement& e): mValue(e) {}
+
+    /// This conversion needs to go away as soon as all code
+    /// has been converted to using PrimeField properly. Kill it with fire!
+    operator RawElement&() {return mValue;}
+
+    /// This conversion needs to go away as soon as all code
+    /// has been converted to using PrimeField properly. Kill it with fire!
+    operator const RawElement&() const {return mValue;}
+
+    /// This method needs to go away as soon as all code
+    /// has been converted to using PrimeField properly. Kill it with fire!
+    bool operator==(const RawElement e) const {return value() == e.value();}
+
+    /// This method needs to go away as soon as all code
+    /// has been converted to using PrimeField properly. Kill it with fire!
+    bool operator!=(const RawElement e) const {return !(*this == e);}
 
     Element(const Element& e): mValue(e.value()) {}
 
@@ -31,15 +53,22 @@ public:
 
     bool operator==(const Element e) const {return value() == e.value();}
     bool operator!=(const Element e) const {return !(*this == e);}
+
     T value() const {return mValue;}
 
   private:
     friend class PrimeField;
-    Element(const T value): mValue(value) {}
+    // Uncomment this constructor once the public one is gone.
+    //Element(const T value): mValue(value) {}
 
     friend class PrimeFile;
     T mValue;
   };
+
+  typedef Element& ElementRef;
+  typedef const Element& ConstElementRef;
+  typedef Element* ElementPtr;
+  typedef const Element* ConstElementPtr;
 
   PrimeField(const T primeCharacteristic): mCharac(primeCharacteristic) {}
 
@@ -67,7 +96,10 @@ public:
 
     MATHICGB_ASSERT(0 <= i);
     typedef typename std::make_unsigned<NoRefInteger>::type Unsigned;
-    MATHICGB_ASSERT(static_cast<Unsigned>(i) < charac());
+    //replace the below assert with this uncommented one once we get rid
+    //of signed element types.
+    //MATHICGB_ASSERT(static_cast<Unsigned>(i) < charac());
+    MATHICGB_ASSERT(i < charac());
     return Element(i);
   }
 
@@ -167,11 +199,17 @@ namespace PrimeFieldInternal {
   template<> struct ModularProdType<uint16> {typedef uint32 type;};
   template<> struct ModularProdType<uint32> {typedef uint64 type;};
 
+  template<> struct ModularProdType<int8> {typedef int16 type;};
+  template<> struct ModularProdType<int16> {typedef int32 type;};
+  template<> struct ModularProdType<int32> {typedef int64 type;};
+
   // @todo: Remove this typedef when possible. 64 bits is not enough
   // to store a 64 bit product. We need it right now because
   // coefficients are handled as 64 bit in the legacy PolyRing.
   template<> struct ModularProdType<uint64> {typedef uint64 type;};
   template<> struct ModularProdType<long unsigned int> {typedef uint64 type;};
+  template<> struct ModularProdType<int64> {typedef uint64 type;};
+  template<> struct ModularProdType<long int> {typedef uint64 type;};
 }
 
 template<class T>
@@ -215,7 +253,7 @@ auto PrimeField<T>::inverse(const Element elementA) const -> Element {
 
     // second turn
     if (b == 1) {
-      MATHICGB_ASSERT(minusLastX != 0);
+      MATHICGB_ASSERT(!isZero(minusLastX));
       MATHICGB_ASSERT(minusLastX < charac());
       x = charac() - minusLastX;
       break;

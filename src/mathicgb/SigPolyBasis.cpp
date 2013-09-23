@@ -57,7 +57,7 @@ void SigPolyBasis::addComponent() {
 void SigPolyBasis::insert(Mono ownedSig, std::unique_ptr<Poly> f) {
   MATHICGB_ASSERT(f.get() != nullptr);
   MATHICGB_ASSERT(!f->isZero());
-  MATHICGB_ASSERT(f->leadCoef() != 0);
+  MATHICGB_ASSERT(!field().isZero(f->leadCoef()));
   MATHICGB_ASSERT(!ownedSig.isNull());
   MATHICGB_ASSERT(monoid().fromPool(*ownedSig));
 

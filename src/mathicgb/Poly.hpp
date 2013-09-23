@@ -15,6 +15,10 @@ MATHICGB_NAMESPACE_BEGIN
 
 class Poly {
 public:
+  typedef PolyRing::Field Field;
+  typedef Field::Element Coef;
+  typedef Field::ConstElementRef ConstCoefRef;
+
   typedef PolyRing::Monoid Monoid;
   typedef Monoid::Mono Mono;
   typedef Monoid::MonoRef MonoRef;
@@ -37,6 +41,8 @@ public:
 
   const PolyRing& ring() const {return mRing;}
   const Monoid& monoid() const {return ring().monoid();}
+  const Field& field() const {return ring().field();}
+
   bool isZero() const {return mCoefs.empty();}
   size_t termCount() const {return mCoefs.size();}
   size_t getMemoryUse() const;
@@ -56,6 +62,11 @@ public:
   /// Appends the given term as the last term in the polynomial.
   void append(const NewConstTerm& term) {
     MATHICGB_ASSERT(term.mono != nullptr);
+    typedef Field::RawElement C;
+    typedef Field::Element E;
+    C c = term.coef;
+    E e = c;
+
     append(term.coef, *term.mono);
   }
 
@@ -63,17 +74,6 @@ public:
   /// 
   template<class Range>
   void append(const Range& r) {
-    for (const auto& term : r)
-      append(term);
-  }
-
-  /// As append(r), but possibly with better performance. The number of
-  /// elements in the range r must equal rangeTermCount.
-  template<class Range>
-  void append(const Range& r, size_t rangeTermCount) {
-    MATHICGB_ASSERT
-      (std::distance(std::begin(r), std::end(r)) == rangeTermCount);
-    reserve(termCount() + rangeTermCount);
     for (const auto& term : r)
       append(term);
   }
@@ -87,8 +87,7 @@ public:
     append(range(termsBegin, termsEnd));
   }
 
-
-  void append(coefficient coef, ConstMonoRef mono);
+  void append(ConstCoefRef coef, ConstMonoRef mono);
 
   /// Hint that space for the give number of terms is going to be needed.
   /// This serves the same purpose as std::vector<>::reserve.
@@ -117,13 +116,13 @@ public:
   // *** Accessing the coefficients of the terms in the polynomial.
 
   /// Returns the coefficient of the given term.
-  coefficient coef(size_t index) const {
+  const Coef& coef(size_t index) const {
     MATHICGB_ASSERT(index < termCount());
     return mCoefs[index];
   }
 
   /// Returns the coefficient of the leading term.
-  coefficient leadCoef() const {
+  const Coef& leadCoef() const {
     MATHICGB_ASSERT(!isZero());
     return mCoefs.front();
   }
@@ -135,10 +134,10 @@ public:
   /// polynomial is monic - you'll get an assert to help pinpoint the error.
   bool isMonic() const {
     MATHICGB_ASSERT(!isZero());
-    return ring().coefficientIsOne(leadCoef());
+    return field().isOne(leadCoef());
   }
 
-  typedef std::vector<coefficient>::const_iterator ConstCoefIterator;
+  typedef std::vector<Coef>::const_iterator ConstCoefIterator;
   typedef Range<ConstCoefIterator> ConstCoefIteratorRange;
 
   ConstCoefIterator coefBegin() const {return mCoefs.begin();}
@@ -246,7 +245,7 @@ public:
     bool operator==(const ConstTermIterator& it) const {return mIt == it.mIt;}
     bool operator!=(const ConstTermIterator& it) const {return mIt != it.mIt;}
 
-    coefficient coef() const {return (*mIt).first;}
+    const Coef& coef() const {return (*mIt).first;}
     ConstMonoRef mono() const {return (*mIt).second;}
 
   private:
@@ -272,14 +271,14 @@ private:
   friend bool operator==(const Poly &a, const Poly &b);
 
   const PolyRing& mRing;
-  std::vector<coefficient> mCoefs;
+  std::vector<Coef> mCoefs;
   std::vector<exponent> mMonos;
 };
 
 bool operator==(const Poly& a, const Poly& b);
 
 // This is inline since it is performance-critical.
-inline void Poly::append(coefficient a, ConstMonoRef m) {
+inline void Poly::append(ConstCoefRef a, ConstMonoRef m) {
   mCoefs.push_back(a);
 
   const auto offset = mMonos.size();

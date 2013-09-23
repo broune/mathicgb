@@ -21,6 +21,8 @@ MATHICGB_NAMESPACE_BEGIN
 /// use in signature Groebner basis algorithms.
 class SigPolyBasis {
 public:
+  typedef PolyRing::Field Field;
+
   typedef PolyRing::Monoid Monoid;
   typedef Monoid::Mono Mono;
   typedef Monoid::MonoRef MonoRef;
@@ -40,6 +42,7 @@ public:
 
   const PolyRing& ring() const {return mBasis.ring();}
   const Monoid& monoid() const {return ring().monoid();}
+  const Field& field() const {return ring().field();}
 
   const Poly& poly(size_t index) const {return mBasis.poly(index);}
   size_t size() const {return mBasis.size();}

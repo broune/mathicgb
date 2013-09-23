@@ -421,7 +421,7 @@ void MathicIO<M, BF>::writePoly(
     writeTerm(
       poly.ring(),
       writeComponent,
-      poly.ring().field().toElement(it.coef()),
+      it.coef(),
       it.mono(),
       it != poly.begin(),
       out
