@@ -14,6 +14,7 @@ MATHICGB_NAMESPACE_BEGIN
 
 class Poly;
 
+/// A collection of polynomials. @todo: replace with just std::vector<Poly>.
 // Really: a list of polynomials
 // BUT ALSO maybe: includes memory areas for the polynomials?
 class Basis {

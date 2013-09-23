@@ -7,11 +7,8 @@
 
 MATHICGB_NAMESPACE_BEGIN
 
-/// Does pre- and post-processing of monomials to implement monomial
+/// Does pre- and post-processing of monomials to implement module monomial
 /// orders not directly supported by the monoid.
-///
-/// @todo: distinguish monomials from module monomials, perhaps with
-/// two separate classes.
 template<class Monoid>
 class MonoProcessor;
 

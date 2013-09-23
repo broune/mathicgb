@@ -222,7 +222,7 @@ public:
     MonomialMap<ColIndex>::Reader reader(mMap);
     typedef std::pair<ColIndex, ConstMonoPtr> IndexMono;
     auto toPtr = [](std::pair<ColIndex, ConstMonoRef> p) {
-      return std::make_pair(p.first, p.second.ptr());
+      return std::make_pair(p.first, &p.second);
     };
     std::vector<IndexMono> columns;
     std::transform

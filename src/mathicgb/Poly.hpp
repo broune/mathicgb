@@ -13,6 +13,7 @@
 
 MATHICGB_NAMESPACE_BEGIN
 
+/// Stores a polynomial.
 class Poly {
 public:
   typedef PolyRing::Field Field;

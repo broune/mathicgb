@@ -9,6 +9,8 @@
 
 MATHICGB_NAMESPACE_BEGIN
 
+/// Used to keep track of pending Koszul syzygy signatures in the signature
+/// basis algorithm.
 class KoszulQueue : public NonCopyable<KoszulQueue> {
 public:
   typedef PolyRing::Monoid Monoid;

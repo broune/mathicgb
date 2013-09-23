@@ -13,13 +13,13 @@
 
 MATHICGB_NAMESPACE_BEGIN
 
-/** Class for constructing an F4 matrix. This class is reponsible for
-  figuring out what matrix to build and then it uses QuadMatrixBuilder
-  to create that matrix.
-
-  @todo: this class does not offer exception guarantees. It's just not
-  very workable without an RAII monomial handle, so add one of those
-  before fixing this. */
+/// Class for constructing an F4 matrix. This class is reponsible for
+/// figuring out what matrix to build and then it uses QuadMatrixBuilder
+/// to create that matrix.
+///
+/// @todo: this class does not offer exception guarantees. It's just not
+/// very workable without an RAII monomial handle, so add one of those
+/// before fixing this.
 class F4MatrixBuilder {
 private:
   typedef QuadMatrixBuilder::ColIndex ColIndex;

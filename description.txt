@@ -1,0 +1,1130 @@
+***** Installation
+
+gtest is downloaded automatically if it's not present. It's used for
+the unit tests. tbb is necessary for parallel computation, but
+MathicGB will compile in a serial mode if tbb is not found by
+./configure. pkg-config and autotools are required. mathic requires
+memtailor and mathicgb requires mathic and memtailor.
+
+If getting the source code from git, you need to do:
+
+./autogen.sh
+./configure
+make install
+
+Parallel builds with -jN are fully supported and safe.
+
+Setting memtailor, mathic and mathicgb up in multiple different
+configurations (release, debug, debug-without-asserts,
+release-with-asserts etc.) is a lot of effort. Instead, take this file:
+
+https://github.com/broune/mathicgb/blob/master/build/setup/make-Makefile.sh
+
+Then type
+
+  ./make-Makefile.sh > Makefile
+
+then do "make". It'll download memtailor, mathic and mathicgb and link
+them up with each other in multiple configurations. The configure
+directories will be subdirectories of each project. The installed
+files will go in a common installed/ directory.
+
+Project(high-effort, medium-difficulty): Make nice packages for
+memtailor, mathic and mathicgb for the various distributions and
+Cygwin. Failing that, upload a source or perhaps even binary tarball
+somewhere.
+
+Project(medium-effort, medium-difficulty): Make a nice website for
+mathic.
+
+***** C++ concepts to read up on and miscellaneous C++ stuff
+
+-RAII and why owning pointers are evil
+-rvalue references and move semantics
+-universal references/reference collapsing
+-Range-based for loops
+
+-const and r-value ref keeps temporary alive
+
+This is bad:
+
+  std::string& ref = string("uh oh!");
+  std::cout << ref;
+
+ref refers to a temporary object that disappears on the first line, so
+the second line might segfault. This is OK:
+
+  const std::string& ref = string("uh oh!");
+  std::cout << ref;
+
+That's because taking a const reference to a temporary object extends
+the lifespan of the temporary object to the lifespan of the reference,
+but that is only true for const references. This is also OK:
+
+  const std::string&& ref = string("uh oh!");
+  std::cout << ref;
+
+because an r-value reference, even if not const, also extends the
+lifespan of the temporary.
+
+-prefer references, whenever possible
+
+A reference is a pointer that must never be null or uninitialized and
+that will never change. Also, as a convention, a reference is never an
+owner of the object it refers to. If you have a pointer that satisfies
+those conditions, use a reference instead of a pointer. Partly because
+reference notation is a bit more convenient, but more importantly
+because using a reference documents those properties, and those are
+very important properties to make clear in code. Turns out most
+pointers can be references instead, so the benefit is
+significant. Don't worry about using a raw pointer if it does not meet
+those conditions.
+
+-don't call a method getFoo(), findFoo(), calculateFoo(),
+ pleaseComeBackToMeFoo() or anything like that, just call it foo()
+
+It's more succient, reads better and is just as clear. Do use setFoo
+or similar if you want to set a field.
+
+-if it can be const, make it const
+Bugs generally happen when something changes. const things cannot
+change. So there will be fewer bugs!
+
+-Do #includes from least general to most general
+This way you are more likely to spot missing include files in headers.
+
+-if you can use auto instead of typing out a type, use auto
+Bad: std::vector<std::pair<int, int>> pairs(std::begin(r), std::end(r))
+Good: auto pairs = rangeToVector(r)
+
+The ISSAC paper is this: http://arxiv.org/abs/1206.6940
+ABCD decomposition is described here: http://www-polsys.lip6.fr/~jcf/Papers/PASCO2010.pdf
+
+
+-The format of a X.cpp file
+// The std. copyright header from the other files. no names.
+#include "stdinc.h"
+#include "X.hpp"
+
+// other includes
+
+MATHICGB_NAMESPACE_BEGIN
+
+// code
+
+MATHICGB_NAMESPACE_END
+
+The purpose of the namespace macroes is to avoid having to indent
+everything by a level, which editors will otherwise want to do.
+
+-The format of a X.hpp file
+#ifndef MATHICGB_X_GUARD
+#define MATHICGB_X_GUARD
+
+// includes
+
+MATHICGB_NAMESPACE_BEGIN
+
+class X {
+  // ...
+};
+
+MATHICGB_NAMESPACE_END
+#endif
+
+-space
+
+No tabs. indentation is 2 space per level. { goes on the same line,
+unless the current line is indented and the next line is indented to
+the same level. In a parenthesized expression that does not fit on a line, the outer () is indented in the same way as {}. For example (imagine that these examples don't fit on a line):
+
+int Foo::bar(
+  int x,
+  int y
+) const {
+  // ...
+}
+
+int Foo::Foo(
+  int x,
+  int y,
+):
+  mX(x),
+  mY(y)
+{ // on own line since previous line is indented to same level
+  // foo
+}
+
+- names
+
+Macroes are ALL_UPPER_CASE and prefixed with
+MATHICGB_. CamelCaseIsTheThing otherwise. First letter of TypeNames is
+capitalized. First letter of functions and variables is lower
+case. Member variables are prefixed with an m, so mMyMemberVariable.
+
+- exceptions
+
+Exceptions are used to signal errors. Code should be exception safe at
+least to the extent of not crashing or leaking memory in the face of
+exceptions.
+
+
+
+
+***** Description of all files in MathicGB
+
+*** mathicgb/Atomic.hpp
+
+Offers a MathicGB alternative to std::atomic with some of the same
+interface. Use this class instead of std::atomic. It was necessary to
+use this class because the std::atomic implementations that shipped
+with GCC and MSVC were so slow that they were just completely
+unusable. This is supposed to be better in newer versions. When not on
+MSVC or GCC, Atomic is simply a thin wrapper on top of std::atomic.
+
+Atomic also has another use in that you can define
+MATHICGB_USE_FAKE_ATOMIC. Then Atomic does not actually implement
+atomic operations. This way, we can measure the overhead for atomicity
+and memory ordering by running on one thread, since the atomicity and
+memory ordering is not necessary for one thread.
+
+Project (medium-effort, easy-difficulty): Figure out if GCC and MSVC
+really do ship a usable-speed std::atomic now and, if so, which
+versions are good and which are bad. Then let Atomic be implemented in
+terms of std::atomic on those good versions while retaining the fast
+custom implementation for the bad versions. The main effort involved
+here is in getting access to all the different versions of GCC and
+MSVC. This project could also be done for Clang.
+
+
+*** mathicgb/Basis.hpp
+
+A container of Polynomials that does nothing fancy. There is really no
+reason for this class to exist - it should be replaced by
+std::vector<Poly>. The class uses std::unique_ptr<Poly>, but since
+Poly now has move semantics there is no reason for using unique_ptr
+here.
+
+Project: Remove class Basis and replace it with std::vector<Poly>.
+
+
+*** mathicgb/CFile.hpp .cpp
+
+A RAII handle for a C FILE*. The purpose of using the C IO interface
+instead of iostreams is that the former is faster to a ridiculous
+degree. This class wraps the C IO interface to be more useful in a C++
+context. For example the file is automatically closed in the
+destructor and if the file cannot be opened then an exception is
+thrown instead of returning a null pointer.
+
+Project (small-effort, easy-difficulty): Grep for FILE* and see if
+there's any place where an owning FILE* can be replaced by a CFile.
+
+
+*** mathicgb/ClassicGBAlg.hpp .cpp
+
+Calculates a classic Groebner basis using Buchberger's
+algorithm. MathicGB implements the classic Groebner basis algorithm
+for comparison and because sometimes that is the better
+algorithm. MathicGB's classic implementation is not as mature as the
+ones in Singular or Macaulay 2, but it can still be faster than those
+implementations in some cases because of the use of fast data
+structures from Mathic. The matrix-based reducer implementation (F4)
+also IS the classic Buchberger implementation, since the skeleton of
+those two algorithms is the same. The only difference is how many
+S-pairs are reudced at a time. ClassicGBAlg has a parameter that tells
+it at most how many S-pairs to reduce at a time. Choose 1 for classic
+computation and more than 1 for matrix-based reduction.
+
+Project (high-effort, high-difficulty): The heuristic used for the
+preferable way to bunch S-pairs together for the matrix-based
+reduction is to select all of the S-pairs in a given degree, up to the
+maximum number of S-pairs allowed by the parameter. This is exactly
+the right thing to do for homogeneous inputs. It it not at all a good
+idea for non-homogeneous inputs. The grading used is just the first
+grading/row in the monomial order, so even for homogeneous inputs this
+can be bad if the ordering used does not consider the true homogeneous
+degree before anything else. Make up a better way to bunch S-pairs
+together. For example sugar degree. There will need to be lots of
+experiments here.
+
+This class prints a lot of nice statistics about the computation
+process. This code is a good example of how to use
+mathic::ColumnPrinter for easy formatting. The statistics are
+collected individually from different classes instead of using the
+MathicGB logging system. For example a manual timer is used instead of
+a logging timer.
+
+Project (medium-effort, medium-difficulty): Change the statistics being
+reported to be collected via the MathicGB logging system. This may
+require expanding the capabilities of the logging system. You may also
+want to add additional interesting statistics gathering. You'll need
+to measure the difference between compile-time disabling all logs and
+then enabling them all at run-time (but not enabled for streaming
+output). The difference in time should preferably be < 5%. If that's
+not the case, you'll need to disable some of the logs by default at
+compile-time until it is the case.
+
+The Buchberger implementation always auto top reduces the basis. There
+is an option for whether or not to do auto tail reduction. This option
+is off by default because it is too slow. There are two reasons for
+this. First, the auto tail reduction is done one polynomial at a time,
+so it is not a good fit for the matrix-based reducers. Second, we need
+a better heuristic to select which polynomials are auto tail reduced
+when.
+
+Project (medium-effort, easy-difficulty): When using a matrix-based
+reducer (as indicated by a large requested S-pair group size), tail
+reduce many basis elements at the same time instead of one at a time.
+
+Project (medium-to-large-effort, mediumt-hard-difficulty): Figure out
+and implement a good heuristic that makes auto tail reduction a
+win. For example, it probably makes sense to auto tail reduce basis
+elements that are frequently used as reducers more often than basis
+elements that are almost never used as reducers.
+
+Project (medium-effort, medium-difficulty): Currently all the basis
+element are inserted into the intermediate basis right away. We might
+as well wait with inserting a polynomial if it will not participate in
+any reduction or S-pair for a long time yet. This is especially so for
+homogeneous inputs, where there is no reason to insert a basis element
+in degree x until the computation gets to degree x. If we also wait
+with reducing these input basis elements until they finally get
+inserted, then that would, for homogeneous computations, furthermore
+ensure that all polynomials are both top and tail reduced all the time
+without re-reductions.
+
+*** mathicgb/F4MatrixBuilder.hpp .cpp
+*** mathicgb/F4MatrixBuilder2.hpp .cpp
+
+These classes are used by F4Reducer to construct the matrix used in
+F4. The code is parallel. This is an important piece of code because
+matrix construction can be a large part of the running time of
+matrix-based reduction. There are lots of ways of improving the
+reduction code and if all of those ideas are realized, then it might
+turn out that matrix construction will end up being the dominant use
+of time for F4!
+
+F4MatrixBuilder is the first version that does left/right and
+top/bottom splitting right away as the matrix is
+constructed. F4MatrixBuilder2 postpones that split until after the
+matrix has been constructed. The advantage of F4MatrixBuilder is that
+it does not require a second splitting step, which enables it to run
+faster. However, without a second step there is then no way to sort
+the rows of the matrix within the top and bottom parts, so they appear
+all over the place in memory. This makes the cache performance of the
+subsequent reduction worse, so that actually F4MatrixBuilder causes a
+slower total computation time than F4MatrixBuilder2 even though
+F4MatrixBuilder2 takes more time to construct the matrix.
+
+The interface for the two classes is the same. First the user
+describes the required matrix and then that matrix is constructed.
+
+Parallelism is achieved here by having each core work on separate rows
+of the matrix. The main point of synchronization between the cores is
+that they need to agree on which monomial has which column index. This
+is achieved via a lockless-for-readers hash table, implemented using
+std::atomic (well, actually mgb::Atomic, but it's the same thing). To
+understand the parallelism here you will need to understand how
+lockless algorithms work and the interface of std::atomic, which is
+going to be a significant effort to learn. The outcome of this way of
+doing it is that look-ups in the hash table are no slower on x86 than
+they would be in a serial program - it's the same CPU instructions
+being run (there might be a slight slowdown if contending for a cache
+line with a writer, but that's very rare). Writers do need to hold a
+lock for insertion, but since look-ups are much more frequent than
+column insertions, this is not so bad.
+
+TBB (Intel Thread Building blocks) is used to keep track of the work
+items to do so that cores can do work-stealing without much overhead.
+
+Project (medium-difficulty, medium-effort): An advantage of
+F4MatrixBuilder2's approach is that we can output the matrix and get a
+raw matrix that is not processed in any way. This matrix can then be
+used as input to other F4 projects to compare the speed of
+implementations. The project is to make this happen - write the output
+code and benchmark other projects on those matrices. This is already
+somewhat done, in that MathicGB can input and output matrices, but
+this is only done for the F4MatrixBuilder where the matrix is already
+split into ABCD parts.
+
+Project (medium-difficulty, high-effort): Determine if any other
+project's matrix construction code is competitive with MathicGB. I do
+not think that this is the case, but it could be - I haven't
+measured. Quantify how much better/worse MathicGB is for matrix
+construction and determine the reasons for the difference. If there is
+something else competitive, either improve MathicGB using those ideas
+or build that other project as a library and make MathicGB able to use
+that other project's code for matrix construction.
+
+Project (possibly-impossible, unknown-effort): Significantly simplify
+the matrix construction code without making it slower or reducing its
+capabilities.
+
+Project (medium-difficulty, medium-effort): Count the number of
+lookups versus the number of insertions in the hash table to verify
+and quantify the claim made above. The purpose of this is to find out
+the number of cores where contention for the insertion lock becomes
+significant. The challenge here is that you need to do this in
+parallel. You also need to ensure either that this does not slow down
+the program to any measurable degree (<0.1%) or that this logging
+defaults to off (at compile-time or run-time, whichever is required to
+recover good performance).
+
+Project (medium-difficulty, medium-effort): Optimize the insertion
+code. See if you can reduce the amount of time where the insertion
+lock is held. If you determine that there is contention for the
+insertion lock and this really is a problem, consider using several
+insertion locks, for example 10 locks, one for each hash-value/bucket-index
+modulo 10.
+
+Project (medium-difficulty, low-effort): Make F4MatrixBuilder offer
+exception guarantees. At least it should not leak memory on
+exceptions. I think F4MatrixBuilder2 might need this too.
+
+Project: Rename these 2 classes to something more descriptive.
+
+Project (possibly-impossible, high-effort): Make F4MatrixBuilder2
+construct its matrix faster than F4MatrixBuilder does. Then remove
+F4MatrixBuilder.
+
+Project (possibly-impossible, high-effort): Most of the time in
+construction a matrix goes into looking a monomial up to find the
+corresponding column index. Find a way to improve the code for this so
+that it goes faster both serial and in parallel (that is, do not slow
+down one to improve the other).
+
+Project (high-effort, high-difficulty): There is no limit on how much
+memory might be required to store the constructed matrix. Find a way
+to construct it in pieces so that the memory use can be bounded. This
+should not impact performance for matrices that fit within the
+required memory and it should not slow down computations for large
+matrices too much.
+
+Project (high-effort, high-difficulty): Matrix construction speed does
+not scale perfectly with the number of cores. Determine the reason(s)
+for this and fix them to get perfect scaling up to, say, 10 cores.
+
+*** mathicgb/F4MatrixProjection.hpp .cpp
+
+This class is used by F4MatrixBuilder2 for the second step where the
+matrix is split into parts ABCD. F4MatrixProjection is fed all of the
+sub-matrices built by the parallel cores in the construction step and
+it is told what all the columns are and which ones are left and which
+ones are right. Then it builds a QuadMatrix, which is the 4 matrices
+A,B,C,D.
+
+The first thing done is to figure out the necessary permutation of
+rows. Note that it is really up to this class itself to choose which
+rows are top/bottom, since that does not change the row echelon form
+of the matrix. The only restriction is that a row with no entrie on
+the left must be on the bottom and that every left column must have
+exactly one top row with the leading non-zero entry in that row. The
+row permutation constructed tries to choose the sparsest rows that it
+can as the top rows, since those are going to be used multiple times
+for reduction.
+
+After the row permutation has been constructed, it is just a question
+of going through every row in the order that the permutation dictates
+and split it into the left/right sub-matrices.
+
+This process has a disadvantage in that it is necessary to copy the
+matrix and this doubles memory use. We cannot free the rows that have
+already been copied because the memory for rows is allocated in blocks
+and we cannot free a block until all rows in that block are copied -
+and the rows are being copied in some arbitrary order depending on the
+row permutation. Doubling memory here is bad because the memory
+required to store the matrix can dwarf the memory otherwise used the
+Buchberger's algorithm, which is already a lot of memory.
+
+Project (medium-effort, high-difficulty): Find a way to apply the row
+permutation and left/right splitting without doubling memory use. This
+might be achieved by copying several times. The difficulty is in
+finding a way to do this that inflates memory use only a little
+(instead of doubling it) while also getting excellent performance. One
+idea would be to use a harddisk for temporary storage. If the whole
+thing cannot be done quickly, it might make sense only to use this
+technique if memory would have been exhuasted by doubling the memory
+use - in that case any amount of slow-down is worth it, since
+otherwise the computation cannot proceed (at least not without using
+virtual memory, which is going to be quite slow most likely).
+
+Project (high-effort, high-difficulty): The left/right and top/bottom
+split is not parallel. Make it parallel. The obvious way to do this is
+to construct the rows of the output matrices in blocks and to have
+each thread do its own block. The easiest way is to do A,B,C,D in
+parallel, but this parallelim can be done also on sub-matrices of
+A,B,C,D.
+
+Project (high-effort, high-difficulty): For best speed on matrix
+reduction, we do not just want to split into left/right and
+top/bottom, we want to split the whole matrix into blocks of a
+cache-appropriate size. This will require a redesign of how the
+program handles these submatrices.
+
+Project (high-effort, high-difficulty): There is also a difficult
+question of how to sub-divide into cache-appropriate blocks on sparse
+matrices, since sub-matrices in a sparse matrix will vary widely in
+memory size, so a regular grid of sub-matrices might not be optimal -
+some sub-matrices might need to be bigger than others in order to get
+each sub-matrix to take up about the same amount of memory. The
+literature might have something to say about this.
+
+*** mathicgb/F4MatrixReducer.hpp .cpp
+
+This is where the reduction of the matrices happens. For the reduction
+of the left part of the matrix, each bottom row is reduced in
+parallel. An active row is copied into a dense format and then the
+sparse top rows are used to reduce it. This is good because the linear
+algebra of applying a sparse reducer to a dense reducee can be
+implemented well on a computer.
+
+Using delayed modulus is an important optimization here.
+
+After this we still need to interreduce the rows of the bottom right
+part of the matrix, which can take a significant amount of time. This
+is done by choosing a subset of rows with new pivots and reducing the
+other rows with respect to these rows, which can be done in
+parallel. This is repeated until all rows become pivot rows or zero
+rows. Part of the problem here is that selecting the set of pivot rows
+introduces synchronization points so that there might be a lot of
+waiting for the last core to finish. Since reducee's need to be
+converted into dense format and then back, there is either a very high
+memory consumption (for keeping everything dense, which is the way
+it's done now) or there is a lot of overhead for converting between
+dense and sparse formats.
+
+Schrawan made a non-parallel implementation that has only 1 active row
+at a time, so there is no explosion in memory use when a very sparse
+lower right matrix needs to be reduced. The skeleton of the algorithm
+used for that implementation is also what I'd recommend for a future
+parallel implementation using atomics.
+
+Project (high-difficulty, medium effort): Schrawan finished his code,
+but he never got it into MathicGB. Get him to put it into MathicGB.
+
+Project (high-difficulty, medium-effort): Implement a parallel reduction
+without synchronization points using atomics. Cores would be competing
+for who gets to have a pivot in a given column and they would keep
+going until their active row is either reduced to zero or it becomes a
+pivot.
+
+Project (high-difficulty, high-effort): Scour the literature to find a
+good parallel algorithm. Implement it. See if it is better. Possibly
+use different algorithms depending on the sparsity of the matrix. Some
+lower right matrices are very dense and some are very sparse.
+
+Project (high-difficulty, high-effort): Use vector intrinsics (SSE and
+it's like) to speed up the matrix reduction.
+
+Project (high-difficulty, high-effort): Use GPU's to speed up the
+matrix reduction.
+
+*** mathicgb/F4ProtoMatrix.hpp .cpp
+
+This class is used by F4MAtrixBuilder2 to store the sub-matrices
+constructed by each core during the initial matrix construction
+step. Memory is stored in large std::vector's.
+
+There is a slight special thing about storing the coefficients. If a
+row in the matrix is m*f for m a monomial and f a basis element, then
+there is no reason to store the coefficients, since the coefficients
+will be just the same as the coefficients of f. We can instead just
+refer to f. If a row is mf-ng, on the other hand, then we do need to
+store the coefficients. F4ProtoMatrix keeps track of this, so that
+some rows have their coefficients stored as a reference to a
+polynomial and other rows have their coefficients stored explicitly
+within the F4ProtoMatrix itself.
+
+Project (medium-difficulty, medium-effort): See if it wouldn't be
+faster to store the sub-matrices in blocks of memory instead of in
+std::vector. push_back on std::vector is O(1), but the constant is
+greater than for allocating reasonably sized blocks and using
+those. There is a tricky special case if a very large row uses more
+memory than the block size. This would decrease memory use, too.
+
+*** mathicgb/F4Reducer.hpp .cpp
+
+This class exposes the matrix-based reduction functionality as a
+sub-class of Reducer. So the rest of the code can use F4 without
+knowing much about it.
+
+F4Reducer can write out matrices, but only after splitting into
+left/right and top/bottom.
+
+Project (low-effort, low-difficulty): A lot of the logging here is
+done using tracingLevel. Move that logging to use the MathicGB logging
+system.
+
+*** mathicgb/FixedSizeMonomialMap.h
+
+This is a parallel atomic-based hash table that maps monomials to a
+template type T, generally an integer. The hash table is chained
+because it needs to refer to monomials anyway which requires a
+pointer, so there is no reason not to use chaining. The next pointer
+in the chain and the value is stored right next to the monomial in
+memory. The hash table is fixed size in that it cannot rehash or
+change the number of buckets. The hash table cannot change it's size
+because of the nature of the paralellism used - there is no way to
+force all the cores to be aware of the new rehashed hash
+table. MathicGB never the less does achieve rehashing, just not
+directly within a single FixedSizeMonomialMap - see MonomialMap.
+
+A lot of effort went into making the following operation as fast as
+possible:
+
+  findProduct(a,b): return the value of the entry corresponding to a*b.
+
+where a,b are monomials. That's because that is where most of the time
+for matrix construction goes. It still goes there despite significant
+gains in speeding this up.
+
+Project (high-effort, high-difficulty): Find a way to significantly
+speed up the findProduct operation. Perhaps SSE can help, or some kind
+of cache prefetch instructions. Or a change to memory layout. I'm not
+sure how.
+
+Project (low-effort, low-difficulty): This file is for some reason
+called .h instead of .hpp. Fix that.
+
+*** mathicgb/io-util.hpp .cpp
+
+This file collects a lot of IO and toString related
+functionality. This functionality has been superseded by the MathicIO
+class.
+
+Project (medium-effort, low-difficulty): Migrate the remaining uses of
+io-util over to use MathicIO and then remove io-util.
+
+*** KoszulQueue.hpp 
+
+Used to keep track of pending Koszul syzygy signatures in the
+signature basis (SB) algorithm. SB keeps a priority queue (ordered
+queue) of certain Koszul signatures that are greater than the current
+signature -- see the SB paper.
+
+*** LogDomain.hpp .cpp
+*** LogDomainSet.hpp .cpp
+
+These files form the MathicGB logging system. A LogDomain is a named
+area of logging that can be turned on or off at runtime and at compile
+time.
+
+A logger that is turned off at compile time emits no code into the
+executable and all the code that writes to that logger is also removed
+by the optimizer if it is written in the correct way. Use the logging
+macroes to ensure proper use so that compile-time disabled LogDomains
+properly have zero overhead. LogDomains can be turned on and off at
+compile time and at runtime individually.
+
+Here logging means both outputting messages to the screen right away
+and collecting statistics for showing later summary information about
+the computation. See these files for further details.
+
+Compile-time enabled loggers automatically register themselves at
+start-up with LogDomainSet::singleton(). LogDomainSet is a singleton
+that keeps track of all the logging domains.
+
+Project (low-effort, medium-difficulty): support turning all loggers
+off globally at compile time with a macro, regardless of their
+individual compile-time on/off setting. This would allow a certain way
+to measure the overhead of the logging.
+
+Project (high-effort, medium-difficulty): replace all logging based on
+trace-level or adhoc-counters with use of the MathicGB logging system.
+
+*** mathicgb.h
+
+This is the entire library interface of MathicGB. It's full of
+documentation, so go read the file if you want to know how the library
+interface works.
+
+This is the only file that's supposed to be called .h instead of .hpp,
+since it is included from the outside and .h is the customary header
+even for C++ headers.
+
+Project(medium-effort, medium-difficulty): Expand the library
+interface to expose the ability to compute signature bases. Both as in
+getting a signature basis output and as in using a signature basis
+algorithm to compute a classic Groebner basis.
+
+*** MathicIO.hpp
+
+This file collects all IO-related functionality for MathicGB
+objects. This is reasonable since most of the IO-relevant classes are
+composites whose IO requires IO of its pieces. So putting it together
+lowers compile time and avoids cluttering up all the various classes
+with IO code.
+
+Project (medium-effort, low-difficulty): The input and output code is
+completely separate, so it's silly to put it on the same
+class. Separate this class input MathicInput and MathicOutput. That
+would allow each class to keep a bit of state - the file or
+ostream/istream that is being written to/read from. The state of
+MathicInput would be a Scanner. The state of MathicOutput would be at
+first an ostream. However, std::ostream is extremely slow, so you'd
+probably want to migrate that to a FILE*. To be more fancy, you could
+keep a largish buffer and then allow output of that buffer to either
+an ostream or a FILE*. Both FILE* and ostream has per-operation
+overhead, so this will likely be the fastest approach anyway - and it
+mirrows what Scanner does.
+
+*** mathicgb/ModuleMonoSet.hpp .cpp
+
+Allows operations on the ideal generated by a set of module
+monomials. Currently used for signatures. This is a virtual interface
+with several implementations based on different mathic data
+structures. The templates are instantiated in the .cpp file to hide
+them from the rest of the code. The implementations are based on
+StaticMonoLookup.
+
+*** mathicgb/MonoLookup.hpp .cpp
+
+Supports queries on the lead terms of the monomials in a PolyBasis or
+a SigPolyBasis. This is a virtual interface that is implemented in the
+.cpp file using templates based on several different mathic data
+structures. The implementations are based on StaticMonoLookup.
+
+Project (medium-difficulty, medium-effort): It's a mess mixing classic
+GB functionality, signature functionality and general monomial lookup
+functionaliy like this. Is there a good way to disentangle these things?
+
+*** mathicgb/MonomialMap.hpp
+
+A concurrent/parallel wrapper around FixedSizeMonomialMap. If the
+current FixedsizeMonomialMap gets too full, a new one is created and
+the nodes from that one are cannibalized into the new one, but the old
+table is still kept around. This way a core that is still using the
+old table will not get memory errors, that core just might fail to see
+a monomial that is supposed to be there. The matrix construction code
+is written so that not finding a monomial causes synchronization
+followed by a second look-up. That second look-up will identify the
+most recent hash table and use that for the lookup, so rehashing can
+be done safely and quickly in this way. The only real penalty is that
+all the old hash tables have to be kept around, but this is not much
+memory.
+
+*** MonoMonoid
+
+This class implements monomials and ordering on (monic) monomials. It
+is quite complicated but the interface is nice so all the complexity
+is hidden from the rest of the program. The nasty stuff is handled
+once here and then no where else. The interface is supposed to make it
+impossible to create a mal-formed monomial, at least unless you do a
+cast or refer to deallocated memory.
+
+The eventual idea is to make everything a template on this class so
+that the monomial representation can be radically changed at run-time
+to suit a given computation with no overhead. So no other part of the
+program should have any knowledge of how monoids are represented,
+which is already almost (maybe even fully?) the case.
+
+The memory layout of a monomial depends on template parameteres to
+MonoMonoid as well as on the number of variables, the monomial
+ordering being used and the module monomial ordering being used.
+
+It would take a long time to explain the whole thing and it is all
+already documented well in the file, so go there for the details.
+
+Chances to this class should be done with care, in part because it's
+very easy to introduce bugs and in part because the code is carefully
+written and almost all of it is performance critical - any change is
+quite likely to make the program slower, so run lots of benchmarks
+after changing something.
+
+Project(high-effort, high-difficulty): Make everything that interacts
+with monomials a template on the Monoid. This has already been
+started, by giving each class a typedef for Monoid - in future, this
+will become the template parameter. The trick is to use virtual
+interfaces to avoid the problem LELA has where any change to any part
+of the program (almost) requires the whole program to be re-compiled.
+
+Project(high-effort, high-difficulty): Implement an alternative Monoid
+that uses SSE instructions for fast monomial operations. The tricky
+part here will be memory alignment and choosing the right
+representation in memory. Then try that monoid out in benchmarks and
+get a speed-up for inputs that cause a lot of monomial computations.
+
+Project(high-effort, high-difficulty): Implement an alternative monoid
+that is specialized for 0-1 exponents in the presence of the equations
+x^2=x, so that each exponent only requires 1 bit. Document a nice
+speed-up on inputs with 0-1 exponents.
+
+Project(high-effort, high-difficulty): Make monoids that differ only
+in their template boolean parameters (StoreHash, etc.) share part of
+the same state (in particular, the ordering matrix), since it is the
+same anyway. The trick is to do this without impacting performance
+negatively.
+
+Project(high-effort, high-difficulty): Implement an alternative monoid
+that uses a sparse representation so that only non-zero exponents are
+stored. Document a nice speed-up on inputs where most exponents are
+zero. The challenge here is that the monomials are no longer all the
+same size. I've attempted to write the rest of the program without an
+assumption of same-size monomials. The main problem will be
+MonoPool. You'll want to eliminate as many uses of that as possible
+(I've tried not to use it for new code) and then perhaps just eat the
+waste of memory for the remaining few uses.
+
+Project(high-effort, high-difficulty): Implement an alternative monoid
+that is optimized for toric/lattice ideals. These are binomial
+saturated ideals where x^a-x^b can be represented with the single
+vector a-b.
+
+*** mathicgb/MonoOrder.hpp
+
+Class used to describe an monomial order and/or a module monomial
+order. Use this class to construct a monoid. The monoid does the
+actual comparisons. Monomials must be preprocessed by MonoProcessor -
+otherwise the ordering may not be correct. MonoProcessor also offers
+additional parameters for making orders.
+
+*** mathicgb/MonoProcessor.hpp
+
+Does pre- and post-processing of monomials to implement module
+monomial orders not directly supported by the monoid. This is the case
+for Schreyer orderings and for changing the direction of which
+component e_i is greater. You need to use this class if you are doing
+input or output of modlule monomials, since the external world will
+not know or understand the transformations used to achieve these
+orderings.
+
+*** mathicgb/mtbb.hpp
+
+A compatibility layer for tbb. tbb is intel thread building blocks and
+it's a good library for implementing parallel algorithms. If we are
+compiling with tbb present, then the classes in the mtbb namespace
+will simply be the same classes as in tbb (typedefs). However, if we
+are compiling without tbb (so without parallelism), then these classes
+will be trivial non-parallel implementations that allows MathicGB to
+work without tbb being present. TBB doesn't work on Cygwin, so that is
+at least one good reason to have this compatibility layer. This only
+works if all uses of tbb go through the mtbb namespace, so make sure
+to do that.
+
+Project (high-effort, high-difficulty): get TBB to work on Cygwin and
+submit a TBB-Cygwin package to Cygwin.
+
+*** mathicgb/NonCopyable.hpp
+
+Derive from NonCopyable to disable the compiler-generated copy
+constructor and assignment. In C++11 this can be done with deleted
+methods, but support for that is not universal, so use this instead.
+
+*** mathicgb/Poly.hpp
+
+Poly stores a polynomial. This was originally a large and somewhat
+complicated class, but not so much any more since PrimeField and
+MonoMonoid now offer encapsulation for everything having to do with
+how coefficients and monomials are to be handled.
+
+
+*** mathicgb/PolyBasis.hpp
+
+Stores a basis of polynomials. Designed for use in Groebner basis
+algorithms - PolyBasis offers functionality like finding a good
+reducer for a monomial.
+
+
+*** mathicgb/PolyHashTable.hpp
+
+A hash table that maps monomials to coefficients. Used in classic
+polynomial reducers. The implementation is very similar to MonomialMap
+except that this hash table is not designed for concurrent use.
+
+*** mathicgb/PolyRing.hpp
+
+Represents a polynomial ring. Deals with terms - a monomial with a
+coefficient. It used to be that this class handled everything to do
+with coefficients and monomials so it has a very large interface
+related to all that because some of the code still uses that old
+interface. It is supposed now to be just the combination of a field
+and a monoid, eventually it would become a template on those two.
+
+In future Poly might become a sub-class on PolyRing, just like Mono is
+a sub-class of MonoMonoid. I'm not sure if it is a good idea.
+
+Project (high effort, medium difficulty): Get rid of all the remaining
+code that uses the coefficient and monomial interface of PolyRing and
+migrate those to use MonoMonoid and PrimeField. Then clean up the
+PolyRing header to remove all that stuff that is then no longer
+needed. This would involve moving code to use NewConstTerm and then
+please rename that to just ConstTerm and make it a typedef on PolyRing
+that everything uses.
+
+
+*** mathicgb/PrimeField.hpp
+
+Implements modular arithmetic. Is to coefficients what MonoMonoid is
+to monomials. Ideally, it would be possible to swap in a different
+coefficient field just by implementing an alternative to
+PrimeField. For example computations over Z or Q or something more
+complicated would then be possible. This is a more far-off feature and
+the code base is much less prepared for this than it is for
+alternative monoids.
+
+Project (high-effort, low-difficulty): A lot of code still uses the
+PolyRing interface for coefficients. Move that code to use PrimeField
+and then remove the implicit conversions between PrimeField::Element
+and the underlying coefficient type. The idea here is that it should
+be impossible to use coefficients incorrectly by mistake. For example
+it is very easy to just add two coefficient using + by mistake, which
+is bad because then you do not get the modulus and you might get an
+overflow.
+
+
+*** mathicgb/QuadMatrix.hpp .cpp
+
+A struct that stores 4 matrices, top/left and bottom/right, and
+left/right column monomials that describe what monomial corresponds to
+each column. There is also some functionality, such as printing
+statistics about the matrices and doing IO of the matrices.
+
+This class is a mess. It's written like a pure data struct just
+keeping a few fields but it has extra functionality. It keeps lists of
+column monomials and a monoid even though it is used in places where
+there is no monoid.
+
+Project(low-difficulty, medium-effort): Encapsulate the 4 matrices
+instead of having them be public fields. Then move the vectors of
+column monomials and the PolyRing reference to a separate class so
+that a QuadMatrix can be used in contexts where there are no monomials
+- such as when reading a matrix from disk. Also move the IO to MathicIO.
+
+*** mathicgb/QuadMatrixBuilder.hpp
+
+Used by F4MatrixBuilder to do the splitting into left/right and
+top/bottom during matrix construction.
+
+
+*** mathicgb/Range.hpp
+
+Introduces basic support for the range concept. A range is,
+conceptually, what you get when you have a begin and an end
+pointer. Combining these together into one thing allows a more
+convenient coding style and this header makes that easy. This also
+combines very well with the C++11 range for construct, which allows
+iteration through a range object. I'll refer to the documentation in
+the file to explain in more detail what this is all about.
+
+Project(high-difficulty, high-effort): Get on the C++ standard
+committee working group for ranges and get them to put better support
+for ranges into the standard library as quickly as possible!
+
+*** mathicgb/Reducer.hpp .cpp
+
+This is a virtual interface that encapsulates polynomial reduction. It
+allows the rest of the code to use any of many different
+reduction implementations without having to know about the details.
+
+*** mathicgb/ReducerDedup.hpp .cpp
+*** mathicgb/ReducerHash.hpp .cpp
+*** mathicgb/ReducerHashPack.hpp .cpp
+*** mathicgb/ReducerHelper.hpp .cpp
+*** mathicgb/ReducerNoDedup.hpp .cpp
+*** mathicgb/ReducerNoDedup.hpp .cpp
+*** mathicgb/ReducerPack.hpp .cpp
+*** mathicgb/ReducerPackDedup .cpp
+
+These implement various ways of doing classic polynomial
+reduction. They register themselves with Reducer using a global
+object, so if you change one of these files, only that single file
+will be recompiled. The same is true of F4Reducer.
+
+Project(high-difficulty, high-effort): Improve these reducers. The
+fastest one is ReducerHash. Make it faster! :)
+
+*** mathicgb/Scanner.hpp .cpp
+
+A class that is very convenient for parsing input, much more so than
+std::istream. It is also much faster than using std::istream or FILE*
+directly. It can accept (buffered) input from either a std::istream or
+a FILE*. All text input should go through a Scanner and for a given
+input it should all go through the same scanner since the scanner
+keeps track of the line number for better error messages - that only
+works if no part of the input is read fro outside of the scanner.
+ 
+*** mathicgb/ScopeExit.hpp
+
+Implements a scope guard. Very convenient for ad-hoc RAII
+needs. Naming the scope guard is optional.
+
+Example:
+  FILE* file = fopen("file.txt", "r");
+  MATHICGB_SCOPE_EXIT() {
+    fclose(file);
+    std::cout << "file closed";
+  };
+  // ...
+  return; // the file is closed
+
+Example:
+  v.push_back(5);
+  MATHICGB_SCOPE_EXIT(name) {v.pop_back();};
+  // ...
+  if (error)
+    return; // the pop_back is done
+  name.dismiss();
+  return; // the pop_back is not done
+
+
+*** mathicgb/SignatureGB.hpp
+
+Implements the SB algorithm.
+
+Project(medium-effort, low-difficulty): Wait with inserting the input
+basis elements into the basis until their signature becomes <= the
+currrent signature. Then regular reduce them at that point. This
+ensures that the basis is auto reduced at all times without doing any
+auto reduction - otherwise it isn't. This actually might even be a
+correctness issue!
+
+Project(high-effort, high-difficulty): Combine SB with matrix-based
+reduction.
+
+Project(high-effort, medium-difficulty): Migrate all the code here
+from using ad-hoc statistics and logging to using the MathicGB logging
+system.
+
+Project(high-effort, high-difficulty): Implement better support for
+incremental module orderings ("module lex" or "component first"),
+especially in the case where we only want a Groebner basis and not a
+signature Groebner basis. Between incremental steps, it would be
+possible to reduce to a Groebner basis and possibly to dehomogenize
+and re-homogenize.
+
+*** mathicgb/SigPolyBasis.hpp .cpp
+
+Stores a basis of polynomials that each have a signature. Designed for
+use in signature Groebner basis algorithms.
+
+*** mathicgb/SigSPairQueue.hpp .cpp
+
+A priority queue on S-pairs where the priority is based on a signature
+as in signature Grobner basis algorithms. The class is not responsible
+for eliminating S-pairs or doing anything beyond order the S-pairs.
+
+*** mathicgb/SigSPairs.hpp .cpp
+
+Handles S-pairs in signature Grobner basis algorithms. Responsible for
+eliminating S-pairs, storing S-pairs and ordering S-pairs. See ISSAC
+paper.
+
+*** mathicgb/SPairs.hpp .cpp
+
+Stores the set of pending S-pairs for use in the classic Buchberger
+algorithm. Also eliminates useless S-pairs and orders the
+S-pairs. Uses a mostly unpublished S-pair elimination criterion based
+on minimum spanning trees in a certain graph. Should be better than
+Gebaeur-Moeller. See description at end of online appendix to ISSAC
+paper.
+
+*** mathicgb/SparseMatrix.hpp
+
+Stores a matrix in sparse format. Column indices are stored separately
+from scalars. Column indices and scalars are stored in large blocks of
+memory and a matrix is a sequence of such blocks. The row metadata
+(where is the scalars and indices for this row?) is stored in a single
+std::vector. It was a significant speed-up when I moved to this block
+structure from the previous design which stored scalars in one huge
+std::vector and indices in another huge std::vector. This is the
+default class used to store matrices. For example a QuadMatrix
+consists of 4 SparseMatrices.
+
+*** mathicgb/StaticMonoMap.hpp
+
+A template class for implementating many monomial look-up data
+structure operations. Based on mathic data structures and which one
+you want is a template parameter. Used as the underlying
+implementation for most (all?) of the monomial look data structures in
+MathicGB.
+
+*** mathicgb/stdinc.h
+
+This file is the first file included by all .cpp files in
+MathicGB. Therefore everything in it is available everywhere. This
+file contains a lot of macroes and some typedefs that should be
+available everywhere.
+
+Project(medium-effort, low-difficulty): This file should be named
+stdinc.hpp, not stdinc.h. Rename it.
+
+Project(medium-effort, low-difficulty): Pre-compiled headers should
+speed up compilation of MathicGB tremendously. Especially putting
+memtailor and mathic in a precompiled header should help. Set up
+support for this in MSVC and GCC. Half the work is already done since
+stdinc.h can be the precompiled header - it's already included as the
+first thing everywhere.
+
+*** mathicgb/TypicalReducer.hpp .cpp
+
+All the non-F4 reducers use the same classic polynomial reduction
+high-level algorithm. This class implements that high-level algorithm
+and then a sub-class can specialize the detailed steps, thus sharing a
+lot of code between the various reducer.
+
+*** Unchar.hpp 
+
+std::ostream and std::istream handle characters differently from other
+integers. That is not desired when using char as an integer. Use
+Unchar and unchar() to cast chars to a different type (short) that get
+handled as other integers do.
+
+
+*** test/*
+
+These are unit tests.
+
+*** cli/*
+
+This is for the command line interface.
+
+Project (low-effort, low-difficulty): Emit a better and more helpful
+message when running mgb with no parameteres. At a minimum, point
+people to the help action.
+
+***** Other projects
+
+Project (medium-effort, medium-difficulty): The leading terms of
+monomials in the basis are not placed together in memory. Placing them
+together in memory might improve cache performance for monomial
+queries.
+
+Project (high-effort, low-difficulty): A lot of places 0 is used to
+indicate the null pointer. Replace all of those zeroes by the proper
+C++11 keyword: nullptr.
+
+Project (medium-effort, medium-difficulty): The F4 implementation
+checks overflow of exponents (using the ample concept from
+MonoMonoid). The reduceres do not. Fix that. What is the performance
+impact?
+
+Project (medium-effort, high-difficulty): The tournament trees in
+mathic are non-intrusive. An intrusive tournament tree should be
+faster. Try one of those.
+
+Project (high-effort, low-difficulty): In some places in MathicGB and
+in lots of places in memtailor and mathic, methods are named
+getFoo(). Change that to just foo(). Also, mathic and memtailor use _
+as a prefix to indicate a member variable. That's a terrible idea,
+since the standard reserves names starting with an underscore to be
+used only by the implementation. (well, strictly speaking the prefixes __ and _ followed by an upper case letter, but still).
+
+Project (medium-effort, medium-difficulty): There are MSVC project
+files in git. I haven't tested them on other computers. Get them to
+work in Visual Studio Express and document how to get them connected
+with tbb.
+
+Project (medium-effort, medium-difficulty): memtailor, mathic and
+mathicgb download and compile gtest automatically if gtest is not
+found on the system. mathicgb should do the same thing with memtailor
+and mathic. That would ease installation greatly.
+
+Project (medium-effort, medium-difficulty): There are a lot of
+comments using /// all over, which indicates to doxygen that this is a
+comment that should be included as part of the documentation. However,
+there is not a doxygen makefile target! Make one.
+
+Project (medium-effort, medium-difficulty): The library interface
+should have an option to get a fully auto-reduced (including
+tail-reduced) Groebner basis at the end.

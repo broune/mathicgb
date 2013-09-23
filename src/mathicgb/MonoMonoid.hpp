@@ -1336,6 +1336,7 @@ public:
     MonoRef(const MonoRef& mono): mMono(mono.ptr()) {}
 
     MonoPtr ptr() const {return mMono;}
+    MonoPtr operator&() const {return ptr();}
 
     /// @todo: Get rid of this as soon as all code has been migrated
     /// to observe the ptr/ref distinction. Kill it with fire!
@@ -1362,6 +1363,7 @@ public:
     }
 
     ConstMonoPtr ptr() const {return mMono;}
+    ConstMonoPtr operator&() const {return ptr();}
 
     /// @todo: Get rid of this as soon as all code has been migrated
     /// to observe the ptr/ref distinction. Kill it with fire!
