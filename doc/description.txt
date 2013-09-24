@@ -1,0 +1,2310 @@
+Since I'm going into industry I won't be able to continue to do much
+development on MathicGB. I have hope that the torch will be picked up
+and in this document I am writing about my thoughts and knowledge of
+the system. I also make suggestions about projects that would improve
+MathicGB and I indicate for each how much effort I think it will be
+and how difficult I think it will be - these estimates are not
+guaranteed to be accurate. This is all current as of September 24,
+2013.
+
+  -- Bjarke Hammersholt Roune
+
+
+***** Installation for unix systems and Cygwin
+
+gtest is downloaded automatically if it's not present (the download
+requires wget). It's used for the unit tests. tbb is necessary for
+parallel computation, but MathicGB will compile in a serial mode if
+tbb is not found by ./configure. pkg-config and autotools are
+required. mathic requires memtailor and mathicgb requires mathic and
+memtailor.
+
+If getting the source code from git, you need to do:
+
+./autogen.sh
+./configure
+make install
+
+Parallel builds with -jN are fully supported and safe.
+
+Setting memtailor, mathic and mathicgb up in multiple different
+configurations (release, debug, debug-without-asserts,
+release-with-asserts etc.) is a lot of effort. Instead, take this file:
+
+https://github.com/broune/mathicgb/blob/master/build/setup/make-Makefile.sh
+
+Then type
+
+  ./make-Makefile.sh > Makefile
+
+then do "make". It'll download memtailor, mathic and mathicgb and link
+them up with each other in multiple configurations. The configure
+directories will be subdirectories of each project. The installed
+files will go in a common installed/ directory.
+
+Project(high-effort, medium-difficulty): Make nice packages for
+memtailor, mathic and mathicgb for the various distributions and
+Cygwin. Failing that, upload a source or perhaps even binary tarball
+somewhere.
+
+Project(medium-effort, medium-difficulty): Make a nice website for
+mathic.
+
+Project (medium-effort, low-difficulty): Set up a trac for MathicGB.
+
+***** Installation for Visual Studio
+
+There are Visual Studio 2013 project files for each project in
+mathicgb/build/vs12. I have only tested these on the machine in my
+office. tbb must already be installed in some place where Mathic can
+find them.
+
+Project (medium-to-high-effort, medium-difficulty): Get the Visual
+Studio project files in git to work in Visual Studio Express and
+document for other people how to do that. Improve the project files so
+that they are as easy as possible to get running.
+
+
+***** C++ concepts and miscellaneous MathicGB C++ stuff
+
+These are things that will be helpful to know when developing for MathicGB.
+
+-- Papers
+
+To really get a good idea of the litterature you'll need to spend a
+lot of time reading papers (possibly years). To get started on what's
+relevant for MathicGB, here are a few suggestions:
+
+-the SB/ISSAC paper: http://arxiv.org/abs/1206.6940
+
+This paper describes a lot of algorithms and data structures used in
+MathicGB. There is information here for both signature and classic
+Groebner basis computation.
+
+
+-mathicgb/doc/slides.pdf
+
+Slides from a talk I gave at Kaiserslautern University. It describes
+matrix-based polynomial reduction and goes into some detail about the
+implementation in MathicGB of that.
+
+
+-ABCD decomposition: http://www-polsys.lip6.fr/~jcf/Papers/PASCO2010.pdf
+
+A technique for reducing matrices used in MathicGB.
+
+
+-- Details on undefined behavior in C and C++
+
+It is useful to know what things invoke undefined behavior and what
+the consequences are. Here's a good start on learning about that:
+
+http://dl.acm.org/citation.cfm?id=234990
+http://blog.llvm.org/2011/05/what-every-c-programmer-should-know.html
+
+-- References are nicer than pointers
+
+First of all: pointers are perfectly fine when you need them! However,
+references are better when they can be used. If we ignore the
+syntactic difference, a reference is a pointer that must never be null
+or uninitialized and that will never change. Also, as a convention, a
+reference is never an owner of the object it refers to. If you have a
+pointer that satisfies those conditions, use a reference instead of a
+pointer. That way you are clearly unambiguously communicating these
+facts about the pointer/reference without having to write any
+comments. That's a Very Good Thing. It turns out that most pointers do
+satisfy these conditions, so most pointers should be references. The
+notation for accessing fields on a reference happen to be nicer than
+for pointers, too, though that's not really the main point. If you
+have a good reason to use a pointer instead of a reference in some
+specific case, then by all means go ahead.
+
+
+-- RAII and why owning pointers are evil
+
+A resource is something that needs to be released when you are done
+with it. The most common kind of resource is a piece of memory, but
+there are many others: files, internet connections, database
+connections, threads and so on. When you are holding a resource, you
+will, at the very least, get a resource leak if you forget to release
+the resource. You might also release the resource twice by mistake or
+keep using the resource after releasing it. Those things are likely to
+crash your program. Manually freeing every resource exactly one time
+at the right time and then never using it again is error prone. That's
+why memory leaks are a common problem and it is why garbage collection
+is so popular, even though garbage collection only takes care of the
+memory resources and it introduces its own issues.
+
+std::unique_ptr is the premier example of RAII.
+
+http://en.cppreference.com/w/cpp/memory/unique_ptr
+https://en.wikipedia.org/wiki/Resource_Acquisition_Is_Initialization
+
+RAII stands for Resource Acquisition Is Initialization. RAII solves
+most of the resource management problem and it's a stand-out great
+feature of C++. The idea is that every resource is owned by a
+dead-simple handle object. The destructor of the handle object frees
+the resource. Every resource is given over to a handle object
+immediately. This way it is impossible to forget to release the
+resource, because you do not need to do anything to make it happen -
+it happens automatically when the handle goes out of scope (if on the
+stack) or if the owner of the handle is destructed. The presence of a
+handle then also makes it immediately clear what object owns the
+resource - it is whatever object holds the handle. You will know what
+owns what just by looking at the types involved.
+
+Using std::unique_ptr has two phases: first allocate an object on the
+heap, then construct a unique_ptr handle to own/manage the object. The
+problem here is that something bad, like an exception, might happen
+between these two steps, or you might forget the second step. Here's a
+subtle example where this happens:
+
+  void foo(std::unique_ptr<int>, std::unique_ptr<int)>);
+  void bar() {
+    foo(std::unique_ptr<int>(new int(1)), std::unique_ptr<int>(new int2));
+  }
+
+This is a memory leak. The order of evaluation of parameters to
+functions is unspecified in C and C++, and it's even valid to
+interleave the execution of parameter expressions, so this is a valid
+order of execution:
+
+  1. new int(1)
+  2. new int(2)
+  3. constructor of the first std::unique_ptr<int>
+  4. constructor of the second std::unique_ptr<int>
+
+If the allocation in step 2 causes an exception (std::bad_alloc, or
+maybe something more excotic if it were a more complicated class than
+int), then the int allocated in step 1 will be leaked.
+
+The solution to all of these problems is to avoid writing new whenever
+you can (which is almost always). Instead call a function that both
+allocates the resource and also initializes and returns the handle. In
+C++14 there is supposed to be a std::make_unique that will do
+that. C++14 isn't here yet, so instead there is a make_unique defined
+in stdinc.h - use that one.. This is how to fix bar():
+
+  void bar() {
+    foo(make_unique<int>(1), make_unique<int>(2));
+  }
+
+The execution of function calls cannot be interleaved in the that
+dangerous way, so there is no problem when doing it this way. Not only
+is this now safe from memory leaks, it is simpler, requires less
+typing and looks nicer too. :)
+
+Here is another example:
+
+  http://tipsandtricks.runicsoft.com/Cpp/SmartPointerMemLeak.html
+
+In the absence of RAII, what you are left with is owning pointers and
+other owning handles that do not know how to free their resource. In a
+program full of such things, it is generally difficult to figure out
+what object owns what resource. It can be cumbersome and error prone
+to do the right thing even when ownership is clear. Here is a
+reasonable way of implementing foo() and bar() in a world without
+RAII, complete with the necessary comment to communicate the pass of
+ownership:
+
+  // Hey everyone, remember that foo takes over ownership of both pointers!
+  void foo(int*, int*);
+
+  void bar() {
+    int* a = new int(1);
+    int* b;
+    try {
+      b = new int(2);
+    } catch (...) {
+      delete a;
+      throw;
+    }
+    foo(a, b);
+  }
+
+Not so nice. Also, what if bar ended like this:
+
+    foo(a, b);
+    delete a;
+    delete b;
+  }
+
+That would be a bug, but not a very obvious one - you need to go read
+the comment from foo() about ownership being passed on to know what's
+wrong - that comment might be in a different file. It could be worse:
+ownership could be passed for the first parameter, but not the
+second. Then you'd really need to make sure you got things just
+right. RAII saves us from worrying about most of this kind of
+stuff. RAII is good. Learn to love RAII.
+
+Sometimes RAII is not a good option, for example when the amount of
+context required to free a resource makes the handle object too large
+which then becomes a memory consumption or cache size issue. In those
+cases you might need to not use RAII, but then at least try to
+encapsulate this ugliness behind a nice interface that completely
+hides the ugly truth from the rest of the program.
+
+Here's an anti-pattern for RAII, which cannot always be avoided, but
+usually it can:
+
+  void foo(const unique_ptr<int>& ptr);
+
+why does foo() care about the int being handled from a unique_ptr? It
+cannot change the unique_ptr, so all it can do with it is the same
+thing you can do with a pointer. Furthermore, this can be a
+performance issue, because you get a double indirection. The reference
+is an indirection and the unique_ptr is an indirection, so in
+performance terms this is like passing an int**.
+
+If ptr cannot be null, this is much better:
+
+  void foo(const int&);
+
+Since copying an int is no big deal, this is even better:
+
+  void foo(int);
+
+If ptr can be null, then you do need a pointer, but there's no reason
+to specify that it must be a unique_ptr:
+
+  void foo(int* ptr);
+
+This is fine and not a contradiction to the idea of using RAII. The
+reason for that is that ptr does not own what it points to and no
+ownership is being passed. The evil pointers are the pointers that own
+what they point to.
+
+-- r-value references and move semantics
+
+Another write-up of these topics: http://thbecker.net/articles/rvalue_references/rvalue_references.pdf
+
+Among many other things, move semantics solves the inefficiency in this
+example:
+
+  std::string foo(const std::string& str) {return str + '!';}
+  void bar() {
+    auto str = foo("hello world");
+  }
+
+This is what happens here:
+
+  1. A temporary std::string is constructed in bar to hold "hello world"
+  2. foo gets a reference to that string object.
+  3. foo constructs a new string object that holds "hello world!"
+  4. bar receives that new string object.
+  5. bar deconstructs the old string object holding "hello world"
+
+Now you might say that it looks like there would be a copy, because we
+need to copy the object returned from foo into str in bar(). In fact
+the compiler is free to elide this copy:
+
+  http://en.wikipedia.org/wiki/Return_value_optimization
+
+Still, this is not efficient. We are allocating memory to hold "hello
+world". Like std::vector, std::string is free to over-allocate memory,
+so that original std::string might well have enough capacity to hold
+the final string "hello world!". We should reuse the memory from the
+first object to hold the final string. Then there might be only the
+single allocation instead of two.
+
+We declared the reference to be const, so we should not alter the
+passed in std::string. We could proceed with overloading like this:
+
+  std::string& foo(std::string& str) {return str += '!';}
+  std::string foo(const std::string& str) {return str + '!';}
+
+It's true that we now re-use the passed-in string, but this is an
+abomination! The caller might be holding a non-const std::string but
+still not want it to change. In some other part of the program, it
+might be very important that that std::string does not
+change. Besides, this code:
+
+  auto str = foo("hello world");
+
+will actually call foo(const std::string&). That's a very good thing,
+too. The reason for that is that you should not being doing things
+like this:
+
+  std::string& str = std::string("hello world!");
+
+The right hand side here constructs a temporary std::string object
+which str then refers to. That temporary object goes away (is
+destructed) as soon as that line is done executing. If the next line
+is
+
+  std::cout << str;
+
+then str is now referring to an invalid object and this might well
+crash the program. To save us from this fate, C++ will flag an error
+on the code above. The compiler will say something like this:
+
+  cannot bind an r-value reference to an l-value reference
+
+All the references that we know and love and that are spelled with a &
+(like int&) are l-value references. An r-value reference is something
+like the above example: it is a reference to something unnamed. In
+classic C++, the main (only?) way to get an r-value reference is to
+construct a temporary object. Temporary objects are going to die very
+soon. So it's always a bad idea to have an l-value reference (that is,
+a usual reference) bind to an r-value, because that's going to be an
+imminent disaster like in this example. So C++ flags that kind of
+thing as an error. That's why this code:
+
+  auto str = foo("hello world");
+
+does not select the foo(std::string&) overload - the temporary
+std::string object that gets constructed is an r-value, so we cannot
+bind it to an l-value reference and std::string& is an l-value
+reference.
+
+The overload that does get selected is foo(const std::string&), which
+shows that we CAN bind r-values to CONST l-value references. I am
+guessing that the idea here is that changing temporary objects does
+not make much sense, since they are going to away very soon anyway.
+
+Aha, you might object, does that not make this code an imminent
+disaster, just like before?
+
+  const std::string& str = std::string("hello world!");
+  std::cout << str;
+
+Nope. There is no error here. Not a compile-time error and not a
+run-time error. This will work. The reason for that is that if you
+bind a temporary object to a CONST l-value reference, then the
+lifetime of the temporary object is extended to the life-time of the
+reference. So by binding to a const l-value reference, we are
+preventing the temporary std::string from being destructed at the end
+of the line.
+
+What's the point of a special rule for const l-value references? By
+treating const l-values specially, we are allowing code like this to
+work:
+
+  std::string foo(const std::string& str) {return str + '!';}
+  void bar() {
+    auto str = foo("hello world");
+  }
+
+If we could not bind the temporary std::string from the caller (an
+r-value) to the const std::string& (an l-value reference) that foo
+accepts, then this sort of thing would be a compile-time error. You'd
+be forced to do this:
+
+  void bar() {
+    const std::string bah("hello world");
+    auto str = foo(bah);
+  }
+
+Wouldn't that just be sad? So const l-value references are special.
+
+(You might ask: why not have non-const l-value references also work in
+this special way? I don't know a good reason, but the fact is that
+they do not.)
+
+So what can we do? C++11 to the rescue. In C++11 we have a way to
+spell r-value reference. An int r-value reference type is spelled
+int&&. So we can do this:
+
+  std::string&& foo(std::string&& str) {return str += '!';}
+  std::string foo(const std::string& str) {return str + '!';}
+
+This is a bit better than before. The first overload will only be used
+when the parameter is a non-const r-value std::string, like in this
+case:
+
+  auto str = foo("hello world");
+
+However, the r-value overload will not be used here:
+
+  std::string importantStringThatShouldNotBeChanged = "don't change me";
+  auto str = foo(importantStringThatShouldNotBeChanged);
+
+Here the important string object is not a temporary object, so it's
+not an r-value (more precisely, it has a name, so it's not an
+r-value). There we cannot bind the important string object to an
+r-value.
+
+So we only use the r-value overload when the object being passed in is
+a temporary object. That means that no one else in the program can
+reasonably have a reference to it (how would they?). So it's always
+going to be OK to steal that object and use it for our own
+purposes. So this is a lot better.
+
+It's still not good, though. Consider this example:
+
+  const std::string& str = foo("hello world");
+  std::cout << str;
+
+We are expecting foo() to return a temporary object and to be safe we
+are using a const l-value reference to capture the temporary
+object. That way we know that the life-time of the temporary will be
+extended so that str will still refer to a valid object on the next
+line when we print it out. Except it doesn't work like that.
+
+The problem here is that foo doesn't return a temporary object, not
+from the compiler's perspective. It returns a reference. Extending the
+life-time of that reference does nothing. What we need is to extend
+the life-time of the temporary object that was passed to foo. Yet the
+compiler does not see that temporary object being directly bound to a
+const l-value reference. It just sees that object being passed to
+foo(). So the life-time does not get extended. It does not matter that
+foo() happens to return a reference to the same object.
+
+What can we do? We can fix it by returning a std::string object
+instead of returning a referenceL
+
+  std::string foo(std::string&& str) {return str += '!';}
+
+Of course now there will be a copy, so we are back to square one -
+almost. We still know that no other part of the program is supposed to
+have a reference to str. We are the only ones holding str, so we are
+also the only ones holding the memory used by str. If we could somehow
+break the encapsulation of std::string and take the pointer to that
+memory from inside str and directly get the returned object to just
+use that pointer, then there would not need to be a copy.
+
+We cannot break the encapsulation of std::string (or at least
+shouldn't), but it happens to be that C++11 has a way of achieving
+exactly this goal. It's called std::move. We can use it like this:
+
+  std::string foo(std::string&& str) {
+    str += '!';
+    return std::move(str);
+  }
+
+std::move<T> is a template. What it does is to take an l-value
+reference T& and return an r-value reference T&& to the same
+object. Think of it as a cast - it changes the type of something, but
+it doesn't do anything other than that. So by using std::move, we can
+force the compiler to think that something is an r-value, even when it
+isn't (and str isn't, see below).
+
+The magic ingredient here is that std::string has a constructor that
+accepts a std::string&&. That constructor steals the memory from the
+passed-in std::string (and removes it from that std::string). So the
+memory is transferred with no copying and no allocation. That is safe
+because that r-value reference is supposed to refer to a temporary
+object that is about to die, so no one else has a reference to it - so
+no one should ever know that its memory has been stolen. It's like
+stealing a painting out of a burning building - no one is going to
+know the difference. We used std::move to trick the compiler into
+thinking that our str was an r-value reference, but we only did that
+in a situation where we knew that no one else would use that
+std::string anymore - because we also accepted that std::string as an
+r-value reference outselves. So as long as we only use std::move at
+the right places, all is well.
+
+You might be saying: wait a moment, isn't str ALREADY an r-value
+reference? It's type is std::string&& and you said that && means
+r-value reference. The type of str is indeed std::string&&. However,
+consider this:
+
+  std::string q;
+  foo(q);
+
+Here foo(const std::string&) gets called, but the type of q is NOT
+const std::string&. It is std::string. The point here is that when you
+want to figure out what kind of reference you get, do not look at the
+type of the thing, look at the context. If something doesn't have a
+name, then it's an r-value reference in that context. If it has a
+name, then it's an l-value reference in that context. Both q and str
+have names, so when we use the names q and str in the program, we get
+l-value references, not r-value references. It doesn't matter that q's
+type is not an l-value reference and it does not matter that str's
+type is not an l-value reference. It's not about the type. It's about
+having a name or not having a name in a specific context.
+
+This is where we got to:
+
+  std::string foo(std::string&& str) {
+    str += '!';
+    return std::move(str);
+  }
+  std::string foo(const std::string& str) {return str + '!';}
+
+The first overload will reuse memory that isn't beeing used anywhere
+else anyway and the second overload will allocate new memory because
+we might need to preserve the original passed-in std::string. So far
+so good. We can actually simplify this a bit:
+
+  std::string foo(std::string str) {
+    str += '!';
+    return std::move(str);
+  }
+
+Here we always construct an object from the parameter, but we use
+std::move to return it, so there is no copy there (there is something
+called the return value optimization that is relevant here, but let's
+save that for later). Let's consider four ways of calling foo:
+
+  1. std::string a("don't change me"); foo(a);
+  2. foo(std::string("change me if you want"));
+  3. foo("I'm a string");
+  4. std::string b("you can change me too"); foo(std::move(b));
+
+For 1, a has a name, so it's an l-value reference. std::string has a
+constructor that takes an l-value reference std::string&, and that
+constructor copies. So there is a copy, but only the one, just as
+before. For 2, we construct a temporary unnamed object, which is then
+an r-value reference, and std::string has a constructor that accepts a
+std::string&& parameter. That contructor steals the memory without
+copying, so there is no copy at all, just like before. For 3, that's
+the same as 2, except the temporary std::string is implicit. For 4,
+the b in std::move(b) is an l-value reference just as for 1, but we
+use std::move to cast it to an r-value reference, so what happens is
+the same as for 2 and 3: the memory gets stolen out of b. As long as
+we remember never to use b again, that's fine.
+
+Consider this example:
+
+  std::string a("I'm a string");
+  std::string b("You're a string");
+  b = std::move(a);
+
+std::string also has an operator=(std::string&&) which steals the
+memory out of the parameter. So what happens in the third line here is
+that b frees its own memory and steals the memory out of a - which is
+fine as long as we remember never to use a again.
+
+The precise contract is if that a standard library object is moved out
+of, then that object is placed in a valid but unspecified state. It is
+guaranteed that it is OK to destruct an object that has been moved
+from, but otherwise there is no general guarantee, though some classes
+might give stronger guarantees.
+
+std::vector has move (r-value) a constructor and a move operator= just
+like std::string does. So does lots of classes in the standard library
+in C++11. Consider this:
+
+  std::vector<std::string> v;
+  v.push_back("1");
+  v.push_back("2");
+  v.push_back("3");
+  // ...
+
+v might incur several reallocations during all these
+push_backs. Inside the reallocation, std::vector knows that all the
+old objects that it has been storing are going to disappear in a
+moment (modulo a caveat about a different feature called noexcept that
+I don't want to get into here). So no other part of the program ought
+to be looking at those objects at any time in the future. So it's safe
+to move the strings using std::move and that way the new strings just
+steal the memory from the old strings instead of allocating new memory
+and copying.
+
+Objects that can be moved are said to have move semantics.
+
+std::unique_ptr has move semantics, though it uses them for a
+different purpose than std::string and std::vector. std::unique_ptr
+never copies anything, so the point is not to avoid copies. The point
+is that only a single unique_ptr should ever own the memory being
+pointed to. So we want this to be a compile-time error:
+
+  std::unique_ptr<int> a = make_unique<int>(1);
+  std::unique_ptr<int> b;
+  b = a;
+
+If we allowed the third line, then both a and b would now own the
+memory, leading to a double free. We could set a's pointer to null in
+preserve the invariant, but then it becomes very easy to null out your
+std::unique_ptr by accident. It's quite confusing for "b = a" to
+change a. We only expect it to change b. If you try the code above,
+you will get an error on the third line. The reason for that is that
+std::unique_ptr has an 
+
+  operator=(std:unique_ptr&&)
+
+but not an
+
+  operator=(std::unique_ptr&)
+
+a is an l-value reference, and we already know that we cannot bind
+l-value reference to the r-value reference type std::unique_ptr&&. So
+this is a compile error. To fix it, we can do this:
+
+  b = std::move(a);
+
+Now we have cast a to an r-value reference. What happens here is that
+b gets a's memory and a is set to null. This is no longer
+confusing. There is no mystery that a got changed since we explicitly
+did std::move(a). Did you spot this line?
+
+  std::unique_ptr<int> a = make_unique<int>(1);
+
+Here we are initializing a from a std::unique_ptr, and we did not use
+std::move to cast the other std::unique_ptr to an r-value. Why is that
+OK? Because it's already an r-value - it doesn't have a name. So no
+other part of the program should have a reference to that object and
+therefore moving out of it is safe.
+
+-- implicit moves
+
+Consider this code:
+
+  std::unique_ptr<int>& baz() {
+    auto ptr = make_unique<int>(1);
+    *ptr = 2;
+    return ptr;
+  }
+
+This will compile but it's very bad - we are returning a reference to
+an object that lives on the stack inside the function. That object
+will no longer be valid when the function returns. So how about this:
+
+  std::unique_ptr<int>&& baz() {
+    auto ptr = make_unique<int>(1);
+    *ptr = 2;
+    return std::move(ptr);
+  }
+
+Is that OK? No it's not and for exactly the same reason - l-value
+references that refer to invalid objects are bad and it's just the
+same thing for r-value references that refer to invalid objects. You
+need to do it like this:
+
+  std::unique_ptr<int> baz() {
+    auto ptr = make_unique<int>(1);
+    *ptr = 2;
+    return std::move(ptr);
+  }
+
+Here we move the memory of ptr into the returned object using
+std::unique_ptr's move constructor (that is, the one accepting an
+r-value reference), but we do not return the ptr object itself - that
+object is left to die when the function returns (it's a harsh world
+for a stack-allocated variable).
+
+In fact, we can rewrite baz like this:
+
+  std::unique_ptr<int> baz() {
+    auto ptr = make_unique<int>(1);
+    *ptr = 2;
+    return ptr;
+  }
+
+This looks wrong at first sight because std::unique_ptr's constructor
+requires an r-value reference. Clearly, ptr has a name, so it's an
+l-value. What gives? The point is that we are returning a local object
+- one allocated on the stack. When we get to the return statement, the
+compiler knows that this object is just about to go out of scope and
+be destructed. This is exactly the same situation as for a temporary
+object - it is just about to be destructed. So in this very specific
+circumstance, it is OK to let ptr be an r-value (just as if it had
+been an unnamed temporary), and that's how it is in C++11. So the
+std::move is superfluous in this case.
+
+-- universal references and perfect forwarding
+
+So far there has been a simple rule: & means l-value reference and &&
+means r-value reference. It's not that simple, unfortunately. Suppose
+we want to make out own 2-parameter make_unique function. Let's try
+that:
+
+  template<class T, class Arg1, class Arg2>
+  std::unique_ptr<T> make_unique(const Arg1& arg1, const Arg2& arg2) {
+    return std::unique_ptr<T>(new T(arg1, arg2));
+  }
+
+This isn't so good, though. What if T's constructor requires a
+non-const l-value reference? What if T's constructor requires an
+R-value reference? References can also be volatile. So we need overloads for
+
+  Arg1&
+  const Arg1&
+  volatile Arg1&
+  volatile const Arg1&
+  Arg1&&
+  const Arg1&&
+  volatile Arg1&&
+  volatile const Arg1&&
+
+That's 8 overloads. We need the same thing for the second argument,
+leading to 8*8=64 overloads. If we want to offer a 10 parameter
+make_unique, then that would require 8 raised to the power of 10
+overloads. Not good.
+
+In fact we only need a single overload, namely this one:
+
+  template<class T, class Arg1, class Arg2>
+  std::unique_ptr<T> make_unique(Arg1&& arg1, Arg2&& arg2) {
+    return std::unique_ptr<T>(new T(arg1, arg2));
+  }
+
+So how does this work? Suppose the arguments are const int&, like here:
+
+  const int i = 1;
+  make_unique<MyClass>(i, i);
+
+Then Arg1 and Arg2 gets resolved to const int&. So it becomes like this:
+
+  template<class T, class Arg1, class Arg2>
+  std::unique_ptr<T> make_unique(const int& && arg1, const int& && arg2) {
+    return std::unique_ptr<T>(new T(arg1, arg2));
+  }
+
+You can't directly write & && without an error, but if that appears in
+a case like this, then there are rules for how to resolve it. The rules are:
+
+ & & becomes &
+ & && becomes &
+ && & becomes &
+ && && becomes &&
+
+This is called reference collapsing. So it becomes:
+
+  std::unique_ptr<T> make_unique(const int& arg1, const int& arg2) {
+    return std::unique_ptr<T>(new T(arg1, arg2));
+  }
+
+That's exactly what we wanted! Let's try that again for a r-value
+reference parameter:
+
+  volatile int i;
+  make_unique<SomeClass>(std::string("hi"), i)
+
+Here we get Arg1 to be std::string&& and since && && becomes &&, we get
+
+  std::unique_ptr<T> make_unique(std::string&& arg1, volatile int& arg2) {
+    return std::unique_ptr<T>(new T(arg1, arg2));
+  }
+
+That's the right overload that we want, but the implementation of the
+function isn't what we want. arg1 was passed to us as an r-value, so
+we want to pass it to the constructor of T also as an
+r-value. However, since we gave arg1 a name, it counts as an
+l-value. What we want is this:
+
+  std::unique_ptr<T> make_unique(std::string&& arg1, volatile int& arg2) {
+    return std::unique_ptr<T>(new T(std::move(arg1), arg2));
+  }
+
+However, we can't just put a move in there, because then we'd also be
+casting other parameters to r-values, even those that were not passed
+to us as r-values. What we need is to do a conditional cast, a cast
+that says: "cast this to an r-value, but only if Arg1 is an r-value
+reference". That's exactly what std::forward<T>() does, so this is the
+final and correct implementation:
+
+  template<class T, class Arg1, class Arg2>
+  std::unique_ptr<T> make_unique(Arg1&& arg1, Arg2&& arg2) {
+    return std::unique_ptr<T>
+      (new T(std::forward<Arg1>(arg1), std::forward<Arg2>(arg2)));
+  }
+
+This is called perfect forwarding, because we managed to pass the
+exact type of the parameters on to the constructor of T, no matter
+what kind of type it is - and we didn't need 64 overloads to do
+it. The main consequence of this is that && doesn't necessarily mean
+r-value when used with a template parameter.
+
+There's even a further quirk on this: this process I just described
+ONLY works when the parameter is "T&&" where T is a template
+parameter. If you do for example "const T&&" and try to pass in an
+l-value, then you'll get an error - reference collapsing will not
+occur. Or if you do "volatile T&" and then try to pass in a const
+volatile int, then you'll still get an error because the template
+will only accept non-const volatile T's. So template parameters of the
+form "T&&" are very special and it is only in this context that &&
+doesn't necessarily mean r-value.
+
+Well, almost (I'm sensing a theme here). auto is kind of like a
+template parameter and it has the same special case. If you do:
+
+  auto&& x = ...
+
+Then now x will be of whatever kind the right hand side is following
+the same reference-collapsing process as I just described:
+
+  const std::string a;
+  auto&& aa = a; // aa is a const std::string&
+  auto&& bb = std::string(); // bb is a std::string&&
+
+Here aa has the type of an l-value reference even though it is
+declared with &&. Again, this only works for the special case of
+"auto&&". It does not work for "const auto&&", for example, so this
+is an error:
+
+  const std::string c;
+  const auto&& cc = c;
+
+The problem is that cc is now hard-coded to be actually an r-value
+reference and c is an l-value.
+
+Because the cases for "T&&" and "auto&&" are so special, they've been
+given a special name: universal reference. They are called that
+because they can refer to any type you want.
+
+A final point about r-value references: an r-value reference (of
+whatever kind) extend the life of a temporary, just like a const
+l-value does. So this is OK:
+
+  std::string&& str = std::string("hello world!");
+  std::cout << str;
+
+
+http://isocpp.org/blog/2012/11/universal-references-in-c11-scott-meyers
+http://channel9.msdn.com/Shows/Going+Deep/Cpp-and-Beyond-2012-Scott-Meyers-Universal-References-in-Cpp11
+
+-- Range-based for loops
+
+They look like this:
+
+  std::vector<int> v;
+  for (int x : v) {
+    // ...
+  }
+
+x will go through each element in v in turn using a hidden
+iterator. This works for any container v where std::begin(v) and
+std::end(v) returns iterators. The default implementation of these
+just call v.begin() and v.end() (they are templates that you can
+partially specialize to do something else if you want), so it'll also
+work with any class that has .begin() and .end().
+
+range-based for loops are awesome. This is the same thing as above in C++03:
+
+  std::vector<int> v;
+  std::vector<int>::const_iterator end = v.end();
+  for (std::vector<int>::const_iterator it = v.begin(); it != end; ++it) {
+    int x = *it;
+  }
+
+Using auto, this could be improved to
+
+  auto end = v.end();
+  for (auto it = v.begin(); it != end; ++it) {
+    int x = *it;
+    // ...
+  }
+
+and if we do not care about the possible inefficiency of not caching
+v.end(), we can further simplify to:
+
+  for (auto it = v.begin(); it != v.end(); ++it) {
+    int x = *it;
+    // ...
+  }
+
+This is a much noisier syntax than the much simpler range-based
+for. There are two main idioms for using range-based for. If you want
+to do a scan through a range where you modify the contents of the
+range, do:
+
+  for (auto& x : v)
+
+if you only want to observe the elements of the range, do
+
+  for (const auto& x : v)
+
+This way, it's always immediately clear what's going on. The
+alternatives that I would advise to avoid (unless there's some good
+reason) are:
+
+  for (auto x : v) // could be inefficient, doesn't spell out "const"
+
+and
+
+  for (auto&& x : v) // universal reference makes intended constness unclear
+
+
+
+-- don't call a method getFoo(), findFoo(), calculateFoo(),
+ pleaseComeBackToMeFoo() or anything like that, just call it foo()
+
+It's more succint, reads better and is just as clear. Do use setFoo or
+similar if you want to set a field.
+
+-- pointerness and reference-ness is a part of a variable's type
+
+The format for a variable declaration is "type
+variableName". Pointerness and variableness is part of the type, so
+it's
+
+  int* a;
+  int& a;
+
+and not
+
+  int *a;
+  int &a;
+
+and also not
+
+  int * a;
+  int & a;
+
+This notation has the drawback for this case, which becomes confusing:
+
+  int* a, b;
+
+this is equivalent to
+
+  int* a;
+  int b;
+
+which is absolutely horrible, of course. The answer is simple: never
+declare two variables in one statement using a comma.
+
+-- don't use using
+
+You've likely noticed all the std:: prefixes by now. MathicGB does not
+have "using namespace std;" anywhere. There's not even "using
+std::vector;" or anything like that. using should not be used in
+headers because code that includes that header will be forced to use
+the using which might cause name clashes. using should therefore also
+not be used in implementation files because then moving code between
+headers and implementation files becomes annoying. I didn't like the
+std:: prefixes initially, but you get used to it. Now it doesn't
+bother me at all.
+
+
+
+-- if it can be const, make it const
+
+Bugs generally happen when something changes. const things don't
+change. So there will be fewer bugs!
+
+It can also aid optimization in a special case. The const in const
+int& doesn't help the optimizer at all, since it would be possible to
+cast away the constness or change the value using a non-const
+reference. However const int does help the compiler (not a reference),
+because objects originally declared const are not allowed to change,
+not even using const_cast. Example:
+
+  int a = 1; // can change
+  const int& aa = a;
+  const_cast<int&>(aa) = 2; // OK (well, at least according to the standard)
+
+  const int b = 1; // must not change
+  const int& bb = b;
+  const_cast<int&>(bb) = 2; // undefined behavior!
+  
+
+-- Do #includes from least general to most general
+
+This way you are more likely to spot missing include files in headers.
+
+
+-- use auto whenever you can unless you've got a special reason not to
+
+Bad: std::vector<std::pair<int, int>> pairs(std::begin(r), std::end(r))
+Good: auto pairs = rangeToVector(r)
+
+Get an editor that will show you the types of variables as a tooltip
+on mouse-over if you want to know the types.
+
+http://herbsutter.com/2013/08/12/gotw-94-solution-aaa-style-almost-always-auto/
+
+-- Learn to love the assert
+
+MathicGB has MATHICGB_ASSERT. You'll see it sprinkled liberally all
+over the code. If you can assert on it, then do assert on it. If the
+debug build gets to slow from a particularly slow assert, then profile
+the debug build (yes, that makes sense! :) and disable just the few
+asserts that were the problem. Assert is your best friend in this
+world when programming.
+
+-- The format of an X.cpp file
+
+Note that no file contains anyone's name in the copyright header. We
+don't want to get into discussions about how much or little someone
+needs to do to put their name there. It gets hairy when parts of a
+file are moved elsewhere. Long lists of names in files also isn't
+useful to the purpose of the project.
+
+
+// MathicGB copyright 2013 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
+#include "stdinc.h"
+#include "X.hpp"
+
+// other includes
+
+MATHICGB_NAMESPACE_BEGIN
+
+// code
+
+MATHICGB_NAMESPACE_END
+
+
+The purpose of the namespace macroes is to avoid having to indent
+everything by a level, which editors will otherwise want to do.
+
+--The format of a X.hpp file
+
+// MathicGB copyright 2013 all rights reserved. MathicGB comes with ABSOLUTELY
+// NO WARRANTY and is licensed as GPL v2.0 or later - see LICENSE.txt.
+#ifndef MATHICGB_X_GUARD
+#define MATHICGB_X_GUARD
+
+// includes
+
+MATHICGB_NAMESPACE_BEGIN
+
+class X {
+  // ...
+};
+
+MATHICGB_NAMESPACE_END
+#endif
+
+-- whitespace
+
+No tabs. Indentation is 2 spaces per level. If you are used to 8 space
+indent, you may think that 2 space indent makes code unreadable. It
+doesn't. It's just hard for you to read because you've trained your
+eyes to focus on the spot 8 spaces ahead and now you have to correct
+the position of your eyes constantly until your habit adjusts. I find
+8 space indent unreadable for the same reason - I'm used to 2 space
+indent now, so I have to adjust my eyes too all the time when I read 8
+space indented code. It's got nothing to do with the inherent
+readability of 2 versus 8 spaces, it's got to do with a habit of where
+to focus one's eyes. 2 space indent preserves horizontal space and is
+no less readable than 8 or 4 space indent, so that's why I'm using it.
+
+An opening { goes on the same line, unless the current line is
+indented and the next line is indented to the same level. In a
+parenthesized expression that does not fit on a line, the outer () is
+indented in the same way as {}. For example (imagine that these
+examples don't fit on a line):
+
+int Foo::bar(
+  int x,
+  int y
+) const {
+  // ...
+}
+
+int Foo::Foo(
+  int x,
+  int y,
+):
+  mX(x),
+  mY(y)
+{ // on own line since previous line is indented to same level
+  // foo
+}
+
+-- names
+
+Macroes are ALL_UPPER_CASE and prefixed with
+MATHICGB_. CamelCaseIsTheThing otherwise. First letter of TypeNames is
+capitalized. First letter of functions and variables is
+lowerCase. Member variables are prefixed with an m, so
+mMyMemberVariable.
+
+-- exceptions
+
+Exceptions are used to signal errors. Code should be exception safe at
+least to the extent of not crashing or leaking memory in the face of
+exceptions.
+
+***** High-level view of MathicGB
+
+The core engine of MathicGB is ClassicGBAlg, which implements the
+classic Buchberger algorithm with some improvements, and SignatureGB
+which implements the Signature Basis Algorithm. These classes do not
+contain that much code, instead they use a lot of other classes to do
+their bidding. They have classes for keeping track of the basis, for
+keeping track of the S-pairs, for doing the reductions and for
+representing the coefficients, monomials and polynomials. Some of
+these are encapsulated behind virtual interfaces, so that different
+implementations can be chosen at run-time. This is notably the case
+for the reducers.
+
+ClassicGBAlg also implements F4, which is achived just by having a
+reducer that does matrix-based reduction.
+
+
+***** Description of all files in MathicGB
+
+*** mathicgb/Atomic.hpp
+
+Offers a MathicGB alternative to std::atomic with some of the same
+interface. Use this class instead of std::atomic. It was necessary to
+use this class because the std::atomic implementations that shipped
+with GCC and MSVC were so slow that they were just completely
+unusable. This is supposed to be better in newer versions. When not on
+MSVC or GCC, Atomic is simply a thin wrapper on top of std::atomic.
+
+Atomic also has another use in that you can define
+MATHICGB_USE_FAKE_ATOMIC. Then Atomic does not actually implement
+atomic operations. This way, we can measure the overhead for atomicity
+and memory ordering by running on one thread, since the atomicity and
+memory ordering is not necessary for one thread.
+
+Project (medium-effort, easy-difficulty): Figure out if GCC and MSVC
+really do ship a usable-speed std::atomic now and, if so, which
+versions are good and which are bad. Then let Atomic be implemented in
+terms of std::atomic on those good versions while retaining the fast
+custom implementation for the bad versions. The main effort involved
+here is in getting access to all the different versions of GCC and
+MSVC. This project could also be done for Clang.
+
+
+*** mathicgb/Basis.hpp
+
+A container of Polynomials that does nothing fancy. There is really no
+reason for this class to exist - it should be replaced by
+std::vector<Poly>. The class uses std::unique_ptr<Poly>, but since
+Poly now has move semantics there is no reason for using unique_ptr
+here.
+
+Project: Remove class Basis and replace it with std::vector<Poly>.
+
+
+*** mathicgb/CFile.hpp .cpp
+
+A RAII handle for a C FILE*. The purpose of using the C IO interface
+instead of iostreams is that the former is faster to a ridiculous
+degree. This class wraps the C IO interface to be more useful in a C++
+context. For example the file is automatically closed in the
+destructor and if the file cannot be opened then an exception is
+thrown instead of returning a null pointer.
+
+Project (small-effort, easy-difficulty): Grep for FILE* and see if
+there's any place where an owning FILE* can be replaced by a CFile.
+
+
+*** mathicgb/ClassicGBAlg.hpp .cpp
+
+Calculates a classic Groebner basis using Buchberger's
+algorithm. MathicGB implements the classic Groebner basis algorithm
+for comparison and because sometimes that is the better
+algorithm. MathicGB's classic implementation is not as mature as the
+ones in Singular or Macaulay 2, but it can still be faster than those
+implementations in some cases because of the use of fast data
+structures from Mathic. The matrix-based reducer implementation (F4)
+also IS the classic Buchberger implementation, since the skeleton of
+those two algorithms is the same. The only difference is how many
+S-pairs are reudced at a time. ClassicGBAlg has a parameter that tells
+it at most how many S-pairs to reduce at a time. Choose 1 for classic
+computation and more than 1 for matrix-based reduction.
+
+Project (high-effort, high-difficulty): The heuristic used for the
+preferable way to bunch S-pairs together for the matrix-based
+reduction is to select all of the S-pairs in a given degree, up to the
+maximum number of S-pairs allowed by the parameter. This is exactly
+the right thing to do for homogeneous inputs. It it not at all a good
+idea for non-homogeneous inputs. The grading used is just the first
+grading/row in the monomial order, so even for homogeneous inputs this
+can be bad if the ordering used does not consider the true homogeneous
+degree before anything else (for example it might consider the
+component first). Make up a better way to bunch S-pairs together. For
+example sugar degree. There will need to be lots of experiments here.
+
+This class prints a lot of nice statistics about the computation
+process. This code is a good example of how to use
+mathic::ColumnPrinter for easy formatting. The statistics are
+collected individually from different classes instead of using the
+MathicGB logging system. For example a manual timer is used instead of
+a logging timer.
+
+Project (medium-effort, medium-difficulty): Change the statistics
+being reported to be collected via the MathicGB logging system. This
+may require expanding the capabilities of the logging system. You may
+also want to add additional interesting statistics gathering. You'll
+need to measure the difference between compile-time disabling all logs
+and then enabling them all at run-time (but not enabled for streaming
+output, because that will always be slow). The difference in time
+should preferably be < 2%. If that's not the case, then you'll need to
+disable some of the logs by default at compile-time until it is the
+case.
+
+The Buchberger implementation always auto top reduces the basis. There
+is an option for whether or not to do auto tail reduction. This option
+is off by default because it is too slow. There are two reasons for
+that. First, the auto tail reduction is done one polynomial at a time,
+so it is not a good fit for the matrix-based reducers. Second, we need
+a better heuristic to select which polynomials are auto tail reduced
+when.
+
+Project (medium-effort, easy-difficulty): When using a matrix-based
+reducer (as indicated by a large requested S-pair group size), tail
+reduce many basis elements at the same time instead of one at a time.
+
+Project (medium-to-large-effort, medium-to-hard-difficulty): Figure
+out and implement a good heuristic that makes auto tail reduction a
+win. For example, it probably makes sense to auto tail reduce basis
+elements that are frequently used as reducers more often than basis
+elements that are almost never used as reducers.
+
+Project (medium-effort, medium-difficulty): Currently all the basis
+elements are inserted into the intermediate basis right away. We might
+as well wait with inserting a polynomial if it will not participate in
+any reduction or S-pair for a long time yet. This is especially so for
+homogeneous inputs, where there is no reason to insert a basis element
+in degree d until the computation gets to degree d. If we also wait
+with reducing these input basis elements until they finally get
+inserted, then that would, for homogeneous computations, furthermore
+ensure that all polynomials are both top and tail reduced all the time
+without re-reductions.
+
+*** mathicgb/F4MatrixBuilder.hpp .cpp
+*** mathicgb/F4MatrixBuilder2.hpp .cpp
+
+These classes are used by F4Reducer to construct the matrix used in
+F4. The code is parallel. This is an important piece of code because
+matrix construction can be a large part of the running time of
+matrix-based reduction (see slides). There are lots of ways of
+improving the reduction code and if all of those ideas are realized,
+then it might turn out that matrix construction will end up being the
+dominant use of time for F4!
+
+F4MatrixBuilder is the first version that does left/right and
+top/bottom splitting right away as the matrix is constructed (see
+slides and ABCD paper). F4MatrixBuilder2 postpones that split until
+after the matrix has been constructed. The advantage of
+F4MatrixBuilder is that it does not require a second splitting step,
+which enables it to run faster. However, without a second step there
+is then no way to sort the rows of the matrix within the top and
+bottom parts, so they appear in some arbitrary permutation. This makes
+the cache performance of the subsequent reduction worse, so that
+actually F4MatrixBuilder causes a slower total computation time than
+F4MatrixBuilder2 even though F4MatrixBuilder2 takes more time to
+construct the matrix.
+
+The interface for the two classes is the same. First the user
+describes the required matrix and then that matrix is constructed.
+
+Parallelism is achieved here by having each core work on separate rows
+of the matrix. The main point of synchronization between the cores is
+that they need to agree on which monomial has which column index. This
+is achieved via a lockless-for-readers hash table, implemented using
+std::atomic (well, actually mgb::Atomic, but it's the same thing). To
+understand the parallelism here you will need to understand how
+lockless algorithms work and the interface of std::atomic, which is
+going to be a significant effort to learn. The outcome of this way of
+doing it is that look-ups in the hash table are no slower on x86 than
+they would be in a serial program - it's the same CPU instructions
+being run (there might be a slight slowdown if contending for a cache
+line with a writer, but that's very rare). Writers do need to hold a
+lock for insertion, but since look-ups are much more frequent than
+column insertions, this is not so bad.
+
+TBB (Intel Thread Building blocks) is used to keep track of the work
+items to do so that cores can do work-stealing without much overhead.
+
+Project (medium-difficulty, medium-effort): An advantage of
+F4MatrixBuilder2's approach is that we can output the matrix and get a
+raw matrix that is not processed in any way. This matrix can then be
+used as input to other F4 projects to compare the speed of
+implementations. The project is to make this happen - write the output
+code and benchmark other projects on those matrices. This is already
+somewhat done, in that MathicGB can input and output matrices, but
+this is only done for the F4MatrixBuilder where the matrix is already
+split into ABCD parts. Other projects won't know what to do with a
+matrix in that format.
+
+Project (medium-difficulty, high-effort): Determine if any other
+project's matrix construction code is competitive with MathicGB. I do
+not think that this is the case, but it could be - I haven't
+measured. Quantify how much better/worse MathicGB is for matrix
+construction and determine the reasons for the difference. If there is
+something else competitive, either improve MathicGB using those ideas
+or build that other project as a library and make MathicGB able to use
+that other project's code for matrix construction.
+
+Project (possibly-impossible, unknown-effort): Significantly simplify
+the matrix construction code without making it slower (measure measure
+measure) or reducing its capabilities.
+
+Project (low-difficulty, low-effort): Count the number of lookups
+versus the number of insertions in the hash table to verify and
+quantify the claim made above that lookups are much more frequent than
+insertions. The purpose of this is to find out the number of cores
+where contention for the insertion lock becomes significant. This can
+be done just by looking at the matrix - each non-zero entry was a
+lookup, each column was an insertion. Get numbers for a wide variety
+of matrices.
+
+Project (medium-difficulty, medium-effort): Optimize the insertion
+code. See if you can reduce the amount of time where the insertion
+lock is held. If you determine that there is contention for the
+insertion lock and this really is a problem, consider using several
+insertion locks, for example 10 locks, one for each hash-value/bucket-index
+modulo 10.
+
+Project (medium-difficulty, low-effort): Make F4MatrixBuilder offer
+exception guarantees. At least it should not leak memory on
+exceptions. I think F4MatrixBuilder2 might need this too.
+
+Project (low-effort, low-difficulty): Rename F4MatrixBuilder and
+F4MatrilxBuilder2 to something more descriptive.
+
+Project (possibly-impossible, high-effort): Make F4MatrixBuilder2
+construct its matrix faster than F4MatrixBuilder does. Then remove
+F4MatrixBuilder.
+
+Project (possibly-impossible, high-effort): Most of the time in
+constructing a matrix goes into looking a monomial up to find the
+corresponding column index. Find a way to improve the code for this so
+that it goes faster both serial and in parallel. Perhaps use SSE
+instructions?  (this will likely require changing MonoMonoid, which
+won't be easy).
+
+Project (high-effort, high-difficulty): There is no limit on how much
+memory might be required to store the constructed matrix. Find a way
+to construct it in pieces so that the memory use can be bounded. This
+should not impact performance for matrices that fit within the
+required memory and it should not slow down computations for large
+matrices too much.
+
+Project (high-effort, high-difficulty): Matrix construction speed does
+not scale perfectly with the number of cores. Determine the reason(s)
+for this and fix them to get perfect scaling up to, say, 20
+cores. Perhaps use something like Intel VTune, which I hear is great
+for this sort of thing.
+
+
+*** mathicgb/F4MatrixProjection.hpp .cpp
+
+This class is used by F4MatrixBuilder2 for the second step where the
+matrix is split into parts ABCD. F4MatrixProjection is fed all of the
+sub-matrices built by the parallel cores in the construction step and
+it is told what all the columns are and which ones are left and which
+ones are right. Then it builds a QuadMatrix, which is the 4 matrices
+A,B,C,D.
+
+The first thing done is to figure out the necessary permutation of
+rows. Note that it is really up to this class itself to choose which
+rows are top/bottom, since that does not change the row echelon form
+of the matrix. The only restriction is that a row with no entry on the
+left must be on the bottom and that every left column must have
+exactly one top row with the leading non-zero entry in that row - or
+equivalently, the upper left matrix must be upper-triangular with no
+zeroes on the diagonal. The row permutation constructed chooses the
+sparsest rows that it can as the top rows, since those are going to be
+used multiple times for reduction.
+
+After the row permutation has been constructed, it is just a question
+of going through every row in the order that the permutation dictates
+and split it into the left/right sub-matrices.
+
+This process has a memory issue in that it copies the matrix to
+permute the rows and this doubles memory use. We cannot free the rows
+that have already been copied because the memory for rows is allocated
+in blocks and we cannot free a block until all rows in that block are
+copied - and the rows are being copied in some arbitrary order
+depending on the row permutation. Doubling memory here is bad because
+the memory required to store the matrix can dwarf the memory otherwise
+used by Buchberger's algorithm, which is already a lot of memory.
+
+Project (medium-effort, high-difficulty): Find a way to apply the row
+permutation and left/right splitting without doubling memory use. This
+might be achieved by copying several times. The difficulty is in
+finding a way to do this that inflates memory use only a little
+(instead of doubling it) while also getting excellent performance. One
+idea would be to use a harddisk for temporary storage. If the whole
+thing cannot be done quickly, it might make sense only to use this
+technique if memory would have been exhuasted by doubling the memory
+used - in that case any amount of slow-down is worth it, since
+otherwise the computation cannot proceed (at least not without using
+virtual memory, which is going to be quite slow most likely).
+
+Project (high-effort, high-difficulty): The left/right and top/bottom
+split is not parallel. Make it parallel. The obvious way to do this is
+to construct the rows of the output matrices in blocks and to have
+each thread do its own block. The easiest way is to do A,B,C,D in
+parallel, but this parallelim can be done also on sub-matrices of
+A,B,C,D.
+
+Project (high-effort, high-difficulty): For best speed on matrix
+reduction, we do not just want to split into left/right and
+top/bottom, we want to split the whole matrix into blocks of a
+cache-appropriate size, while also (probably) doing the top/bottom
+left/right thing. This will require a redesign of how the program
+handles these submatrices.
+
+Project (high-effort, high-difficulty): There is also a difficult
+question of how to sub-divide into cache-appropriate blocks on sparse
+matrices, since sub-matrices in a sparse matrix will vary widely in
+memory size, so a regular grid of sub-matrices might not be optimal -
+some sub-matrices might need to be bigger than others in order to get
+each sub-matrix to take up about the same amount of memory. The
+literature might have something to say about this.
+
+
+*** mathicgb/F4MatrixReducer.hpp .cpp
+
+This is where the reduction of the matrices happens. For the reduction
+of the left part of the matrix, each bottom row is reduced in
+parallel. An active row is copied into a dense format and then the
+sparse top rows are used to reduce it. This is good because the linear
+algebra of applying a sparse reducer to a dense reducee can be
+implemented well on a computer. (see slides)
+
+Using delayed modulus is an important optimization here. (see slides)
+
+After this we still need to interreduce the rows of the bottom right
+part of the matrix, which can take a significant amount of time. This
+is done by choosing a subset of rows with new pivots and reducing the
+other rows with respect to these rows, which can be done in
+parallel. This step is repeated until all rows become pivot rows or
+zero rows. Part of the problem here is that selecting the set of pivot
+rows introduces synchronization points so that there might be a lot of
+waiting for the last core to finish, because there is a wait at the
+end of every step. Since reducees need to be converted into dense
+format and then back, there is either a very high memory consumption
+(for keeping everything dense, which is the way it's done now) or
+there is a lot of overhead for converting between dense and sparse
+formats.
+
+Schrawan made a non-parallel implementation that has only 1 active row
+at a time, so there is no explosion in memory use when a very sparse
+lower right matrix needs to be reduced. The skeleton of the algorithm
+used for that implementation is also what I'd recommend for a future
+parallel implementation using atomics.
+
+Project (high-difficulty, medium effort): Schrawan finished his code,
+but he never got it into MathicGB. Get him to put it into MathicGB.
+
+Project (high-difficulty, medium-effort): Implement a parallel reduction
+without synchronization points using atomics. Cores would be competing
+for who gets to have a pivot in a given column and they would keep
+going until their active row is either reduced to zero or it becomes a
+pivot.
+
+Project (high-difficulty, high-effort): Scour the literature to find a
+good parallel algorithm. Implement it. See if it is better. Possibly
+use different algorithms depending on the sparsity of the matrix. Some
+lower right matrices are very dense and some are very sparse and some
+are in-between.
+
+Project (high-difficulty, high-effort): Use vector intrinsics (SSE and
+it's like) to speed up the matrix reduction.
+
+Project (high-difficulty, high-effort): Use GPU's to speed up the
+matrix reduction.
+
+Project (medium-difficulty, high-effort): Try out BLAS for this
+purpose. Try out other already-implemented libraries that might be
+useful. There is also the sparse blas. Can that be used?
+
+Project (medium-difficulty, high-effort): The current implementation
+is for 16 bit primes. Make it work/optimize it for 8 bits and 32 bit
+primes as well. There is a C++ library for doing lots of modulus
+operations by a fixed (but not compile-time constant) integer using
+fancy bit tricks, but for the life of me I cannot find this library's
+website again - something like that might be quite useful, since
+higher bit primes is going to decrease the usefulness of the delayed
+modulus technique.
+
+*** mathicgb/F4ProtoMatrix.hpp .cpp
+
+This class is used by F4MAtrixBuilder2 to store the sub-matrices
+constructed by each core during the initial matrix construction
+step. Memory is stored in large std::vector's.
+
+There is a slight special thing about storing the coefficients. If a
+row in the matrix is m*f for m a monomial and f a basis element, then
+there is no reason to store the coefficients, since the coefficients
+will be just the same as the coefficients of f. We can instead just
+refer to f. If a row is mf-ng, on the other hand, then we do need to
+store the coefficients. F4ProtoMatrix keeps track of this, so that
+some rows have their coefficients stored as a reference to a
+polynomial and other rows have their coefficients stored explicitly
+within the F4ProtoMatrix itself.
+
+Project (medium-difficulty, medium-effort): See if it wouldn't be
+faster to store the sub-matrices in fixed-size blocks of memory
+instead of in std::vector. push_back on std::vector is O(1), but the
+constant is greater than for allocating reasonably sized blocks and
+using those. There is a tricky special case if a very large row uses
+more memory than the block size. This would decrease memory use, too,
+since vector wastes up to half of its memory and these vectors can be
+huge.
+
+*** mathicgb/F4Reducer.hpp .cpp
+
+This class exposes the matrix-based reduction functionality as a
+sub-class of Reducer. So the rest of the code can use F4 without
+knowing much about it.
+
+F4Reducer can write out matrices, but only after splitting into
+left/right and top/bottom.
+
+Project (low-effort, low-difficulty): A lot of the logging here is
+done using tracingLevel. Move that logging to use the MathicGB logging
+system.
+
+*** mathicgb/FixedSizeMonomialMap.h
+
+This is a parallel atomic-based hash table that maps monomials to a
+template type T, generally an integer. The hash table is chained
+because it needs to refer to monomials anyway which requires a
+pointer, so there is no reason not to use chaining. The next pointer
+in the chain and the value is stored right next to the monomial in
+memory. The hash table is fixed size in that it cannot rehash or
+change the number of buckets. The hash table cannot change its size
+because of the nature of the paralellism used - there is no way to
+force all the cores to be aware of the new rehashed hash table (it's a
+bit like read-copy-update used in the Linux kernel, except that
+there's no fixed amount of waiting that will make it safe to
+deallocate the old memory). MathicGB never the less does achieve
+rehashing and growing the hash table, just not directly within a
+single FixedSizeMonomialMap - see MonomialMap.
+
+A lot of effort went into making the following operation as fast as
+possible:
+
+  findProduct(a,b): return the value of the entry corresponding to a*b.
+
+where a,b are monomials. That's because that is where most of the time
+for matrix construction goes. Most of the time for matrix construction
+still goes there despite significant gains in speeding this up. (see
+slides)
+
+Project (high-effort, high-difficulty): Find a way to significantly
+speed up the findProduct operation. Perhaps SSE can help, or some kind
+of cache prefetch instructions. Or a change to memory layout.
+
+Project (low-effort, low-difficulty): This file is for some reason
+called .h instead of .hpp. Fix that.
+
+Project: Get an expert on parallel algorithms to review this part of
+the code. Perhaps something can be improved?
+
+*** mathicgb/io-util.hpp .cpp
+
+This file collects a lot of IO and toString related
+functionality. This functionality has been superseded by the MathicIO
+class.
+
+Project (medium-effort, low-difficulty): Migrate the remaining uses of
+io-util over to use MathicIO and then remove io-util.
+
+*** KoszulQueue.hpp 
+
+Used to keep track of pending Koszul syzygy signatures in the
+signature basis (SB) algorithm. SB keeps a priority queue (ordered
+queue) of certain Koszul signatures that are greater than the current
+signature -- see the SB paper.
+
+*** LogDomain.hpp .cpp
+*** LogDomainSet.hpp .cpp
+
+These files form the MathicGB logging system. A LogDomain is a named
+area of logging that can be turned on or off at runtime and at compile
+time.
+
+A logger that is turned off at compile time emits no code into the
+executable and all the code that writes to that logger is also removed
+by the optimizer if it is written in the correct way. Use the logging
+macroes to ensure proper use so that compile-time disabled LogDomains
+properly have zero overhead. LogDomains can be turned on and off at
+compile time and at runtime individually.
+
+Here logging means both outputting messages to the screen right away
+and collecting statistics for showing later summary information about
+the computation. See these files for further details.
+
+Compile-time enabled loggers automatically register themselves at
+start-up with LogDomainSet::singleton(). LogDomainSet is a singleton
+that keeps track of all the logging domains.
+
+Project (low-effort, medium-difficulty): support turning all loggers
+off globally at compile time with a single macro, regardless of their
+individual compile-time on/off setting. This would allow an easy way
+to measure the overhead of the logging.
+
+Project (high-effort, medium-difficulty): replace all logging based on
+trace-level or adhoc-counters with use of the MathicGB logging system.
+
+
+*** mathicgb.h
+
+This is the entire library interface of MathicGB. It's full of
+documentation, so go read the file if you want to know how the library
+interface works. Clients of the library should not #include any other
+file from MathicGB.
+
+This is the only file that's supposed to be called .h instead of .hpp,
+since it is included from the outside and .h is the customary header
+even for C++ headers.
+
+Project(medium-effort, medium-difficulty): Expand the library
+interface to expose the ability to compute signature bases. Both as in
+getting a signature basis output and as in using a signature basis
+algorithm to compute a classic Groebner basis.
+
+Project(medium-effort, medium-difficulty): This header hides all of
+its implementation using the pimpl pattern. It would be nice if the
+header and the implementation were so separate that you could even
+compile on different compilers and still have work. That requires an
+interface that uses extern "C" as calling convention. So get the
+separation to that level. Though I'm not actually so knowledgeable
+about this matter, so first do some research on this kind of thing to
+figure out what makes sense and then do that.
+
+*** MathicIO.hpp
+
+This file collects all IO-related functionality for MathicGB
+objects. This is reasonable since most of the IO-relevant classes are
+composites whose IO requires IO of its pieces. So putting it together
+lowers compile time and avoids cluttering up all the various classes
+with IO code.
+
+Project (medium-effort, low-difficulty): The input and output code is
+completely separate, so it was silly of me to put it on the same
+class. Separate this class input MathicInput and MathicOutput. That
+would allow each class to keep a bit of state - the file or
+ostream/istream that is being written to/read from. The state of
+MathicInput would be a Scanner. The state of MathicOutput would be at
+first an ostream. However, std::ostream is extremely slow, so you'd
+probably want to migrate that to a FILE*. To be more fancy, you could
+keep a largish buffer and then allow output of that buffer to either
+an ostream or a FILE*. Both FILE* and ostream has per-operation
+overhead, so this will likely be the fastest approach anyway - and it
+mirrors what Scanner does.
+
+Project (high-effort, medium-difficulty): The current file format is a
+complete mess and it's not documented. It shouldn't be too hard to
+figure out from looking at the IO code what the format is. Come up
+with a much better format and implement it. The problems with the
+current format include that you can have at most 52 variables and the
+way that the monomial order is specified is weird. If this is too much
+work, at least document what the current format is, weird as it may
+be.
+
+*** mathicgb/ModuleMonoSet.hpp .cpp
+
+Allows operations on the ideal generated by a set of module
+monomials. Currently used for signatures. This is a virtual interface
+with several implementations based on different mathic data
+structures. The templates are instantiated in the .cpp file to hide
+them from the rest of the code. The implementations are based on
+StaticMonoLookup.
+
+*** mathicgb/MonoLookup.hpp .cpp
+
+Supports queries on the lead terms of the monomials in a PolyBasis or
+a SigPolyBasis. This is a virtual interface that is implemented in the
+.cpp file using templates based on several different mathic data
+structures. The implementations are based on StaticMonoLookup.
+
+Project (medium-difficulty, medium-effort): It's a mess mixing classic
+GB functionality, signature functionality and general monomial lookup
+functionaliy like this. Find a good way to disentangle these things.
+
+*** mathicgb/MonomialMap.hpp
+
+A concurrent/parallel wrapper around FixedSizeMonomialMap. If the
+current FixedsizeMonomialMap gets too full, a new one is created and
+the nodes from that one are cannibalized into the new one, but the old
+table is still kept around. This way a core that is still using the
+old table will not get memory errors, that core just might fail to see
+a monomial that is supposed to be there. The matrix construction code
+is written so that not finding a monomial causes synchronization
+followed by a second look-up. That second look-up will identify the
+most recent hash table and use that for the lookup, so rehashing can
+be done safely and quickly in this way. The only real penalty is that
+all the old hash tables have to be kept around, but that is not much
+memory.
+
+*** MonoMonoid
+
+This class implements monomials and ordering on (monic) monomials. It
+is quite complicated but the interface is nice so all the complexity
+is hidden from the rest of the program. The nasty stuff is handled
+once here and then no where else. The interface is supposed to make it
+impossible to create a mal-formed monomial, at least unless you do a
+cast or refer to deallocated memory.
+
+The eventual idea is to make everything a template on this class so
+that the monomial representation can be radically changed at run-time
+to suit a given computation with no overhead. So no other part of the
+program should have any knowledge of how monoids are represented,
+which is already almost (maybe even fully?) the case.
+
+The memory layout of a monomial depends on template parameters to
+MonoMonoid as well as on the number of variables, the monomial
+ordering being used and the module monomial ordering being used.
+
+It would take a long time to explain the whole thing and it is all
+already documented well in the file, so go there for the details.
+
+Changes to this class should be done with care, in part because it's
+very easy to introduce bugs and in part because the code is carefully
+written and almost all of it is performance critical - any change is
+quite likely to make the program slower, so run lots of benchmarks
+after changing something.
+
+Project(high-effort, high-difficulty): Make everything that interacts
+with monomials a template on the Monoid. This has already been
+started, by giving each class a typedef for Monoid - in future, this
+will become the template parameter. The trick is to use virtual
+interfaces to avoid the problem LELA has where any change to any part
+of the program (almost) requires the whole program to be re-compiled.
+
+Project(high-effort, high-difficulty): Implement an alternative Monoid
+that uses SSE instructions for fast monomial operations. The tricky
+part here will be memory alignment and choosing the right
+representation in memory. Then try that monoid out in benchmarks and
+get a speed-up for inputs that cause a lot of monomial computations.
+
+Project(high-effort, high-difficulty): Implement an alternative monoid
+that is specialized for 0-1 exponents in the presence of the equations
+x^2=x, so that each exponent only requires 1 bit. Document a nice
+speed-up on inputs with 0-1 exponents.
+
+Project(high-effort, high-difficulty): Make monoids that differ only
+in their template boolean parameters (StoreHash, etc.) share part of
+the same state (in particular, the ordering matrix), since it is the
+same anyway. The trick is to do this without impacting performance
+negatively.
+
+Project(high-effort, high-difficulty): Implement an alternative monoid
+that uses a sparse representation so that only non-zero exponents are
+stored. Document a nice speed-up on inputs where most exponents are
+zero. The challenge here is that the monomials are no longer all the
+same size. I've attempted to write the rest of the program without an
+assumption of same-size monomials. The main problem will be
+MonoPool. You'll want to eliminate as many uses of that as possible
+(I've tried not to use it for new code) and then perhaps just eat the
+waste of memory for the remaining few uses.
+
+Project(high-effort, high-difficulty): Implement an alternative monoid
+that is optimized for toric/lattice ideals. These are binomial
+saturated ideals where x^a-x^b can be represented with the single
+vector a-b. Compare to 4ti2. Can we beat them?
+
+Project(high-effort, high-difficulty): Have monoids for 8 bit, 16 bit,
+32 bit, 64 bit. When an exponent overflow occurs anywhere in the
+program, take the current state of the computation and then transfer
+that into the equivalent monoid with next-higher precision of
+exponents.
+
+Project(high-effort, high-difficulty): As previous project, but also
+include arbitrary precision exponents as the final monoid that can
+handle any size exponent. This sort of thing becomes relevant for some
+toric ideal computations and it's why 4ti2 has a build with arbitrary
+precision exponents. The challenge here is that exponents now become
+heavy resource handles - I'm not sure what making that change will
+require. Copying an exponent suddenly goes from cheap to very
+expensive.
+
+Project(high-effort, high-difficulty): Currently it is allowed to mix
+module monomials and monomials. They are not different
+types. MonoMonoid already has a bool parameter intended to make this
+separation (HasComponent). However, the rest of the code doesn't
+observe the distinction, so HasComponent cannot be enforced. Fix that.
+
+Project(high-effort, high-difficulty): Make a MonoMonoid that uses an
+internal virtual interface so that it can implement any monoid
+what-so-ever. Then expose that functionality through the library
+interface, so that external clients can run Groebner basis
+computations on their own monoids. This will likely be slow, but
+that's OK - if that's not acceptable, then just don't use this monoid.
+
+*** mathicgb/MonoOrder.hpp
+
+Class used to describe an monomial order and/or a module monomial
+order. Use this class to construct a monoid. The monoid does the
+actual comparisons. Module monomials must be preprocessed by
+MonoProcessor - otherwise the ordering may not be
+correct. MonoProcessor offers additional parameters for making orders.
+
+
+*** mathicgb/MonoProcessor.hpp
+
+Does pre- and post-processing of monomials to implement module
+monomial orders not directly supported by the monoid. This is the case
+for Schreyer orderings and for changing the direction of which
+component e_i is greater. You need to use this class if you are doing
+input or output of module monomials, since the external world will not
+know or want to know about the transformations used to achieve these
+orderings.
+
+
+*** mathicgb/mtbb.hpp
+
+A compatibility layer for tbb. tbb stans for Intel thread building
+blocks and it's a good library for implementing parallel
+algorithms. If we are compiling with tbb present, then the classes in
+the mtbb namespace will simply be typedefs for the same classes as in
+the tbb namespace. However, if we are compiling without tbb (so
+without parallelism), then these classes will be trivial non-parallel
+implementations that allows MathicGB to work without tbb being
+present. TBB doesn't work on Cygwin, so that is at least one good
+reason to have this compatibility layer. This only works if all uses
+of tbb go through the mtbb namespace, so make sure to do that.
+
+Project (high-effort, high-difficulty): get TBB to work on Cygwin and
+get an official TBB-Cygwin package into Cygwin.
+
+
+*** mathicgb/NonCopyable.hpp
+
+Derive from NonCopyable to disable the compiler-generated copy
+constructor and assignment. In C++11 this can be done with deleted
+methods, but support for that is not universal, so use this instead
+for now.
+
+
+*** mathicgb/Poly.hpp
+
+Poly stores a polynomial. This was originally a large and somewhat
+complicated class, but not so much any more since PrimeField and
+MonoMonoid now offer encapsulation for everything having to do with
+how coefficients and monomials are to be handled. Poly is now mostly
+just a thin layer on top of those abstractions.
+
+
+*** mathicgb/PolyBasis.hpp
+
+Stores a basis of polynomials. Designed for use in Groebner basis
+algorithms - PolyBasis offers functionality like finding a good
+reducer for a monomial.
+
+
+*** mathicgb/PolyHashTable.hpp
+
+A hash table that maps monomials to coefficients. Used in classic
+polynomial reducers. The implementation is very similar to MonomialMap
+except that this hash table is not designed for concurrent use.
+
+
+*** mathicgb/PolyRing.hpp
+
+Represents a polynomial ring. Deals with terms - a monomial with a
+coefficient. It used to be that this class handled everything to do
+with coefficients and monomials so it has a very large interface
+related to all that because some of the code still uses that old
+interface. It is supposed now to be just the combination of a field
+and a monoid - eventually it would become a template on those two.
+
+In future Poly might become a nested class on PolyRing, just like Mono
+is a sub-class of MonoMonoid. I'm not sure if it is a good idea. The
+question is if it would ever make sense to use two different
+representations of polynomials from the same PolyRing. I think
+probably not, but I'm not sure.
+
+Project (high effort, medium difficulty): Get rid of all the remaining
+code that uses the coefficient and monomial interface of PolyRing and
+migrate those to use MonoMonoid and PrimeField. Then clean up the
+PolyRing header to remove all that stuff that is then no longer
+needed. This would involve moving code to use NewConstTerm and then
+please rename that to just ConstTerm and make it a nested type of
+PolyRing that everything uses.
+
+
+*** mathicgb/PrimeField.hpp
+
+Implements modular arithmetic. Is to coefficients what MonoMonoid is
+to monomials. Ideally, it would be possible to swap in a different
+coefficient field just by implementing an alternative to
+PrimeField. For example computations over Z or Q or something more
+complicated would then be possible. This is a more far-off feature and
+the code base is much less prepared for this than it is for
+alternative monoids. On the other hand, less of the code does much
+with coefficients than monomials, so it might not be that bad.
+
+Project (high-effort, low-difficulty): A lot of code still uses the
+PolyRing interface for coefficients. Move that code to use PrimeField
+and then remove the implicit conversions between PrimeField::Element
+and the underlying coefficient type. The idea here is that it should
+be impossible to use coefficients incorrectly by mistake. For example
+it is very easy to just add two coefficient using + by mistake, which
+is bad because then you do not get the modulus and you might get an
+overflow.
+
+Project (high-effort, high-difficulty): Have modular coefficient
+fields with 8, 16, 32 and 64 bits. Then use the appropriate size at
+run-time for the given modulus. Right now we use a 32 bit integer, yet
+the matrix-based reducer only supports 16 bit primes, leaving half the
+coefficient bits wasted for any computation using the matrix-based
+reducer.
+
+Project (high-effort, high-difficulty): Implement a coefficient field
+over Z or Q and use that.
+
+Project(high-effort, high-difficulty): Make a Field that uses an
+internal virtual interface so that it can implement any coefficient
+field what-so-ever. Then expose that functionality through the library
+interface, so that external clients can run Groebner basis
+computations on their own field implementations. This will likely be
+slow, but that's OK - if that's not acceptable, then just don't use
+this field.
+
+*** mathicgb/QuadMatrix.hpp .cpp
+
+A struct that stores 4 matrices, top/left and bottom/right, and
+left/right column monomials that describe what monomial corresponds to
+each column (see ABCD paper and slides). There is also some
+functionality, such as printing statistics about the matrices and
+doing IO of the matrices.
+
+This class is a mess. It's written like a pure data struct just
+keeping a few fields but it has extra functionality. It keeps lists of
+column monomials and a monoid even though it is used in places where
+there is no monoid.
+
+Project(low-difficulty, medium-effort): Encapsulate the 4 matrices
+instead of having them be public fields. Then move the vectors of
+column monomials and the PolyRing reference to some other place so
+that a QuadMatrix can be used in contexts where there are no monomials
+- such as when reading a matrix from disk. Also move the IO to
+MathicIO.
+
+
+*** mathicgb/QuadMatrixBuilder.hpp
+
+Used by F4MatrixBuilder to do the splitting into left/right and
+top/bottom during matrix construction. Not a lot of code here.
+
+
+*** mathicgb/Range.hpp
+
+Introduces basic support for the range concept. A range is,
+conceptually, what you get when you have a begin and an end
+iterator. Combining these together into one thing allows a more
+convenient coding style and this header makes that easy. This also
+combines very well with the C++11 range-based for loop, which allows
+iteration through a range object. See the documentation in the file
+for more details on what this is all about.
+
+Project(high-difficulty, high-effort): Get on the C++ standard
+committee working group for ranges and get them to put better support
+for ranges into the standard library as quickly as possible!
+
+
+*** mathicgb/Reducer.hpp .cpp
+
+This is a virtual interface that encapsulates polynomial reduction. It
+allows the rest of the code to use any of many different
+reduction implementations without having to know about the details.
+
+
+*** mathicgb/ReducerDedup.hpp .cpp
+*** mathicgb/ReducerHash.hpp .cpp
+*** mathicgb/ReducerHashPack.hpp .cpp
+*** mathicgb/ReducerHelper.hpp .cpp
+*** mathicgb/ReducerNoDedup.hpp .cpp
+*** mathicgb/ReducerNoDedup.hpp .cpp
+*** mathicgb/ReducerPack.hpp .cpp
+*** mathicgb/ReducerPackDedup .cpp
+
+These implement various ways of doing classic polynomial
+reduction. They register themselves with Reducer using a global
+object, so if you change one of these files, only that single file
+will be recompiled. The same is true of F4Reducer.
+
+Project(high-difficulty, high-effort): Improve these reducers. The
+fastest one is ReducerHash. Make it faster! :)
+
+
+*** mathicgb/Scanner.hpp .cpp
+
+A class that is very convenient for parsing input, much more so than
+std::istream. It is also faster than using std::istream or FILE*
+directly. It can accept (buffered) input from either a std::istream or
+a FILE*. All text input should go through a Scanner and for a given
+input it should all go through the same scanner since the scanner
+keeps track of the line number for better error messages - that only
+works if no part of the input is read from outside of the scanner.
+
+ 
+*** mathicgb/ScopeExit.hpp
+
+Implements a scope guard. Very convenient for ad-hoc RAII
+needs. Naming the scope guard is optional.
+
+Example:
+  FILE* file = fopen("file.txt", "r");
+  MATHICGB_SCOPE_EXIT() {
+    fclose(file);
+    std::cout << "file closed";
+  };
+  // ...
+  return; // the file is closed
+
+Example:
+  v.push_back(5);
+  MATHICGB_SCOPE_EXIT(name) {v.pop_back();};
+  // ...
+  if (error)
+    return; // the pop_back is done
+  name.dismiss();
+  return; // the pop_back is not done
+
+
+*** mathicgb/SignatureGB.hpp
+
+Implements the SB algorithm.
+
+Project(medium-effort, low-difficulty): Wait with inserting the input
+basis elements into the basis until their signature becomes <= the
+currrent signature. Then regular reduce them at that point. This
+ensures that the basis is regular auto reduced at all times without
+doing any auto reduction - otherwise it isn't. This actually might
+even be a correctness issue for the case where the input basis is not
+already top auto reduced!
+
+Project(high-effort, high-difficulty): Combine SB with matrix-based
+reduction.
+
+Project(high-effort, medium-difficulty): Migrate all the code here
+from using ad-hoc statistics and logging to using the MathicGB logging
+system.
+
+Project(high-effort, high-difficulty): Implement better support for
+incremental module orderings ("module lex" or "component first"),
+especially in the case where we only want a Groebner basis and not a
+signature Groebner basis. Between incremental steps, it would be
+possible to reduce to a Groebner basis and possibly also a win to
+dehomogenize and re-homogenize. This is likely a huge improvement for
+some examples.
+
+
+*** mathicgb/SigPolyBasis.hpp .cpp
+
+Stores a basis of polynomials that each have a signature. Designed for
+use in signature Groebner basis algorithms.
+
+
+*** mathicgb/SigSPairQueue.hpp .cpp
+
+A priority queue on S-pairs where the priority is based on a signature
+as in signature Grobner basis algorithms. The class is not responsible
+for eliminating S-pairs or doing anything beyond order the S-pairs.
+
+
+*** mathicgb/SigSPairs.hpp .cpp
+
+Handles S-pairs in signature Grobner basis algorithms. Responsible for
+eliminating S-pairs, storing S-pairs and ordering S-pairs. See SB
+paper.
+
+
+*** mathicgb/SPairs.hpp .cpp
+
+Stores the set of pending S-pairs for use in the classic Buchberger
+algorithm. Also eliminates useless S-pairs and orders the
+S-pairs. Uses a novel S-pair elimination criterion based on minimum
+spanning trees in a certain graph. Should be slightly better than the
+Gebaeur-Moeller criterion. See description at end of online appendix
+to SB paper.
+
+
+Project(medium-effort, high-difficulty): There's a tricky issue
+here. SPairs computes the lcm of the leading term of components of an
+S-pair in order to figure out if that S-pair can be eliminated. It is
+not necessary to compute the hash value or the degree (=ordering data)
+of the lcm to figure that out. So it uses a monoid instantiated not to
+compute these things. However, the monomial lookup data structure used
+is for the usual monoid that does have these things. So the types
+don't match. These types are layout-compatible, so I fix this
+currently by breaking encapsulation and just casting from one type to
+the other, creating a monomial with invalid hash and degree
+information - though that works out because the lookup data structure
+never looks at those field. This is not a good solution. A good
+solution would be to expose the layout-compatibility and allow
+conversion of references between the monoids so that the lookup data
+structure could advertise just an interface based on the bare monoid
+(no pre-computed hash or ordering data) and then that interface could
+be used directly on monomials from the usual monoid via (possibly
+implicit) conversions of MonoidWithManyField::ConstMonoRef to
+MonoidWithFewerFields::ConstMonoRef. Or find a better solution!
+
+*** mathicgb/SparseMatrix.hpp
+
+Stores a matrix in sparse format. Column indices are stored separately
+from scalars. Column indices and scalars are stored in large blocks of
+memory and a matrix is a sequence of such blocks. The row metadata
+(where is the scalars and indices for this row?) is stored in a single
+std::vector. It was a significant speed-up when I moved to this block
+structure from the previous design which stored scalars in one huge
+std::vector and indices in another huge std::vector. This is the
+default class used to store matrices. For example a QuadMatrix
+consists of 4 SparseMatrices.
+
+
+*** mathicgb/StaticMonoMap.hpp
+
+A template class for implementating many monomial look-up data
+structure operations. Based on mathic data structures and which one
+you want is a template parameter. Used as the underlying
+implementation for most (all?) of the monomial lookup data structures in
+MathicGB.
+
+
+*** mathicgb/stdinc.h
+
+This file is the first file included by all .cpp files in
+MathicGB. Therefore everything in it is available everywhere. This
+file contains a lot of macroes and some typedefs that should be
+available everywhere.
+
+Project(medium-effort, low-difficulty): This file should be named
+stdinc.hpp, not stdinc.h. Rename it.
+
+Project(medium-effort, low-difficulty): Pre-compiled headers should
+speed up compilation of MathicGB tremendously. Especially putting
+memtailor and mathic in a precompiled header should help. Probably
+also MonoMonoid, PrimeField, PolyRing and parts of the STL. Set up
+support for this in MSVC and GCC. Half the work is already done since
+stdinc.h can be the precompiled header - it's already included as the
+first thing everywhere.
+
+
+*** mathicgb/TypicalReducer.hpp .cpp
+
+All the non-matrix based reducers use the same classic polynomial
+reduction high-level algorithm. This class implements that high-level
+algorithm and then a sub-class can specialize the detailed steps, thus
+sharing a lot of code between the various reducers.
+
+
+*** Unchar.hpp 
+
+std::ostream and std::istream handle characters differently from other
+integers. That is not desired when using char as an integer. Use
+Unchar and unchar() to cast integers to a different type (short) if
+they are char.
+
+
+*** test/*
+
+These are unit tests.
+
+Project(high-effort, medium-difficulty): Find things that are not
+currently tested and add tests for them.
+
+
+*** cli/*
+
+This is for the command line interface.
+
+Project (low-effort, low-difficulty): Emit a better and more helpful
+message when running mgb with no parameteres. At a minimum, point
+people to the help action.
+
+
+***** Other projects
+
+Project (medium-effort, medium-difficulty): The leading terms of
+monomials in the basis are not placed together in memory. Placing them
+together in memory might improve cache performance for monomial
+queries.
+
+Project (high-effort, low-difficulty): In a lot of places 0 is used to
+indicate the null pointer. Replace all of those zeroes by the proper
+C++11 keyword: nullptr.
+
+Project (medium-effort, medium-difficulty): The matrix based reducer
+checks overflow of exponents (using the "ample" concept from
+MonoMonoid). The other reduceres do not. Fix that. What is the
+performance impact?
+
+Project (medium-effort, high-difficulty): The tournament trees in
+mathic are non-intrusive. An intrusive tournament tree should be
+faster. Try that.
+
+Project (high-effort, low-difficulty): In some places in MathicGB and
+in lots of places in memtailor and mathic, methods are named
+getFoo(). Change that to just foo(). Also, mathic and memtailor use _
+as a prefix to indicate a member variable. That's a terrible idea,
+since the standard reserves names starting with an underscore to be
+used only by the standard library implementation. (well, strictly
+speaking the prefixes __ and _ followed by an upper case letter, but
+still).
+
+Project (medium-effort, medium-difficulty): memtailor, mathic and
+mathicgb download and compile gtest automatically if gtest is not
+found on the system. mathicgb should do the same thing with memtailor
+and mathic. That would ease installation greatly.
+
+Project (medium-effort, medium-difficulty): There are a lot of
+comments using /// all over, which indicates to doxygen that this is a
+comment that should be included as part of the documentation. However,
+there is not a doxygen makefile target! Make one.
+
+Project (medium-effort, medium-difficulty): The library interface
+should have an option to get a fully auto-reduced (including
+tail-reduced) Groebner basis at the end.
+
+Project (medium-effort, medium-difficulty): The makefile made by
+mathicgb/build/setup/make-Makefile.sh has a target called ana. This
+stands for analysis. What it does is that it runs gcc with all
+warnings that I could find anywhere turned on and it treats warnings
+as errors. memtailor, mathic and mathicgb should build with this
+target without any warnings or errors. That's currently not the case,
+so that should be fixed.
+
+Project (medium-effort, medium-difficulty): Make a makefile target
+like ana, but targeting clangs static analysis tool(s). Then silence
+all the issues that come up.
+
+Project (medium-effort, medium-difficulty): Files should include what
+they use and no more than that. They should also prefer forward
+declarations when that is sufficient. This eases the development
+process as it avoids errors from missing headers and it avoids
+unnecessary recompilations. Maintaining the invariant that every file
+includes exactly what it needs and no more isn't practical to do by
+hand. The tool include-what-you-use flags every missing header, every
+superfluous header and every include that could be replaced by a
+forward declaration. http://code.google.com/p/include-what-you-use/
+. Make a makefile target like ana that runs include-what-you-use over
+everything.
+
+Project (high-effort, medium-difficulty): All the Groebner basis
+implementations are based on giving each basis element an index and
+then maintaining data structures that use those indices. As basis
+elements become top-reducible, some of those indices fall out of use
+(retired). If there are many retired indices, then that causes
+overhead. For example the bit-triangle used to keep track of S-pairs
+uses O(n^2) space where n is the number of indices - retired indices
+still use just as much space. This can be fixed by reindexing - map
+all the active indices to smaller indices so that there are no gaps
+left for the retired indices - it's like they were never there. Update
+all data structures simultaneously to use these new indices. This
+could be done if, say, 1/2 of the indices become retired, or whatever
+is a suitable fraction.
+
+Project (high-effort, high-difficulty): MathicGB uses local memory
+threaded parallelism. Find a way to do computations also in a
+distributed manner and get a good speed-up. Probably the matrix
+reduction is the best first place to make this happen.
+
+Project (medium-effort, medium-difficulty): MathicGB currently uses
+enums to identify the various different reducers and data
+structures. These integer ids are even exposed in the command line
+interface, so you say for example "give me reducer 24". This is not a
+great design. Instead, give each reducer a string name and let the
+command line interface use those. Enable unique prefix matching just
+like is done for action names. Inside MathicGB, get rid of the enums
+entirely. Avoid passing around strings to desribe the desired reducer,
+for example. Instead just pass the actual reducer around.
+
+Project (high-effort, high-difficulty): Let the matrix-based reducer
+run on modules.
+
+Project (high-effort, high-difficulty): Let MathicGB keep track of the
+module representation of it's calculations - that is, how the output
+basis is represented in terms of the input basis. Calculate syzygies
+using this information.
+
+Project (medium-effort, medium-difficulty): Get MathicGB to run on
+Clang. It might do that already. I don't know.
+
+Project (medium-effort, medium-difficulty): gcc has link time
+optimization (lto) and profile-drive optimization. It can lead to
+significant improvements in speed and we are not using those. Set up a
+way to use these and measure the performance improvement. Is it worth
+the hassle?
+
+Project (high-effort, medium-difficulty): Benchmarking has so far been
+quite ad-hoc. Set up a good battery of tests, both of ideals and
+matrices. Maybe get external people involved too. Maybe have a server
+that runs benchmarks and pulls from git each day and graphs the
+results.
+
+Project (medium-effort, medium-difficulty): Get a Sage interface to
+MathicGB.
+
+Project (high-effort, high-difficulty): Popularize MathicGB. Get
+everyone to know about it. Attract more developers.
+
+Project (high-effort, medium-difficulty): Write a nice user's manual.
+
