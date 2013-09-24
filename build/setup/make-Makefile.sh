@@ -93,14 +93,15 @@ anaIndex=${#targetsName[@]};
 targetsName+=("ana");
 targetsDescription+=("Build with many warnings turned on and -Werror.");
 targetsCPPFLAGS+=("-Wall -Wextra -Wno-uninitialized -Wno-unused-parameter\
-  -fsyntax-only -O1 -Wfloat-equal -Wundef\
+   -O1 -Wfloat-equal -Wundef\
   -Wno-endif-labels -Wshadow -Wlarger-than-1000 -Wpointer-arith \
   -Wcast-qual -Wcast-align -Wwrite-strings -Wconversion -Wsign-compare \
   -Waggregate-return -Wmissing-noreturn -Wmissing-format-attribute \
   -Wno-multichar -Wno-deprecated-declarations -Wpacked \
   -Wno-redundant-decls -Wunreachable-code -Winline \
   -Wno-invalid-offsetof -Winvalid-pch -Wlong-long \
-  -Wdisabled-optimization -D DEBUG -Werror");
+  -Wdisabled-optimization -DMEMTAILOR_DEBUG -DMATHIC_DEBUG -DMATHICGB_DEBUG \
+  -Werror");
 targetsCXXFLAGS+=("");
 targetsLDFLAGS+=("");
 targetsMakeArgs+=("");

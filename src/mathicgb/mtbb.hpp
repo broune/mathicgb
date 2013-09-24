@@ -8,6 +8,14 @@
 
 MATHICGB_NAMESPACE_BEGIN
 
+/// A compatibility layer for tbb. If we are compiling with tbb present, then
+/// these classes will simply be the same classes as in tbb. However, if we
+/// are compiling without tbb (so without parallelism), then these classes will
+/// be trivial non-parallel implementations that allows MathicGB to work
+/// without tbb being present. TBB doesn't work on Cygwin, so that is at least
+/// one good reason to have this compatibility layer. This only works if all
+/// uses of tbb go through mtbb, so make sure to do that.
+
 namespace mtbb {
   using ::tbb::task_scheduler_init;
   using ::tbb::mutex;
