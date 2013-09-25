@@ -37,6 +37,7 @@ private:
   //mic::IntegerParameter mTermOrder;
   mathic::IntegerParameter mSPairGroupSize;
   mathic::IntegerParameter mMinMatrixToStore;
+  mic::BoolParameter mModule;
 };
 
 MATHICGB_NAMESPACE_END

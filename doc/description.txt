@@ -1121,6 +1121,16 @@ capitalized. First letter of functions and variables is
 lowerCase. Member variables are prefixed with an m, so
 mMyMemberVariable.
 
+Project(low-effort, low-difficulty): Describe the coding style more
+clearly and in more detail.
+
+Project(medium-effort, low-difficulty): Not all of MathicGB code
+entirely follows this coding style. Reformat that code.
+
+Project(medium-effort, medium-difficulty): Set up an automatic coding
+style checker to check the coding style.
+
+
 -- exceptions
 
 Exceptions are used to signal errors. Code should be exception safe at
@@ -2320,3 +2330,30 @@ everyone to know about it. Attract more developers.
 
 Project (high-effort, medium-difficulty): Write a nice user's manual.
 
+Project (medium-effort, medium-difficulty): There are currently no
+tests that directly invoke the command line interface. Set some up.
+
+Project (medium-effort, medium-difficulty): Reducer is a virtual
+interface and it's intended to be used via unique_ptr handles. Not too
+bad, but value semantics would be nicer. Try this sort of technique out:
+
+  http://channel9.msdn.com/Events/GoingNative/2013/Inheritance-Is-The-Base-Class-of-Evil
+
+The idea here is to push the virtualness inside the class so that it
+becomes an implementation detail instead of something that is exposed
+to clients of the class. Exactly how this should be done for Reducer,
+evaluating if this is even a good idea and figuring out if this idea
+should be applied to widely to other instances of polymorphism in
+MathicGB is part of the project.
+
+Project (medium-effort, medium-difficulty): MathicGB was first written
+before C++11. So to move data around without copying, we used
+std::auto_ptr. Once we started using C++11, all of those were then
+replaced with std::unique_ptr. However, for classes with move
+semantics, we can now just move them around using those move semantics
+without wrapping things in a std::unique_ptr. It's an unnecessary
+indirection. Find all unnecessary std::unique_ptr's and get rid of
+them. Look for std::unique_ptr<T> where T is a non-virtual class with
+move semantics - that's a good clue that probably std::unique_ptr
+isn't doing anything useful there. The main example of this is
+std::unique_ptr<Poly>, which appears in several places.

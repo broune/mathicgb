@@ -79,19 +79,19 @@ private:
     }
 
     bool divides(const Monomial& a, const Monomial& b) const {
-      return monoid().divides(a, b);
+      return monoid().dividesWithComponent(a, b);
     }
 
     bool divides(const Entry& a, const Monomial& b) const {
-      return monoid().divides(a.mono(), b);
+      return monoid().dividesWithComponent(a.mono(), b);
     }
 
     bool divides(const Monomial& a, const Entry& b) const {
-      return monoid().divides(a, b.mono());
+      return monoid().dividesWithComponent(a, b.mono());
     }
 
     bool divides(const Entry& a, const Entry& b) const {
-      return monoid().divides(a.mono(), b.mono());
+      return monoid().dividesWithComponent(a.mono(), b.mono());
     }
 
     bool getSortOnInsert() const {return false;}

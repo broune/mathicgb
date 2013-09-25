@@ -125,7 +125,7 @@ size_t PolyBasis::classicReducer(ConstMonoRef mono) const {
 size_t PolyBasis::divisorSlow(ConstMonoRef mono) const {
   const size_t stop = size();
   for (size_t i = 0; i != stop; ++i)
-    if (!retired(i) && monoid().divides(leadMono(i), mono))
+    if (!retired(i) && monoid().dividesWithComponent(leadMono(i), mono))
       return i;
   return static_cast<size_t>(-1);
 }

@@ -30,13 +30,11 @@ public:
   /// lcms such as hash and degree is expensive (unlike for a product), it is
   /// worthwhile to disable those characteristics that we do not need.
   typedef MonoMonoid<Exponent, true, false, false> BareMonoid;
-  //typedef Monoid BareMonoid;
 
   /// This monoid is used to order S-pairs by their lcm. Here we need to
   /// to store the ordering data for fast comparison, but we do not need
   /// hashes.
   typedef MonoMonoid<Exponent, true, false, true> OrderMonoid;
-  //typedef Monoid OrderMonoid;
 
   SPairs(const PolyBasis& basis, bool preferSparseSPairs);
 

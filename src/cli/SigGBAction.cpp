@@ -21,11 +21,13 @@ SigGBAction::SigGBAction():
     "the S-pair would otherwise cause a polynomial reduction to occur. ",
     false),
 
-  mPostponeKoszul("postponeKoszul",
+  mPostponeKoszul(
+    "postponeKoszul",
     "Postpone the construction of Koszul syzygy signatures.",
     true),
 
-  mUseBaseDivisors("useBaseDivisors",
+  mUseBaseDivisors(
+    "useBaseDivisors",
     "Use high ratio and low ratio base divisors to eliminate "
     "S-spairs quickly based on signature.",
     true),
@@ -78,28 +80,27 @@ void SigGBAction::performAction() {
   alg.displayStats(std::cout);
   alg.displayPaperStats(std::cout);
   {
-    std::ofstream statsOut((mParams.inputFileNameStem(0) + ".stats").c_str());
+    std::ofstream statsOut(mParams.inputFileNameStem(0) + ".stats");
     alg.displayStats(statsOut);
     alg.displayPaperStats(statsOut);
   }
 
-  if (mGBParams.mOutputResult.value())
+  if (mGBParams.mOutputResult.value()) {
+    // print basis
     {
-      // print basis
-      {
-        std::ofstream ogb((mParams.inputFileNameStem(0) + ".gb").c_str());
-        ogb << "-- gb: ----\n";
-        alg.getGB()->display(ogb);
-      }
-      
-      // print syzygy basis
-      {
-        std::ofstream syzygyOut((mParams.inputFileNameStem(0) + ".syz").c_str());
-        syzygyOut << "-- syz: ----\n";
-        alg.getSyzTable()->display(syzygyOut);
-        syzygyOut << std::endl;
-      }
+      std::ofstream ogb(mParams.inputFileNameStem(0) + ".gb");
+      ogb << "-- gb: ----\n";
+      alg.getGB()->display(ogb);
     }
+      
+    // print syzygy basis
+    {
+      std::ofstream syzygyOut(mParams.inputFileNameStem(0) + ".syz");
+      syzygyOut << "-- syz: ----\n";
+      alg.getSyzTable()->display(syzygyOut);
+      syzygyOut << std::endl;
+    }
+  }
 }
 
 const char* SigGBAction::staticName() {

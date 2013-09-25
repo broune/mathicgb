@@ -636,10 +636,30 @@ public:
   }
 
   /// Returns true if a divides b. Equal monomials divide each other.
+  /// Doesn't take component into account - see dividesWithComponent.
   bool divides(ConstMonoRef div, ConstMonoRef into) const {
-    // todo: enable this when the code works with it
+    // todo: enable this when the code works with it - see 
+    // dividesWithComponent.
     //if (HasComponent && component(div) != component(into))
     //  return false;
+    for (auto i = exponentsIndexBegin(); i < exponentsIndexEnd(); ++i)
+      if (access(div, i) > access(into, i))
+        return false;
+    return true;
+  }
+
+  /// Returns true if a divides b. Equal monomials divide each other.
+  /// This also takes the component into account. Once the code base is
+  /// fixed to properly observe the distinction between monomials and
+  /// module monomials, there will only need to be the one divides()
+  /// which takes component into account if and only if HasComponent is
+  /// true. For now, we're left with this imperfect solution of two
+  /// overloads.
+  ///
+  /// @todo: get rid of this method.
+  bool dividesWithComponent(ConstMonoRef div, ConstMonoRef into) const {
+    if (HasComponent && component(div) != component(into))
+      return false;
     for (auto i = exponentsIndexBegin(); i < exponentsIndexEnd(); ++i)
       if (access(div, i) > access(into, i))
         return false;
@@ -666,6 +686,30 @@ public:
     //  monoidA.component(a) != component(b)
     //)
     //  return false;
+    for (VarIndex var = 0; var < varCount(); ++var)
+      if (monoidA.exponent(a, var) > exponent(b, var))
+        return false;
+    return true;
+  }
+
+  /// @todo: get rid of this -- see other overload.
+  template<class MonoidA>
+  bool dividesWithComponent(
+    const MonoidA& monoidA,
+    typename MonoidA::ConstMonoRef a,
+    ConstMonoRef b
+  ) const {
+    // todo: fix other divisibility functions to work properly for component too.
+    MATHICGB_ASSERT(monoidA.varCount() == varCount());
+    MATHICGB_ASSERT(!MonoidA::HasComponent || HasComponent);
+    MATHICGB_ASSERT(monoidA.debugValid(a));
+    MATHICGB_ASSERT(debugValid(b));
+    if (
+      MonoidA::HasComponent &&
+      HasComponent &&
+      monoidA.component(a) != component(b)
+    )
+      return false;
     for (VarIndex var = 0; var < varCount(); ++var)
       if (monoidA.exponent(a, var) > exponent(b, var))
         return false;

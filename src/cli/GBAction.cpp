@@ -9,35 +9,47 @@
 #include "mathicgb/F4Reducer.hpp"
 #include "mathicgb/Scanner.hpp"
 #include "mathicgb/MathicIO.hpp"
+#include "mathicgb/Reducer.hpp"
 #include <fstream>
 #include <iostream>
 
 MATHICGB_NAMESPACE_BEGIN
 
 GBAction::GBAction():
-  mAutoTailReduce("autoTailReduce",
+  mAutoTailReduce(
+    "autoTailReduce",
     "Reduce the non-leading terms of all polynomials whenever an element "
     "is inserted into the basis. Only relevant to the "
     "classic Buchberger algorithm.",
     false),
 
-  mAutoTopReduce("autoTopReduce",
+  mAutoTopReduce(
+    "autoTopReduce",
     "Reduce any basis element whose lead term becomes reducible "
     "by a different basis element. Only relevant to the "
     "classic Buchberger algorithm.",
     true),
 
-  mSPairGroupSize("sPairGroupSize",
+  mSPairGroupSize(
+    "sPairGroupSize",
     "Specifies how many S-pair to reduce at one time. A value of 0 "
     "indicates to use an appropriate default.",
     0),
 
- mMinMatrixToStore("storeMatrices",
-   "If using a matrix-based reducer, store the matrices that are generated in "
-   "files named X-1.mat, X-2.mat and so on where X is the project name. Only "
-   "matrices with at least as many entries as the parameter are stored. "
-   "A value of 0 indicates not to store any matrices.",
-   0),
+  mMinMatrixToStore(
+    "storeMatrices",
+    "If using a matrix-based reducer, store the matrices that are generated in "
+    "files named X-1.mat, X-2.mat and so on where X is the project name. Only "
+    "matrices with at least as many entries as the parameter are stored. "
+    "A value of 0 indicates not to store any matrices.",
+    0),
+
+  mModule(
+    "module",
+    "The input is a basis of a submodule over the polynomial ring instead of "
+    "an ideal in the polynomial ring. This option is experimental.",
+    false
+  ),
 
    mParams(1, 1)
 {}
@@ -63,7 +75,7 @@ void GBAction::performAction() {
   Scanner in(inputFile);
   auto p = MathicIO<>().readRing(true, in);
   auto& ring = *p.first;
-  auto basis = MathicIO<>().readBasis(ring, false, in);
+  auto basis = MathicIO<>().readBasis(ring, mModule.value(), in);
 
   // run algorithm
   const auto reducerType = Reducer::reducerType(mGBParams.mReducer.value());
@@ -83,28 +95,26 @@ void GBAction::performAction() {
     reducer = std::move(f4Reducer);
   }
 
-  ClassicGBAlg alg(
-    basis,
-    *reducer,
-    mGBParams.mMonoLookup.value(),
-    mGBParams.mPreferSparseReducers.value(),
-    mGBParams.mSPairQueue.value());
-  alg.setBreakAfter(mGBParams.mBreakAfter.value());
-  alg.setPrintInterval(mGBParams.mPrintInterval.value());
-  alg.setSPairGroupSize(mSPairGroupSize.value());
-  alg.setReducerMemoryQuantum(mGBParams.mMemoryQuantum.value());
-  alg.setUseAutoTopReduction(mAutoTopReduce.value());
-  alg.setUseAutoTailReduction(mAutoTailReduce.value());
+  ClassicGBAlgParams params;
+  params.reducer = reducer.get();
+  params.monoLookupType = mGBParams.mMonoLookup.value();
+  params.preferSparseReducers = mGBParams.mPreferSparseReducers.value();
+  params.sPairQueueType = mGBParams.mSPairQueue.value();
+  params.breakAfter = mGBParams.mBreakAfter.value();
+  params.printInterval = mGBParams.mPrintInterval.value();
+  params.sPairGroupSize = mSPairGroupSize.value();
+  params.reducerMemoryQuantum = mGBParams.mMemoryQuantum.value();
+  params.useAutoTopReduction = mAutoTopReduce.value();
+  params.useAutoTailReduction = mAutoTailReduce.value();
+  params.callback = nullptr;
 
-  alg.computeGrobnerBasis();
-  alg.printStats(std::cerr);
+  const auto gb = mModule.value() ?
+    computeModuleGBClassicAlg(std::move(basis), params) :
+    computeGBClassicAlg(std::move(basis), params);
 
   if (mGBParams.mOutputResult.value()) {
-    // output Groebner basis into .gb file.
-
-    std::string basisFileName = projectName + ".gb";
-    std::ofstream out(basisFileName);
-    output(out, alg.basis());
+    std::ofstream out(projectName + ".gb");
+    MathicIO<>().writeBasis(gb, mModule.value(), out);
   }
 }
 
@@ -134,6 +144,8 @@ void GBAction::pushBackParameters(
   parameters.push_back(&mAutoTopReduce);
   parameters.push_back(&mSPairGroupSize);
   parameters.push_back(&mMinMatrixToStore);
+  parameters.push_back(&mModule);
 }
 
 MATHICGB_NAMESPACE_END
+  

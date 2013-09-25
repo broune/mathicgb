@@ -266,20 +266,32 @@ spairQueue	reducerType	divLookup	monTable	buchberger	postponeKoszul	useBaseDivis
     if (buchberger) {
       const auto reducer = Reducer::makeReducer
         (Reducer::reducerType(reducerType), ring);
-      ClassicGBAlg alg(
-        std::move(basis),
-        *reducer,
-        divLookup,
-        preferSparseReducers,
-        spairQueue
-      );
-      alg.setUseAutoTopReduction(autoTopReduce);
-      alg.setUseAutoTailReduction(autoTailReduce);
-      alg.setSPairGroupSize(sPairGroupSize);
-      alg.computeGrobnerBasis();
-      std::unique_ptr<Basis> initialIdeal =
-        alg.basis().initialIdeal();
-      EXPECT_EQ(initialIdealStr, toString(initialIdeal.get()))
+
+      ClassicGBAlgParams params;
+      params.reducer = reducer.get();
+      params.monoLookupType = divLookup;
+      params.preferSparseReducers = preferSparseReducers;
+      params.sPairQueueType = spairQueue;
+      params.breakAfter = 0;
+      params.printInterval = 0;
+      params.sPairGroupSize = sPairGroupSize;
+      params.reducerMemoryQuantum = 100 * 1024;
+      params.useAutoTopReduction = autoTopReduce;
+      params.useAutoTailReduction = autoTailReduce;
+      params.callback = nullptr;
+
+      auto gb = computeGBClassicAlg(std::move(basis), params);
+
+      Basis initialIdeal(gb.ring());
+      for (size_t i = 0; i < gb.size(); ++i) {
+        auto poly = make_unique<Poly>(gb.ring());
+        auto leadTerm = gb.getPoly(i)->leadTerm();
+        leadTerm.coef = gb.ring().field().one();
+        poly->append(leadTerm);
+        initialIdeal.insert(std::move(poly));
+      }
+      initialIdeal.sort();
+      EXPECT_EQ(initialIdealStr, toString(&initialIdeal))
         << reducerType << ' ' << divLookup << ' '
         << monTable << ' ' << postponeKoszul << ' ' << useBaseDivisors;
     } else {

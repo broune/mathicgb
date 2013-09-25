@@ -255,6 +255,12 @@ public:
   ConstTermIterator end() const {return makeZip(coefEnd(), monoEnd());}
   ConstTermIteratorRange termRange() const {return range(begin(), end());}
 
+  NewConstTerm leadTerm() const {
+    MATHICGB_ASSERT(!isZero());
+    NewConstTerm term = {leadCoef(), leadMono().ptr()};
+    return term;
+  }
+
 private:
   friend bool operator==(const Poly &a, const Poly &b);
 

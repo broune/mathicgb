@@ -233,6 +233,10 @@ void SPairs::addPairs(size_t newGen) {
     if (mBasis.retired(oldGen))
       continue;
     auto oldLead = mBasis.leadMono(oldGen);
+    if (monoid().component(newLead) != monoid().component(oldLead)) {
+      mEliminated.setBit(newGen, oldGen, true);
+      continue;
+    }
     if (monoid().relativelyPrime(newLead, oldLead)) {
       ++mStats.relativelyPrimeHits;
       mEliminated.setBit(newGen, oldGen, true);
@@ -268,6 +272,10 @@ bool SPairs::simpleBuchbergerLcmCriterion(
   size_t b,
   BareMonoid::ConstMonoRef lcmAB
 ) const {
+  MATHICGB_ASSERT(
+    monoid().component(mBasis.leadMono(a)) ==
+      monoid().component(mBasis.leadMono(b))
+  );
   MATHICGB_ASSERT(a < mBasis.size());
   MATHICGB_ASSERT(b < mBasis.size());
   MATHICGB_ASSERT(a != b);
@@ -312,6 +320,7 @@ bool SPairs::simpleBuchbergerLcmCriterion(
       auto leadA = mBasis.leadMono(mA);
       auto leadB = mBasis.leadMono(mB);
       auto leadC = mBasis.leadMono(index);
+
       if (
         !mSPairs.eliminated(index, mA) &&
         mMonoid.dividesLcm(leadB, leadC, leadA)
@@ -374,7 +383,7 @@ bool SPairs::simpleBuchbergerLcmCriterion(
       if (
           !applies &&
           !mBasis.retired(cacheB) &&
-          mBareMonoid.divides
+          mBareMonoid.dividesWithComponent
             (monoid(), mBasis.leadMono(cacheB), criterion.lcmAB())
       )
         applies = !criterion.Criterion::proceed(cacheB);
@@ -383,7 +392,7 @@ bool SPairs::simpleBuchbergerLcmCriterion(
       if (
         !applies &&
         !mBasis.retired(cacheA) &&
-        mBareMonoid.divides
+        mBareMonoid.dividesWithComponent
           (monoid(), mBasis.leadMono(cacheA), criterion.lcmAB())
       ) {
         applies = !criterion.Criterion::proceed(cacheA);
@@ -426,6 +435,10 @@ bool SPairs::simpleBuchbergerLcmCriterion(
 }
 
 bool SPairs::simpleBuchbergerLcmCriterionSlow(size_t a, size_t b) const {
+  MATHICGB_ASSERT(
+    monoid().component(mBasis.leadMono(a)) ==
+      monoid().component(mBasis.leadMono(b))
+  );
   MATHICGB_ASSERT(a < mBasis.size());
   MATHICGB_ASSERT(b < mBasis.size());
   MATHICGB_ASSERT(a != b);
@@ -446,7 +459,7 @@ bool SPairs::simpleBuchbergerLcmCriterionSlow(size_t a, size_t b) const {
   for (; i < stop; ++i) {
     if (mBasis.retired(i))
       continue;
-    if (!bareMonoid().divides(monoid(), mBasis.leadMono(i), *lcmAB))
+    if (!bareMonoid().dividesWithComponent(monoid(), mBasis.leadMono(i), *lcmAB))
       continue;
     if (i == a || i == b)
       continue;
@@ -611,7 +624,7 @@ bool SPairs::advancedBuchbergerLcmCriterionSlow(size_t a, size_t b) const {
   for (size_t i = 0; i != stop; ++i) {
     if (mBasis.retired(i))
       continue;
-    if (!monoid().divides(mBasis.leadMono(i), *lcmAB))
+    if (!monoid().dividesWithComponent(mBasis.leadMono(i), *lcmAB))
       continue;
     Connection con = NotConnected;
     if (i == a) {

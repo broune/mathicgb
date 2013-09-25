@@ -850,7 +850,7 @@ namespace mgbi {
 }
 
 namespace {
-  class CallbackAdapter : public mgb::ClassicGBAlg::Callback {
+  class CallbackAdapter {
   public:
     typedef mgb::GroebnerConfiguration::Callback::Action Action;
 
@@ -865,7 +865,7 @@ namespace {
     const bool isNull() const {return mCallback == 0;}
     Action lastAction() const {return mLastAction;}
 
-    virtual bool call() {
+    bool operator()() {
       if (isNull())
         return true;
       mLastAction = mCallback(mData);
@@ -925,20 +925,26 @@ namespace mgbi {
       PimplOf()(conf).mCallback
     );
 
-    // Set up and configure algorithm
-    ClassicGBAlg alg(basis, *reducer, 2, true, 0);
-    alg.setReducerMemoryQuantum(100 * 1024);
-    alg.setUseAutoTopReduction(true);
-    alg.setUseAutoTailReduction(false);
-    alg.setSPairGroupSize(conf.maxSPairGroupSize());
+    ClassicGBAlgParams params;
+    params.reducer = reducer.get();
+    params.monoLookupType = 2;
+    params.preferSparseReducers = true;
+    params.sPairQueueType = 0;
+    params.breakAfter = 0;
+    params.printInterval = 0;
+    params.sPairGroupSize = conf.maxSPairGroupSize();
+    params.reducerMemoryQuantum = 100 * 1024;
+    params.useAutoTopReduction = true;
+    params.useAutoTailReduction = false;
+    params.callback = nullptr;
     if (!callback.isNull())
-      alg.setCallback(&callback);
+      params.callback = [&callback](){return callback();};
 
-    // Compute Groebner basis
-    alg.computeGrobnerBasis();
+    auto gb = computeGBClassicAlg(std::move(basis), params);
+
     typedef mgb::GroebnerConfiguration::Callback::Action Action;
     if (callback.lastAction() != Action::StopWithNoOutputAction) {
-      PimplOf()(output).basis = alg.basis().toBasisAndRetireAll();
+      PimplOf()(output).basis = make_unique<Basis>(std::move(gb));
       PimplOf()(output).tmpTerm =
         make_unique_array<GConf::Exponent>(basis.ring().varCount());
       return true;
