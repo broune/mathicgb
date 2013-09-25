@@ -1,14 +1,42 @@
+***** Contents
+
+- Introduction
+- High-level view of MathicGB
+- Installation for unix systems and Cygwin
+- Installation for Visual Studio
+- C++ concepts and miscellaneous MathicGB C++ stuff
+- Description of all files in MathicGB
+- Other projects
+
+
+***** Introduction
+
 Since I'm going into industry I won't be able to continue to do much
 development on MathicGB. I have hope that the torch will be picked up
-and in this document I am writing about my thoughts and knowledge of
-the system. I also make suggestions about projects that would improve
-MathicGB and I indicate for each how much effort I think it will be
-and how difficult I think it will be - these estimates are not
-guaranteed to be accurate. This is all current as of September 24,
-2013.
+and in this document I am writing about my thoughts and knowledge
+about MathicGB. I also make suggestions about projects that would
+improve MathicGB and I indicate for each how much effort I think it
+will be and how difficult I think it will be - some of these estimates
+may be way off. This is all current as of September 24, 2013.
 
   -- Bjarke Hammersholt Roune
 
+
+***** High-level view of MathicGB
+
+The core engine of MathicGB is ClassicGBAlg, which implements the
+classic Buchberger algorithm with some improvements, and SignatureGB
+which implements the Signature Basis Algorithm. These classes do not
+contain that much code, instead they use a lot of other classes to do
+their bidding. They have classes for keeping track of the basis, for
+keeping track of the S-pairs, for doing the reductions and for
+representing the coefficients, monomials and polynomials. Some of
+these are encapsulated behind virtual interfaces, so that different
+implementations can be chosen at run-time. This is notably the case
+for the reducers.
+
+ClassicGBAlg also implements F4, which is achived by having a reducer
+that does matrix-based reduction.
 
 ***** Installation for unix systems and Cygwin
 
@@ -1098,22 +1126,6 @@ mMyMemberVariable.
 Exceptions are used to signal errors. Code should be exception safe at
 least to the extent of not crashing or leaking memory in the face of
 exceptions.
-
-***** High-level view of MathicGB
-
-The core engine of MathicGB is ClassicGBAlg, which implements the
-classic Buchberger algorithm with some improvements, and SignatureGB
-which implements the Signature Basis Algorithm. These classes do not
-contain that much code, instead they use a lot of other classes to do
-their bidding. They have classes for keeping track of the basis, for
-keeping track of the S-pairs, for doing the reductions and for
-representing the coefficients, monomials and polynomials. Some of
-these are encapsulated behind virtual interfaces, so that different
-implementations can be chosen at run-time. This is notably the case
-for the reducers.
-
-ClassicGBAlg also implements F4, which is achived just by having a
-reducer that does matrix-based reduction.
 
 
 ***** Description of all files in MathicGB
