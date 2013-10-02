@@ -387,5 +387,144 @@ auto adjPairRange(
   return adjPairRange(std::begin(r), std::end(r));
 }
 
+// *** Flatten range of ranges into a single range
+
+/// Flatten is an iterator that iterates through each range in a range
+/// of ranges. The point is to enable the flatten() function defined
+/// further down in this header. This iterator is invalidated whenever
+/// the outer range or any of the inner ranges invalidate any iterator
+/// or change their number of elements.
+template<class OuterIterator>
+class Flatten {
+public:
+  typedef decltype(std::begin(*std::declval<OuterIterator>())) InnerIteratorRaw;
+  typedef typename std::decay<InnerIteratorRaw>::type InnerIterator;
+
+  typedef typename std::iterator_traits<InnerIterator>::difference_type
+    difference_type;
+  typedef typename std::iterator_traits<InnerIterator>::value_type value_type;
+  typedef typename std::iterator_traits<InnerIterator>::pointer pointer;
+  typedef typename std::iterator_traits<InnerIterator>::reference reference;
+
+  // It would be possible to do something fancy here to identify the exact
+  // most general iterator category. I have not done that since I have not
+  // needed it so far.
+  typedef std::forward_iterator_tag iterator_category;
+
+  Flatten() {}
+  Flatten(const OuterIterator outerBegin, const OuterIterator outerEnd):
+    mOuter(outerBegin),
+    mOuterEnd(outerEnd)
+  {
+    adjustOuter();
+    MATHICGB_ASSERT(debugAssertValid());
+  }
+
+  Flatten& operator++() {
+    MATHICGB_ASSERT(debugAssertValid());
+    MATHICGB_ASSERT(!atEnd());
+    MATHICGB_ASSERT(mInner != std::end(*mOuter));
+
+    ++mInner;
+    if (mInner == std::end(*mOuter)) {
+      ++mOuter;
+      adjustOuter();
+    }
+
+    MATHICGB_ASSERT(debugAssertValid());
+    return *this;
+  }
+
+  decltype(*std::declval<InnerIterator>()) operator*() const {
+    MATHICGB_ASSERT(!atEnd());
+    return *mInner;
+  }
+
+  bool equal(const Flatten& f) const {
+    MATHICGB_ASSERT(debugAssertValid());
+    MATHICGB_ASSERT(f.debugAssertValid());
+
+    if (atEnd())
+      return f.atEnd();
+    else
+      return mInner == f.mInner;
+  }
+
+  bool debugAssertValid() const {
+    MATHICGB_ASSERT(atEnd() || mInner != std::end(*mOuter));
+    return true;
+  }
+
+private:
+  bool atEnd() const {return mOuter == mOuterEnd;}
+
+  void adjustOuter() {
+    for (; !atEnd(); ++mOuter) {
+      if (std::begin(*mOuter) != std::end(*mOuter)) {
+        mInner = std::begin(*mOuter);
+        return;
+      }
+    }
+  }
+
+  InnerIterator mInner;
+  OuterIterator mOuter;
+  OuterIterator mOuterEnd;
+};
+
+template<class OuterIterator>
+bool operator==(
+  const Flatten<OuterIterator>& a,
+  const Flatten<OuterIterator>& b
+) {
+  return a.equal(b);
+}
+
+template<class OuterIterator>
+bool operator!=(
+  const Flatten<OuterIterator>& a,
+  const Flatten<OuterIterator>& b
+) {
+  return !(a == b);
+}
+
+template<class OuterIterator>
+Flatten<OuterIterator> makeFlatten(
+  OuterIterator outerIterator, 
+  OuterIterator outerEnd
+) {
+  return Flatten<OuterIterator>(outerIterator, outerEnd);
+}
+
+/// As flatten(range(begin, end)).
+template<class OuterIterator>
+Range<Flatten<OuterIterator>> flattenRange(
+  OuterIterator outerBegin,
+  OuterIterator outerEnd
+) {
+  return range(
+    makeFlatten(outerBegin, outerEnd),
+    makeFlatten(outerEnd, outerEnd)
+  );
+}
+
+/// Constructs a range of the union of all (inner) ranges in outerRange.
+///
+/// Example:
+///   std::vector<std::list<int>> v(3);
+///   v[0].push_back(1);
+///   v[2].push_back(2);
+///   v[2].push_back(3);
+///   for (const auto& i : flattenRange(v))
+///     std::cout << i << ' ';
+///
+/// The output is "1 2 3 ";
+template<class OuterRange>
+auto flattenRange(
+  OuterRange&& outerRange
+) -> decltype(flattenRange(std::begin(outerRange), std::end(outerRange))) {
+  return flattenRange(std::begin(outerRange), std::end(outerRange));
+}
+
 MATHICGB_NAMESPACE_END
 #endif

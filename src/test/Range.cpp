@@ -11,6 +11,7 @@
 #include <iterator>
 #include <vector>
 #include <list>
+#include <map>
 
 using namespace mgb;
 
@@ -163,4 +164,46 @@ TEST(Range, adjPairRange) {
 
   Pair adj4[] = {Pair(0, 1), Pair(1, 2), Pair(2, 3)};
   ASSERT_EQ(rangeToVector(adj4), rangeToVector(adjPairRange(intRange(4))));
+}
+
+TEST(Range, flatten) {
+  std::vector<std::list<int>> v(3);
+  v[0].push_back(1);
+  v[2].push_back(2);
+  v[2].push_back(3);
+
+  std::ostringstream out;
+  for (const auto& i : flattenRange(v))
+    out << i << ' ';
+  ASSERT_EQ("1 2 3 ", out.str());
+}
+
+TEST(Range, flattenRecursive) {
+  std::list<std::vector<std::set<int>>> outer;
+
+  outer.emplace_back();
+
+  outer.emplace_back();
+  outer.back().emplace_back();
+  outer.back().emplace_back();
+  outer.back().back().insert(1);
+  outer.back().emplace_back();
+  outer.back().back().insert(2);
+  outer.back().emplace_back();
+
+  outer.back().emplace_back();
+  outer.back().back().insert(3);
+  outer.back().back().insert(4);
+  outer.back().back().insert(5);
+  outer.back().back().insert(6);
+  outer.back().emplace_back();
+  outer.back().back().insert(7);
+
+  outer.back().emplace_back();
+  outer.back().emplace_back();
+
+  std::ostringstream out;
+  for (const auto& i : flattenRange(flattenRange(outer)))
+    out << i << ' ';
+  ASSERT_EQ("1 2 3 4 5 6 7 ", out.str());
 }

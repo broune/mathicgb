@@ -1621,6 +1621,7 @@ public:
       mMonos.resize(offset + monoid().entryCount());
       monoid().copy(mono, *MonoPtr(mMonos.data() + offset));
       MATHICGB_ASSERT(monoid().debugValid(back()));
+      MATHICGB_ASSERT(monoid().equal(back(), mono));
     }
 
     template<class Monoid>
@@ -1633,10 +1634,11 @@ public:
       mMonos.resize(offset + monoid().entryCount());
       monoid().copy(monoidMono, mono, *MonoPtr(mMonos.data() + offset));
       MATHICGB_ASSERT(monoid().debugValid(back()));
+      MATHICGB_ASSERT(monoid().equal(monoidMono, mono, back()));
     }
 
     void swap(MonoVector& v) {
-      MATHICGB_ASSERT(&monoid() == &v.monoid());
+      MATHICGB_ASSERT(monoid() == v.monoid());
       mMonos.swap(v.mMonos);
     }
 
