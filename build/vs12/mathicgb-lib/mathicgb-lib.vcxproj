@@ -222,18 +222,19 @@
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>TBB_USE_DEBUG=1;WIN32;MATHICGB_DEBUG;MATHIC_DEBUG;MEMTAILOR_DEBUG;_DEBUG;_WINDOWS;_USRDLL;MATHICGBLIB_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>C:\projs\mathic\tbb\include;C:\projs\mathic\mathicgb\src;C:\projs\mathic\mathic\src;C:\projs\mathic\memtailor\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>TBB_USE_DEBUG=1;WIN32;MATHICGB_DEBUG;MATHIC_DEBUG;MEMTAILOR_DEBUG;_DEBUG;_WINDOWS;_USRDLL;MATHICGBLIB_EXPORTS;_SCL_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(ProjectDir)\..\..\..\..\tbb\include;$(ProjectDir)\..\..\..\..\mathicgb\src;$(ProjectDir)\..\..\..\..\mathic\src;$(ProjectDir)\..\..\..\..\memtailor\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <MinimalRebuild>false</MinimalRebuild>
       <OpenMPSupport>false</OpenMPSupport>
+      <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <Lib>
-      <AdditionalLibraryDirectories>C:\projs\mathic\tbb\lib\ia32\vc11;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(ProjectDir)\..\..\..\..\tbb\lib\ia32\vc11;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>tbb_debug.lib</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
@@ -242,18 +243,19 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>TBB_USE_DEBUG=1;WIN64;MATHICGB_DEBUG;MATHIC_DEBUG;MEMTAILOR_DEBUG;_DEBUG;_WINDOWS;_USRDLL;MATHICGBLIB_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>C:\projs\mathic\tbb\include;C:\projs\mathic\mathicgb\src;C:\projs\mathic\mathic\src;C:\projs\mathic\memtailor\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>TBB_USE_DEBUG=1;WIN64;MATHICGB_DEBUG;MATHIC_DEBUG;MEMTAILOR_DEBUG;_DEBUG;_WINDOWS;_USRDLL;MATHICGBLIB_EXPORTS;_SCL_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(ProjectDir)\..\..\..\..\tbb\include;$(ProjectDir)\..\..\..\..\mathicgb\src;$(ProjectDir)\..\..\..\..\mathic\src;$(ProjectDir)\..\..\..\..\memtailor\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <MinimalRebuild>false</MinimalRebuild>
       <OpenMPSupport>false</OpenMPSupport>
+      <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <Lib>
-      <AdditionalLibraryDirectories>C:\projs\mathic\tbb\lib\intel64\vc11;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(ProjectDir)\..\..\..\..\tbb\lib\intel64\vc11;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>tbb_debug.lib</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
@@ -263,19 +265,20 @@
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>TBB_USE_DEBUG=1;WIN32;MATHICGB_DEBUG;MATHIC_DEBUG;MEMTAILOR_DEBUG;_DEBUG;_WINDOWS;_USRDLL;MATHICGBLIB_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>C:\projs\mathic\tbb\include;C:\projs\mathic\mathicgb\src;C:\projs\mathic\mathic\src;C:\projs\mathic\memtailor\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>TBB_USE_DEBUG=1;WIN32;MATHICGB_DEBUG;MATHIC_DEBUG;MEMTAILOR_DEBUG;_DEBUG;_WINDOWS;_USRDLL;MATHICGBLIB_EXPORTS;_SCL_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(ProjectDir)\..\..\..\..\tbb\include;$(ProjectDir)\..\..\..\..\mathicgb\src;$(ProjectDir)\..\..\..\..\mathic\src;$(ProjectDir)\..\..\..\..\memtailor\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <TreatWarningAsError>true</TreatWarningAsError>
       <MinimalRebuild>false</MinimalRebuild>
       <OpenMPSupport>false</OpenMPSupport>
+      <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <Lib>
-      <AdditionalLibraryDirectories>C:\projs\mathic\tbb\lib\ia32\vc11;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(ProjectDir)\..\..\..\..\tbb\lib\ia32\vc11;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>tbb_debug.lib</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
@@ -284,19 +287,20 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>TBB_USE_DEBUG=1;WIN64;MATHICGB_DEBUG;MATHIC_DEBUG;MEMTAILOR_DEBUG;_DEBUG;_WINDOWS;_USRDLL;MATHICGBLIB_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>C:\projs\mathic\tbb\include;C:\projs\mathic\mathicgb\src;C:\projs\mathic\mathic\src;C:\projs\mathic\memtailor\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>TBB_USE_DEBUG=1;WIN64;MATHICGB_DEBUG;MATHIC_DEBUG;MEMTAILOR_DEBUG;_DEBUG;_WINDOWS;_USRDLL;MATHICGBLIB_EXPORTS;_SCL_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(ProjectDir)\..\..\..\..\tbb\include;$(ProjectDir)\..\..\..\..\mathicgb\src;$(ProjectDir)\..\..\..\..\mathic\src;$(ProjectDir)\..\..\..\..\memtailor\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <TreatWarningAsError>true</TreatWarningAsError>
       <MinimalRebuild>false</MinimalRebuild>
       <OpenMPSupport>false</OpenMPSupport>
+      <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <Lib>
-      <AdditionalLibraryDirectories>C:\projs\mathic\tbb\lib\intel64\vc11;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(ProjectDir)\..\..\..\..\tbb\lib\intel64\vc11;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>tbb_debug.lib</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
@@ -306,18 +310,19 @@
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>TBB_USE_DEBUG=1;WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>C:\projs\mathic\tbb\include;C:\projs\mathic\mathicgb\src;C:\projs\mathic\mathic\src;C:\projs\mathic\memtailor\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>TBB_USE_DEBUG=1;WIN32;NDEBUG;_CONSOLE;_SCL_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(ProjectDir)\..\..\..\..\tbb\include;$(ProjectDir)\..\..\..\..\mathicgb\src;$(ProjectDir)\..\..\..\..\mathic\src;$(ProjectDir)\..\..\..\..\memtailor\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <MinimalRebuild>false</MinimalRebuild>
       <OpenMPSupport>false</OpenMPSupport>
+      <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <Lib>
-      <AdditionalLibraryDirectories>C:\projs\mathic\tbb\lib\ia32\vc11;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(ProjectDir)\..\..\..\..\tbb\lib\ia32\vc11;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>tbb_debug.lib</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
@@ -326,18 +331,19 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>TBB_USE_DEBUG=1;WIN64;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>C:\projs\mathic\tbb\include;C:\projs\mathic\mathicgb\src;C:\projs\mathic\mathic\src;C:\projs\mathic\memtailor\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>TBB_USE_DEBUG=1;WIN64;NDEBUG;_CONSOLE;_SCL_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(ProjectDir)\..\..\..\..\tbb\include;$(ProjectDir)\..\..\..\..\mathicgb\src;$(ProjectDir)\..\..\..\..\mathic\src;$(ProjectDir)\..\..\..\..\memtailor\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <MinimalRebuild>false</MinimalRebuild>
       <OpenMPSupport>false</OpenMPSupport>
+      <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <Lib>
-      <AdditionalLibraryDirectories>C:\projs\mathic\tbb\lib\intel64\vc11;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(ProjectDir)\..\..\..\..\tbb\lib\intel64\vc11;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>tbb_debug.lib</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
@@ -348,11 +354,12 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;MATHICGBLIB_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>C:\projs\mathic\tbb\include;C:\projs\mathic\mathicgb\src;C:\projs\mathic\mathic\src;C:\projs\mathic\memtailor\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;MATHICGBLIB_EXPORTS;_SCL_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(ProjectDir)\..\..\..\..\tbb\include;$(ProjectDir)\..\..\..\..\mathicgb\src;$(ProjectDir)\..\..\..\..\mathic\src;$(ProjectDir)\..\..\..\..\memtailor\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <OpenMPSupport>false</OpenMPSupport>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -361,7 +368,7 @@
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
     <Lib>
-      <AdditionalLibraryDirectories>C:\projs\mathic\tbb\lib\ia32\vc11;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(ProjectDir)\..\..\..\..\tbb\lib\ia32\vc11;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>tbb.lib</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
@@ -372,11 +379,12 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>WIN64;NDEBUG;_WINDOWS;_USRDLL;MATHICGBLIB_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>C:\projs\mathic\tbb\include;C:\projs\mathic\mathicgb\src;C:\projs\mathic\mathic\src;C:\projs\mathic\memtailor\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN64;NDEBUG;_WINDOWS;_USRDLL;MATHICGBLIB_EXPORTS;_SCL_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(ProjectDir)\..\..\..\..\tbb\include;$(ProjectDir)\..\..\..\..\mathicgb\src;$(ProjectDir)\..\..\..\..\mathic\src;$(ProjectDir)\..\..\..\..\memtailor\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <OpenMPSupport>false</OpenMPSupport>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -385,7 +393,7 @@
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
     <Lib>
-      <AdditionalLibraryDirectories>C:\projs\mathic\tbb\lib\intel64\vc11;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(ProjectDir)\..\..\..\..\tbb\lib\intel64\vc11;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>tbb.lib</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
@@ -396,11 +404,12 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>TBB_USE_DEBUG=1;WIN32;MATHICGB_DEBUG;MATHIC_DEBUG;MEMTAILOR_DEBUG;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>C:\projs\mathic\tbb\include;C:\projs\mathic\mathicgb\src;C:\projs\mathic\mathic\src;C:\projs\mathic\memtailor\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>TBB_USE_DEBUG=1;WIN32;MATHICGB_DEBUG;MATHIC_DEBUG;MEMTAILOR_DEBUG;_DEBUG;_CONSOLE;_SCL_SECURE_NO_WARNINGS;_SCL_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(ProjectDir)\..\..\..\..\tbb\include;$(ProjectDir)\..\..\..\..\mathicgb\src;$(ProjectDir)\..\..\..\..\mathic\src;$(ProjectDir)\..\..\..\..\memtailor\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <OpenMPSupport>false</OpenMPSupport>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -409,7 +418,7 @@
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
     <Lib>
-      <AdditionalLibraryDirectories>C:\projs\mathic\tbb\lib\ia32\vc11;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(ProjectDir)\..\..\..\..\tbb\lib\ia32\vc11;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>tbb_debug.lib</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
@@ -420,12 +429,13 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>TBB_USE_DEBUG=1;WIN64;MATHICGB_DEBUG;MATHIC_DEBUG;MEMTAILOR_DEBUG;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>C:\projs\mathic\tbb\include;C:\projs\mathic\mathicgb\src;C:\projs\mathic\mathic\src;C:\projs\mathic\memtailor\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>TBB_USE_DEBUG=1;WIN64;MATHICGB_DEBUG;MATHIC_DEBUG;MEMTAILOR_DEBUG;_DEBUG;_CONSOLE;_SCL_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(ProjectDir)\..\..\..\..\tbb\include;$(ProjectDir)\..\..\..\..\mathicgb\src;$(ProjectDir)\..\..\..\..\mathic\src;$(ProjectDir)\..\..\..\..\memtailor\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <OpenMPSupport>false</OpenMPSupport>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <PrecompiledHeaderFile>stdinc.h</PrecompiledHeaderFile>
+      <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -434,7 +444,7 @@
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
     <Lib>
-      <AdditionalLibraryDirectories>C:\projs\mathic\tbb\lib\intel64\vc11;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(ProjectDir)\..\..\..\..\tbb\lib\intel64\vc11;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>tbb_debug.lib</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>

@@ -499,7 +499,10 @@ SparseMatrix::Scalar SparseMatrix::read(FILE* file) {
   const auto rowCount = readOne<uint32>(file);
   const auto colCount = readOne<uint32>(file);
   const auto modulus = readOne<uint32>(file);
-  const auto entryCount = readOne<uint64>(file);
+  const auto entryCount64 = readOne<uint64>(file);
+  if (entryCount64 > std::numeric_limits<size_t>::max())
+    throw std::bad_alloc();
+  const auto entryCount = static_cast<size_t>(entryCount64);
 
   // Allocate memory to hold the matrix in one block.
   clear();

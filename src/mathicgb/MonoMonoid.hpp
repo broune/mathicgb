@@ -1579,6 +1579,8 @@ public:
 
     size_t size() const {return mMonos.size() / monoid().entryCount();}
     bool empty() const {return mMonos.empty();}
+    size_t capacity() const {return mMonos.capacity() / monoid().entryCount();}
+    bool atCapacity() const {return size() == capacity();}
 
 
     // *** Element access
@@ -1658,6 +1660,11 @@ public:
     const MonoMonoid& mMonoid;
   };
 
+  bool debugValid(ConstMonoRef mono) const {
+    MATHICGB_ASSERT(debugOrderValid(mono));
+    MATHICGB_ASSERT(debugHashValid(mono));
+    return true;
+  }
 
 private:
   void operator=(MonoMonoid&); // not available
@@ -1715,12 +1722,6 @@ private:
     }
     MATHICGB_ASSERT(hashCoefficients().size() == varCount());
 #endif
-    return true;
-  }
-
-  bool debugValid(ConstMonoRef mono) const {
-    MATHICGB_ASSERT(debugOrderValid(mono));
-    MATHICGB_ASSERT(debugHashValid(mono));
     return true;
   }
 
@@ -1847,13 +1848,13 @@ private:
     Exponent degree = 0;
     if (orderIsTotalDegreeRevLex()) {
       MATHICGB_ASSERT(grading == 0);
-      for (auto var = 0; var < varCount(); ++var)
+      for (auto var = size_t(0); var < varCount(); ++var)
         degree -= exponent(mono, var);
     } else if (HasComponent && componentGradingIndex() == grading)
       return component(mono);
     else {
       MATHICGB_ASSERT(gradings().size() == gradingCount() * varCount());
-      for (auto var = 0; var < varCount(); ++var) {
+      for (auto var = size_t(0); var < varCount(); ++var) {
         const auto index = gradingsIndex(grading, var);
         degree += exponent(mono, var) * gradings()[index];
       }

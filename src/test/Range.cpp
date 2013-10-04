@@ -173,7 +173,7 @@ TEST(Range, flatten) {
   v[2].push_back(3);
 
   std::ostringstream out;
-  for (const auto& i : flattenRange(v))
+  for (const auto& i : flatten(v))
     out << i << ' ';
   ASSERT_EQ("1 2 3 ", out.str());
 }
@@ -203,7 +203,7 @@ TEST(Range, flattenRecursive) {
   outer.back().emplace_back();
 
   std::ostringstream out;
-  for (const auto& i : flattenRange(flattenRange(outer)))
+  for (const auto& i : flatten(flatten(outer)))
     out << i << ' ';
   ASSERT_EQ("1 2 3 4 5 6 7 ", out.str());
 }

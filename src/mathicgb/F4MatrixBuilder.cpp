@@ -321,7 +321,7 @@ void F4MatrixBuilder::appendRowTop(
     const auto col = findOrCreateColumn
       (it.mono(), multiple, reader, feeder);
 	MATHICGB_ASSERT(it.coef() < std::numeric_limits<Scalar>::max());
-    MATHICGB_ASSERT(it.coef());
+    MATHICGB_ASSERT(!field().isZero(it.coef()));
     builder.appendEntryTop
       (col.first, static_cast<Scalar>(it.coef()));
     ++it;

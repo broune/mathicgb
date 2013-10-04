@@ -179,7 +179,11 @@ bool Scanner::readBuffer(size_t minRead) {
     didReadCount = fread(readInto, 1, readCount, mFile);
   } else if (mStream != 0) {
     mStream->read(readInto, readCount);
-    didReadCount = mStream->gcount();
+    const std::streamsize maxSizeT =
+      std::numeric_limits<std::make_signed<size_t>::type>::max();
+    if (mStream->gcount() > maxSizeT)
+      throw std::bad_alloc();
+    didReadCount = static_cast<size_t>(mStream->gcount());
   }
   mBuffer.resize(saveCount + didReadCount);
   mBufferPos = mBuffer.begin();

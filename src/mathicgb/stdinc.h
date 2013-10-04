@@ -47,7 +47,7 @@
 /// does not alias any other pointer that is used in the current scope.
 #define MATHICGB_RESTRICT __restrict
 
-#pragma warning (disable: 4996) // std::copy on pointers is flagged as dangerous
+#pragma warning (disable: 4996) // don't warn about e.g. std::fill on pointers
 #pragma warning (disable: 4290) // VC++ ignores throw () specification.
 #pragma warning (disable: 4127) // Warns about using "while (true)".
 #pragma warning (disable: 4100) // Warns about unused parameters.

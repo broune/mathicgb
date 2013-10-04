@@ -514,7 +514,7 @@ TEST(MathicGBLib, EarlyExit) {
     size_t minSize = check(useClassic, 1, Action::StopWithPartialOutputAction);
     size_t midSize = check(useClassic, 4, Action::StopWithPartialOutputAction);
     size_t maxSize = check(useClassic, 1, Action::ContinueAction);
-    ASSERT_LT(none, 35); // the stream writes a header even for no output
+    ASSERT_LT(none, 35u); // the stream writes a header even for no output
     ASSERT_LT(none, minSize);
     ASSERT_LT(minSize, midSize);
     ASSERT_LT(midSize, maxSize);

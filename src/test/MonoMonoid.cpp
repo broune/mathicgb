@@ -3,6 +3,7 @@
 #include "mathicgb/stdinc.h"
 #include "mathicgb/MonoMonoid.hpp"
 
+#include "mathicgb/MonoArena.hpp"
 #include "mathicgb/MathicIO.hpp"
 #include <gtest/gtest.h>
 #include <sstream>
@@ -91,10 +92,9 @@ TYPED_TEST(Monoids, VarCount) {
   ASSERT_EQ(12, Monoid(12).varCount());
 }
 
-TYPED_TEST(Monoids, MonoVector) {
-  typedef TypeParam Monoid;
+template<class Monoid, class MonoVector>
+void testMonoVector() {
   typedef typename Monoid::VarIndex VarIndex;
-  typedef typename Monoid::MonoVector MonoVector;
 
   Monoid monoid(13);
   MonoVector v(monoid);
@@ -113,7 +113,7 @@ TYPED_TEST(Monoids, MonoVector) {
   for (size_t i = 0; i < count; ++i) {
     ASSERT_EQ(i, v.size());
     v.push_back(); // push_back, no param
-    ASSERT_GT(v.memoryBytesUsed(), 0);
+    ASSERT_GT(v.memoryBytesUsed(), 0u);
     ASSERT_FALSE(v.empty()); // empty
     ASSERT_EQ(i + 1, v.size()); // size
 
@@ -193,6 +193,25 @@ TYPED_TEST(Monoids, MonoVector) {
   ASSERT_FALSE(v.empty());
   v.clear();
   ASSERT_TRUE(v.empty());
+}
+
+TYPED_TEST(Monoids, MonoVector) {
+  typedef TypeParam Monoid;
+  typedef typename Monoid::MonoVector MonoVector;
+
+  testMonoVector<Monoid, MonoVector>(); 
+}
+
+TYPED_TEST(Monoids, MonoArena) {
+  typedef TypeParam Monoid;
+  typedef MonoArena<Monoid> Arena;
+
+  Monoid monoid(15);
+  Arena a(monoid);
+  a.push_back();
+  return;
+
+  testMonoVector<Monoid, MonoArena<Monoid>>();
 }
 
 TYPED_TEST(Monoids, ReadWriteMonoid) {

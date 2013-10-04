@@ -25,18 +25,101 @@ may be way off. This is all current as of September 24, 2013.
 ***** High-level view of MathicGB
 
 The core engine of MathicGB is ClassicGBAlg, which implements the
-classic Buchberger algorithm with some improvements, and SignatureGB
+classic Buchberger algorithm with some improvements, and SignatureGB,
 which implements the Signature Basis Algorithm. These classes do not
 contain that much code, instead they use a lot of other classes to do
 their bidding. They have classes for keeping track of the basis, for
-keeping track of the S-pairs, for doing the reductions and for
-representing the coefficients, monomials and polynomials. Some of
-these are encapsulated behind virtual interfaces, so that different
-implementations can be chosen at run-time. This is notably the case
-for the reducers.
+keeping track of the S-pairs, for reducing polynomials and for
+representing the coefficients, monomials and polynomials.
 
-ClassicGBAlg also implements F4, which is achived by having a reducer
-that does matrix-based reduction.
+Some of the components used by the top-level algorithms are
+encapsulated behind virtual interfaces, so that different
+implementations can be chosen at run-time. This is notably the case
+for the reducers. For example, ClassicGBAlg implements F4, which is
+achived by having a reducer that does matrix-based reduction. Since
+the reducer is encapsulated behind a virtual interface, the top-level
+algorithm is unaware of whether it is currently doing F4 or the
+classic Buchberger algorithm.
+
+The low level components that take care of coefficients, exponents,
+monomials and terms are not encapsulated behind a virtual
+interface. Most of the inner loops in MathicGB contain an operation on
+one of these structures, so there would be too much overhead if each
+operation required a virtual function call. That is why MathicGB only
+supports a single kind of coefficient, exponent, monomial and
+term. Just like virtual functions, templates allow programming to an
+interchangeable interface, but the overhead of templates is in the
+time it takes to compile the program and in the size of the final
+executable. Templates do not impact the speed of the program, except
+through increasing the size of the final executable, which can lead to
+worse performance from the instruction cache on the CPU.
+
+My plan was for MathicGB to support many different kinds of
+coefficients, exponents, monomials and terms. I wanted to achieve this
+using templates to decouple these structures from the higher-level
+components that use them. I did not have time to complete this plan,
+yet my incomplete efforts in this direction has had a significant
+effect on all of the code and those changes might seem strange without
+knowledge of the end goal - that is why I mention this as part of the
+high-level overview. To complete the plan, all high-level components
+will need to be templates on the low-level structures that they
+use. For example, a structure to represent a polynomial will need to
+be a template on a polynomial ring and a structure for handling
+S-pairs will need to be a template on a monoid (the monoid is the part
+of a polynomial ring that has to do with monomials). None of these are
+currently templates in MathicGB, but they are written in a way that is
+intended to make it easy to turn them into templates. That way I could
+make many of the necessary changes one file at a time and thus test
+each little change one at a time. The more direct alternative would
+have been to do all the changes at the same time, which would have
+taken a month or two and MathicGB would not have been compilable
+during that time. The likely multi-week bug hunting party at the end
+of that would have been a wonderful time.
+
+Many classes in MathicGB have a typedef called Monoid and all
+monomial-related types are then referenced as sub-types of the
+Monoid. That could seem strange since there is only a single monoid
+that MathicGB can currently use, but the idea is that the Monoid type
+would turn into a template parameter and at that point the change for
+becoming a template should be much easier since the code is already
+written in terms of that template parameter/typedef. That is why the
+code is written like that.
+
+Note that there is no problem with using both virtual interfaces and
+templates. The virtual interfaces allows selection of a type at
+runtime, so the user does not have to recompile MathicGB just to
+choose a different reducer implementation. The templates allow a
+choice of types at compile time. These features combine
+beautifully. For example, the virtual Reducer interface could be a
+template on a polynomial ring. By putting the code that instantiates
+that interface into .cpp files, this allows the templated higher-level
+algorithms to use the Reducer interface without ever directly
+observing the code that implements the reducers, even though all the
+code consists of templates - including the high-level algorithm, the
+reducer interface and the reducer implementation. This way a change to
+the reducer implementation does not require recompilation of the
+high-level algorithm.
+
+There is an unfortunate pattern with highly templated programs where
+there ends up being a single file that instantiates most of the entire
+program. This single file can then take a long time to compile and it
+is not possible to compile in parallel since there is only a single
+translation unit that takes most of the time. Even if this pattern is
+avoided, it is often the case that all of the .cpp files include and
+instantiate the same temlates over and over again, leading to slow
+compilation. Hiding the templates behind templated virtual interfaces
+reduces this problem. For example, if the implementations of the
+templated virtual Reducer interface are hidden from the code that uses
+Reducers (that is, they only see the template Reducer interface), then
+that code never sees the Reducer implementations and therefore does
+not need to create its own instantiation of the Reducer
+implementations.
+
+So templates can step in when virtual interfaces are too expensive and
+then virtual interfaces at a higher level of the program can reduce
+the costs of using templates. That's the end goal I had for many of
+the changes in MathicGB.
+
 
 ***** Installation for unix systems and Cygwin
 
@@ -80,17 +163,59 @@ mathic.
 
 Project (medium-effort, low-difficulty): Set up a trac for MathicGB.
 
+
 ***** Installation for Visual Studio
 
-There are Visual Studio 2013 project files for each project in
-mathicgb/build/vs12. I have only tested these on the machine in my
-office. tbb must already be installed in some place where Mathic can
-find them.
+There are Visual Studio 2012 project files for each project in
+mathicgb/build/vs12. I have gotten these to work on both Visual Studio
+Pro 2012 Pro and Visual Studio Express 2012. Getting these files to
+work is more involved than just typing "make", though I found it to be
+worth it because Visual Studio is a first-rate development environment.
 
-Project (medium-to-high-effort, medium-difficulty): Get the Visual
-Studio project files in git to work in Visual Studio Express and
-document for other people how to do that. Improve the project files so
-that they are as easy as possible to get running.
+You must download gtest (source release), tbb (binary release),
+memtailor (source), mathic (source) and mathicgb (source) and put them
+all in the same directory so that it has directories named:
+
+  gtest\
+  tbb\
+  memtailor\
+  mathic\
+  mathicgb\
+
+Now open mathicgb\build\vs12\mathicgb.sln. Select the configuration
+and platform that you want from the drop-down menues at the middle-top
+of the screen. You probably want the Release configuration and the x64
+platform. Now compile everything by pressing F7. As of the time of
+this writing (October 3, 2013) the code compiles in MSVC and you
+should get an error and warning-free build. If other developers have
+picked up the project since then and they are not using MSVC, then
+likely you will need to make changes to the code to get it to compile
+on MSVC.
+
+Right click the mathicgb-test project in the Solution Explorer and
+left click "Set as StartUp Project". Now press F5 to run the unit
+tests. If you have installed tbb globally this might work (is that
+possible?), but otherwise you're going to get an error that the tbb
+dll could not be found. There should be a better solution to this, but
+what I found the easiest to do is to go into tbb\bin\intel64\cv11\ and
+copy all the files there into
+mathicgb\build\vs12\output\x64\Release\. That's for an x64 Release
+build. For a Win32 build, take the files from tbb\bin\ia32\cv11\ and
+copy them into mathicgb\build\vs12\output\Win32\Release\. For a
+different configuration than Release, replace Release with the name of
+the configuration. All these directories will already exist if you try
+building a file with that configuration and platform, which is what
+I'd recommend. After doing this, you should be able to press F5 in
+Visual Studio and get all the tests to run and pass.
+
+Project (Medium-effort, medium-difficulty): Find a better way of
+linking up with tbb that is easy to do and does not involve copying
+files around manually. Also make a .bat file that downloads all the
+necessary source and binary releases and links everything up - serving
+the same purpose as the Makefile written out by make-Makefile.sh. It
+is important that MathicGB isn't too hard to set up on MSVC because
+otherwise developers won't use it and then the code will stop working
+on MSVC.
 
 
 ***** C++ concepts and miscellaneous MathicGB C++ stuff

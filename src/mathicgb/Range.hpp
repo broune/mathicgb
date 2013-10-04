@@ -7,6 +7,7 @@
 #include <vector>
 #include <utility>
 #include <type_traits>
+#include <iterator>
 
 MATHICGB_NAMESPACE_BEGIN
 
@@ -389,6 +390,13 @@ auto adjPairRange(
 
 // *** Flatten range of ranges into a single range
 
+namespace FlattenNamespace {
+  template<class OuterIterator>
+  struct InnerIteratorType {
+    typedef typename std::decay<decltype(std::begin(*OuterIterator()))>::type type;
+  };
+}
+
 /// Flatten is an iterator that iterates through each range in a range
 /// of ranges. The point is to enable the flatten() function defined
 /// further down in this header. This iterator is invalidated whenever
@@ -397,9 +405,13 @@ auto adjPairRange(
 template<class OuterIterator>
 class Flatten {
 public:
-  typedef decltype(std::begin(*std::declval<OuterIterator>())) InnerIteratorRaw;
-  typedef typename std::decay<InnerIteratorRaw>::type InnerIterator;
-
+  // Yes, it would inded make more sense to inline what InnerIteratorType<>
+  // does here. That worked fine on gcc 4.7.3. It did not compile on
+  // MSVC 2012. I spent a lot of time trying to track down the problem
+  // and as far as I can tell, it is a compiler bug. The work-around
+  // with InnerIteratorType works and I'm going to leave it at that.
+  typedef typename FlattenNamespace::InnerIteratorType<OuterIterator>::type
+    InnerIterator;
   typedef typename std::iterator_traits<InnerIterator>::difference_type
     difference_type;
   typedef typename std::iterator_traits<InnerIterator>::value_type value_type;
@@ -446,6 +458,8 @@ public:
 
     if (atEnd())
       return f.atEnd();
+    else if (f.atEnd())
+      return false;
     else
       return mInner == f.mInner;
   }
@@ -498,7 +512,7 @@ Flatten<OuterIterator> makeFlatten(
 
 /// As flatten(range(begin, end)).
 template<class OuterIterator>
-Range<Flatten<OuterIterator>> flattenRange(
+Range<Flatten<OuterIterator>> flatten(
   OuterIterator outerBegin,
   OuterIterator outerEnd
 ) {
@@ -515,15 +529,15 @@ Range<Flatten<OuterIterator>> flattenRange(
 ///   v[0].push_back(1);
 ///   v[2].push_back(2);
 ///   v[2].push_back(3);
-///   for (const auto& i : flattenRange(v))
+///   for (const auto& i : flatten(v))
 ///     std::cout << i << ' ';
 ///
 /// The output is "1 2 3 ";
 template<class OuterRange>
-auto flattenRange(
+auto flatten(
   OuterRange&& outerRange
-) -> decltype(flattenRange(std::begin(outerRange), std::end(outerRange))) {
-  return flattenRange(std::begin(outerRange), std::end(outerRange));
+) -> decltype(flatten(std::begin(outerRange), std::end(outerRange))) {
+  return flatten(std::begin(outerRange), std::end(outerRange));
 }
 
 MATHICGB_NAMESPACE_END
