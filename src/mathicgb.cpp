@@ -72,9 +72,10 @@ bool logNumber(const char* logName, double& number) {
 
 namespace mgbi {
   struct StreamStateChecker::Pimpl {
-    Pimpl(Coefficient modulus, VarIndex varCount):
+    Pimpl(Coefficient modulus, VarIndex varCount, Component comCount):
       modulus(modulus),
       varCount(varCount),
+      comCount(comCount),
       state(Initial),
 
       hasClaimedPolyCount(false),
@@ -100,6 +101,7 @@ namespace mgbi {
 
     const Coefficient modulus;
     const VarIndex varCount;
+    const Component comCount;
 
     State state;
 
@@ -133,8 +135,12 @@ namespace mgbi {
     return true;
   };
 
-  StreamStateChecker::StreamStateChecker(const Coefficient modulus, const VarIndex varCount):
-    mPimpl(new Pimpl(modulus, varCount))
+  StreamStateChecker::StreamStateChecker(
+    const Coefficient modulus,
+    const VarIndex varCount,
+    const Component comCount
+  ):
+    mPimpl(new Pimpl(modulus, varCount, comCount))
   {
     try {
       MATHICGB_STREAM_CHECK(isPrime(modulus), "The modulus must be prime");
@@ -211,7 +217,7 @@ namespace mgbi {
     MATHICGB_ASSERT(mPimpl->debugAssertValid());
   }
 
-  void StreamStateChecker::appendTermBegin() {
+  void StreamStateChecker::appendTermBegin(const Component com) {
     MATHICGB_ASSERT(mPimpl->debugAssertValid());
 
     MATHICGB_STREAM_CHECK(
@@ -231,6 +237,11 @@ namespace mgbi {
         mPimpl->seenTermCount < mPimpl->claimedTermCount,
       "The number of terms in a polynomial must not exceed the amount "
       "passed to appendPolynomialBegin()."
+    );
+    MATHICGB_STREAM_CHECK(
+      com < mPimpl->comCount,
+      "The component passed to appendTermBegin must be strictly less "
+      "than the number of components."
     );
      
     mPimpl->state = Pimpl::MakingTerm;
@@ -333,9 +344,14 @@ namespace mgbi {
 // ** Implementation of the class GroebnerConfiguration
 
 struct GroebnerConfiguration::Pimpl {
-  Pimpl(Coefficient modulus, VarIndex varCount):
+  Pimpl(
+    Coefficient modulus,
+    VarIndex varCount,
+    Component comCount
+  ):
     mModulus(modulus),
     mVarCount(varCount),
+    mComCount(comCount),
     mBaseOrder(RevLexDescendingBaseOrder),
     mGradings(varCount, 1),
     mComponentBefore(ComponentAfterBaseOrder),
@@ -387,6 +403,7 @@ struct GroebnerConfiguration::Pimpl {
 
   const Coefficient mModulus;
   const VarIndex mVarCount;
+  const Component mComCount;
   BaseOrder mBaseOrder;
   std::vector<Exponent> mGradings;
   size_t mComponentBefore;
@@ -403,9 +420,10 @@ struct GroebnerConfiguration::Pimpl {
 
 GroebnerConfiguration::GroebnerConfiguration(
   Coefficient modulus,
-  VarIndex varCount
+  VarIndex varCount,
+  Component comCount
 ):
-  mPimpl(new Pimpl(modulus, varCount))
+  mPimpl(new Pimpl(modulus, varCount, comCount))
 {
   if (modulus > std::numeric_limits<unsigned short>::max()) {
     MATHICGB_ASSERT_NO_ASSUME(false);
@@ -443,6 +461,10 @@ auto GroebnerConfiguration::modulus() const -> Coefficient {
  
 auto GroebnerConfiguration::varCount() const -> VarIndex {
   return mPimpl->mVarCount;
+}
+
+auto GroebnerConfiguration::comCount() const -> Component {
+  return mPimpl->mComCount;
 }
 
 const char* GroebnerConfiguration::baseOrderName(BaseOrder order) {
@@ -619,7 +641,7 @@ struct GroebnerInputIdealStream::Pimpl {
     conf(conf)
 #ifdef MATHICGB_DEBUG
     , hasBeenDestroyed(false),
-    checker(conf.modulus(), conf.varCount())
+    checker(conf.modulus(), conf.varCount(), conf.comCount())
 #endif
   {}
 
@@ -655,16 +677,20 @@ GroebnerInputIdealStream::~GroebnerInputIdealStream() {
   delete[] mExponents;
 }
 
-const GroebnerConfiguration& GroebnerInputIdealStream::configuration() {
+const GroebnerConfiguration& GroebnerInputIdealStream::configuration() const {
   return mPimpl->conf;
 }
 
 auto GroebnerInputIdealStream::modulus() const -> Coefficient {
-  return mPimpl->conf.modulus();
+  return configuration().modulus();
 }
 
 auto GroebnerInputIdealStream::varCount() const -> VarIndex {
-  return mPimpl->conf.varCount();
+  return configuration().varCount();
+}
+
+auto GroebnerInputIdealStream::comCount() const -> Component {
+  return configuration().comCount();
 }
 
 void GroebnerInputIdealStream::idealBegin() {
@@ -704,9 +730,9 @@ void GroebnerInputIdealStream::appendPolynomialBegin(size_t termCount) {
   MATHICGB_ASSERT(debugAssertValid());
 }
 
-void GroebnerInputIdealStream::appendTermBegin() {
+void GroebnerInputIdealStream::appendTermBegin(const Component com) {
   MATHICGB_ASSERT(debugAssertValid());
-  MATHICGB_IF_DEBUG(mPimpl->checker.appendTermBegin());
+  MATHICGB_IF_DEBUG(mPimpl->checker.appendTermBegin(com));
 
   std::fill_n(mExponents, varCount(), 0);
 
@@ -817,9 +843,7 @@ namespace mgbi {
       mPimpl->mTermIt = mPimpl->basis->getPoly(mPimpl->polyIndex)->begin();
   }
 
-  auto IdealAdapter::nextTerm() const
-  -> std::pair<Coefficient, const Exponent*>
-  {
+  auto IdealAdapter::nextTerm() const -> ConstTerm {
     MATHICGB_ASSERT(mPimpl->basis.get() != 0);
     MATHICGB_ASSERT(mPimpl->polyIndex < mPimpl->basis->size());
 
@@ -845,7 +869,11 @@ namespace mgbi {
         mPimpl->mTermIt = mPimpl->basis->getPoly(mPimpl->polyIndex)->begin();
     }
 
-    return std::make_pair(from.coef, to);
+    ConstTerm term;
+    term.coef = from.coef;
+    term.exponents = to;
+    term.com = 0;
+    return term;
   }
 }
 

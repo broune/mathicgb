@@ -46,19 +46,50 @@ namespace mgb { // Part of the public interface of MathicGB
   /// Use this class to describe a configuration of a Groebner basis algorithm
   /// that you want to run.
   ///
+  /// If you came here to compute the Groebner basis of an ideal in a
+  /// polynomial ring and you don't want to deal with modules: Don't worry
+  /// about it. A module with one component over a polynomial ring is the
+  /// same thing as that ring. Simply set the componentCount to 1. Then all
+  /// (module) monomials will have component 0 and you can just ignore that.
+  /// The internal implementation has a special case for this case you will
+  /// not pay an overhead for this other than passing a few 0 components
+  /// through the interface.
+  ///
   /// @todo: expose more of the available functionality.
   class GroebnerConfiguration {
   public:
+    // Type for the coefficient of a term. 2*x is a term with coefficient 2.
     typedef unsigned int Coefficient;
+
+    /// Type to specify a variable in the polynomial ring. If the variables
+    /// are x, y, z in that order, then x has index 0, y has index 1 and z
+    /// has index 2.
     typedef size_t VarIndex;
+
+    /// Type for the exponent of a variable. If x is a variable, then
+    /// x*x = x^2 has exponent 2.
     typedef int Exponent;
 
-    GroebnerConfiguration(Coefficient modulus, VarIndex varCount);
+    /// Type for the component of a module monomial. The module monomial
+    /// x*y*z * e_i has component i.
+    typedef size_t Component;
+
+    /// A configuration in a module over a polynomial ring with varCount
+    /// variables and the coefficients are from the finite field with
+    /// modulus elements. modulus must be a prime. The module has the basis
+    /// e_0, ..., e_k where k is componentCount - 1.
+    GroebnerConfiguration(
+      Coefficient modulus,
+      VarIndex varCount,
+      Component comCount
+    );
+
     GroebnerConfiguration(const GroebnerConfiguration& conf);
     ~GroebnerConfiguration();
 
     Coefficient modulus() const;
     VarIndex varCount() const;
+    Component comCount() const;
 
     enum BaseOrder {
       /// Reverse lexicographic order with x_1 > x_2 > ... > x_n.
@@ -265,11 +296,11 @@ namespace mgb { // Part of the public interface of MathicGB
     void* callbackDataInternal() const;
 
     struct Pimpl;
-    Pimpl* mPimpl;
+    Pimpl* const mPimpl;
   };
 
-  /// After making a configuration, use this class to communicate the input
-  /// basis you want want to run a Groebner basis algorithm on.
+  /// After making a configuration, use this class to communicate a basis
+  /// of the input ideal that you want to run a Groebner basis algorithm on.
   class GroebnerInputIdealStream {
   public:
     GroebnerInputIdealStream(const GroebnerConfiguration& conf);
@@ -278,16 +309,21 @@ namespace mgb { // Part of the public interface of MathicGB
     typedef GroebnerConfiguration::Coefficient Coefficient;
     typedef GroebnerConfiguration::VarIndex VarIndex;
     typedef GroebnerConfiguration::Exponent Exponent;
+    typedef GroebnerConfiguration::Component Component;
 
-    const GroebnerConfiguration& configuration();
+    const GroebnerConfiguration& configuration() const;
     Coefficient modulus() const;
     VarIndex varCount() const;
+    Component comCount() const;
 
     void idealBegin();
     void idealBegin(size_t polyCount);
     void appendPolynomialBegin();
     void appendPolynomialBegin(size_t termCount);
-    void appendTermBegin();
+
+    /// Signals the beginning of communication of a module term of the
+    /// current module element.
+    void appendTermBegin(Component com);
 
     /// The sequence of indices appended to a term must be in strictly
     /// ascending order.
@@ -313,7 +349,7 @@ namespace mgb { // Part of the public interface of MathicGB
   ///   - varCount() const;
   ///   - idealBegin(size_t polyCount);
   ///   - void appendPolynomialBegin(size_t termCount);
-  ///   - void appendTermBegin();
+  ///   - void appendTermBegin(Component com);
   ///   - void appendExponent(VarIndex index, Exponent exponent);
   ///   - void appendTermDone(Coefficient coefficient);
   ///   - void appendPolynomialDone();
@@ -371,23 +407,30 @@ namespace mgb { // Part of the public interface of MathicGB
     typedef GroebnerConfiguration::Coefficient Coefficient;
     typedef GroebnerConfiguration::VarIndex VarIndex;
     typedef GroebnerConfiguration::Exponent Exponent;
+    typedef GroebnerConfiguration::Component Component;
 
     /// All calls are written to log and then passed on to stream.
     IdealStreamLog(std::ostream& log, Stream& stream);
 
     /// All calls are written to log.
-    IdealStreamLog(std::ostream& log, Coefficient modulus, VarIndex varCount);
+    IdealStreamLog(
+      std::ostream& log,
+      Coefficient modulus,
+      VarIndex varCount,
+      Component comCount
+    );
 
     ~IdealStreamLog();
 
     Coefficient modulus() const;
     VarIndex varCount() const;
+    Component comCount() const;
 
     void idealBegin();
     void idealBegin(size_t polyCount);
     void appendPolynomialBegin();
     void appendPolynomialBegin(size_t termCount);
-    void appendTermBegin();
+    void appendTermBegin(Component com);
     void appendExponent(VarIndex index, Exponent exponent);
     void appendTermDone(Coefficient coefficient);
     void appendPolynomialDone();
@@ -396,6 +439,7 @@ namespace mgb { // Part of the public interface of MathicGB
   private:
     const Coefficient mModulus;
     const VarIndex mVarCount;
+    const Component mComCount;
     Stream* const mStream;
     std::ostream& mLog;
   };
@@ -408,17 +452,23 @@ namespace mgb { // Part of the public interface of MathicGB
     typedef GroebnerConfiguration::Coefficient Coefficient;
     typedef GroebnerConfiguration::VarIndex VarIndex;
     typedef GroebnerConfiguration::Exponent Exponent;
+    typedef GroebnerConfiguration::Component Component;
 
-    NullIdealStream(Coefficient modulus, VarIndex varCount);
+    NullIdealStream(
+      Coefficient modulus,
+      VarIndex varCount,
+      Component comCount
+    );
 
     Coefficient modulus() const {return mModulus;}
     VarIndex varCount() const {return mVarCount;}
+    Component comCount() const {return mComCount;}
 
     void idealBegin() {}
     void idealBegin(size_t polyCount) {}
     void appendPolynomialBegin() {}
     void appendPolynomialBegin(size_t termCount) {}
-    void appendTermBegin() {}
+    void appendTermBegin(Component com) {}
     void appendExponent(VarIndex index, Exponent exponent) {}
     void appendTermDone(Coefficient coefficient) {}
     void appendPolynomialDone() {}
@@ -427,6 +477,7 @@ namespace mgb { // Part of the public interface of MathicGB
   private:
     const Coefficient mModulus;
     const VarIndex mVarCount;
+    const Component mComCount;
   };
 
   template<class OutputStream>
@@ -442,15 +493,20 @@ namespace mgb { // Part of the public interface of MathicGB
       typedef GroebnerConfiguration::Coefficient Coefficient;
       typedef GroebnerConfiguration::VarIndex VarIndex;
       typedef GroebnerConfiguration::Exponent Exponent;
+      typedef GroebnerConfiguration::Component Component;
 
-      StreamStateChecker(const Coefficient modulus, const VarIndex varCount);
+      StreamStateChecker(
+        const Coefficient modulus,
+        const VarIndex varCount,
+        const Component comCount
+      );
       ~StreamStateChecker();
 
       void idealBegin();
       void idealBegin(size_t polyCount);
       void appendPolynomialBegin();
       void appendPolynomialBegin(size_t termCount);
-      void appendTermBegin();
+      void appendTermBegin(Component com);
       void appendExponent(VarIndex index, Exponent exponent);
       void appendTermDone(Coefficient coefficient);
       void appendPolynomialDone();
@@ -475,17 +531,19 @@ namespace mgb { // Part of the public interface of MathicGB
     typedef GroebnerConfiguration::Coefficient Coefficient;
     typedef GroebnerConfiguration::VarIndex VarIndex;
     typedef GroebnerConfiguration::Exponent Exponent;
+    typedef GroebnerConfiguration::Component Component;
 
     IdealStreamChecker(Stream& stream);
 
     Coefficient modulus() const;
     VarIndex varCount() const;
+    Component comCount() const;
 
     void idealBegin();
     void idealBegin(size_t polyCount);
     void appendPolynomialBegin();
     void appendPolynomialBegin(size_t termCount);
-    void appendTermBegin();
+    void appendTermBegin(Component com);
     void appendExponent(VarIndex index, Exponent exponent);
     void appendTermDone(Coefficient coefficient);
     void appendPolynomialDone();
@@ -517,7 +575,7 @@ namespace mgb {
   // the caller to use different implementations of the STL.
   inline void GroebnerInputIdealStream::appendExponent(
     const VarIndex index,
-    Exponent exponent
+    const Exponent exponent
   ) {
 #ifdef MATHICGB_DEBUG
     assert(index < varCount());
@@ -584,25 +642,33 @@ namespace mgb {
   IdealStreamLog<Stream>::IdealStreamLog(std::ostream& log, Stream& stream):
     mModulus(stream.modulus()),
     mVarCount(stream.varCount()),
+    mComCount(stream.comCount()),
     mStream(&stream),
     mLog(log)
   {
     mLog << "IdealStreamLog s(stream, log); // modulus=" << mModulus
-      << ", varCount=" << mVarCount << '\n';
+      << ", varCount=" << mVarCount
+      << ", comCount=" << mComCount << '\n';
   }
 
   template<class Stream> 
   IdealStreamLog<Stream>::IdealStreamLog(
     std::ostream& log,
     Coefficient modulus,
-    VarIndex varCount
+    VarIndex varCount,
+    Component comCount
   ):
     mModulus(modulus),
     mVarCount(varCount),
+    mComCount(comCount),
     mStream(0),
     mLog(log)
   {
-    mLog << "IdealStreamLog s(stream, " << mModulus << ", " << mVarCount << ");\n";
+    mLog
+      << "IdealStreamLog s(stream, "
+      << mModulus << ", "
+      << mVarCount << ", "
+      << mComCount << ");\n";
   }
 
   template<class Stream> 
@@ -620,6 +686,12 @@ namespace mgb {
   typename IdealStreamLog<Stream>::VarIndex
   IdealStreamLog<Stream>::varCount() const {
     return mVarCount;
+  }
+
+  template<class Stream> 
+  typename IdealStreamLog<Stream>::Component
+  IdealStreamLog<Stream>::comCount() const {
+    return mComCount;
   }
 
   template<class Stream>
@@ -651,10 +723,10 @@ namespace mgb {
   }
 
   template<class Stream> 
-  void IdealStreamLog<Stream>::appendTermBegin() {
-    mLog << "s.appendTermBegin();\n";
+  void IdealStreamLog<Stream>::appendTermBegin(const Component com) {
+    mLog << "s.appendTermBegin(" << com << ");\n";
     if (mStream != 0)
-      mStream->appendTermBegin();
+      mStream->appendTermBegin(com);
   }
 
   template<class Stream> 
@@ -693,7 +765,7 @@ namespace mgb {
   template<class Stream>
   IdealStreamChecker<Stream>::IdealStreamChecker(Stream& stream):
     mStream(stream),
-    mChecker(stream.modulus(), stream.varCount())
+    mChecker(stream.modulus(), stream.varCount(), stream.comCount())
   {}
 
   template<class Stream>
@@ -706,6 +778,12 @@ namespace mgb {
   typename IdealStreamChecker<Stream>::VarIndex
   IdealStreamChecker<Stream>::varCount() const {
     return mStream.varCount();
+  }
+
+  template<class Stream>
+  typename IdealStreamChecker<Stream>::Component
+  IdealStreamChecker<Stream>::comCount() const {
+    return mStream.comCount();
   }
 
   template<class Stream>
@@ -733,9 +811,9 @@ namespace mgb {
   }
 
   template<class Stream>
-  void IdealStreamChecker<Stream>::appendTermBegin() {
-    mChecker.appendTermBegin();
-    mStream.appendTermBegin();
+  void IdealStreamChecker<Stream>::appendTermBegin(const Component com) {
+    mChecker.appendTermBegin(com);
+    mStream.appendTermBegin(com);
   }
 
   template<class Stream>
@@ -763,12 +841,20 @@ namespace mgb {
   }
 
   // ** Implementation of the class NullIdealStream
-  // This class has to be inline as it is a template.
+  // This class isn't a template, but it might become one and it is so
+  // trivial that making it inline is not a big deal - it's not much more
+  // than just its interface. The idea is also for this class to have minimal
+  // overhead and making it inline helps with that.
+
   inline NullIdealStream::NullIdealStream(
     Coefficient modulus,
-    VarIndex varCount
+    VarIndex varCount,
+    Component comCount
   ):
-    mModulus(modulus), mVarCount(varCount) {}
+    mModulus(modulus),
+    mVarCount(varCount),
+    mComCount(comCount)
+  {}
 
   namespace mgbi {
     /// Used to read an internal MathicGB ideal without exposing the type of
@@ -778,9 +864,15 @@ namespace mgb {
       typedef GroebnerConfiguration::Coefficient Coefficient;
       typedef GroebnerConfiguration::VarIndex VarIndex;
       typedef GroebnerConfiguration::Exponent Exponent;
-      typedef std::pair<Coefficient, const Exponent*> ConstTerm;
+      typedef GroebnerConfiguration::Component Component;
       typedef size_t PolyIndex;
       typedef size_t TermIndex;
+
+      struct ConstTerm {
+        Coefficient coef;
+        const Exponent* exponents;
+        Component com;
+      };
 
       IdealAdapter();
       ~IdealAdapter();
@@ -788,6 +880,7 @@ namespace mgb {
       VarIndex varCount() const;
       size_t polyCount() const;
       size_t termCount(PolyIndex poly) const;
+      Component componentCount() const;
 
       /// Sets the internal position to the first term of the first polynomial.
       void toFirstTerm();
@@ -828,11 +921,11 @@ namespace mgb {
       const size_t termCount = ideal.termCount(polyIndex);
       output.appendPolynomialBegin(termCount);
       for (size_t termIndex = 0; termIndex < termCount; ++termIndex) {
-        output.appendTermBegin();
         const ConstTerm term = ideal.nextTerm();
+        output.appendTermBegin(term.com);
         for (size_t var = 0; var < varCount; ++var)
-          output.appendExponent(var, term.second[var]);
-        output.appendTermDone(term.first);
+          output.appendExponent(var, term.exponents[var]);
+        output.appendTermDone(term.coef);
       }
       output.appendPolynomialDone();
     }
