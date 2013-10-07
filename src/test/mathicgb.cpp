@@ -278,6 +278,198 @@ namespace {
     s.appendPolynomialDone();
     s.idealDone();
   }
+
+  template<class Stream>
+  void makeSimpleModuleBasis(Stream& s) {
+    MATHICGB_ASSERT(s.varCount() >= 4);
+    MATHICGB_ASSERT(s.comCount() >= 4);
+    // The basis is
+    //   c2<0>-b<1>+d<2>
+    //   bd<0>-a<1>+c<2>
+    //   ac<0>-b<2>-d<3>
+    //   b2<0>-a<2>-c<3>
+    const auto minusOne = s.modulus() - 1;
+    s.idealBegin(4);
+      s.appendPolynomialBegin(3); //   c2<0>-b<1>+d<2>
+        s.appendTermBegin(0);
+          s.appendExponent(2, 2);
+        s.appendTermDone(1);
+        s.appendTermBegin(1);
+          s.appendExponent(1, 1);
+        s.appendTermDone(minusOne);
+        s.appendTermBegin(2);
+          s.appendExponent(3, 1);
+        s.appendTermDone(1);
+      s.appendPolynomialDone();
+ 
+      s.appendPolynomialBegin(3); // bd<0>-a<1>+c<2>
+        s.appendTermBegin(0);
+          s.appendExponent(1, 1);
+          s.appendExponent(3, 1);
+        s.appendTermDone(1);
+        s.appendTermBegin(1);
+          s.appendExponent(0, 1);
+        s.appendTermDone(minusOne);
+        s.appendTermBegin(2);
+          s.appendExponent(2, 1);
+        s.appendTermDone(1);
+      s.appendPolynomialDone();
+
+      s.appendPolynomialBegin(3); // ac<0>-b<2>-d<3>
+        s.appendTermBegin(0);
+          s.appendExponent(0, 1);
+          s.appendExponent(2, 1);
+        s.appendTermDone(1);
+        s.appendTermBegin(2);
+          s.appendExponent(1, 1);
+        s.appendTermDone(minusOne);
+        s.appendTermBegin(3);
+          s.appendExponent(3, 1);
+        s.appendTermDone(minusOne);
+      s.appendPolynomialDone();
+
+      s.appendPolynomialBegin(3); // b2<0>-a<2>-c<3>
+        s.appendTermBegin(0);
+          s.appendExponent(1, 2);
+        s.appendTermDone(1);
+        s.appendTermBegin(2);
+          s.appendExponent(0, 1);
+        s.appendTermDone(minusOne);
+        s.appendTermBegin(3);
+          s.appendExponent(2, 1);
+        s.appendTermDone(minusOne);
+      s.appendPolynomialDone();
+ 
+    s.idealDone();
+  }
+
+  template<class Stream>
+  void makeSimpleModuleGroebnerBasis(Stream& s) {
+    s.idealBegin(5); // polyCount
+    s.appendPolynomialBegin(3);
+    s.appendTermBegin(0);
+    s.appendExponent(0, 0); // index, exponent
+    s.appendExponent(1, 0); // index, exponent
+    s.appendExponent(2, 2); // index, exponent
+    s.appendExponent(3, 0); // index, exponent
+    s.appendExponent(4, 0); // index, exponent
+    s.appendTermDone(1); // coefficient
+    s.appendTermBegin(1);
+    s.appendExponent(0, 0); // index, exponent
+    s.appendExponent(1, 1); // index, exponent
+    s.appendExponent(2, 0); // index, exponent
+    s.appendExponent(3, 0); // index, exponent
+    s.appendExponent(4, 0); // index, exponent
+    s.appendTermDone(100); // coefficient
+    s.appendTermBegin(2);
+    s.appendExponent(0, 0); // index, exponent
+    s.appendExponent(1, 0); // index, exponent
+    s.appendExponent(2, 0); // index, exponent
+    s.appendExponent(3, 1); // index, exponent
+    s.appendExponent(4, 0); // index, exponent
+    s.appendTermDone(1); // coefficient
+    s.appendPolynomialDone();
+    s.appendPolynomialBegin(3);
+    s.appendTermBegin(0);
+    s.appendExponent(0, 0); // index, exponent
+    s.appendExponent(1, 1); // index, exponent
+    s.appendExponent(2, 0); // index, exponent
+    s.appendExponent(3, 1); // index, exponent
+    s.appendExponent(4, 0); // index, exponent
+    s.appendTermDone(1); // coefficient
+    s.appendTermBegin(1);
+    s.appendExponent(0, 1); // index, exponent
+    s.appendExponent(1, 0); // index, exponent
+    s.appendExponent(2, 0); // index, exponent
+    s.appendExponent(3, 0); // index, exponent
+    s.appendExponent(4, 0); // index, exponent
+    s.appendTermDone(100); // coefficient
+    s.appendTermBegin(2);
+    s.appendExponent(0, 0); // index, exponent
+    s.appendExponent(1, 0); // index, exponent
+    s.appendExponent(2, 1); // index, exponent
+    s.appendExponent(3, 0); // index, exponent
+    s.appendExponent(4, 0); // index, exponent
+    s.appendTermDone(1); // coefficient
+    s.appendPolynomialDone();
+    s.appendPolynomialBegin(3);
+    s.appendTermBegin(0);
+    s.appendExponent(0, 1); // index, exponent
+    s.appendExponent(1, 0); // index, exponent
+    s.appendExponent(2, 1); // index, exponent
+    s.appendExponent(3, 0); // index, exponent
+    s.appendExponent(4, 0); // index, exponent
+    s.appendTermDone(1); // coefficient
+    s.appendTermBegin(2);
+    s.appendExponent(0, 0); // index, exponent
+    s.appendExponent(1, 1); // index, exponent
+    s.appendExponent(2, 0); // index, exponent
+    s.appendExponent(3, 0); // index, exponent
+    s.appendExponent(4, 0); // index, exponent
+    s.appendTermDone(100); // coefficient
+    s.appendTermBegin(3);
+    s.appendExponent(0, 0); // index, exponent
+    s.appendExponent(1, 0); // index, exponent
+    s.appendExponent(2, 0); // index, exponent
+    s.appendExponent(3, 1); // index, exponent
+    s.appendExponent(4, 0); // index, exponent
+    s.appendTermDone(100); // coefficient
+    s.appendPolynomialDone();
+    s.appendPolynomialBegin(3);
+    s.appendTermBegin(0);
+    s.appendExponent(0, 0); // index, exponent
+    s.appendExponent(1, 2); // index, exponent
+    s.appendExponent(2, 0); // index, exponent
+    s.appendExponent(3, 0); // index, exponent
+    s.appendExponent(4, 0); // index, exponent
+    s.appendTermDone(1); // coefficient
+    s.appendTermBegin(2);
+    s.appendExponent(0, 1); // index, exponent
+    s.appendExponent(1, 0); // index, exponent
+    s.appendExponent(2, 0); // index, exponent
+    s.appendExponent(3, 0); // index, exponent
+    s.appendExponent(4, 0); // index, exponent
+    s.appendTermDone(100); // coefficient
+    s.appendTermBegin(3);
+    s.appendExponent(0, 0); // index, exponent
+    s.appendExponent(1, 0); // index, exponent
+    s.appendExponent(2, 1); // index, exponent
+    s.appendExponent(3, 0); // index, exponent
+    s.appendExponent(4, 0); // index, exponent
+    s.appendTermDone(100); // coefficient
+    s.appendPolynomialDone();
+    s.appendPolynomialBegin(4);
+    s.appendTermBegin(1);
+    s.appendExponent(0, 1); // index, exponent
+    s.appendExponent(1, 1); // index, exponent
+    s.appendExponent(2, 0); // index, exponent
+    s.appendExponent(3, 0); // index, exponent
+    s.appendExponent(4, 0); // index, exponent
+    s.appendTermDone(1); // coefficient
+    s.appendTermBegin(2);
+    s.appendExponent(0, 0); // index, exponent
+    s.appendExponent(1, 1); // index, exponent
+    s.appendExponent(2, 1); // index, exponent
+    s.appendExponent(3, 0); // index, exponent
+    s.appendExponent(4, 0); // index, exponent
+    s.appendTermDone(100); // coefficient
+    s.appendTermBegin(2);
+    s.appendExponent(0, 1); // index, exponent
+    s.appendExponent(1, 0); // index, exponent
+    s.appendExponent(2, 0); // index, exponent
+    s.appendExponent(3, 1); // index, exponent
+    s.appendExponent(4, 0); // index, exponent
+    s.appendTermDone(100); // coefficient
+    s.appendTermBegin(3);
+    s.appendExponent(0, 0); // index, exponent
+    s.appendExponent(1, 0); // index, exponent
+    s.appendExponent(2, 1); // index, exponent
+    s.appendExponent(3, 1); // index, exponent
+    s.appendExponent(4, 0); // index, exponent
+    s.appendTermDone(100); // coefficient
+    s.appendPolynomialDone();
+    s.idealDone();
+  }
 }
 
 TEST(MathicGBLib, NullIdealStream) {
@@ -497,6 +689,32 @@ TEST(MathicGBLib, Cyclic5) {
       (input.modulus(), input.varCount(), input.comCount());
 
     mgb::computeGroebnerBasis(input, computed);
+  }
+}
+
+TEST(MathicGBLib, SimpleModuleIdeal) {
+  for (int i = 0; i < 2; ++i) {
+    mgb::GroebnerConfiguration configuration(101, 5, 4);
+    const auto reducer = i == 0 ?
+      mgb::GroebnerConfiguration::ClassicReducer :
+      mgb::GroebnerConfiguration::MatrixReducer;
+    configuration.setReducer(reducer);
+    mgb::GroebnerInputIdealStream input(configuration);
+    std::ostringstream computedStr;
+    mgb::IdealStreamLog<> computed(computedStr, 101, 5, 4);
+    mgb::IdealStreamChecker<decltype(computed)> checked(computed);
+
+    makeSimpleModuleBasis(input);
+    mgb::computeGroebnerBasis(input, checked);
+
+    std::ostringstream correctStr;
+    mgb::IdealStreamLog<> correct(correctStr, 101, 5, 4);
+    mgb::IdealStreamChecker<decltype(correct)> correctChecked(correct);
+    makeSimpleModuleGroebnerBasis(correctChecked);
+
+    EXPECT_EQ(correctStr.str(), computedStr.str())
+      << "\nDisplayed expected:\n" << correctStr.str()
+      << "\nDisplayed computed:\n" << computedStr.str();
   }
 }
 

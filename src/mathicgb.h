@@ -72,7 +72,7 @@ namespace mgb { // Part of the public interface of MathicGB
 
     /// Type for the component of a module monomial. The module monomial
     /// x*y*z * e_i has component i.
-    typedef size_t Component;
+    typedef unsigned int Component;
 
     /// A configuration in a module over a polynomial ring with varCount
     /// variables and the coefficients are from the finite field with

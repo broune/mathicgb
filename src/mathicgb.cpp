@@ -735,6 +735,7 @@ void GroebnerInputIdealStream::appendTermBegin(const Component com) {
   MATHICGB_IF_DEBUG(mPimpl->checker.appendTermBegin(com));
 
   std::fill_n(mExponents, varCount(), 0);
+  mPimpl->ring.monoid().setComponent(com, mPimpl->monomial);
 
   MATHICGB_ASSERT(debugAssertValid());
 }
@@ -852,6 +853,7 @@ namespace mgbi {
     MATHICGB_ASSERT(p.ring().monoid() == monoid);
 
     const auto& from = *mPimpl->mTermIt;
+    const auto com = monoid.component(*from.mono);
     auto to = mPimpl->tmpTerm.get();
     for (VarIndex var = 0; var < monoid.varCount(); ++var)
       to[var] = monoid.externalExponent(*from.mono, var);
@@ -872,7 +874,7 @@ namespace mgbi {
     ConstTerm term;
     term.coef = from.coef;
     term.exponents = to;
-    term.com = 0;
+    term.com = com;
     return term;
   }
 }
@@ -968,7 +970,9 @@ namespace mgbi {
     if (!callback.isNull())
       params.callback = [&callback](){return callback();};
 
-    auto gb = computeGBClassicAlg(std::move(basis), params);
+    auto gb = conf.comCount() == 1 ?
+      computeGBClassicAlg(std::move(basis), params) :
+      computeModuleGBClassicAlg(std::move(basis), params);
 
     typedef mgb::GroebnerConfiguration::Callback::Action Action;
     if (callback.lastAction() != Action::StopWithNoOutputAction) {

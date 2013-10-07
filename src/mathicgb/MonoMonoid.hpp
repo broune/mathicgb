@@ -994,11 +994,10 @@ public:
   /// exponents must point to an array of size varCount().
   /// After this, exponent(mono, var) is exponents[externalVar(var)].
   /// The value of exponents[var] becomes the exponent of internalVar(var).
+  /// Does not set the component.
   void setExternalExponents(const Exponent* exponents, MonoRef mono) const {
     MATHICGB_ASSERT(exponents != 0);
 
-    if (HasComponent)
-      access(mono, componentIndex()) = 0;
     for (VarIndex iVar = 0; iVar < varCount(); ++iVar) {
       const auto eVar = externalVar(iVar);
       access(mono, exponentsIndexBegin() + iVar) = exponents[eVar];

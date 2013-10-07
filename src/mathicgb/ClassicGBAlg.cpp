@@ -20,6 +20,13 @@ MATHICGB_DEFINE_LOG_DOMAIN(
     "Buchberger's algorithm."
 );
 
+MATHICGB_DEFINE_LOG_DOMAIN(
+  GBInsert,
+  "Outputs polynomials that are inserted into the current "
+  "basis during Groebner basis computation using Buchberger's. "
+  "algorithm."
+);
+
 MATHICGB_NAMESPACE_BEGIN
 
 /// Calculates a classic Grobner basis using Buchberger's algorithm.
@@ -146,9 +153,9 @@ void ClassicGBAlg::setSPairGroupSize(unsigned int groupSize) {
     mSPairGroupSize = groupSize;
 }
 
-void ClassicGBAlg::insertPolys
-(std::vector<std::unique_ptr<Poly> >& polynomials)
-{
+void ClassicGBAlg::insertPolys(
+  std::vector<std::unique_ptr<Poly> >& polynomials
+) {
   if (!mUseAutoTopReduction) {
     for (auto it = polynomials.begin(); it != polynomials.end(); ++it) {
       MATHICGB_ASSERT(it->get() != 0);
@@ -189,6 +196,11 @@ void ClassicGBAlg::insertPolys
       if (mBasis.divisor((*it)->leadMono()) != static_cast<size_t>(-1))
         toReduce.push_back(std::move(*it));
       else {
+        MATHICGB_IF_STREAM_LOG(GBInsert) {
+          stream << "Inserting basis element " << mBasis.size() << ": ";
+          MathicIO<>().writePoly(**it, true, stream);
+          stream << '\n';
+        };
         mBasis.insert(std::move(*it));
         MATHICGB_ASSERT(toRetire.empty());
         mSPairs.addPairsAssumeAutoReduce(mBasis.size() - 1, toRetire);
